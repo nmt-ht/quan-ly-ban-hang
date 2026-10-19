@@ -1,21 +1,21 @@
 <div class="login-screen">
   <form class="login-card" (ngSubmit)="submit()">
     <div class="brand">
-      <span class="brand-mark">NT</span>
+      <span class="brand-mark" aria-hidden="true">NT</span>
       <span>Ninh Trang</span>
     </div>
     <p class="subtitle">Đăng nhập để tiếp tục</p>
 
     <div class="field">
-      <label>Email *</label>
-      <input type="email" name="email" [(ngModel)]="email" required autocomplete="username" />
+      <label for="login-email">Email <span class="required-mark">*</span></label>
+      <input id="login-email" type="email" name="email" [(ngModel)]="email" required autocomplete="username" [attr.aria-invalid]="error() ? 'true' : null" />
     </div>
     <div class="field">
-      <label>Mật khẩu *</label>
-      <input type="password" name="password" [(ngModel)]="password" required autocomplete="current-password" />
+      <label for="login-password">Mật khẩu <span class="required-mark">*</span></label>
+      <input id="login-password" type="password" name="password" [(ngModel)]="password" required autocomplete="current-password" [attr.aria-invalid]="error() ? 'true' : null" aria-describedby="login-error" />
     </div>
 
-    <p class="error" *ngIf="error()">{{ error() }}</p>
+    <p class="error" id="login-error" role="alert" *ngIf="error()">{{ error() }}</p>
 
     <button class="btn btn-primary" type="submit">Đăng nhập</button>
   </form>

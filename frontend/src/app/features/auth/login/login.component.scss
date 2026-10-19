@@ -1,26 +1,32 @@
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
+
 .login-screen {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--nt-bg);
+  padding: var(--space-sm);
+  background: var(--color-paper);
 }
 
 .login-card {
-  width: 340px;
-  background: var(--nt-surface);
-  border: 1px solid var(--nt-border);
-  border-radius: 14px;
-  padding: 28px;
+  width: min(360px, 100%);
+  background: var(--color-surface);
+  border: var(--rule-hair) solid var(--color-rule);
+  border-top: 3px solid var(--color-ink);
+  border-radius: var(--radius-card);
+  padding: var(--space-md);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-weight: 700;
-  font-size: 18px;
-  margin-bottom: 4px;
+  gap: var(--space-2xs);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--text-lg);
+  letter-spacing: -0.01em;
+  margin-bottom: var(--space-3xs);
 }
 
 .brand-mark {
@@ -29,24 +35,27 @@
   justify-content: center;
   width: 28px;
   height: 28px;
-  border-radius: 8px;
-  background: var(--nt-accent);
-  color: var(--nt-accent-contrast);
-  font-size: 12px;
+  border-radius: var(--radius-control);
+  background: var(--color-ink);
+  color: var(--color-surface);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 500;
 }
 
 .subtitle {
-  color: var(--nt-muted);
-  font-size: 13px;
-  margin: 0 0 20px;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  margin: 0 0 var(--space-md);
 }
 
 .error {
-  color: var(--nt-danger);
-  font-size: 12px;
-  margin: -8px 0 12px;
+  color: var(--color-danger);
+  font-size: var(--text-xs);
+  margin: calc(var(--space-2xs) * -1) 0 var(--space-xs);
 }
 
-button[type="submit"] {
+button[type='submit'] {
   width: 100%;
+  min-height: 2.5rem;
 }

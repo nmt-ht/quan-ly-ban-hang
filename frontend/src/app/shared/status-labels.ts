@@ -1,6 +1,26 @@
 import {
-  DeliveryTripStatus, ProductionOrderStatus, PurchaseOrderStatus, SalesOrderStatus,
+  DeliveryTripStatus, ProductionOrderStatus, ProductType, PurchaseOrderStatus, SalesOrderStatus,
 } from '../core/models/domain.models';
+import { tagClass } from './tag-class';
+
+export const PRODUCT_TYPE_LABEL: Record<ProductType, string> = {
+  VAT_TU: 'Vật tư hàng hoá',
+  THANH_PHAM: 'Thành phẩm',
+  DICH_VU: 'Dịch vụ',
+};
+
+// Colour class per tính chất — the colour itself is set in Thiết lập → Màu hiển thị.
+export const PRODUCT_TYPE_CLASS: Record<ProductType, string> = {
+  VAT_TU: tagClass('product-type', 'VAT_TU'),
+  THANH_PHAM: tagClass('product-type', 'THANH_PHAM'),
+  DICH_VU: tagClass('product-type', 'DICH_VU'),
+};
+
+export const businessStatusClass = (isActive: boolean) => tagClass('business-status', isActive ? 'ACTIVE' : 'INACTIVE');
+export const salesOrderStatusClass = (s: SalesOrderStatus) => tagClass('sales-order', s);
+export const purchaseOrderStatusClass = (s: PurchaseOrderStatus) => tagClass('purchase-order', s);
+export const productionOrderStatusClass = (s: ProductionOrderStatus) => tagClass('production-order', s);
+export const deliveryTripStatusClass = (s: DeliveryTripStatus) => tagClass('delivery-trip', s);
 
 // Nhãn trạng thái tiếng Việt, theo docs/crawl (04, 06, 09, 10).
 export const SALES_ORDER_STATUS_LABEL: Record<SalesOrderStatus, string> = {

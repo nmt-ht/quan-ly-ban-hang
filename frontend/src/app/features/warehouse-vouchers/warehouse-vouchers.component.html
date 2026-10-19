@@ -4,7 +4,7 @@
     <p class="subtitle">{{ data.warehouseVouchers().length }} phiếu</p>
   </div>
   <div class="toolbar" style="position:relative">
-    <button class="btn">⭳ Xuất Excel</button>
+    <button class="btn">Xuất Excel</button>
     <button class="btn btn-primary" (click)="menuOpen.set(!menuOpen())">+ Lập phiếu</button>
     <div class="dropdown-menu" *ngIf="menuOpen()">
       <button *ngFor="let t of voucherTypes" class="dropdown-item" type="button">{{ t.label }}</button>
@@ -13,7 +13,7 @@
 </div>
 
 <div class="filters-bar">
-  <input type="text" placeholder="Tìm mã phiếu, lý do hoặc hàng hoá trong phiếu..." style="min-width:280px" />
+  <input type="text" placeholder="Tìm mã phiếu, lý do hoặc hàng hoá trong phiếu..." class="filter-search" />
   <select><option>Loại phiếu</option></select>
   <select><option>Tất cả kho</option></select>
   <select><option>Chọn kỳ</option></select>

@@ -12,9 +12,9 @@
   <app-stat-card label="Lãi gộp" value="—" sub="Chưa có giá vốn trong dữ liệu demo" />
 </div>
 
-<div class="card" style="margin-bottom:20px">
-  <h3 style="margin-top:0">⚠ Cần chú ý ngay</h3>
-  <div class="stat-grid" style="margin-bottom:0">
+<section class="section-block section-bare">
+  <h3>Cần chú ý ngay</h3>
+  <div class="stat-grid stat-grid-flush">
     <a routerLink="/don-hang" [queryParams]="{status:'PENDING'}" class="mini-link">
       <app-stat-card label="Đơn chờ sản xuất" [value]="'' + pendingProduction()" />
     </a>
@@ -28,12 +28,12 @@
       <app-stat-card label="Công nợ quá hạn" [value]="formatVnd(debt.receivableOverdue())" />
     </a>
   </div>
-</div>
+</section>
 
-<div class="card" style="margin-bottom:20px">
-  <h3 style="margin-top:0">↘ Rò rỉ tiền</h3>
-  <p class="subtitle" style="margin-top:-4px">Những khoản báo cáo doanh thu không hiện ra. Bấm vào để mở báo cáo chi tiết.</p>
-  <div class="stat-grid" style="margin-bottom:0">
+<section class="section-block section-bare">
+  <h3>Rò rỉ tiền</h3>
+  <p class="subtitle section-lede">Những khoản báo cáo doanh thu không hiện ra. Bấm vào để mở báo cáo chi tiết.</p>
+  <div class="stat-grid stat-grid-flush">
     <a routerLink="/bao-cao" [queryParams]="{name:'ban-duoi-gia-von'}" class="mini-link">
       <app-stat-card label="Bán dưới giá vốn" value="0 ₫" />
     </a>
@@ -44,54 +44,57 @@
       <app-stat-card label="Khách ngừng mua" value="0" />
     </a>
   </div>
-</div>
+</section>
 
-<div class="two-col">
-  <div class="card">
-    <h3 style="margin-top:0">Doanh thu theo ngày</h3>
+<div class="two-col section-block">
+  <section class="card">
+    <h3>Doanh thu theo ngày</h3>
     @if (byDay().length === 0) {
-      <div class="empty-state" style="padding:32px 0">Chưa có doanh thu trong kỳ này</div>
+      <div class="empty-state">Chưa có doanh thu trong kỳ này</div>
     } @else {
       @for (d of byDay(); track d.date) {
-        <div style="display:flex;align-items:center;gap:8px;margin:4px 0;font-size:12px">
-          <span style="width:78px">{{ d.date.slice(5) }}</span>
-          <div style="flex:1;background:var(--nt-border);border-radius:4px;height:10px">
-            <div [style.width.%]="d.pct" style="background:var(--nt-primary, #2563eb);height:10px;border-radius:4px"></div>
-          </div>
-          <span style="width:110px;text-align:right">{{ formatVnd(d.value) }}</span>
+        <div class="bar-row">
+          <span class="bar-label num">{{ d.date.slice(5) }}</span>
+          <div class="bar-track"><div class="bar-fill" [style.width.%]="d.pct"></div></div>
+          <span class="bar-value num">{{ formatVnd(d.value) }}</span>
         </div>
       }
     }
-  </div>
-  <div class="card">
-    <h3 style="margin-top:0">Mặt hàng bán chạy</h3>
+  </section>
+  <section class="card">
+    <h3>Mặt hàng bán chạy</h3>
     @if (topProducts().length === 0) {
-      <div class="empty-state" style="padding:32px 0">Chưa có dữ liệu bán hàng trong kỳ</div>
+      <div class="empty-state">Chưa có dữ liệu bán hàng trong kỳ</div>
     } @else {
-      @for (p of topProducts(); track p.name; let i = $index) {
-        <p style="display:flex;justify-content:space-between;gap:12px;margin:6px 0">
-          <span>{{ i + 1 }}. {{ p.name }} <span class="subtitle">({{ p.qty }} {{ p.unit }})</span></span>
-          <strong>{{ formatVnd(p.value) }}</strong>
-        </p>
-      }
+      <ol class="ledger-list">
+        @for (p of topProducts(); track p.name; let i = $index) {
+          <li>
+            <span class="ledger-rank num">{{ i + 1 }}</span>
+            <span class="ledger-name">{{ p.name }} <span class="subtitle">({{ p.qty }} {{ p.unit }})</span></span>
+            <strong class="num">{{ formatVnd(p.value) }}</strong>
+          </li>
+        }
+      </ol>
     }
-  </div>
+  </section>
 </div>
 
-<div class="two-col" style="margin-top:20px">
-  <div class="card">
-    <h3 style="margin-top:0">Công nợ</h3>
-    <div class="stat-grid" style="margin-bottom:0">
+<div class="two-col">
+  <section class="card">
+    <h3>Công nợ</h3>
+    <div class="stat-grid stat-grid-flush">
       <app-stat-card label="Phải thu khách hàng" [value]="formatVnd(debt.receivableTotal())" [negative]="debt.receivableTotal() < 0" />
       <app-stat-card label="Phải trả nhà cung cấp" [value]="formatVnd(debt.payableTotal())" [negative]="debt.payableTotal() < 0" />
     </div>
-  </div>
-  <div class="card">
-    <h3 style="margin-top:0">Dòng tiền</h3>
-    <p>Thu trong kỳ <strong>{{ formatVnd(cashIn()) }}</strong></p>
-    <p>Chi trong kỳ <strong>{{ formatVnd(cashOut()) }}</strong></p>
-    <p>Tồn quỹ hiện tại <strong>{{ formatVnd(cashBalance()) }}</strong></p>
+  </section>
+  <section class="card">
+    <h3>Dòng tiền</h3>
+    <dl class="ledger-dl">
+      <div><dt>Thu trong kỳ</dt><dd class="num">{{ formatVnd(cashIn()) }}</dd></div>
+      <div><dt>Chi trong kỳ</dt><dd class="num">{{ formatVnd(cashOut()) }}</dd></div>
+      <div class="ledger-total"><dt>Tồn quỹ hiện tại</dt><dd class="num">{{ formatVnd(cashBalance()) }}</dd></div>
+    </dl>
     <p class="subtitle">Tồn quỹ tính trên toàn bộ lịch sử, không theo khoảng ngày đang xem.</p>
     <a routerLink="/thu-chi" class="btn">Xem phiếu thu chi</a>
-  </div>
+  </section>
 </div>

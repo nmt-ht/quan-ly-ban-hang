@@ -1,0 +1,126 @@
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app
+ * theme: custom · vibe: "sổ cái — ledger paper, moss ink, dense" · paper: oklch(97.6% 0.008 90) · accent: oklch(43% 0.11 160)
+ * display: Be Vietnam Pro 600 · body: Be Vietnam Pro 400 · mono: JetBrains Mono · axes: light / geometric-sans / chromatic-moss
+ * studied: no · context: user-provided (direction + density chosen) · v1.1.0
+ */
+
+:root {
+  color-scheme: light;
+
+  /* ---------- colour · light ---------- */
+  --color-paper:        oklch(97.6% 0.008 90);   /* page ground — ledger paper */
+  --color-surface:      oklch(99.3% 0.004 90);   /* cards, sidebar, inputs */
+  --color-paper-2:      oklch(95.2% 0.010 90);   /* row hover, quiet fills */
+  --color-paper-3:      oklch(92.4% 0.012 90);   /* pressed, track */
+  --color-rule:         oklch(89% 0.010 95);     /* hairline dividers */
+  --color-rule-strong:  oklch(62% 0.014 100);    /* input + control boundaries (≥3:1) */
+  --color-muted:        oklch(47% 0.014 110);    /* secondary text (≥4.5:1) */
+  --color-ink:          oklch(22% 0.015 160);
+  --color-ink-2:        oklch(31% 0.014 150);
+  --color-accent:       oklch(43% 0.11 160);     /* moss — the one signal */
+  --color-accent-hover: oklch(37% 0.10 160);
+  --color-accent-tint:  oklch(94.5% 0.03 160);
+  --color-accent-ink:   oklch(98.5% 0.006 90);
+  --color-focus:        oklch(50% 0.14 160);
+
+  --color-danger:       oklch(50% 0.17 28);
+  --color-danger-tint:  oklch(95.5% 0.025 28);
+  --color-success:      oklch(46% 0.11 150);
+  --color-success-tint: oklch(95% 0.03 150);
+  --color-warning:      oklch(50% 0.11 65);
+  --color-warning-tint: oklch(95.5% 0.035 80);
+  --color-info:         oklch(47% 0.09 235);
+  --color-info-tint:    oklch(95.5% 0.02 235);
+
+
+  /* User-chosen tag colours (Thiết lập → Màu hiển thị) only pick the hue; these fix the
+     lightness/chroma so any hue reads at ≥ 4.5:1 text-on-tint. */
+  --tag-fg-l-light: 47%;
+  --tag-fg-c-light: 0.11;
+  --tag-bg-l-light: 95.5%;
+  --tag-bg-c-light: 0.025;
+  --tag-fg-l-dark: 79%;
+  --tag-fg-c-dark: 0.10;
+  --tag-bg-l-dark: 28%;
+  --tag-bg-c-dark: 0.045;
+  --tag-fg-l: var(--tag-fg-l-light);
+  --tag-fg-c: var(--tag-fg-c-light);
+  --tag-bg-l: var(--tag-bg-l-light);
+  --tag-bg-c: var(--tag-bg-c-light);
+
+  --color-shadow:       oklch(22% 0.015 160 / 0.12);
+
+  /* ---------- type ---------- */
+  --font-display: "Be Vietnam Pro", "Segoe UI", sans-serif;
+  --font-body:    "Be Vietnam Pro", "Segoe UI", sans-serif;
+  /* JetBrains Mono has no ₫ glyph — Be Vietnam Pro catches it before the system mono does. */
+  --font-mono:    "JetBrains Mono", "Be Vietnam Pro", ui-monospace, monospace;
+
+  --text-2xs:  0.6875rem; /* 11 */
+  --text-xs:   0.75rem;   /* 12 */
+  --text-sm:   0.8125rem; /* 13 — table + control text */
+  --text-base: 0.875rem;  /* 14 — body */
+  --text-md:   1rem;      /* 16 — card heading */
+  --text-lg:   1.25rem;   /* 20 — stat value */
+  --text-xl:   1.5rem;    /* 24 — page title */
+
+  /* ---------- space · 4pt ---------- */
+  --space-3xs: 0.25rem;  /* 4 */
+  --space-2xs: 0.5rem;   /* 8 */
+  --space-xs:  0.75rem;  /* 12 */
+  --space-sm:  1rem;     /* 16 */
+  --space-md:  1.5rem;   /* 24 */
+  --space-lg:  2rem;     /* 32 */
+  --space-xl:  3rem;     /* 48 */
+
+  /* ---------- shape ---------- */
+  --radius-control: 6px;
+  --radius-card:    8px;
+  --rule-hair:      1px;
+
+  --control-h:      2.25rem; /* 36px — compact density */
+  --row-h:          2.25rem;
+
+  /* ---------- motion ---------- */
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in:     cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-short:   140ms;
+  --dur-medium:  220ms;
+}
+
+/* ---------- colour · dark (same hues, lightness + chroma move) ---------- */
+body.dark-theme {
+  color-scheme: dark;
+  --color-paper:        oklch(16.5% 0.008 150);
+  --color-surface:      oklch(20% 0.009 150);
+  --color-paper-2:      oklch(23.5% 0.010 150);
+  --color-paper-3:      oklch(27% 0.011 150);
+  --color-rule:         oklch(30% 0.010 150);
+  --color-rule-strong:  oklch(52% 0.012 140);
+  --color-muted:        oklch(72% 0.012 110);
+  --color-ink:          oklch(93.5% 0.008 95);
+  --color-ink-2:        oklch(86% 0.010 100);
+  --color-accent:       oklch(74% 0.11 160);
+  --color-accent-hover: oklch(80% 0.10 160);
+  --color-accent-tint:  oklch(29% 0.045 160);
+  --color-accent-ink:   oklch(17% 0.012 160);
+  --color-focus:        oklch(78% 0.13 160);
+
+  --color-danger:       oklch(72% 0.14 25);
+  --color-danger-tint:  oklch(28% 0.05 25);
+  --color-success:      oklch(76% 0.12 150);
+  --color-success-tint: oklch(28% 0.04 150);
+  --color-warning:      oklch(81% 0.12 80);
+  --color-warning-tint: oklch(29% 0.04 80);
+  --color-info:         oklch(77% 0.09 235);
+  --color-info-tint:    oklch(28% 0.035 235);
+
+
+  --tag-fg-l: var(--tag-fg-l-dark);
+  --tag-fg-c: var(--tag-fg-c-dark);
+  --tag-bg-l: var(--tag-bg-l-dark);
+  --tag-bg-c: var(--tag-bg-c-dark);
+
+  --color-shadow:       oklch(8% 0.01 150 / 0.5);
+}

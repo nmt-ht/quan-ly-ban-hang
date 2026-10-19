@@ -6,7 +6,7 @@
   <div class="card" style="margin-bottom:16px">
     <h3 style="margin-top:0">Thông tin chung</h3>
     <div class="field">
-      <label>Khách hàng *</label>
+      <label>Khách hàng <span class="required-mark">*</span></label>
       <select formControlName="customerId">
         <option value="" disabled>Chọn khách hàng</option>
         <option *ngFor="let c of data.customers()" [value]="c.id">{{ c.code }} — {{ c.name }}</option>
@@ -82,7 +82,7 @@
             </td>
             <td style="text-align:right">{{ formatVnd(lineTotal(i)) }}</td>
             <td><input type="text" formControlName="note" style="width:120px" /></td>
-            <td><button type="button" class="link-btn" (click)="removeLine(i)">✕</button></td>
+            <td><button type="button" class="link-btn" (click)="removeLine(i)" aria-label="Xoá dòng">Xoá</button></td>
           </tr>
         </ng-container>
       </tbody>

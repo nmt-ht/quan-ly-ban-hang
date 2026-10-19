@@ -1,0 +1,183 @@
+/* Hallmark · component: image uploader · genre: modern-minimal · theme: custom (Sổ cái) · design-system: design.md
+ * states: default · hover · focus · active · disabled · loading · error · success(drop)
+ */
+
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3xs);
+  padding: var(--space-md) var(--space-sm);
+  border: 1px dashed var(--color-rule-strong);
+  border-radius: var(--radius-card);
+  background: var(--color-paper);
+  text-align: center;
+  transition: border-color var(--dur-short) var(--ease-out), background-color var(--dur-short) var(--ease-out);
+}
+
+.dropzone.is-dragging {
+  border-color: var(--color-accent);
+  background: var(--color-accent-tint);
+}
+
+.dropzone-icon {
+  --icon-size: 32px;
+  color: var(--color-muted);
+  margin-bottom: var(--space-2xs);
+}
+
+.dropzone.is-dragging .dropzone-icon {
+  color: var(--color-accent);
+}
+
+.dropzone-title {
+  margin: 0;
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+
+.dropzone-hint {
+  margin: 0 0 var(--space-2xs);
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+.upload-errors {
+  margin: 0;
+  padding: var(--space-2xs) var(--space-sm) var(--space-2xs) var(--space-lg);
+  border-radius: var(--radius-control);
+  background: var(--color-danger-tint);
+  color: var(--color-danger);
+  font-size: var(--text-xs);
+}
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(10rem, 100%), 1fr));
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tile {
+  position: relative;
+  min-width: 0;
+  border: var(--rule-hair) solid var(--color-rule);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.tile.is-primary {
+  border-color: var(--color-ink-2);
+}
+
+.tile img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+  background: var(--color-paper-2);
+}
+
+.tile-badge {
+  position: absolute;
+  top: var(--space-2xs);
+  left: var(--space-2xs);
+}
+
+.tile-actions {
+  position: absolute;
+  top: var(--space-2xs);
+  right: var(--space-2xs);
+  display: flex;
+  gap: var(--space-3xs);
+  opacity: 0;
+  transition: opacity var(--dur-short) var(--ease-out);
+}
+
+.tile:hover .tile-actions,
+.tile:focus-within .tile-actions {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .tile-actions {
+    opacity: 1;
+  }
+}
+
+.tile-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: var(--rule-hair) solid var(--color-rule);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-ink-2);
+  cursor: pointer;
+  --icon-size: 16px;
+}
+
+@media (hover: hover) {
+  .tile-btn:hover {
+    color: var(--color-ink);
+    border-color: var(--color-rule-strong);
+  }
+
+  .tile-btn-danger:hover {
+    color: var(--color-danger);
+  }
+}
+
+.tile-btn:active {
+  background: var(--color-paper-2);
+}
+
+.tile-name {
+  margin: 0;
+  padding: var(--space-3xs) var(--space-2xs);
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gallery-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3xs);
+  padding: var(--space-lg) var(--space-sm);
+  border: 1px dashed var(--color-rule);
+  border-radius: var(--radius-card);
+  text-align: center;
+}
+
+.gallery-empty-icon {
+  --icon-size: 32px;
+  color: var(--color-muted);
+  margin-bottom: var(--space-2xs);
+}
+
+.gallery-empty-title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.gallery-empty-hint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}

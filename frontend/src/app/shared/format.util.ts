@@ -6,3 +6,8 @@ export function formatVndSigned(amount: number): string {
   const sign = amount > 0 ? '+' : '';
   return sign + formatVnd(amount);
 }
+
+// Lowercase + strip Vietnamese diacritics so "khung nhom" matches "Khung nhôm".
+export function foldVi(text: string): string {
+  return text.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+}

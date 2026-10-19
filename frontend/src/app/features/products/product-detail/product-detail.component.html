@@ -1,0 +1,293 @@
+@if (product(); as p) {
+  <p class="subtitle"><a class="crumb" routerLink="/hang-hoa">Danh mục hàng hoá</a> / {{ p.code }}</p>
+  <div class="page-header">
+    <div>
+      <h1>{{ p.name }}</h1>
+      <p class="subtitle detail-meta">
+        <span><span class="num">{{ p.code }}</span><app-copy-button [text]="p.code" label="mã" /></span>
+        <span class="badge" [ngClass]="typeClass[p.type]">{{ typeLabel[p.type] }}</span>
+        <span class="badge" [ngClass]="statusClass(p.isActive)">
+          {{ p.isActive ? 'Đang kinh doanh' : 'Ngừng kinh doanh' }}
+        </span>
+      </p>
+    </div>
+    <div class="toolbar">
+      <a class="btn" routerLink="/hang-hoa"><app-nav-icon name="arrow-left" />Danh mục</a>
+      <a class="btn btn-primary" [routerLink]="['/hang-hoa', p.id, 'sua']"><app-nav-icon name="pencil" />Sửa</a>
+    </div>
+  </div>
+
+  <div class="detail-tabs" role="tablist" aria-label="Thông tin mặt hàng" (keydown)="onTabKey($event)">
+    @for (t of tabs(); track t.id) {
+      <button
+        type="button"
+        role="tab"
+        [id]="'tab-' + t.id"
+        [attr.aria-selected]="tab() === t.id"
+        [attr.aria-controls]="'panel-' + t.id"
+        [tabIndex]="tab() === t.id ? 0 : -1"
+        (click)="selectTab(t.id)"
+      >
+        {{ t.label }}
+        @if (t.count !== undefined && t.count > 0) {
+          <span class="tab-count num">{{ t.count }}</span>
+        }
+      </button>
+    }
+  </div>
+
+  <div class="detail-panel" role="tabpanel" [id]="'panel-' + tab()" [attr.aria-labelledby]="'tab-' + tab()">
+    @switch (tab()) {
+      @case ('chung') {
+        <section class="card section-block">
+          <dl class="detail-list">
+            <div><dt>Mã hệ thống</dt><dd><span class="num">{{ p.code }}</span><app-copy-button [text]="p.code" label="mã" /></dd></div>
+            <div><dt>Mã đối chiếu</dt><dd>{{ p.crossRefCode || '—' }}</dd></div>
+            <div><dt>Tính chất</dt><dd><span class="badge" [ngClass]="typeClass[p.type]">{{ typeLabel[p.type] }}</span></dd></div>
+            <div><dt>Đơn vị tính chính</dt><dd>{{ p.baseUnit }}</dd></div>
+            @if (p.type === 'THANH_PHAM') {
+              <div><dt>Cách tính</dt><dd>{{ measureLabel(p) || 'Chưa chọn (dữ liệu cũ)' }}</dd></div>
+            }
+            <div><dt>Nhóm hàng</dt><dd>{{ categoryName() || '—' }}</dd></div>
+            @if (p.type === 'VAT_TU') {
+              <div><dt>Kho ngầm định</dt><dd>{{ defaultWarehouseName() || '—' }}</dd></div>
+              <div><dt>Tồn tối thiểu</dt><dd class="num">{{ qty(p.minStock) }}</dd></div>
+            }
+            <div><dt>Thuế suất GTGT</dt><dd class="num">{{ p.vatRate }}%</dd></div>
+            <div><dt>Bảo hành</dt><dd>{{ p.warrantyMonths ? p.warrantyMonths + ' tháng' : '—' }}</dd></div>
+            <div><dt>Nguồn gốc</dt><dd>{{ p.origin || '—' }}</dd></div>
+            <div><dt>Được phép bán</dt><dd>{{ p.isSellable ? 'Có' : 'Không' }}</dd></div>
+            @if (p.purchaseNote) { <div><dt>Diễn giải khi mua</dt><dd>{{ p.purchaseNote }}</dd></div> }
+            @if (p.saleNote) { <div><dt>Diễn giải khi bán</dt><dd>{{ p.saleNote }}</dd></div> }
+            @if (p.description) { <div><dt>Mô tả</dt><dd>{{ p.description }}</dd></div> }
+          </dl>
+        </section>
+
+        @if (usedIn().length) {
+          <section class="card section-block">
+            <h3>Dùng trong định mức của</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Mã thành phẩm</th>
+                  <th scope="col">Tên thành phẩm</th>
+                  <th scope="col" class="align-right">{{ p.baseUnit }} / 1 thành phẩm</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (b of usedIn(); track b.productId) {
+                  <tr>
+                    <td class="num"><a class="code-link" [routerLink]="['/hang-hoa', b.productId]">{{ b.product?.code ?? b.productId }}</a></td>
+                    <td>{{ b.product?.name ?? '—' }}</td>
+                    <td class="num align-right">{{ qty(b.quantityPerUnit) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </section>
+        }
+      }
+
+      @case ('quy-doi') {
+        <section class="card section-block">
+          @if (units().length) {
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Đơn vị</th>
+                    <th scope="col">Phép tính</th>
+                    <th scope="col">Quy đổi</th>
+                    <th scope="col" class="align-right">Giá lẻ</th>
+                    <th scope="col" class="align-right">Giá sỉ</th>
+                    <th scope="col" class="align-right">Giá dropship</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (u of units(); track u.unitName) {
+                    <tr>
+                      <td>{{ u.unitName }}</td>
+                      <td>{{ opLabel(u.operation) }}</td>
+                      <td>{{ unitHint(u, p.baseUnit) }}</td>
+                      <td class="num align-right">{{ formatVnd(u.price) }}</td>
+                      <td class="num align-right">{{ formatVnd(u.wholesalePrice) }}</td>
+                      <td class="num align-right">{{ formatVnd(u.dropshipPrice) }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="empty-state">
+              <h3>Chưa có đơn vị quy đổi</h3>
+              <p>Mặt hàng chỉ dùng đơn vị tính chính ({{ p.baseUnit }}).</p>
+            </div>
+          }
+        </section>
+      }
+
+      @case ('gia') {
+        <section class="card section-block price-panel">
+          <dl class="ledger-dl">
+            <div><dt>Giá lẻ</dt><dd class="num">{{ formatVnd(p.retailPrice) }}</dd></div>
+            <div><dt>Giá sỉ</dt><dd class="num">{{ formatVnd(p.wholesalePrice) }}</dd></div>
+            <div><dt>Giá dropship</dt><dd class="num">{{ formatVnd(p.dropshipPrice) }}</dd></div>
+          </dl>
+          <p class="subtitle">
+            @if (p.type === 'THANH_PHAM') {
+              Đơn giá cho mỗi {{ p.baseUnit === 'm2' ? 'mét vuông' : p.baseUnit === 'm' ? 'mét dài' : p.baseUnit }} — thành tiền của dòng đơn tính từ kích thước.
+            } @else {
+              Giá theo đơn vị tính chính ({{ p.baseUnit }}). Mức giá tự áp theo loại khách khi lên đơn.
+            }
+          </p>
+        </section>
+      }
+
+      @case ('ton-kho') {
+        <section class="card section-block">
+          @if (stockRows().length) {
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Kho</th>
+                  <th scope="col" class="align-right">Tồn</th>
+                  <th scope="col" class="align-right">Tối thiểu</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (r of stockRows(); track r.warehouse) {
+                  <tr>
+                    <td>{{ r.warehouse }}</td>
+                    <td class="num align-right" [class.text-danger]="r.qty < 0 || (r.min > 0 && r.qty < r.min)">{{ qty(r.qty) }}</td>
+                    <td class="num align-right">{{ qty(r.min) }}</td>
+                  </tr>
+                }
+                <tr class="row-total">
+                  <td>Tổng</td>
+                  <td class="num align-right">{{ qty(stockTotal()) }} {{ p.baseUnit }}</td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
+          } @else {
+            <div class="empty-state">
+              <h3>Chưa có tồn kho ở kho nào</h3>
+              <p>Tồn kho tăng khi có phiếu nhập hoặc kiểm kê.</p>
+            </div>
+          }
+        </section>
+      }
+
+      @case ('dinh-muc') {
+        <section class="card section-block">
+          <p class="subtitle section-lede">Vật tư cần cho 1 {{ p.baseUnit }} thành phẩm. Lệnh sản xuất chụp lại định mức lúc tạo.</p>
+          @if (bom().length) {
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Mã vật tư</th>
+                  <th scope="col">Tên vật tư</th>
+                  <th scope="col" class="align-right">Số lượng / 1 {{ p.baseUnit }}</th>
+                  <th scope="col">ĐVT</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (b of bom(); track b.productId) {
+                  <tr>
+                    <td class="num">
+                      @if (b.product) { <a class="code-link" [routerLink]="['/hang-hoa', b.productId]">{{ b.product.code }}</a> } @else { {{ b.productId }} }
+                    </td>
+                    <td>{{ b.product?.name ?? 'Không tìm thấy vật tư' }}</td>
+                    <td class="num align-right">{{ qty(b.quantityPerUnit) }}</td>
+                    <td>{{ b.product?.baseUnit ?? '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          } @else {
+            <div class="empty-state">
+              <h3>Chưa khai báo định mức</h3>
+              <p>Dùng "Nhập định mức" ở danh mục hàng hoá để nhập từ Excel.</p>
+            </div>
+          }
+        </section>
+      }
+
+      @case ('anh') {
+        <section class="card section-block">
+          @if (p.images?.length) {
+            <ul class="detail-gallery">
+              @for (img of p.images; track img.id; let first = $first) {
+                <li [class.is-primary]="first">
+                  <img [src]="img.url" [alt]="p.name + (first ? ' — ảnh chính' : '')" [width]="img.width" [height]="img.height" loading="lazy" />
+                </li>
+              }
+            </ul>
+          } @else {
+            <div class="empty-state">
+              <h3>Chưa có ảnh nào</h3>
+              <p>Ảnh chính sẽ hiện trên bảng danh sách và thẻ lưới hàng hoá.</p>
+              <a class="btn" [routerLink]="['/hang-hoa', p.id, 'sua']"><app-nav-icon name="image-plus" />Thêm ảnh</a>
+            </div>
+          }
+        </section>
+      }
+
+      @case ('lich-su') {
+        <div class="history-filter">
+          <select aria-label="Lọc theo kho" [value]="historyWarehouse()" (change)="historyWarehouse.set($any($event.target).value)">
+            <option value="all">Tất cả kho</option>
+            @for (w of data.warehouses(); track w.id) {
+              <option [value]="w.id">{{ w.name }}</option>
+            }
+          </select>
+        </div>
+        <section class="card section-block history-card">
+          @if (movements().length) {
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Ngày</th>
+                    <th scope="col">Số phiếu</th>
+                    <th scope="col">Loại</th>
+                    <th scope="col">Kho</th>
+                    <th scope="col">Diễn giải</th>
+                    <th scope="col" class="align-right">Nhập</th>
+                    <th scope="col" class="align-right">Xuất</th>
+                    <th scope="col" class="align-right">Tồn sau phiếu</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (m of movements(); track $index) {
+                    <tr>
+                      <td class="num">{{ m.date.slice(0, 10) }}</td>
+                      <td class="num">{{ m.code }}</td>
+                      <td>{{ voucherTypeLabel[m.type] }}</td>
+                      <td>{{ warehouseName(m.warehouseId) }}</td>
+                      <td class="reason">{{ m.reason || '—' }}</td>
+                      <td class="num align-right">{{ m.change > 0 ? qty(m.change) : '' }}</td>
+                      <td class="num align-right">{{ m.change < 0 ? qty(-m.change) : '' }}</td>
+                      <td class="num align-right"><strong>{{ qty(m.balance) }}</strong></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="empty-state history-empty">
+              <h3>Chưa có phát sinh nhập xuất</h3>
+              <p>Mọi biến động tồn đều đi qua phiếu kho, nên lịch sử ở đây luôn khớp với tồn hiện tại.</p>
+            </div>
+          }
+        </section>
+      }
+    }
+  </div>
+} @else {
+  <div class="card empty-state">
+    <h3>Không tìm thấy mặt hàng</h3>
+    <p>Mặt hàng có thể đã bị xoá hoặc đường dẫn không đúng.</p>
+    <a class="btn" routerLink="/hang-hoa">Về danh mục hàng hoá</a>
+  </div>
+}

@@ -529,9 +529,16 @@ const feVehicles = VEHICLES.map((v) => {
   const active = trips.find((t) => t.vehicleId === v.id && ['GOM_DON', 'DA_XUAT_KHO'].includes(t.status));
   return clean({ id: v.id, code: v.code, plateNumber: v.plate, type: v.type, loadCapacity: v.cap, usualDriver: v.usual, status: v.maint ? 'BAO_TRI' : active ? 'DANG_DUNG' : 'RANH', currentTripCode: active?.code });
 });
+// Frontend lines also carry the stock change of the voucher's warehouse: a kiểm kê stores the
+// counted quantity, so its change is the delta (the opening kiểm kê starts from 0).
+const feVoucherLines = new Map(rawV.map((v, i) => [warehouseVouchers[i].id, v.lines.map((l) => ({
+  productId: l.productId,
+  quantity: r2(l.counted ?? l.quantity),
+  delta: r2(v.type === 'KIEM_KE' ? (l.delta ?? l.quantity) : l.quantity),
+}))]));
 const feWarehouseVouchers = desc(warehouseVouchers, (v) => v.date + v.code).map((v) => clean({
   id: v.id, code: v.code, type: v.type, date: v.date, warehouseId: v.warehouseId, targetWarehouseId: v.targetWarehouseId, reason: v.reason,
-  createdBy: userEmail[v.createdBy], isCancelled: v.isCancelled,
+  createdBy: userEmail[v.createdBy], isCancelled: v.isCancelled, lines: feVoucherLines.get(v.id),
 }));
 const feProduction = desc(lsx, (l) => l.createdDate + l.code).map((l) => ({ id: l.id, code: l.code, sourceOrderId: l.sourceOrderId, productId: l.productId, quantity: l.quantity, status: l.status, createdDate: l.createdDate }));
 const feCashAccounts = ACCOUNTS.map((a) => ({ id: a.id, name: a.name, type: a.type, balance: accountBalance(a.id) }));
@@ -551,11 +558,12 @@ const tsOut = `/* eslint-disable */
 // Toàn bộ dữ liệu là GIẢ, chỉ để thử giao diện.
 import type {
   Product, StockLevel, WarehouseVoucher, ProductionOrder, Supplier, PurchaseOrder, Customer, SalesOrder,
-  DeliveryTrip, Vehicle, CashAccount, CashVoucher, Tag, AppUser,
+  DeliveryTrip, Vehicle, CashAccount, CashVoucher, Tag, AppUser, BomLine,
 } from '../models/domain.models';
 
 export const DEMO_TODAY = '${TODAY}';
 export const DEMO_PRODUCTS: Product[] = ${J(feProducts)};
+export const DEMO_BOM_LINES: BomLine[] = ${J(Object.entries(BOM).flatMap(([finishedProductId, ls]) => ls.map((l) => ({ finishedProductId, componentId: l.componentId, quantityPerUnit: l.quantityPerUnit }))))};
 export const DEMO_STOCK_LEVELS: StockLevel[] = ${J(stockLevels)};
 export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = ${J(feWarehouseVouchers)};
 export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = ${J(feProduction)};

@@ -18,3 +18,12 @@ Thumbs.db
 # Log
 *.log
 npm-debug.log*
+
+# Tài liệu làm việc nội bộ (crawl, kế hoạch) — không commit
+docs/
+
+# Cấu hình & dữ liệu của công cụ AI — không commit
+.claude/
+.agents/
+.hallmark/
+skills-lock.json

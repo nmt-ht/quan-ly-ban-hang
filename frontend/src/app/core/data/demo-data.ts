@@ -4,7 +4,7 @@
 // Toàn bộ dữ liệu là GIẢ, chỉ để thử giao diện.
 import type {
   Product, StockLevel, WarehouseVoucher, ProductionOrder, Supplier, PurchaseOrder, Customer, SalesOrder,
-  DeliveryTrip, Vehicle, CashAccount, CashVoucher, Tag, AppUser,
+  DeliveryTrip, Vehicle, CashAccount, CashVoucher, Tag, AppUser, BomLine,
 } from '../models/domain.models';
 
 export const DEMO_TODAY = '2026-10-19';
@@ -541,6 +541,228 @@ export const DEMO_PRODUCTS: Product[] = [
     "isActive": true
   }
 ];
+export const DEMO_BOM_LINES: BomLine[] = [
+  {
+    "finishedProductId": "sp-khung-soi-20x30",
+    "componentId": "vt-nep-soi",
+    "quantityPerUnit": 0.45
+  },
+  {
+    "finishedProductId": "sp-khung-soi-20x30",
+    "componentId": "vt-kinh-3ly",
+    "quantityPerUnit": 0.0345
+  },
+  {
+    "finishedProductId": "sp-khung-soi-20x30",
+    "componentId": "vt-hau-mdf",
+    "quantityPerUnit": 0.0232
+  },
+  {
+    "finishedProductId": "sp-khung-soi-20x30",
+    "componentId": "vt-moc-treo",
+    "quantityPerUnit": 2
+  },
+  {
+    "finishedProductId": "sp-khung-soi-20x30",
+    "componentId": "vt-dinh-ghim",
+    "quantityPerUnit": 0.02
+  },
+  {
+    "finishedProductId": "sp-khung-soi-30x40",
+    "componentId": "vt-nep-soi",
+    "quantityPerUnit": 0.6167
+  },
+  {
+    "finishedProductId": "sp-khung-soi-30x40",
+    "componentId": "vt-kinh-3ly",
+    "quantityPerUnit": 0.069
+  },
+  {
+    "finishedProductId": "sp-khung-soi-30x40",
+    "componentId": "vt-hau-mdf",
+    "quantityPerUnit": 0.0464
+  },
+  {
+    "finishedProductId": "sp-khung-soi-30x40",
+    "componentId": "vt-moc-treo",
+    "quantityPerUnit": 2
+  },
+  {
+    "finishedProductId": "sp-khung-soi-30x40",
+    "componentId": "vt-dinh-ghim",
+    "quantityPerUnit": 0.02
+  },
+  {
+    "finishedProductId": "sp-khung-soi-40x60",
+    "componentId": "vt-nep-soi",
+    "quantityPerUnit": 0.8667
+  },
+  {
+    "finishedProductId": "sp-khung-soi-40x60",
+    "componentId": "vt-kinh-3ly",
+    "quantityPerUnit": 0.138
+  },
+  {
+    "finishedProductId": "sp-khung-soi-40x60",
+    "componentId": "vt-hau-mdf",
+    "quantityPerUnit": 0.0927
+  },
+  {
+    "finishedProductId": "sp-khung-soi-40x60",
+    "componentId": "vt-moc-treo",
+    "quantityPerUnit": 2
+  },
+  {
+    "finishedProductId": "sp-khung-soi-40x60",
+    "componentId": "vt-dinh-ghim",
+    "quantityPerUnit": 0.02
+  },
+  {
+    "finishedProductId": "sp-khung-soi-50x70",
+    "componentId": "vt-nep-soi",
+    "quantityPerUnit": 1.0333
+  },
+  {
+    "finishedProductId": "sp-khung-soi-50x70",
+    "componentId": "vt-kinh-3ly",
+    "quantityPerUnit": 0.2012
+  },
+  {
+    "finishedProductId": "sp-khung-soi-50x70",
+    "componentId": "vt-hau-mdf",
+    "quantityPerUnit": 0.1352
+  },
+  {
+    "finishedProductId": "sp-khung-soi-50x70",
+    "componentId": "vt-moc-treo",
+    "quantityPerUnit": 2
+  },
+  {
+    "finishedProductId": "sp-khung-soi-50x70",
+    "componentId": "vt-dinh-ghim",
+    "quantityPerUnit": 0.02
+  },
+  {
+    "finishedProductId": "sp-khung-soi-60x90",
+    "componentId": "vt-nep-soi",
+    "quantityPerUnit": 1.2833
+  },
+  {
+    "finishedProductId": "sp-khung-soi-60x90",
+    "componentId": "vt-kinh-3ly",
+    "quantityPerUnit": 0.3105
+  },
+  {
+    "finishedProductId": "sp-khung-soi-60x90",
+    "componentId": "vt-hau-mdf",
+    "quantityPerUnit": 0.2086
+  },
+  {
+    "finishedProductId": "sp-khung-soi-60x90",
+    "componentId": "vt-moc-treo",
+    "quantityPerUnit": 2
+  },
+  {
+    "finishedProductId": "sp-khung-soi-60x90",
+    "componentId": "vt-dinh-ghim",
+    "quantityPerUnit": 0.02
+  },
+  {
+    "finishedProductId": "sp-khung-nhom-vang-30x40",
+    "componentId": "vt-nhom-vang",
+    "quantityPerUnit": 0.592
+  },
+  {
+    "finishedProductId": "sp-khung-nhom-vang-30x40",
+    "componentId": "vt-kinh-3ly",
+    "quantityPerUnit": 0.069
+  },
+  {
+    "finishedProductId": "sp-khung-nhom-vang-30x40",
+    "componentId": "vt-hau-mdf",
+    "quantityPerUnit": 0.0464
+  },
+  {
+    "finishedProductId": "sp-khung-nhom-vang-30x40",
+    "componentId": "vt-moc-treo",
+    "quantityPerUnit": 2
+  },
+  {
+    "finishedProductId": "sp-khung-nhom-vang-30x40",
+    "componentId": "vt-dinh-ghim",
+    "quantityPerUnit": 0.02
+  },
+  {
+    "finishedProductId": "sp-khung-nhom-vang-30x40",
+    "componentId": "vt-kep-kinh",
+    "quantityPerUnit": 1
+  },
+  {
+    "finishedProductId": "sp-khung-nhom-den-40x60",
+    "componentId": "vt-nhom-den",
+    "quantityPerUnit": 0.832
+  },
+  {
+    "finishedProductId": "sp-khung-nhom-den-40x60",
+    "componentId": "vt-kinh-3ly",
+    "quantityPerUnit": 0.138
+  },
+  {
+    "finishedProductId": "sp-khung-nhom-den-40x60",
+    "componentId": "vt-hau-mdf",
+    "quantityPerUnit": 0.0927
+  },
+  {
+    "finishedProductId": "sp-khung-nhom-den-40x60",
+    "componentId": "vt-moc-treo",
+    "quantityPerUnit": 2
+  },
+  {
+    "finishedProductId": "sp-khung-nhom-den-40x60",
+    "componentId": "vt-dinh-ghim",
+    "quantityPerUnit": 0.02
+  },
+  {
+    "finishedProductId": "sp-khung-nhom-den-40x60",
+    "componentId": "vt-kep-kinh",
+    "quantityPerUnit": 1
+  },
+  {
+    "finishedProductId": "sp-khung-oc-cho-40x60",
+    "componentId": "vt-nep-oc-cho",
+    "quantityPerUnit": 0.8667
+  },
+  {
+    "finishedProductId": "sp-khung-oc-cho-40x60",
+    "componentId": "vt-kinh-3ly",
+    "quantityPerUnit": 0.138
+  },
+  {
+    "finishedProductId": "sp-khung-oc-cho-40x60",
+    "componentId": "vt-hau-mdf",
+    "quantityPerUnit": 0.0927
+  },
+  {
+    "finishedProductId": "sp-khung-oc-cho-40x60",
+    "componentId": "vt-moc-treo",
+    "quantityPerUnit": 2
+  },
+  {
+    "finishedProductId": "sp-khung-oc-cho-40x60",
+    "componentId": "vt-dinh-ghim",
+    "quantityPerUnit": 0.02
+  },
+  {
+    "finishedProductId": "sp-kinh-cat",
+    "componentId": "vt-kinh-3ly",
+    "quantityPerUnit": 0.25
+  },
+  {
+    "finishedProductId": "sp-mica-cat",
+    "componentId": "vt-mica-2ly",
+    "quantityPerUnit": 0.15
+  }
+];
 export const DEMO_STOCK_LEVELS: StockLevel[] = [
   {
     "productId": "sp-khung-nhom-den-40x60",
@@ -696,7 +918,14 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-thanhpham",
     "reason": "Nhập thành phẩm từ xưởng: LSX0000033",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "sp-khung-nhom-den-40x60",
+        "quantity": 24,
+        "delta": 24
+      }
+    ]
   },
   {
     "id": "pk-nhap-23",
@@ -706,7 +935,14 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-thanhpham",
     "reason": "Nhập thành phẩm từ xưởng: LSX0000032",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "sp-khung-soi-30x40",
+        "quantity": 20,
+        "delta": 20
+      }
+    ]
   },
   {
     "id": "pk-xuat-50",
@@ -716,7 +952,24 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-thanhpham",
     "reason": "Xuất kho giao hàng — chuyến CH0000008",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "sp-khung-nhom-vang-30x40",
+        "quantity": 8,
+        "delta": 8
+      },
+      {
+        "productId": "sp-khung-soi-30x40",
+        "quantity": 8,
+        "delta": 8
+      },
+      {
+        "productId": "sp-khung-soi-40x60",
+        "quantity": 12,
+        "delta": 12
+      }
+    ]
   },
   {
     "id": "pk-xuat-49",
@@ -726,7 +979,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-phukien",
     "reason": "Xuất vật tư cho LSX0000036",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-moc-treo",
+        "quantity": 40,
+        "delta": 40
+      },
+      {
+        "productId": "vt-dinh-ghim",
+        "quantity": 0.4,
+        "delta": 0.4
+      }
+    ]
   },
   {
     "id": "pk-xuat-48",
@@ -736,7 +1001,24 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-vattu",
     "reason": "Xuất vật tư cho LSX0000036, LSX0000037",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-nep-soi",
+        "quantity": 20.67,
+        "delta": 20.67
+      },
+      {
+        "productId": "vt-kinh-3ly",
+        "quantity": 6.52,
+        "delta": 6.52
+      },
+      {
+        "productId": "vt-hau-mdf",
+        "quantity": 2.7,
+        "delta": 2.7
+      }
+    ]
   },
   {
     "id": "pk-xuat-47",
@@ -746,7 +1028,24 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-phukien",
     "reason": "Xuất vật tư cho LSX0000033",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-moc-treo",
+        "quantity": 48,
+        "delta": 48
+      },
+      {
+        "productId": "vt-dinh-ghim",
+        "quantity": 0.48,
+        "delta": 0.48
+      },
+      {
+        "productId": "vt-kep-kinh",
+        "quantity": 24,
+        "delta": 24
+      }
+    ]
   },
   {
     "id": "pk-xuat-46",
@@ -756,7 +1055,24 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-vattu",
     "reason": "Xuất vật tư cho LSX0000033",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-nhom-den",
+        "quantity": 19.97,
+        "delta": 19.97
+      },
+      {
+        "productId": "vt-kinh-3ly",
+        "quantity": 3.31,
+        "delta": 3.31
+      },
+      {
+        "productId": "vt-hau-mdf",
+        "quantity": 2.22,
+        "delta": 2.22
+      }
+    ]
   },
   {
     "id": "pk-nhap-22",
@@ -766,7 +1082,24 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-thanhpham",
     "reason": "Nhập thành phẩm từ xưởng: LSX0000029, LSX0000030, LSX0000031",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "sp-khung-nhom-vang-30x40",
+        "quantity": 8,
+        "delta": 8
+      },
+      {
+        "productId": "sp-khung-soi-30x40",
+        "quantity": 8,
+        "delta": 8
+      },
+      {
+        "productId": "sp-khung-soi-40x60",
+        "quantity": 12,
+        "delta": 12
+      }
+    ]
   },
   {
     "id": "pk-xuat-45",
@@ -776,7 +1109,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-phukien",
     "reason": "Xuất vật tư cho LSX0000032, LSX0000034, LSX0000035",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-moc-treo",
+        "quantity": 120,
+        "delta": 120
+      },
+      {
+        "productId": "vt-dinh-ghim",
+        "quantity": 1.2,
+        "delta": 1.2
+      }
+    ]
   },
   {
     "id": "pk-xuat-44",
@@ -786,7 +1131,29 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-vattu",
     "reason": "Xuất vật tư cho LSX0000032, LSX0000034, LSX0000035",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-nep-soi",
+        "quantity": 38.34,
+        "delta": 38.34
+      },
+      {
+        "productId": "vt-kinh-3ly",
+        "quantity": 6.9,
+        "delta": 6.9
+      },
+      {
+        "productId": "vt-hau-mdf",
+        "quantity": 4.64,
+        "delta": 4.64
+      },
+      {
+        "productId": "vt-nep-oc-cho",
+        "quantity": 8.67,
+        "delta": 8.67
+      }
+    ]
   },
   {
     "id": "pk-xuat-43",
@@ -796,7 +1163,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-phukien",
     "reason": "Xuất vật tư cho LSX0000031",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-moc-treo",
+        "quantity": 24,
+        "delta": 24
+      },
+      {
+        "productId": "vt-dinh-ghim",
+        "quantity": 0.24,
+        "delta": 0.24
+      }
+    ]
   },
   {
     "id": "pk-xuat-42",
@@ -806,7 +1185,24 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-vattu",
     "reason": "Xuất vật tư cho LSX0000031",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-nep-soi",
+        "quantity": 10.4,
+        "delta": 10.4
+      },
+      {
+        "productId": "vt-kinh-3ly",
+        "quantity": 1.66,
+        "delta": 1.66
+      },
+      {
+        "productId": "vt-hau-mdf",
+        "quantity": 1.11,
+        "delta": 1.11
+      }
+    ]
   },
   {
     "id": "pk-xuat-41",
@@ -816,7 +1212,24 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-phukien",
     "reason": "Xuất vật tư cho LSX0000029, LSX0000030",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-moc-treo",
+        "quantity": 32,
+        "delta": 32
+      },
+      {
+        "productId": "vt-dinh-ghim",
+        "quantity": 0.32,
+        "delta": 0.32
+      },
+      {
+        "productId": "vt-kep-kinh",
+        "quantity": 8,
+        "delta": 8
+      }
+    ]
   },
   {
     "id": "pk-xuat-40",
@@ -826,7 +1239,29 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-vattu",
     "reason": "Xuất vật tư cho LSX0000029, LSX0000030",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-nhom-vang",
+        "quantity": 4.74,
+        "delta": 4.74
+      },
+      {
+        "productId": "vt-kinh-3ly",
+        "quantity": 1.1,
+        "delta": 1.1
+      },
+      {
+        "productId": "vt-hau-mdf",
+        "quantity": 0.74,
+        "delta": 0.74
+      },
+      {
+        "productId": "vt-nep-soi",
+        "quantity": 4.93,
+        "delta": 4.93
+      }
+    ]
   },
   {
     "id": "pk-nhap-21",
@@ -836,7 +1271,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-ninhtrang",
     "reason": "Nhập hàng theo đơn DN0000009",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-den-led",
+        "quantity": 30,
+        "delta": 30
+      },
+      {
+        "productId": "vt-ve-sinh-kinh",
+        "quantity": 15,
+        "delta": 15
+      }
+    ]
   },
   {
     "id": "pk-xuat-39",
@@ -846,7 +1293,29 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-thanhpham",
     "reason": "Xuất kho giao hàng — chuyến CH0000007",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "sp-khung-soi-50x70",
+        "quantity": 16,
+        "delta": 16
+      },
+      {
+        "productId": "sp-khung-soi-60x90",
+        "quantity": 10,
+        "delta": 10
+      },
+      {
+        "productId": "sp-khung-nhom-vang-30x40",
+        "quantity": 2,
+        "delta": 2
+      },
+      {
+        "productId": "sp-khung-soi-30x40",
+        "quantity": 3,
+        "delta": 3
+      }
+    ]
   },
   {
     "id": "pk-nhap-20",
@@ -856,7 +1325,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-thanhpham",
     "reason": "Nhập thành phẩm từ xưởng: LSX0000027, LSX0000028",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "sp-khung-nhom-vang-30x40",
+        "quantity": 2,
+        "delta": 2
+      },
+      {
+        "productId": "sp-khung-soi-30x40",
+        "quantity": 3,
+        "delta": 3
+      }
+    ]
   },
   {
     "id": "pk-nhap-19",
@@ -866,7 +1347,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-thanhpham",
     "reason": "Nhập thành phẩm từ xưởng: LSX0000025, LSX0000026",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "sp-khung-soi-50x70",
+        "quantity": 16,
+        "delta": 16
+      },
+      {
+        "productId": "sp-khung-soi-60x90",
+        "quantity": 10,
+        "delta": 10
+      }
+    ]
   },
   {
     "id": "pk-xuat-38",
@@ -876,7 +1369,24 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-phukien",
     "reason": "Xuất vật tư cho LSX0000027, LSX0000028",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-moc-treo",
+        "quantity": 10,
+        "delta": 10
+      },
+      {
+        "productId": "vt-dinh-ghim",
+        "quantity": 0.1,
+        "delta": 0.1
+      },
+      {
+        "productId": "vt-kep-kinh",
+        "quantity": 2,
+        "delta": 2
+      }
+    ]
   },
   {
     "id": "pk-xuat-37",
@@ -886,7 +1396,29 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-vattu",
     "reason": "Xuất vật tư cho LSX0000027, LSX0000028",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-nhom-vang",
+        "quantity": 1.18,
+        "delta": 1.18
+      },
+      {
+        "productId": "vt-kinh-3ly",
+        "quantity": 0.35,
+        "delta": 0.35
+      },
+      {
+        "productId": "vt-hau-mdf",
+        "quantity": 0.23,
+        "delta": 0.23
+      },
+      {
+        "productId": "vt-nep-soi",
+        "quantity": 1.85,
+        "delta": 1.85
+      }
+    ]
   },
   {
     "id": "pk-xuat-36",
@@ -896,7 +1428,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-phukien",
     "reason": "Xuất vật tư cho LSX0000025, LSX0000026",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-moc-treo",
+        "quantity": 52,
+        "delta": 52
+      },
+      {
+        "productId": "vt-dinh-ghim",
+        "quantity": 0.52,
+        "delta": 0.52
+      }
+    ]
   },
   {
     "id": "pk-xuat-35",
@@ -906,7 +1450,24 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-vattu",
     "reason": "Xuất vật tư cho LSX0000025, LSX0000026",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-nep-soi",
+        "quantity": 29.37,
+        "delta": 29.37
+      },
+      {
+        "productId": "vt-kinh-3ly",
+        "quantity": 6.32,
+        "delta": 6.32
+      },
+      {
+        "productId": "vt-hau-mdf",
+        "quantity": 4.25,
+        "delta": 4.25
+      }
+    ]
   },
   {
     "id": "pk-xuat-34",
@@ -916,7 +1477,14 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-ninhtrang",
     "reason": "Xuất kho giao hàng — chuyến CH0000005",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-ve-sinh-kinh",
+        "quantity": 2,
+        "delta": 2
+      }
+    ]
   },
   {
     "id": "pk-xuat-33",
@@ -926,7 +1494,14 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-phukien",
     "reason": "Xuất kho giao hàng — chuyến CH0000005",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-keo-dan",
+        "quantity": 1,
+        "delta": 1
+      }
+    ]
   },
   {
     "id": "pk-xuat-32",
@@ -936,7 +1511,39 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-thanhpham",
     "reason": "Xuất kho giao hàng — chuyến CH0000005",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "sp-khung-soi-40x60",
+        "quantity": 24,
+        "delta": 24
+      },
+      {
+        "productId": "sp-khung-soi-50x70",
+        "quantity": 12,
+        "delta": 12
+      },
+      {
+        "productId": "sp-khung-oc-cho-40x60",
+        "quantity": 10,
+        "delta": 10
+      },
+      {
+        "productId": "sp-khung-nhom-den-40x60",
+        "quantity": 10,
+        "delta": 10
+      },
+      {
+        "productId": "sp-khung-soi-60x90",
+        "quantity": 1,
+        "delta": 1
+      },
+      {
+        "productId": "sp-khung-soi-30x40",
+        "quantity": 1,
+        "delta": 1
+      }
+    ]
   },
   {
     "id": "pk-kiem_ke-05",
@@ -946,7 +1553,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-vattu",
     "reason": "Kiểm kê định kỳ cuối tháng 9",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-nep-soi",
+        "quantity": 571.43,
+        "delta": -3
+      },
+      {
+        "productId": "vt-kinh-3ly",
+        "quantity": 36.16,
+        "delta": -1
+      }
+    ]
   },
   {
     "id": "pk-nhap-18",
@@ -956,7 +1575,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-thanhpham",
     "reason": "Nhập thành phẩm từ xưởng: LSX0000023, LSX0000024",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "sp-khung-soi-60x90",
+        "quantity": 1,
+        "delta": 1
+      },
+      {
+        "productId": "sp-khung-soi-30x40",
+        "quantity": 1,
+        "delta": 1
+      }
+    ]
   },
   {
     "id": "pk-nhap-17",
@@ -966,7 +1597,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-thanhpham",
     "reason": "Nhập thành phẩm từ xưởng: LSX0000021, LSX0000022",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "sp-khung-oc-cho-40x60",
+        "quantity": 10,
+        "delta": 10
+      },
+      {
+        "productId": "sp-khung-nhom-den-40x60",
+        "quantity": 10,
+        "delta": 10
+      }
+    ]
   },
   {
     "id": "pk-xuat-31",
@@ -976,7 +1619,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-phukien",
     "reason": "Xuất vật tư cho LSX0000023, LSX0000024",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-moc-treo",
+        "quantity": 4,
+        "delta": 4
+      },
+      {
+        "productId": "vt-dinh-ghim",
+        "quantity": 0.04,
+        "delta": 0.04
+      }
+    ]
   },
   {
     "id": "pk-xuat-30",
@@ -986,7 +1641,24 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-vattu",
     "reason": "Xuất vật tư cho LSX0000023, LSX0000024",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-nep-soi",
+        "quantity": 1.9,
+        "delta": 1.9
+      },
+      {
+        "productId": "vt-kinh-3ly",
+        "quantity": 0.38,
+        "delta": 0.38
+      },
+      {
+        "productId": "vt-hau-mdf",
+        "quantity": 0.26,
+        "delta": 0.26
+      }
+    ]
   },
   {
     "id": "pk-nhap-16",
@@ -996,7 +1668,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-thanhpham",
     "reason": "Nhập thành phẩm từ xưởng: LSX0000019, LSX0000020",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "sp-khung-soi-40x60",
+        "quantity": 24,
+        "delta": 24
+      },
+      {
+        "productId": "sp-khung-soi-50x70",
+        "quantity": 12,
+        "delta": 12
+      }
+    ]
   },
   {
     "id": "pk-xuat-29",
@@ -1006,7 +1690,24 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-phukien",
     "reason": "Xuất vật tư cho LSX0000021, LSX0000022",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-moc-treo",
+        "quantity": 40,
+        "delta": 40
+      },
+      {
+        "productId": "vt-dinh-ghim",
+        "quantity": 0.4,
+        "delta": 0.4
+      },
+      {
+        "productId": "vt-kep-kinh",
+        "quantity": 10,
+        "delta": 10
+      }
+    ]
   },
   {
     "id": "pk-xuat-28",
@@ -1016,7 +1717,29 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-vattu",
     "reason": "Xuất vật tư cho LSX0000021, LSX0000022",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-nep-oc-cho",
+        "quantity": 8.67,
+        "delta": 8.67
+      },
+      {
+        "productId": "vt-kinh-3ly",
+        "quantity": 2.76,
+        "delta": 2.76
+      },
+      {
+        "productId": "vt-hau-mdf",
+        "quantity": 1.85,
+        "delta": 1.85
+      },
+      {
+        "productId": "vt-nhom-den",
+        "quantity": 8.32,
+        "delta": 8.32
+      }
+    ]
   },
   {
     "id": "pk-xuat-27",
@@ -1026,7 +1749,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-phukien",
     "reason": "Xuất vật tư cho LSX0000019, LSX0000020",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-moc-treo",
+        "quantity": 72,
+        "delta": 72
+      },
+      {
+        "productId": "vt-dinh-ghim",
+        "quantity": 0.72,
+        "delta": 0.72
+      }
+    ]
   },
   {
     "id": "pk-xuat-26",
@@ -1036,7 +1771,24 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-vattu",
     "reason": "Xuất vật tư cho LSX0000019, LSX0000020",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-nep-soi",
+        "quantity": 33.2,
+        "delta": 33.2
+      },
+      {
+        "productId": "vt-kinh-3ly",
+        "quantity": 5.73,
+        "delta": 5.73
+      },
+      {
+        "productId": "vt-hau-mdf",
+        "quantity": 3.85,
+        "delta": 3.85
+      }
+    ]
   },
   {
     "id": "pk-nhap-15",
@@ -1046,7 +1798,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-vattu",
     "reason": "Nhập hàng theo đơn DN0000005",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-nep-soi",
+        "quantity": 250,
+        "delta": 250
+      },
+      {
+        "productId": "vt-nep-oc-cho",
+        "quantity": 120,
+        "delta": 120
+      }
+    ]
   },
   {
     "id": "pk-xuat-25",
@@ -1056,7 +1820,29 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-thanhpham",
     "reason": "Xuất kho giao hàng — chuyến CH0000004",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "sp-khung-soi-40x60",
+        "quantity": 15,
+        "delta": 15
+      },
+      {
+        "productId": "sp-mica-cat",
+        "quantity": 6,
+        "delta": 6
+      },
+      {
+        "productId": "sp-khung-soi-20x30",
+        "quantity": 10,
+        "delta": 10
+      },
+      {
+        "productId": "sp-khung-soi-30x40",
+        "quantity": 10,
+        "delta": 10
+      }
+    ]
   },
   {
     "id": "pk-nhap-14",
@@ -1066,7 +1852,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-thanhpham",
     "reason": "Nhập thành phẩm từ xưởng: LSX0000017, LSX0000018",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "sp-khung-soi-20x30",
+        "quantity": 10,
+        "delta": 10
+      },
+      {
+        "productId": "sp-khung-soi-30x40",
+        "quantity": 10,
+        "delta": 10
+      }
+    ]
   },
   {
     "id": "pk-nhap-13",
@@ -1076,7 +1874,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-thanhpham",
     "reason": "Nhập thành phẩm từ xưởng: LSX0000015, LSX0000016",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "sp-khung-soi-40x60",
+        "quantity": 15,
+        "delta": 15
+      },
+      {
+        "productId": "sp-mica-cat",
+        "quantity": 6,
+        "delta": 6
+      }
+    ]
   },
   {
     "id": "pk-xuat-24",
@@ -1086,7 +1896,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-phukien",
     "reason": "Xuất vật tư cho LSX0000017, LSX0000018",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-moc-treo",
+        "quantity": 40,
+        "delta": 40
+      },
+      {
+        "productId": "vt-dinh-ghim",
+        "quantity": 0.4,
+        "delta": 0.4
+      }
+    ]
   },
   {
     "id": "pk-xuat-23",
@@ -1096,7 +1918,24 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-vattu",
     "reason": "Xuất vật tư cho LSX0000017, LSX0000018",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-nep-soi",
+        "quantity": 10.67,
+        "delta": 10.67
+      },
+      {
+        "productId": "vt-kinh-3ly",
+        "quantity": 1.04,
+        "delta": 1.04
+      },
+      {
+        "productId": "vt-hau-mdf",
+        "quantity": 0.7,
+        "delta": 0.7
+      }
+    ]
   },
   {
     "id": "pk-xuat-22",
@@ -1106,7 +1945,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-phukien",
     "reason": "Xuất vật tư cho LSX0000015",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-moc-treo",
+        "quantity": 30,
+        "delta": 30
+      },
+      {
+        "productId": "vt-dinh-ghim",
+        "quantity": 0.3,
+        "delta": 0.3
+      }
+    ]
   },
   {
     "id": "pk-xuat-21",
@@ -1116,7 +1967,29 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-vattu",
     "reason": "Xuất vật tư cho LSX0000015, LSX0000016",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-nep-soi",
+        "quantity": 13,
+        "delta": 13
+      },
+      {
+        "productId": "vt-kinh-3ly",
+        "quantity": 2.07,
+        "delta": 2.07
+      },
+      {
+        "productId": "vt-hau-mdf",
+        "quantity": 1.39,
+        "delta": 1.39
+      },
+      {
+        "productId": "vt-mica-2ly",
+        "quantity": 0.9,
+        "delta": 0.9
+      }
+    ]
   },
   {
     "id": "pk-chuyen-01",
@@ -1127,7 +2000,14 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "targetWarehouseId": "wh-vattu",
     "reason": "Chuyển đinh ghim ra xưởng đóng khung",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-dinh-ghim",
+        "quantity": 5,
+        "delta": 5
+      }
+    ]
   },
   {
     "id": "pk-xuat-20",
@@ -1137,7 +2017,29 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-thanhpham",
     "reason": "Xuất kho giao hàng — chuyến CH0000003",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "sp-khung-soi-20x30",
+        "quantity": 4,
+        "delta": 4
+      },
+      {
+        "productId": "sp-khung-soi-40x60",
+        "quantity": 10,
+        "delta": 10
+      },
+      {
+        "productId": "sp-khung-soi-30x40",
+        "quantity": 10,
+        "delta": 10
+      },
+      {
+        "productId": "sp-khung-nhom-vang-30x40",
+        "quantity": 3,
+        "delta": 3
+      }
+    ]
   },
   {
     "id": "pk-nhap-12",
@@ -1147,7 +2049,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-thanhpham",
     "reason": "Nhập trả về — chuyến CH0000003 (DH0000007, DH0000008)",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "sp-khung-soi-40x60",
+        "quantity": 3,
+        "delta": 3
+      },
+      {
+        "productId": "sp-khung-nhom-vang-30x40",
+        "quantity": 3,
+        "delta": 3
+      }
+    ]
   },
   {
     "id": "pk-nhap-11",
@@ -1157,7 +2071,24 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-thanhpham",
     "reason": "Nhập thành phẩm từ xưởng: LSX0000012, LSX0000013, LSX0000014",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "sp-khung-soi-40x60",
+        "quantity": 10,
+        "delta": 10
+      },
+      {
+        "productId": "sp-khung-soi-30x40",
+        "quantity": 10,
+        "delta": 10
+      },
+      {
+        "productId": "sp-khung-nhom-vang-30x40",
+        "quantity": 3,
+        "delta": 3
+      }
+    ]
   },
   {
     "id": "pk-nhap-10",
@@ -1167,7 +2098,14 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-thanhpham",
     "reason": "Nhập thành phẩm từ xưởng: LSX0000011",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "sp-khung-soi-20x30",
+        "quantity": 4,
+        "delta": 4
+      }
+    ]
   },
   {
     "id": "pk-xuat-19",
@@ -1177,7 +2115,24 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-phukien",
     "reason": "Xuất vật tư cho LSX0000014",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-moc-treo",
+        "quantity": 6,
+        "delta": 6
+      },
+      {
+        "productId": "vt-dinh-ghim",
+        "quantity": 0.06,
+        "delta": 0.06
+      },
+      {
+        "productId": "vt-kep-kinh",
+        "quantity": 3,
+        "delta": 3
+      }
+    ]
   },
   {
     "id": "pk-xuat-18",
@@ -1187,7 +2142,24 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-vattu",
     "reason": "Xuất vật tư cho LSX0000014",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-nhom-vang",
+        "quantity": 1.78,
+        "delta": 1.78
+      },
+      {
+        "productId": "vt-kinh-3ly",
+        "quantity": 0.21,
+        "delta": 0.21
+      },
+      {
+        "productId": "vt-hau-mdf",
+        "quantity": 0.14,
+        "delta": 0.14
+      }
+    ]
   },
   {
     "id": "pk-xuat-17",
@@ -1197,7 +2169,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-phukien",
     "reason": "Xuất vật tư cho LSX0000012, LSX0000013",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-moc-treo",
+        "quantity": 40,
+        "delta": 40
+      },
+      {
+        "productId": "vt-dinh-ghim",
+        "quantity": 0.4,
+        "delta": 0.4
+      }
+    ]
   },
   {
     "id": "pk-xuat-16",
@@ -1207,7 +2191,24 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-vattu",
     "reason": "Xuất vật tư cho LSX0000012, LSX0000013",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-nep-soi",
+        "quantity": 14.83,
+        "delta": 14.83
+      },
+      {
+        "productId": "vt-kinh-3ly",
+        "quantity": 2.07,
+        "delta": 2.07
+      },
+      {
+        "productId": "vt-hau-mdf",
+        "quantity": 1.39,
+        "delta": 1.39
+      }
+    ]
   },
   {
     "id": "pk-xuat-15",
@@ -1217,7 +2218,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-phukien",
     "reason": "Xuất vật tư cho LSX0000011",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-moc-treo",
+        "quantity": 8,
+        "delta": 8
+      },
+      {
+        "productId": "vt-dinh-ghim",
+        "quantity": 0.08,
+        "delta": 0.08
+      }
+    ]
   },
   {
     "id": "pk-xuat-14",
@@ -1227,7 +2240,24 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-vattu",
     "reason": "Xuất vật tư cho LSX0000011",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-nep-soi",
+        "quantity": 1.8,
+        "delta": 1.8
+      },
+      {
+        "productId": "vt-kinh-3ly",
+        "quantity": 0.14,
+        "delta": 0.14
+      },
+      {
+        "productId": "vt-hau-mdf",
+        "quantity": 0.09,
+        "delta": 0.09
+      }
+    ]
   },
   {
     "id": "pk-xuat-13",
@@ -1237,7 +2267,34 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-thanhpham",
     "reason": "Xuất kho giao hàng — chuyến CH0000002",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "sp-khung-soi-60x90",
+        "quantity": 12,
+        "delta": 12
+      },
+      {
+        "productId": "sp-khung-oc-cho-40x60",
+        "quantity": 8,
+        "delta": 8
+      },
+      {
+        "productId": "sp-kinh-cat",
+        "quantity": 5,
+        "delta": 5
+      },
+      {
+        "productId": "sp-khung-soi-50x70",
+        "quantity": 30,
+        "delta": 30
+      },
+      {
+        "productId": "sp-khung-nhom-den-40x60",
+        "quantity": 30,
+        "delta": 30
+      }
+    ]
   },
   {
     "id": "pk-nhap-09",
@@ -1247,7 +2304,24 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-thanhpham",
     "reason": "Nhập thành phẩm từ xưởng: LSX0000006, LSX0000007, LSX0000008",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "sp-khung-soi-60x90",
+        "quantity": 12,
+        "delta": 12
+      },
+      {
+        "productId": "sp-khung-oc-cho-40x60",
+        "quantity": 8,
+        "delta": 8
+      },
+      {
+        "productId": "sp-kinh-cat",
+        "quantity": 5,
+        "delta": 5
+      }
+    ]
   },
   {
     "id": "pk-nhap-08",
@@ -1257,7 +2331,34 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-phukien",
     "reason": "Nhập hàng theo đơn DN0000004",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-moc-treo",
+        "quantity": 3000,
+        "delta": 3000
+      },
+      {
+        "productId": "vt-dinh-ghim",
+        "quantity": 40,
+        "delta": 40
+      },
+      {
+        "productId": "vt-day-thep",
+        "quantity": 10,
+        "delta": 10
+      },
+      {
+        "productId": "vt-kep-kinh",
+        "quantity": 400,
+        "delta": 400
+      },
+      {
+        "productId": "vt-keo-dan",
+        "quantity": 30,
+        "delta": 30
+      }
+    ]
   },
   {
     "id": "pk-nhap-07",
@@ -1267,7 +2368,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-thanhpham",
     "reason": "Nhập thành phẩm từ xưởng: LSX0000009, LSX0000010",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "sp-khung-soi-50x70",
+        "quantity": 30,
+        "delta": 30
+      },
+      {
+        "productId": "sp-khung-nhom-den-40x60",
+        "quantity": 30,
+        "delta": 30
+      }
+    ]
   },
   {
     "id": "pk-xuat-12",
@@ -1277,7 +2390,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-phukien",
     "reason": "Xuất vật tư cho LSX0000006, LSX0000007",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-moc-treo",
+        "quantity": 40,
+        "delta": 40
+      },
+      {
+        "productId": "vt-dinh-ghim",
+        "quantity": 0.4,
+        "delta": 0.4
+      }
+    ]
   },
   {
     "id": "pk-xuat-11",
@@ -1287,7 +2412,29 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-vattu",
     "reason": "Xuất vật tư cho LSX0000006, LSX0000007, LSX0000008",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-nep-soi",
+        "quantity": 15.4,
+        "delta": 15.4
+      },
+      {
+        "productId": "vt-kinh-3ly",
+        "quantity": 6.08,
+        "delta": 6.08
+      },
+      {
+        "productId": "vt-hau-mdf",
+        "quantity": 3.24,
+        "delta": 3.24
+      },
+      {
+        "productId": "vt-nep-oc-cho",
+        "quantity": 6.93,
+        "delta": 6.93
+      }
+    ]
   },
   {
     "id": "pk-xuat-10",
@@ -1297,7 +2444,14 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-ninhtrang",
     "reason": "Xuất kho giao hàng — chuyến CH0000001",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-den-led",
+        "quantity": 6,
+        "delta": 6
+      }
+    ]
   },
   {
     "id": "pk-xuat-09",
@@ -1307,7 +2461,29 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-thanhpham",
     "reason": "Xuất kho giao hàng — chuyến CH0000001",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "sp-khung-soi-30x40",
+        "quantity": 2,
+        "delta": 2
+      },
+      {
+        "productId": "sp-khung-soi-40x60",
+        "quantity": 21,
+        "delta": 21
+      },
+      {
+        "productId": "sp-khung-soi-50x70",
+        "quantity": 10,
+        "delta": 10
+      },
+      {
+        "productId": "sp-khung-nhom-vang-30x40",
+        "quantity": 6,
+        "delta": 6
+      }
+    ]
   },
   {
     "id": "pk-xuat-08",
@@ -1317,7 +2493,24 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-phukien",
     "reason": "Xuất vật tư cho LSX0000009, LSX0000010",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-moc-treo",
+        "quantity": 120,
+        "delta": 120
+      },
+      {
+        "productId": "vt-dinh-ghim",
+        "quantity": 1.2,
+        "delta": 1.2
+      },
+      {
+        "productId": "vt-kep-kinh",
+        "quantity": 30,
+        "delta": 30
+      }
+    ]
   },
   {
     "id": "pk-xuat-07",
@@ -1327,7 +2520,29 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-vattu",
     "reason": "Xuất vật tư cho LSX0000009, LSX0000010",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-nep-soi",
+        "quantity": 31,
+        "delta": 31
+      },
+      {
+        "productId": "vt-kinh-3ly",
+        "quantity": 10.18,
+        "delta": 10.18
+      },
+      {
+        "productId": "vt-hau-mdf",
+        "quantity": 6.84,
+        "delta": 6.84
+      },
+      {
+        "productId": "vt-nhom-den",
+        "quantity": 24.96,
+        "delta": 24.96
+      }
+    ]
   },
   {
     "id": "pk-nhap-06",
@@ -1337,7 +2552,14 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-thanhpham",
     "reason": "Nhập thành phẩm từ xưởng: LSX0000005",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "sp-khung-nhom-vang-30x40",
+        "quantity": 6,
+        "delta": 6
+      }
+    ]
   },
   {
     "id": "pk-nhap-05",
@@ -1347,7 +2569,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-thanhpham",
     "reason": "Nhập thành phẩm từ xưởng: LSX0000003, LSX0000004",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "sp-khung-soi-40x60",
+        "quantity": 20,
+        "delta": 20
+      },
+      {
+        "productId": "sp-khung-soi-50x70",
+        "quantity": 10,
+        "delta": 10
+      }
+    ]
   },
   {
     "id": "pk-nhap-04",
@@ -1357,7 +2591,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-thanhpham",
     "reason": "Nhập thành phẩm từ xưởng: LSX0000001, LSX0000002",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "sp-khung-soi-30x40",
+        "quantity": 2,
+        "delta": 2
+      },
+      {
+        "productId": "sp-khung-soi-40x60",
+        "quantity": 1,
+        "delta": 1
+      }
+    ]
   },
   {
     "id": "pk-xuat-06",
@@ -1367,7 +2613,24 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-phukien",
     "reason": "Xuất vật tư cho LSX0000005",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-moc-treo",
+        "quantity": 12,
+        "delta": 12
+      },
+      {
+        "productId": "vt-dinh-ghim",
+        "quantity": 0.12,
+        "delta": 0.12
+      },
+      {
+        "productId": "vt-kep-kinh",
+        "quantity": 6,
+        "delta": 6
+      }
+    ]
   },
   {
     "id": "pk-xuat-05",
@@ -1377,7 +2640,24 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-vattu",
     "reason": "Xuất vật tư cho LSX0000005",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-nhom-vang",
+        "quantity": 3.55,
+        "delta": 3.55
+      },
+      {
+        "productId": "vt-kinh-3ly",
+        "quantity": 0.41,
+        "delta": 0.41
+      },
+      {
+        "productId": "vt-hau-mdf",
+        "quantity": 0.28,
+        "delta": 0.28
+      }
+    ]
   },
   {
     "id": "pk-nhap-03",
@@ -1387,7 +2667,24 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-vattu",
     "reason": "Nhập hàng theo đơn DN0000003",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-kinh-3ly",
+        "quantity": 60,
+        "delta": 60
+      },
+      {
+        "productId": "vt-mica-2ly",
+        "quantity": 30,
+        "delta": 30
+      },
+      {
+        "productId": "vt-hau-mdf",
+        "quantity": 80,
+        "delta": 80
+      }
+    ]
   },
   {
     "id": "pk-xuat-04",
@@ -1397,7 +2694,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-phukien",
     "reason": "Xuất vật tư cho LSX0000003, LSX0000004",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-moc-treo",
+        "quantity": 60,
+        "delta": 60
+      },
+      {
+        "productId": "vt-dinh-ghim",
+        "quantity": 0.6,
+        "delta": 0.6
+      }
+    ]
   },
   {
     "id": "pk-xuat-03",
@@ -1407,7 +2716,24 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-vattu",
     "reason": "Xuất vật tư cho LSX0000003, LSX0000004",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-nep-soi",
+        "quantity": 27.67,
+        "delta": 27.67
+      },
+      {
+        "productId": "vt-kinh-3ly",
+        "quantity": 4.77,
+        "delta": 4.77
+      },
+      {
+        "productId": "vt-hau-mdf",
+        "quantity": 3.21,
+        "delta": 3.21
+      }
+    ]
   },
   {
     "id": "pk-xuat-02",
@@ -1417,7 +2743,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-phukien",
     "reason": "Xuất vật tư cho LSX0000001, LSX0000002",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-moc-treo",
+        "quantity": 6,
+        "delta": 6
+      },
+      {
+        "productId": "vt-dinh-ghim",
+        "quantity": 0.06,
+        "delta": 0.06
+      }
+    ]
   },
   {
     "id": "pk-xuat-01",
@@ -1427,7 +2765,24 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-vattu",
     "reason": "Xuất vật tư cho LSX0000001, LSX0000002",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-nep-soi",
+        "quantity": 2.1,
+        "delta": 2.1
+      },
+      {
+        "productId": "vt-kinh-3ly",
+        "quantity": 0.28,
+        "delta": 0.28
+      },
+      {
+        "productId": "vt-hau-mdf",
+        "quantity": 0.19,
+        "delta": 0.19
+      }
+    ]
   },
   {
     "id": "pk-nhap-02",
@@ -1437,7 +2792,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-vattu",
     "reason": "Nhập hàng theo đơn DN0000002",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-nhom-vang",
+        "quantity": 200,
+        "delta": 200
+      },
+      {
+        "productId": "vt-nhom-den",
+        "quantity": 200,
+        "delta": 200
+      }
+    ]
   },
   {
     "id": "pk-nhap-01",
@@ -1447,7 +2814,24 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-vattu",
     "reason": "Nhập hàng theo đơn DN0000001",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-nep-soi",
+        "quantity": 300,
+        "delta": 300
+      },
+      {
+        "productId": "vt-nep-oc-cho",
+        "quantity": 100,
+        "delta": 100
+      },
+      {
+        "productId": "vt-go-tho",
+        "quantity": 150,
+        "delta": 150
+      }
+    ]
   },
   {
     "id": "pk-kiem_ke-04",
@@ -1457,7 +2841,49 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-vattu",
     "reason": "Kiểm kê, nhập tồn đầu kỳ",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-nep-soi",
+        "quantity": 176,
+        "delta": 176
+      },
+      {
+        "productId": "vt-nep-oc-cho",
+        "quantity": 117,
+        "delta": 117
+      },
+      {
+        "productId": "vt-nhom-vang",
+        "quantity": 183,
+        "delta": 183
+      },
+      {
+        "productId": "vt-nhom-den",
+        "quantity": 177,
+        "delta": 177
+      },
+      {
+        "productId": "vt-kinh-3ly",
+        "quantity": 13.28,
+        "delta": 13.28
+      },
+      {
+        "productId": "vt-mica-2ly",
+        "quantity": 30,
+        "delta": 30
+      },
+      {
+        "productId": "vt-hau-mdf",
+        "quantity": 40.4,
+        "delta": 40.4
+      },
+      {
+        "productId": "vt-go-tho",
+        "quantity": 92,
+        "delta": 92
+      }
+    ]
   },
   {
     "id": "pk-kiem_ke-03",
@@ -1467,7 +2893,49 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-thanhpham",
     "reason": "Kiểm kê, nhập tồn đầu kỳ",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "sp-khung-soi-20x30",
+        "quantity": 10,
+        "delta": 10
+      },
+      {
+        "productId": "sp-khung-soi-30x40",
+        "quantity": 13,
+        "delta": 13
+      },
+      {
+        "productId": "sp-khung-soi-40x60",
+        "quantity": 10,
+        "delta": 10
+      },
+      {
+        "productId": "sp-khung-soi-50x70",
+        "quantity": 10,
+        "delta": 10
+      },
+      {
+        "productId": "sp-khung-soi-60x90",
+        "quantity": 4,
+        "delta": 4
+      },
+      {
+        "productId": "sp-khung-nhom-vang-30x40",
+        "quantity": 14,
+        "delta": 14
+      },
+      {
+        "productId": "sp-khung-nhom-den-40x60",
+        "quantity": 14,
+        "delta": 14
+      },
+      {
+        "productId": "sp-khung-oc-cho-40x60",
+        "quantity": 9,
+        "delta": 9
+      }
+    ]
   },
   {
     "id": "pk-kiem_ke-02",
@@ -1477,7 +2945,29 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-phukien",
     "reason": "Kiểm kê, nhập tồn đầu kỳ",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-moc-treo",
+        "quantity": 1208,
+        "delta": 1208
+      },
+      {
+        "productId": "vt-dinh-ghim",
+        "quantity": 13.38,
+        "delta": 13.38
+      },
+      {
+        "productId": "vt-kep-kinh",
+        "quantity": 229,
+        "delta": 229
+      },
+      {
+        "productId": "vt-keo-dan",
+        "quantity": 19,
+        "delta": 19
+      }
+    ]
   },
   {
     "id": "pk-kiem_ke-01",
@@ -1487,7 +2977,19 @@ export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = [
     "warehouseId": "wh-ninhtrang",
     "reason": "Kiểm kê, nhập tồn đầu kỳ",
     "createdBy": "thu.kho@ninhtrang.local",
-    "isCancelled": false
+    "isCancelled": false,
+    "lines": [
+      {
+        "productId": "vt-den-led",
+        "quantity": 25,
+        "delta": 25
+      },
+      {
+        "productId": "vt-ve-sinh-kinh",
+        "quantity": 2,
+        "delta": 2
+      }
+    ]
   }
 ];
 export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [

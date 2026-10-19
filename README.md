@@ -1,6 +1,6 @@
 # Ninh Trang ERP — rebuild scaffold
 
-An Angular + NestJS rebuild of the Ninh Trang business-management app (originally crawled at `ninhtrang-frontend-production.up.railway.app`), covering inventory, purchasing, sales, delivery, production, cash flow, and RBAC user management for a frame/glass manufacturing & trading business.
+An Angular + NestJS rebuild of the Ninh Trang business-management app, covering inventory, purchasing, sales, delivery, production, cash flow, and RBAC user management for a frame/glass manufacturing & trading business.
 
 ## Structure
 

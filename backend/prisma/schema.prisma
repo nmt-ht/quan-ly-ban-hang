@@ -6,9 +6,10 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Prisma 7: the connection URL lives in prisma.config.ts (Migrate) and in the
+// PrismaPg adapter passed to PrismaClient (runtime).
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // ---------- Auth / RBAC ----------

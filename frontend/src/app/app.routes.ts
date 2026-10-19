@@ -18,6 +18,8 @@ export const routes: Routes = [
 
       { path: 'hang-hoa', loadComponent: () => import('./features/products/products.component').then((m) => m.ProductsComponent) },
       { path: 'hang-hoa/them', loadComponent: () => import('./features/products/product-form/product-form.component').then((m) => m.ProductFormComponent) },
+      { path: 'hang-hoa/:id', loadComponent: () => import('./features/products/product-detail/product-detail.component').then((m) => m.ProductDetailComponent) },
+      { path: 'hang-hoa/:id/sua', loadComponent: () => import('./features/products/product-form/product-form.component').then((m) => m.ProductFormComponent) },
       { path: 'kho/ton-kho', loadComponent: () => import('./features/inventory/inventory.component').then((m) => m.InventoryComponent) },
       { path: 'kho/phieu', loadComponent: () => import('./features/warehouse-vouchers/warehouse-vouchers.component').then((m) => m.WarehouseVouchersComponent) },
       { path: 'san-xuat', loadComponent: () => import('./features/production-orders/production-orders.component').then((m) => m.ProductionOrdersComponent) },
@@ -41,6 +43,7 @@ export const routes: Routes = [
       { path: 'thiet-lap/the', loadComponent: () => import('./features/settings/tags/tags.component').then((m) => m.TagsComponent) },
       { path: 'thiet-lap/nguoi-dung', loadComponent: () => import('./features/settings/users/users.component').then((m) => m.UsersComponent) },
       { path: 'thiet-lap/chuc-vu', loadComponent: () => import('./features/settings/roles-permissions/roles-permissions.component').then((m) => m.RolesPermissionsComponent) },
+      { path: 'thiet-lap/mau-hien-thi', loadComponent: () => import('./features/settings/display-colors/display-colors.component').then((m) => m.DisplayColorsComponent) },
     ],
   },
   { path: '**', redirectTo: '' },

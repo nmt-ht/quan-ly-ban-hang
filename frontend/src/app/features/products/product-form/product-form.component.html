@@ -1,92 +1,247 @@
-<p class="subtitle">Danh mục hàng hoá / Thêm mới</p>
+@if (notFound) {
+  <div class="card empty-state">
+    <h3>Không tìm thấy mặt hàng</h3>
+    <p>Mặt hàng có thể đã bị xoá hoặc đường dẫn không đúng.</p>
+    <a class="btn" routerLink="/hang-hoa">Về danh mục hàng hoá</a>
+  </div>
+} @else {
+<p class="subtitle">
+  <a class="crumb" routerLink="/hang-hoa">Danh mục hàng hoá</a> /
+  @if (editing) {
+    <a class="crumb" [routerLink]="['/hang-hoa', editing.id]">{{ editing.code }}</a> / Sửa
+  } @else {
+    Thêm mới
+  }
+</p>
 <div class="page-header">
-  <h1>Thêm hàng hoá</h1>
+  <h1>{{ editing ? 'Sửa hàng hoá' : 'Thêm hàng hoá' }}</h1>
 </div>
 
 <form [formGroup]="form" (ngSubmit)="save()">
   <div class="card" style="margin-bottom:16px">
     <h3 style="margin-top:0">Thông tin chung</h3>
 
-    <div class="field">
-      <label>Tên hàng hoá *</label>
-      <input type="text" formControlName="name" placeholder="VD: Khung nhôm 20*30 vàng" />
-    </div>
-
-    <div class="form-grid">
+    <div class="form-grid-3">
+      <div class="field span-2">
+        <label for="pf-name">Tên hàng hoá <span class="required-mark">*</span></label>
+        <input id="pf-name" type="text" formControlName="name" placeholder="VD: Khung nhôm 20*30 vàng" />
+      </div>
       <div class="field">
-        <label>Tính chất *</label>
-        <select formControlName="type">
+        <label for="pf-type">Tính chất <span class="required-mark">*</span></label>
+        <select id="pf-type" formControlName="type">
           <option value="VAT_TU">Vật tư hàng hoá</option>
           <option value="THANH_PHAM">Thành phẩm</option>
           <option value="DICH_VU">Dịch vụ (không có tồn kho)</option>
         </select>
-        <span class="hint">Quyết định tiền tố mã: VT / SP / DV.</span>
-      </div>
-      <div class="field">
-        <label>Đơn vị tính chính *</label>
-        <input type="text" formControlName="baseUnit" placeholder="VD: Cái, m, kg, TẤM" />
+        <span class="hint">
+          {{ editing ? 'Không đổi được sau khi tạo (mã ' + editing.code + ').' : 'Quyết định tiền tố mã: VT / SP / DV.' }}
+        </span>
       </div>
 
       <div class="field">
-        <label>Mã đối chiếu</label>
-        <input type="text" formControlName="crossRefCode" placeholder="VD: 0625 vàng khung nhôm 20*30" />
-        <span class="hint">Mã cũ bên MISA hoặc cách gọi quen thuộc.</span>
+        <label for="pf-unit">Đơn vị tính chính <span class="required-mark">*</span></label>
+        @if (type === 'THANH_PHAM') {
+          <input id="pf-unit" type="text" formControlName="baseUnit" readonly class="locked-input" aria-describedby="pf-unit-hint" />
+          <span class="hint" id="pf-unit-hint">Thành phẩm chỉ bán theo mét dài hoặc mét vuông — đơn vị đặt theo cách tính bên dưới.</span>
+        } @else {
+          <input id="pf-unit" type="text" formControlName="baseUnit" placeholder="VD: Cái, m, kg, TẤM" />
+        }
       </div>
       <div class="field">
-        <label>Nhóm hàng</label>
-        <select formControlName="categoryId">
+        <label for="pf-crossref">Mã đối chiếu</label>
+        <input id="pf-crossref" type="text" formControlName="crossRefCode" placeholder="VD: 0625 vàng khung nhôm 20*30" />
+        <span class="hint">Mã cũ bên MISA hoặc cách gọi quen thuộc. Dùng để tra cứu và khớp bản ghi khi nhập lại Excel.</span>
+      </div>
+      <div class="field">
+        <label for="pf-category">Nhóm hàng</label>
+        <select id="pf-category" formControlName="categoryId">
           <option value="">— Không thuộc nhóm nào —</option>
           <option *ngFor="let c of data.categories()" [value]="c.id">{{ c.name }}</option>
         </select>
       </div>
 
-      <div class="field">
-        <label>Kho ngầm định</label>
-        <select formControlName="defaultWarehouseId">
-          <option value="">— Không đặt —</option>
-          <option *ngFor="let w of data.warehouses()" [value]="w.id">{{ w.name }}</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Tồn tối thiểu</label>
-        <input type="number" formControlName="minStock" />
-        <span class="hint">Dưới ngưỡng này sẽ vào danh sách cảnh báo.</span>
-      </div>
+      @if (type === 'THANH_PHAM') {
+        <div class="field span-3">
+          <span class="field-label" id="pf-measure-label">Cách tính <span class="required-mark">*</span></span>
+          <div class="segmented measure-toggle" role="radiogroup" aria-labelledby="pf-measure-label">
+            @for (m of measureModes; track m.value) {
+              <button
+                type="button"
+                role="radio"
+                [attr.aria-checked]="form.controls.measureMode.value === m.value"
+                [attr.aria-pressed]="form.controls.measureMode.value === m.value"
+                (click)="setMeasureMode(m.value)"
+              >
+                {{ m.label }}
+              </button>
+            }
+          </div>
+          @if (measureMissing) {
+            <span class="hint text-danger">Chọn cách tính cho thành phẩm.</span>
+          }
+          @if (legacyUnit && !measure) {
+            <span class="hint text-danger">
+              Mặt hàng đang dùng đơn vị "{{ legacyUnit }}" từ dữ liệu cũ. Chọn cách tính để chuyển sang m² hoặc m — định mức vật tư sẽ được hiểu theo đơn vị mới.
+            </span>
+          } @else if (measure; as m) {
+            <span class="hint">
+              Quyết định luôn <strong>đơn vị tính</strong> của mặt hàng (<code>{{ form.controls.baseUnit.value }}</code>) và đơn vị của
+              <strong>định mức vật tư</strong> — khai "1 {{ m.bomUnit }} cần bao nhiêu nhôm, bao nhiêu hậu".
+            </span>
+          }
+        </div>
+      }
+
+      @if (tracksStock) {
+        <div class="field">
+          <label for="pf-warehouse">Kho ngầm định</label>
+          <select id="pf-warehouse" formControlName="defaultWarehouseId">
+            <option value="">— Không đặt —</option>
+            <option *ngFor="let w of data.warehouses()" [value]="w.id">{{ w.name }}</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="pf-minstock">Tồn tối thiểu</label>
+          <input id="pf-minstock" type="number" formControlName="minStock" />
+          <span class="hint">Dưới ngưỡng này sẽ vào danh sách cảnh báo.</span>
+        </div>
+      } @else {
+        <p class="form-note span-3">
+          <strong>Không theo dõi tồn kho</strong> nên không có <em>Kho ngầm định</em> và <em>Tồn tối thiểu</em>.
+          @if (type === 'THANH_PHAM') {
+            Hàng cắt theo từng đơn, không có gì nằm sẵn trong kho để đếm — vật tư vẫn trừ tồn ở lệnh sản xuất.
+          } @else {
+            Dịch vụ không có gì để nhập xuất.
+          }
+        </p>
+      }
 
       <div class="field">
-        <label>Thuế suất GTGT (%)</label>
-        <input type="number" formControlName="vatRate" />
+        <label for="pf-vat">Thuế suất GTGT (%)</label>
+        <input id="pf-vat" type="number" formControlName="vatRate" />
       </div>
       <div class="field">
-        <label>Bảo hành (tháng)</label>
-        <input type="number" formControlName="warrantyMonths" />
+        <label for="pf-warranty">Bảo hành (tháng)</label>
+        <input id="pf-warranty" type="number" formControlName="warrantyMonths" />
       </div>
-
       <div class="field">
-        <label>Nguồn gốc</label>
-        <input type="text" formControlName="origin" placeholder="VD: Việt Nam" />
+        <label for="pf-origin">Nguồn gốc</label>
+        <input id="pf-origin" type="text" formControlName="origin" placeholder="VD: Việt Nam" />
       </div>
     </div>
   </div>
 
   <div class="card" style="margin-bottom:16px">
     <h3 style="margin-top:0">Giá bán</h3>
-    <p class="subtitle" style="margin-top:-8px">Giá theo đơn vị tính chính. Mức giá tự áp theo loại khách khi lên đơn, vẫn sửa tay được.</p>
+    <p class="subtitle" style="margin-top:-8px">
+      @if (type === 'THANH_PHAM' && measure; as m) {
+        Đơn giá cho MỖI {{ m.unitLong }} — thành tiền của dòng đơn là đơn giá × số {{ m.unitShort }} tính ra từ kích thước.
+        Thành phẩm chỉ có đúng một đơn vị nên không có mục Đơn vị quy đổi.
+      } @else {
+        Giá theo đơn vị tính chính. Mức giá tự áp theo loại khách khi lên đơn, vẫn sửa tay được; giá được chốt vào dòng đơn hàng.
+      }
+    </p>
     <div class="form-grid">
       <div class="field">
         <label>Giá lẻ</label>
-        <input type="number" formControlName="retailPrice" />
+        <input type="text" appMoney formControlName="retailPrice" class="align-right" />
       </div>
       <div class="field">
         <label>Giá sỉ</label>
-        <input type="number" formControlName="wholesalePrice" />
+        <input type="text" appMoney formControlName="wholesalePrice" class="align-right" />
       </div>
       <div class="field">
         <label>Giá dropship</label>
-        <input type="number" formControlName="dropshipPrice" />
+        <input type="text" appMoney formControlName="dropshipPrice" class="align-right" />
       </div>
     </div>
   </div>
+
+  @if (allowsUnits) {
+  <section class="card units-card" style="margin-bottom:16px" formArrayName="units">
+    <div class="units-head">
+      <div>
+        <h3>Đơn vị quy đổi</h3>
+        <p class="subtitle">
+          Không giới hạn số đơn vị. Tồn kho luôn quy về đơn vị tính chính; mỗi đơn vị có giá bán riêng, tự tính sẵn theo tỷ lệ khi khai.
+        </p>
+      </div>
+      <div class="toolbar">
+        @if (units.length) {
+          <button type="button" class="btn" (click)="recalcAll()" title="Tính lại giá mọi đơn vị từ giá của đơn vị tính chính">
+            <app-nav-icon name="refresh" />Tính lại giá theo tỷ lệ
+          </button>
+        }
+        <button type="button" class="btn" (click)="addUnit()"><app-nav-icon name="plus" />Thêm đơn vị</button>
+      </div>
+    </div>
+
+    @if (!units.length) {
+      <p class="units-empty">Chưa có đơn vị quy đổi. Mặt hàng chỉ dùng đơn vị tính chính.</p>
+    }
+
+    @for (g of units.controls; track g; let i = $index) {
+      <div class="unit-row" [formGroupName]="i">
+        <div class="field">
+          <label [for]="'unit-name-' + i">Đơn vị <span class="required-mark">*</span></label>
+          <input [id]="'unit-name-' + i" type="text" formControlName="unitName" placeholder="VD: bó, hộp, thùng" />
+        </div>
+        <div class="field">
+          <label [for]="'unit-op-' + i">Phép tính</label>
+          <select [id]="'unit-op-' + i" formControlName="operation">
+            @for (o of operations; track o.value) {
+              <option [value]="o.value">{{ o.label }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label [for]="'unit-factor-' + i">{{ isPriceShift(g) ? 'Số tiền (₫)' : 'Tỷ lệ' }} <span class="required-mark">*</span></label>
+          <input
+            [id]="'unit-factor-' + i"
+            type="number"
+            step="any"
+            min="0"
+            formControlName="factor"
+            [attr.aria-invalid]="g.errors?.['factor'] && g.get('factor')?.touched ? 'true' : null"
+          />
+          @if (g.errors?.['factor'] && g.get('factor')?.touched) {
+            <span class="hint text-danger">{{ isPriceShift(g) ? 'Nhập số tiền ≥ 0' : 'Nhập tỷ lệ lớn hơn 0' }}</span>
+          } @else {
+            <span class="hint">{{ unitHint(g) }}</span>
+          }
+        </div>
+        <div class="field">
+          <label [for]="'unit-retail-' + i">Giá lẻ</label>
+          <input [id]="'unit-retail-' + i" type="text" appMoney formControlName="retailPrice" class="align-right" />
+        </div>
+        <div class="field">
+          <label [for]="'unit-wholesale-' + i">Giá sỉ</label>
+          <input [id]="'unit-wholesale-' + i" type="text" appMoney formControlName="wholesalePrice" class="align-right" />
+        </div>
+        <div class="field">
+          <label [for]="'unit-dropship-' + i">Giá dropship</label>
+          <input [id]="'unit-dropship-' + i" type="text" appMoney formControlName="dropshipPrice" class="align-right" />
+        </div>
+        <button type="button" class="icon-action unit-remove" [attr.aria-label]="'Xoá đơn vị ' + (g.get('unitName')?.value || (i + 1))" title="Xoá đơn vị" (click)="removeUnit(i)">
+          <app-nav-icon name="trash" />
+        </button>
+      </div>
+    }
+
+    @if (units.errors?.['duplicate']) {
+      <p class="hint text-danger">Đơn vị "{{ units.errors?.['duplicate'] }}" bị khai trùng.</p>
+    }
+    @if (units.errors?.['sameAsBase']) {
+      <p class="hint text-danger">Đơn vị quy đổi không được trùng đơn vị tính chính ("{{ units.errors?.['sameAsBase'] }}").</p>
+    }
+  </section>
+  }
+
+  <section class="card" style="margin-bottom:16px">
+    <h3 style="margin-top:0">Hình ảnh</h3>
+    <p class="subtitle" style="margin:-8px 0 12px">Ảnh đầu tiên là ảnh chính. Di chuột lên ảnh để đặt làm ảnh chính hoặc xoá.</p>
+    <app-product-images [(images)]="images" />
+  </section>
 
   <div class="card" style="margin-bottom:16px">
     <h3 style="margin-top:0">Ghi chú</h3>
@@ -113,7 +268,8 @@
   </div>
 
   <div class="form-actions">
-    <a class="btn" routerLink="/hang-hoa">Huỷ</a>
-    <button class="btn btn-primary" type="submit">Thêm hàng hoá</button>
+    <a class="btn" [routerLink]="editing ? ['/hang-hoa', editing.id] : '/hang-hoa'">Huỷ</a>
+    <button class="btn btn-primary" type="submit">{{ editing ? 'Lưu thay đổi' : 'Thêm hàng hoá' }}</button>
   </div>
 </form>
+}

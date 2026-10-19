@@ -4,7 +4,7 @@
     <p class="subtitle">Công nợ {{ mode() === 'PHAI_TRA' ? 'phải trả' : 'phải thu' }} chia theo số ngày quá hạn</p>
   </div>
   <div class="toolbar">
-    <button class="btn">⭳ Xuất Excel</button>
+    <button class="btn">Xuất Excel</button>
     <button class="btn">Sổ công nợ</button>
   </div>
 </div>
@@ -14,7 +14,7 @@
     <option value="PHAI_TRA">Phải trả nhà cung cấp</option>
     <option value="PHAI_THU">Phải thu khách hàng</option>
   </select>
-  <input type="text" placeholder="Tìm đối tác..." style="min-width:220px" [value]="query()" (input)="query.set($any($event.target).value)" />
+  <input type="text" placeholder="Tìm đối tác..." class="filter-search" [value]="query()" (input)="query.set($any($event.target).value)" />
 </div>
 
 <div class="stat-grid">
@@ -28,7 +28,6 @@
 
 @if (rows().length === 0) {
   <div class="card empty-state">
-    <div class="empty-icon">▢</div>
     <h3>Không có khoản nợ nào đang mở</h3>
     <p>Mọi khoản đã được đối trừ hết.</p>
   </div>

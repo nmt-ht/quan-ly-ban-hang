@@ -1,0 +1,77 @@
+<div class="page-header">
+  <div>
+    <h1>Màu hiển thị</h1>
+    <p class="subtitle">
+      Màu của nhãn tính chất và trạng thái. Đổi là áp dụng ngay cho mọi trang; mỗi màu tự có bản sáng và tối, luôn đọc rõ.
+    </p>
+  </div>
+  <div class="toolbar">
+    <button type="button" class="btn" [disabled]="!colors.changedCount()" (click)="colors.resetAll()">
+      <app-nav-icon name="refresh" />Khôi phục tất cả mặc định
+    </button>
+  </div>
+</div>
+
+<p class="form-note storage-note">
+  <strong>Lưu trên trình duyệt này.</strong> Khi có máy chủ, màu sẽ lưu theo công ty và chỉ người có quyền
+  <em>Sửa thông tin công ty</em> được đổi.
+</p>
+
+@for (g of colors.groups; track g.id) {
+  <section class="card section-block">
+    <div class="group-head">
+      <div>
+        <h3>{{ g.label }}</h3>
+        <p class="subtitle">{{ g.hint }}</p>
+      </div>
+      @if (groupChanged(g)) {
+        <button type="button" class="link-btn" (click)="colors.resetGroup(g.id)">Khôi phục mặc định</button>
+      }
+    </div>
+
+    <ul class="tag-rows">
+      @for (i of g.items; track i.key) {
+        <li class="tag-row">
+          <div class="tag-row-label">
+            <span class="tag-name">{{ i.label }}</span>
+            <span class="previews">
+              <span class="preview preview-light"><span class="badge" [ngClass]="cls(g, i)">{{ i.label }}</span></span>
+              <span class="preview preview-dark"><span class="badge" [ngClass]="cls(g, i)">{{ i.label }}</span></span>
+            </span>
+          </div>
+
+          <div class="tag-row-controls">
+            <div class="swatches" role="radiogroup" [attr.aria-label]="'Màu cho ' + i.label">
+              @for (p of presets; track p.color) {
+                <button
+                  type="button"
+                  role="radio"
+                  class="swatch"
+                  [attr.aria-checked]="isPicked(g, i, p.color)"
+                  [attr.aria-label]="p.name"
+                  [title]="p.name"
+                  [style.--tag-h]="swatchH(p.color)"
+                  [style.--tag-c]="swatchC(p.color)"
+                  (click)="pick(g, i, p.color)"
+                ></button>
+              }
+            </div>
+            <label class="hue">
+              <span class="visually-hidden">Sắc độ cho {{ i.label }}</span>
+              <input
+                type="range"
+                min="0"
+                max="359"
+                step="1"
+                [value]="hue(g, i)"
+                (input)="slide(g, i, $any($event.target).value)"
+                [attr.aria-valuetext]="colorName(current(g, i))"
+              />
+            </label>
+            <span class="hue-value num">{{ current(g, i) === 'neutral' ? 'Xám' : current(g, i) + '°' }}</span>
+          </div>
+        </li>
+      }
+    </ul>
+  </section>
+}

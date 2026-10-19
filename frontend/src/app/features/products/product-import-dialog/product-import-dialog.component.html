@@ -1,0 +1,86 @@
+<dialog #dialog class="import-dialog" [attr.aria-labelledby]="'import-title-' + mode()" (close)="onNativeClose()">
+  <header class="dialog-head">
+    <h2 [id]="'import-title-' + mode()">{{ title() }}</h2>
+    <button type="button" class="dialog-x" aria-label="Đóng" (click)="close()"><app-nav-icon name="x" /></button>
+  </header>
+
+  <div class="dialog-body">
+    <ol class="steps">
+      <li>
+        <span>Tải file mẫu, điền dữ liệu
+          @if (mode() === 'bom') { (file mẫu có sẵn định mức hiện tại) }
+          — xem sheet "Hướng dẫn" trong file.</span>
+        <button type="button" class="btn" (click)="downloadTemplate()"><app-nav-icon name="download" />Tải file mẫu</button>
+      </li>
+      <li>
+        <span>Chọn file .xlsx đã điền.</span>
+        <label class="btn file-pick">
+          <app-nav-icon name="upload" />{{ fileName() ? 'Chọn file khác' : 'Chọn file' }}
+          <input #fileInput type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" (change)="onFile($event)" />
+        </label>
+      </li>
+    </ol>
+
+    @if (fileName()) {
+      <p class="file-name"><span class="num">{{ fileName() }}</span></p>
+    }
+
+    @if (busy()) {
+      <p class="status" role="status">Đang đọc file…</p>
+    }
+
+    @if (error()) {
+      <p class="status status-error" role="alert">{{ error() }}</p>
+    }
+
+    @if (hasPlan() && !busy()) {
+      <dl class="summary" role="status">
+        @if (productPlan(); as p) {
+          <div><dt>Thêm mới</dt><dd class="num">{{ p.creates.length }}</dd></div>
+          <div><dt>Cập nhật</dt><dd class="num">{{ p.updates.length }}</dd></div>
+          <div><dt>Dòng lỗi</dt><dd class="num" [class.text-danger]="p.issues.length">{{ p.issues.length }}</dd></div>
+        }
+        @if (bomPlan(); as b) {
+          <div><dt>Thành phẩm</dt><dd class="num">{{ b.replacements.size }}</dd></div>
+          <div><dt>Dòng vật tư</dt><dd class="num">{{ b.lineCount }}</dd></div>
+          <div><dt>Dòng lỗi</dt><dd class="num" [class.text-danger]="issues().length">{{ issues().length }}</dd></div>
+        }
+      </dl>
+
+      @if (issues().length) {
+        <div class="issues">
+          <h3>Lỗi — các dòng này sẽ bị bỏ qua</h3>
+          <table>
+            <thead><tr><th scope="col">Dòng</th><th scope="col">Lỗi</th></tr></thead>
+            <tbody>
+              @for (i of issues().slice(0, 100); track $index) {
+                <tr>
+                  <td class="num">{{ i.row > 0 ? i.row : '—' }}</td>
+                  <td>{{ i.message }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+          @if (issues().length > 100) {
+            <p class="subtitle">… và {{ issues().length - 100 }} lỗi khác. Sửa các lỗi trên rồi nhập lại để xem tiếp.</p>
+          }
+        </div>
+      }
+
+      @if (validCount() === 0 && !issues().length) {
+        <p class="status">File không có dòng dữ liệu nào.</p>
+      }
+    }
+  </div>
+
+  <footer class="dialog-foot">
+    <button type="button" class="btn" (click)="close()">Huỷ</button>
+    <button type="button" class="btn btn-primary" [disabled]="!hasPlan() || validCount() === 0 || busy()" (click)="confirm()">
+      @if (mode() === 'products') {
+        Nhập {{ validCount() }} mặt hàng
+      } @else {
+        Nhập {{ validCount() }} dòng định mức
+      }
+    </button>
+  </footer>
+</dialog>

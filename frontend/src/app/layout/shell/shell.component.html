@@ -1,11 +1,11 @@
-<div class="shell" [class.collapsed]="collapsed()">
-  <aside class="sidebar">
+<div class="shell" [class.collapsed]="collapsed()" [class.menu-open]="menuOpen()">
+  <aside class="sidebar" id="app-sidebar">
     <div class="brand">
-      <span class="brand-mark">NT</span>
+      <span class="brand-mark" aria-hidden="true">NT</span>
       <span class="brand-name" *ngIf="!collapsed()">Ninh Trang</span>
     </div>
 
-    <nav class="nav">
+    <nav class="nav" aria-label="Điều hướng chính">
       <ng-container *ngFor="let group of navGroups">
         <div class="nav-group-label" *ngIf="group.label && !collapsed()">{{ group.label }}</div>
         <a
@@ -13,22 +13,44 @@
           class="nav-link"
           [routerLink]="link.path"
           routerLinkActive="active"
+          ariaCurrentWhenActive="page"
+          [title]="collapsed() ? link.label : ''"
+          (click)="closeMenu()"
         >
-          {{ link.label }}
+          <app-nav-icon class="nav-link-icon" [name]="link.icon" />
+          <span class="nav-link-label">{{ link.label }}</span>
         </a>
       </ng-container>
     </nav>
 
-    <button class="collapse-toggle" type="button" (click)="toggleCollapsed()">
-      {{ collapsed() ? '›' : '‹ Thu gọn' }}
+    <button
+      class="collapse-toggle"
+      type="button"
+      (click)="toggleCollapsed()"
+      [attr.aria-expanded]="!collapsed()"
+      [title]="collapsed() ? 'Mở rộng' : ''"
+    >
+      <app-nav-icon class="nav-link-icon" [name]="collapsed() ? 'panel-open' : 'panel-close'" />
+      <span class="nav-link-label">{{ collapsed() ? 'Mở rộng' : 'Thu gọn' }}</span>
     </button>
   </aside>
 
+  <button class="scrim" type="button" aria-label="Đóng menu" tabindex="-1" (click)="closeMenu()"></button>
+
   <div class="main">
     <header class="topbar">
+      <button
+        class="menu-btn btn"
+        type="button"
+        aria-controls="app-sidebar"
+        [attr.aria-expanded]="menuOpen()"
+        (click)="toggleMenu()"
+      >
+        Menu
+      </button>
       <div class="topbar-spacer"></div>
-      <button class="icon-btn" type="button" (click)="toggleDarkMode()" title="Chuyển giao diện">
-        {{ darkMode() ? '☀' : '☾' }}
+      <button class="btn theme-btn" type="button" (click)="toggleDarkMode()" [attr.aria-pressed]="darkMode()">
+        {{ darkMode() ? 'Giao diện sáng' : 'Giao diện tối' }}
       </button>
       <div class="user-menu">
         <span class="user-name">{{ user?.name || 'Quản trị hệ thống' }}</span>

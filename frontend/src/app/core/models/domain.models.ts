@@ -2,12 +2,21 @@
 // Money fields are VND integers (no decimals), dates are ISO strings.
 
 export type ProductType = 'VAT_TU' | 'THANH_PHAM' | 'DICH_VU'; // Vật tư | Thành phẩm | Dịch vụ
+// Cách tính of a Thành phẩm: sold per m² (dài × rộng) or per metre (chiều dài).
+export type MeasureMode = 'AREA' | 'LENGTH';
 export type CustomerType = 'LE' | 'SI' | 'DROPSHIP'; // Lẻ | Sỉ | Dropship
+
+// × / ÷ change quantity (1 bó = 12 cái); + / − keep 1:1 quantity and shift the price.
+export type UnitOperation = 'MUL' | 'DIV' | 'ADD' | 'SUB';
 
 export interface UnitConversion {
   unitName: string;
-  ratioToBaseUnit: number;
-  price: number;
+  operation?: UnitOperation; // older rows: MUL
+  factor?: number; // the number typed in "Tỷ lệ" / "Số tiền"; older rows: ratioToBaseUnit
+  ratioToBaseUnit: number; // base units in 1 of this unit (derived from operation + factor)
+  price: number; // giá lẻ
+  wholesalePrice?: number;
+  dropshipPrice?: number;
 }
 
 export interface Product {
@@ -16,6 +25,7 @@ export interface Product {
   name: string;
   type: ProductType;
   baseUnit: string;
+  measureMode?: MeasureMode; // Thành phẩm only; fixes baseUnit to m2 / m
   crossRefCode?: string;
   categoryId?: string;
   defaultWarehouseId?: string;
@@ -32,6 +42,24 @@ export interface Product {
   description?: string;
   isSellable: boolean;
   isActive: boolean;
+  images?: ProductImage[]; // first image is the main one (Ảnh chính)
+  createdAt?: string; // ISO; demo rows predate this field
+  updatedAt?: string;
+}
+
+export interface ProductImage {
+  id: string;
+  url: string; // data: URL in the mock; a storage URL once the backend has uploads
+  name: string;
+  width: number;
+  height: number;
+}
+
+// Định mức: how much of a component one unit of a finished product consumes.
+export interface BomLine {
+  finishedProductId: string;
+  componentId: string;
+  quantityPerUnit: number;
 }
 
 export interface ProductCategory {
@@ -63,6 +91,13 @@ export interface WarehouseVoucher {
   reason?: string;
   createdBy: string;
   isCancelled: boolean;
+  lines?: WarehouseVoucherLine[];
+}
+
+export interface WarehouseVoucherLine {
+  productId: string;
+  quantity: number; // kiểm kê: the counted quantity
+  delta: number; // stock change magnitude; sign comes from the voucher type (kiểm kê: signed)
 }
 
 export type ProductionOrderStatus = 'NHAP' | 'DANG_SAN_XUAT' | 'HOAN_TAT' | 'HUY';

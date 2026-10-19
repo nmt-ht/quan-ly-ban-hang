@@ -1,0 +1,53 @@
+<div
+  class="dropzone"
+  [class.is-dragging]="dragging()"
+  (dragover)="onDragOver($event)"
+  (dragleave)="onDragLeave($event)"
+  (drop)="onDrop($event)"
+>
+  <app-nav-icon class="dropzone-icon" name="image-plus" />
+  <p class="dropzone-title">{{ dragging() ? 'Thả ảnh để tải lên' : 'Kéo thả ảnh vào đây' }}</p>
+  <p class="dropzone-hint">JPEG, PNG hoặc WebP · tối đa 10MB mỗi ảnh · 10 ảnh mỗi lần</p>
+  <button type="button" class="btn" [disabled]="busy()" (click)="pick()">
+    {{ busy() ? 'Đang xử lý ảnh…' : 'Chọn ảnh từ máy' }}
+  </button>
+  <input #fileInput type="file" accept="image/jpeg,image/png,image/webp" multiple hidden (change)="onPicked($event)" />
+</div>
+
+@if (errors().length) {
+  <ul class="upload-errors" role="alert">
+    @for (e of errors(); track $index) {
+      <li>{{ e }}</li>
+    }
+  </ul>
+}
+
+@if (images().length) {
+  <ul class="gallery" aria-label="Ảnh sản phẩm">
+    @for (img of images(); track img.id; let first = $first) {
+      <li class="tile" [class.is-primary]="first">
+        <img [src]="img.url" [alt]="img.name" [width]="img.width" [height]="img.height" loading="lazy" />
+        @if (first) {
+          <span class="badge badge-success tile-badge">Ảnh chính</span>
+        }
+        <div class="tile-actions">
+          @if (!first) {
+            <button type="button" class="tile-btn" (click)="makePrimary(img.id)" [attr.aria-label]="'Đặt ' + img.name + ' làm ảnh chính'" title="Đặt làm ảnh chính">
+              <app-nav-icon name="star" />
+            </button>
+          }
+          <button type="button" class="tile-btn tile-btn-danger" (click)="remove(img.id)" [attr.aria-label]="'Xoá ảnh ' + img.name" title="Xoá ảnh">
+            <app-nav-icon name="trash" />
+          </button>
+        </div>
+        <p class="tile-name">{{ img.name }}</p>
+      </li>
+    }
+  </ul>
+} @else {
+  <div class="gallery-empty">
+    <app-nav-icon class="gallery-empty-icon" name="product" />
+    <p class="gallery-empty-title">Chưa có ảnh nào</p>
+    <p class="gallery-empty-hint">Ảnh chính sẽ hiện trên bảng danh sách và thẻ lưới hàng hoá.</p>
+  </div>
+}

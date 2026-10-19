@@ -4,23 +4,171 @@
     <p class="subtitle">{{ products().length }} mặt hàng</p>
   </div>
   <div class="toolbar">
-    <button class="btn">⭳ Xuất Excel</button>
-    <button class="btn">⭱ Nhập hàng hoá</button>
-    <button class="btn">⭱ Nhập định mức</button>
-    <a class="btn btn-primary" routerLink="/hang-hoa/them">+ Thêm hàng hoá</a>
+    <button type="button" class="btn" [attr.data-state]="exporting() ? 'loading' : null" [disabled]="exporting()" (click)="exportExcel()">
+      <app-nav-icon name="download" />{{ exporting() ? 'Đang xuất…' : 'Xuất Excel' }}
+    </button>
+    <div class="segmented" role="group" aria-label="Kiểu hiển thị">
+      <button type="button" [attr.aria-pressed]="view() === 'grid'" (click)="setView('grid')">
+        <app-nav-icon name="grid" />Lưới
+      </button>
+      <button type="button" [attr.aria-pressed]="view() === 'table'" (click)="setView('table')">
+        <app-nav-icon name="table" />Bảng
+      </button>
+    </div>
+    <button type="button" class="btn" (click)="openProductImport()"><app-nav-icon name="upload" />Nhập hàng hoá</button>
+    <button type="button" class="btn" (click)="openBomImport()"><app-nav-icon name="stock" />Nhập định mức</button>
+    <a class="btn btn-primary" routerLink="/hang-hoa/them"><app-nav-icon name="plus" />Thêm hàng hoá</a>
   </div>
 </div>
 
+@if (notice()) {
+  <div class="notice" role="status">
+    <span>{{ notice() }}</span>
+    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+  </div>
+}
+
 <div class="filters-bar">
-  <input type="text" placeholder="Tìm theo mã hệ thống, mã đối chiếu hoặc tên..." [value]="search()" (input)="search.set($any($event.target).value)" style="min-width:280px" />
-  <select><option>Tính chất</option></select>
-  <select><option>Nhóm hàng</option></select>
-  <select><option>Tất cả trạng thái</option></select>
+  <input
+    type="text"
+    placeholder="Tìm theo mã hệ thống, mã đối chiếu hoặc tên..."
+    aria-label="Tìm hàng hoá"
+    [value]="search()"
+    (input)="search.set($any($event.target).value)"
+    class="filter-search"
+  />
+
+  <app-filter-multi-select label="Tính chất" [options]="typeOptions" [(selected)]="types" />
+
+  <app-filter-multi-select
+    label="Nhóm hàng"
+    [options]="categoryOptions()"
+    [(selected)]="categoryIds"
+    [searchable]="true"
+    searchPlaceholder="Tìm nhóm hàng..."
+  />
+
+  <select aria-label="Trạng thái kinh doanh" [value]="status()" (change)="status.set($any($event.target).value)">
+    <option value="all">Tất cả trạng thái</option>
+    <option value="active">Đang kinh doanh</option>
+    <option value="inactive">Ngừng kinh doanh</option>
+  </select>
+
+  <select aria-label="Kho tính tồn" [value]="warehouseId()" (change)="warehouseId.set($any($event.target).value)">
+    <option value="all">Tồn tất cả kho</option>
+    @for (w of data.warehouses(); track w.id) {
+      <option [value]="w.id">{{ w.name }}</option>
+    }
+  </select>
+
+  <button
+    type="button"
+    class="btn filter-toggle"
+    [attr.aria-pressed]="negativeOnly()"
+    (click)="negativeOnly.set(!negativeOnly())"
+  >
+    Tồn âm
+  </button>
+  <button
+    type="button"
+    class="btn filter-toggle"
+    [attr.aria-pressed]="belowMinOnly()"
+    (click)="belowMinOnly.set(!belowMinOnly())"
+  >
+    Dưới tồn tối thiểu
+  </button>
+
+  <select aria-label="Sắp xếp" [value]="sort()" (change)="sort.set($any($event.target).value)">
+    @for (o of sortOptions; track o.value) {
+      <option [value]="o.value">{{ o.label }}</option>
+    }
+  </select>
 </div>
 
-<app-data-table
-  [columns]="columns"
-  [rows]="products()"
-  emptyTitle="Chưa có mặt hàng nào"
-  emptyHint="Thêm mặt hàng đầu tiên hoặc nhập danh mục từ file Excel."
-/>
+@if (chips().length) {
+  <div class="filter-chips" aria-label="Bộ lọc đang áp dụng">
+    @for (c of chips(); track c.label) {
+      <span class="filter-chip">
+        {{ c.label }}
+        <button type="button" class="filter-chip-remove" [attr.aria-label]="'Bỏ lọc ' + c.label" (click)="c.clear()">
+          <app-nav-icon name="x" />
+        </button>
+      </span>
+    }
+    <button type="button" class="filter-clear-all" (click)="clearAll()">
+      <app-nav-icon name="x" />
+      Xoá tất cả bộ lọc
+    </button>
+  </div>
+}
+
+@if (view() === 'table') {
+  <app-data-table
+    [columns]="columns"
+    [rows]="pagedProducts()"
+    [actions]="rowActions"
+    [filterable]="true"
+    [filters]="columnFilters()"
+    (filtersChange)="columnFilters.set($event)"
+    [optionRows]="data.products()"
+    [emptyTitle]="chips().length || search() ? 'Không có mặt hàng phù hợp bộ lọc' : 'Chưa có mặt hàng nào'"
+    [emptyHint]="chips().length || search() ? 'Thử bỏ bớt bộ lọc hoặc đổi từ khoá tìm kiếm.' : 'Thêm mặt hàng đầu tiên hoặc nhập danh mục từ file Excel.'"
+  />
+} @else {
+  @if (pagedProducts().length) {
+    <ul class="product-grid">
+      @for (p of pagedProducts(); track p.id) {
+        <li class="product-card">
+          <a class="product-card-media" [routerLink]="['/hang-hoa', p.id]" tabindex="-1" aria-hidden="true">
+            @if (p.images?.[0]; as img) {
+              <img [src]="img.url" alt="" loading="lazy" />
+            } @else {
+              <app-nav-icon name="product" />
+            }
+          </a>
+          <div class="product-card-head">
+            <span class="product-card-code"><a class="num code-link" [routerLink]="['/hang-hoa', p.id]">{{ p.code }}</a><app-copy-button [text]="p.code" label="mã" /></span>
+            @if (!p.isActive) {
+              <span class="badge" [ngClass]="statusClass(p)">Ngừng kinh doanh</span>
+            } @else if (belowMin(p)) {
+              <span class="badge badge-warning">Dưới tối thiểu</span>
+            }
+          </div>
+          <a class="product-card-name" [routerLink]="['/hang-hoa', p.id]">{{ p.name }}</a>
+          <p class="product-card-meta">
+            <span class="badge" [ngClass]="typeClass(p)">{{ typeLabel(p) }}</span>
+            @if (categoryOf(p)) { <span>{{ categoryOf(p) }}</span> }
+          </p>
+          <dl class="product-card-stats">
+            <div><dt>Tồn kho</dt><dd class="num">{{ stockLabel(p) }} <span class="unit">{{ p.type === 'DICH_VU' ? '' : p.baseUnit }}</span></dd></div>
+            <div><dt>Giá lẻ</dt><dd class="num">{{ money(p.retailPrice) }}</dd></div>
+          </dl>
+          <div class="product-card-actions">
+            <ng-container *ngTemplateOutlet="rowActions; context: { $implicit: p }" />
+          </div>
+        </li>
+      }
+    </ul>
+  } @else {
+    <div class="card empty-state">
+      <h3>{{ chips().length || search() ? 'Không có mặt hàng phù hợp bộ lọc' : 'Chưa có mặt hàng nào' }}</h3>
+      <p>{{ chips().length || search() ? 'Thử bỏ bớt bộ lọc hoặc đổi từ khoá tìm kiếm.' : 'Thêm mặt hàng đầu tiên hoặc nhập danh mục từ file Excel.' }}</p>
+    </div>
+  }
+}
+
+<app-pagination [total]="products().length" unit="mặt hàng" [(page)]="page" [(pageSize)]="pageSize" />
+
+<ng-template #rowActions let-p>
+  <span class="row-actions">
+    <a class="icon-action" [routerLink]="['/hang-hoa', p.id]" [attr.aria-label]="'Xem chi tiết ' + p.code" title="Xem chi tiết">
+      <app-nav-icon name="eye" />
+    </a>
+    <a class="icon-action" [routerLink]="['/hang-hoa', p.id, 'sua']" [attr.aria-label]="'Sửa ' + p.code" title="Sửa">
+      <app-nav-icon name="pencil" />
+    </a>
+  </span>
+</ng-template>
+
+<app-product-import-dialog #productImport mode="products" (imported)="onImported($event)" />
+<app-product-import-dialog #bomImport mode="bom" (imported)="onImported($event)" />

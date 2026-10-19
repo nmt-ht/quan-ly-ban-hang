@@ -13,16 +13,39 @@ import { CommonModule } from '@angular/common';
     </div>
   `,
   styles: [`
+    :host { display: block; min-width: 0; }
     .stat-card {
-      background: var(--nt-surface);
-      border: 1px solid var(--nt-border);
-      border-radius: 12px;
-      padding: 16px;
+      height: 100%;
+      background: var(--color-surface);
+      border: var(--rule-hair) solid var(--color-rule);
+      border-radius: var(--radius-card);
+      padding: var(--space-xs) var(--space-sm);
+      transition: border-color var(--dur-short) var(--ease-out);
     }
-    .stat-label { font-size: 12px; color: var(--nt-muted); margin-bottom: 6px; }
-    .stat-value { font-size: 20px; font-weight: 700; }
-    .stat-value.negative { color: var(--nt-danger); }
-    .stat-sub { font-size: 12px; color: var(--nt-muted); margin-top: 4px; }
+    .stat-label {
+      font-size: var(--text-xs);
+      font-weight: 500;
+      color: var(--color-muted);
+      margin-bottom: var(--space-3xs);
+    }
+    .stat-value {
+      font-family: var(--font-mono);
+      font-size: var(--text-lg);
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+      color: var(--color-ink);
+      overflow-wrap: anywhere;
+    }
+    .stat-value.negative { color: var(--color-danger); }
+    .stat-sub { font-size: var(--text-xs); color: var(--color-muted); margin-top: var(--space-3xs); }
+    /* Inside a card: a flat well, not a second bordered card. */
+    :host-context(.card) .stat-card {
+      background: var(--color-paper-2);
+      border-color: transparent;
+    }
+    :host-context(.mini-link:hover) .stat-card { border-color: var(--color-accent); }
+    :host-context(.mini-link:focus-visible) .stat-card { border-color: var(--color-focus); }
   `],
 })
 export class StatCardComponent {

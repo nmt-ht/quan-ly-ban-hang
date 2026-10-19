@@ -1,6 +1,9 @@
+import { NavIconName } from './nav-icon/nav-icon.component';
+
 export interface NavLink {
   label: string;
   path: string;
+  icon: NavIconName;
 }
 
 export interface NavGroup {
@@ -10,35 +13,36 @@ export interface NavGroup {
 
 export const NAV_GROUPS: NavGroup[] = [
   { label: null, links: [
-    { label: 'Tổng quan', path: '/tong-quan' },
-    { label: 'Báo cáo', path: '/bao-cao' },
+    { label: 'Tổng quan', path: '/tong-quan', icon: 'dashboard' },
+    { label: 'Báo cáo', path: '/bao-cao', icon: 'report' },
   ]},
   { label: 'Nghiệp vụ', links: [
-    { label: 'Hàng hoá', path: '/hang-hoa' },
-    { label: 'Tồn kho', path: '/kho/ton-kho' },
-    { label: 'Phiếu kho', path: '/kho/phieu' },
-    { label: 'Lệnh sản xuất', path: '/san-xuat' },
+    { label: 'Hàng hoá', path: '/hang-hoa', icon: 'product' },
+    { label: 'Tồn kho', path: '/kho/ton-kho', icon: 'stock' },
+    { label: 'Phiếu kho', path: '/kho/phieu', icon: 'voucher' },
+    { label: 'Lệnh sản xuất', path: '/san-xuat', icon: 'factory' },
   ]},
   { label: 'Mua hàng', links: [
-    { label: 'Nhà cung cấp', path: '/nha-cung-cap' },
-    { label: 'Đơn nhập hàng', path: '/mua-hang' },
-    { label: 'Công nợ phải trả', path: '/cong-no/nha-cung-cap' },
+    { label: 'Nhà cung cấp', path: '/nha-cung-cap', icon: 'supplier' },
+    { label: 'Đơn nhập hàng', path: '/mua-hang', icon: 'cart' },
+    { label: 'Công nợ phải trả', path: '/cong-no/nha-cung-cap', icon: 'money-out' },
   ]},
   { label: 'Bán hàng', links: [
-    { label: 'Khách hàng', path: '/khach-hang' },
-    { label: 'Đơn hàng bán', path: '/don-hang' },
-    { label: 'Chuyến giao hàng', path: '/giao-hang' },
-    { label: 'Danh mục xe', path: '/xe' },
-    { label: 'Công nợ phải thu', path: '/cong-no/khach-hang' },
+    { label: 'Khách hàng', path: '/khach-hang', icon: 'customers' },
+    { label: 'Đơn hàng bán', path: '/don-hang', icon: 'receipt' },
+    { label: 'Chuyến giao hàng', path: '/giao-hang', icon: 'truck' },
+    { label: 'Danh mục xe', path: '/xe', icon: 'car' },
+    { label: 'Công nợ phải thu', path: '/cong-no/khach-hang', icon: 'money-in' },
   ]},
   { label: 'Dòng tiền', links: [
-    { label: 'Phiếu thu chi', path: '/thu-chi' },
-    { label: 'Tuổi nợ', path: '/cong-no/tuoi-no' },
+    { label: 'Phiếu thu chi', path: '/thu-chi', icon: 'cash' },
+    { label: 'Tuổi nợ', path: '/cong-no/tuoi-no', icon: 'clock' },
   ]},
   { label: 'Thiết lập', links: [
-    { label: 'Thông tin công ty', path: '/thiet-lap/cong-ty' },
-    { label: 'Thẻ đánh dấu', path: '/thiet-lap/the' },
-    { label: 'Người dùng', path: '/thiet-lap/nguoi-dung' },
-    { label: 'Chức vụ & phân quyền', path: '/thiet-lap/chuc-vu' },
+    { label: 'Thông tin công ty', path: '/thiet-lap/cong-ty', icon: 'company' },
+    { label: 'Thẻ đánh dấu', path: '/thiet-lap/the', icon: 'tag' },
+    { label: 'Người dùng', path: '/thiet-lap/nguoi-dung', icon: 'user' },
+    { label: 'Chức vụ & phân quyền', path: '/thiet-lap/chuc-vu', icon: 'shield' },
+    { label: 'Màu hiển thị', path: '/thiet-lap/mau-hien-thi', icon: 'palette' },
   ]},
 ];
