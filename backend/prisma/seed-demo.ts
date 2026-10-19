@@ -1,0 +1,210 @@
+/**
+ * Seed DỮ LIỆU GIẢ (demo) cho bản dựng lại Ninh Trang ERP.
+ *
+ * - Nguồn dữ liệu: prisma/demo-data.json (sinh bởi tools/gen-demo-data.mjs).
+ * - Chạy SAU `npm run prisma:seed` (cần sẵn Role, Permission, CompanyInfo).
+ * - Idempotent: nếu đã có khách hàng KH0000001 thì bỏ qua.
+ * - KHÔNG chạy trên môi trường production thật.
+ *
+ * Cách chạy:
+ *   DEMO_USER_PASSWORD='mat-khau-tu-dat' npm run prisma:seed:demo
+ */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const prisma = new PrismaClient();
+const D = (s?: string | null) => (s ? new Date(s) : undefined);
+
+async function main() {
+  const password = process.env.DEMO_USER_PASSWORD;
+  if (!password || password.length < 8) {
+    throw new Error('Cần đặt biến môi trường DEMO_USER_PASSWORD (tối thiểu 8 ký tự) cho các user demo.');
+  }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Từ chối chạy seed dữ liệu giả khi NODE_ENV=production.');
+  }
+
+  const data: any = JSON.parse(readFileSync(join(__dirname, 'demo-data.json'), 'utf8'));
+
+  if (await prisma.customer.findUnique({ where: { code: 'KH0000001' } })) {
+    console.log('Đã có dữ liệu demo (KH0000001) — bỏ qua.');
+    return;
+  }
+
+  // ---- Danh mục: dùng bản ghi có sẵn theo tên, thiếu thì tạo (id = key) ----
+  const wh: Record<string, string> = {};
+  for (const w of data.warehouses) {
+    const ex = await prisma.warehouse.findFirst({ where: { name: w.name } });
+    wh[w.id] = ex ? ex.id : (await prisma.warehouse.create({ data: { id: w.id, name: w.name } })).id;
+  }
+  const cat: Record<string, string> = {};
+  for (const c of data.categories) {
+    const ex = await prisma.productCategory.findFirst({ where: { name: c.name } });
+    cat[c.id] = ex ? ex.id : (await prisma.productCategory.create({ data: { id: c.id, name: c.name } })).id;
+  }
+  const acc: Record<string, string> = {};
+  for (const a of data.accounts) {
+    const ex = await prisma.cashAccount.findFirst({ where: { name: a.name } });
+    acc[a.id] = ex ? ex.id : (await prisma.cashAccount.create({ data: { id: a.id, name: a.name, type: a.type } })).id;
+  }
+
+  // ---- Thẻ ----
+  const tagMap: Record<string, string> = {};
+  for (const t of data.tags) {
+    const ex = await prisma.tag.findFirst({ where: { name: t.name } });
+    tagMap[t.id] = ex
+      ? ex.id
+      : (await prisma.tag.create({ data: { id: t.id, name: t.name, sortOrder: t.sortOrder, isActive: t.isActive } })).id;
+  }
+
+  // ---- Người dùng ----
+  const passwordHash = await bcrypt.hash(password, 10);
+  const user: Record<string, string> = {};
+  for (const u of data.users) {
+    const role = await prisma.role.findFirst({ where: { name: u.roleName } });
+    if (!role) throw new Error(`Thiếu chức vụ "${u.roleName}" — hãy chạy npm run prisma:seed trước.`);
+    const row = await prisma.user.upsert({
+      where: { email: u.email },
+      update: {},
+      create: {
+        name: u.name, email: u.email, passwordHash, roleId: role.id,
+        status: u.status, lastLoginAt: D(u.lastLoginAt),
+      },
+    });
+    user[u.key] = row.id;
+  }
+
+  // ---- Hàng hoá ----
+  for (const p of data.products) {
+    await prisma.product.create({
+      data: {
+        id: p.id, code: p.code, name: p.name, type: p.type, baseUnit: p.baseUnit,
+        crossRefCode: p.crossRefCode,
+        categoryId: p.categoryKey ? cat[p.categoryKey] : undefined,
+        defaultWarehouseId: p.warehouseKey ? wh[p.warehouseKey] : undefined,
+        minStock: p.minStock, vatRate: p.vatRate, warrantyMonths: p.warrantyMonths,
+        origin: p.origin, retailPrice: p.retailPrice, wholesalePrice: p.wholesalePrice,
+        dropshipPrice: p.dropshipPrice, purchaseNote: p.purchaseNote, saleNote: p.saleNote,
+        description: p.description, isSellable: p.isSellable, isActive: p.isActive,
+        unitConversions: { create: (p.unitConversions ?? []).map((c: any) => ({
+          unitName: c.unitName, ratioToBaseUnit: c.ratioToBaseUnit, price: c.price,
+        })) },
+      },
+    });
+  }
+  await prisma.bomLine.createMany({ data: data.bomLines.map((b: any) => ({
+    finishedProductId: b.finishedProductId, componentId: b.componentId, quantityPerUnit: b.quantityPerUnit,
+  })) });
+
+  // ---- Đối tác ----
+  await prisma.supplier.createMany({ data: data.suppliers });
+  for (const c of data.customers) {
+    const { tagIds: tIds, createdAt, ...rest } = c;
+    await prisma.customer.create({
+      data: {
+        ...rest, createdAt: D(createdAt),
+        tags: { create: (tIds ?? []).map((t: string) => ({ tagId: tagMap[t] })) },
+      },
+    });
+  }
+
+  // ---- Đơn nhập hàng ----
+  for (const o of data.purchaseOrders) {
+    await prisma.purchaseOrder.create({
+      data: {
+        id: o.id, code: o.code, supplierId: o.supplierId, date: new Date(o.date), status: o.status,
+        createdById: user[o.createdByKey],
+        lines: { create: o.lines.map((l: any) => ({
+          productId: l.productId, quantity: l.quantity, unitPrice: l.unitPrice, receivedQuantity: l.receivedQuantity,
+        })) },
+      },
+    });
+  }
+
+  // ---- Đơn bán hàng ----
+  for (const o of data.salesOrders) {
+    await prisma.salesOrder.create({
+      data: {
+        id: o.id, code: o.code, customerId: o.customerId,
+        recipientName: o.recipientName, recipientPhone: o.recipientPhone,
+        description: o.description, source: o.source,
+        orderDate: new Date(o.orderDate), neededByDate: D(o.neededByDate),
+        status: o.status, discountAmount: o.discountAmount,
+        salesRepId: o.salesRepKey ? user[o.salesRepKey] : undefined,
+        createdById: user[o.createdByKey],
+        tags: { create: (o.tagIds ?? []).map((t: string) => ({ tagId: tagMap[t] })) },
+        lines: { create: o.lines.map((l: any) => ({
+          productId: l.productId, unit: l.unit, quantity: l.quantity, unitPrice: l.unitPrice,
+          length: l.length, width: l.width, note: l.note, receivedQuantity: l.receivedQuantity ?? 0,
+        })) },
+      },
+    });
+  }
+
+  // ---- Lệnh sản xuất ----
+  for (const p of data.productionOrders) {
+    await prisma.productionOrder.create({
+      data: {
+        id: p.id, code: p.code, sourceOrderId: p.sourceOrderId, productId: p.productId,
+        quantity: p.quantity, status: p.status, bomSnapshot: p.bomSnapshot, createdAt: D(p.createdAt),
+      },
+    });
+  }
+
+  // ---- Xe & chuyến giao ----
+  await prisma.vehicle.createMany({ data: data.vehicles });
+  for (const t of data.deliveryTrips) {
+    await prisma.deliveryTrip.create({
+      data: {
+        id: t.id, code: t.code, date: new Date(t.date), driverName: t.driverName,
+        vehicleId: t.vehicleId, status: t.status,
+        orders: { create: t.orderIds.map((orderId: string) => ({ orderId })) },
+      },
+    });
+  }
+
+  // ---- Phiếu kho & tồn kho ----
+  for (const v of data.warehouseVouchers) {
+    await prisma.warehouseVoucher.create({
+      data: {
+        id: v.id, code: v.code, type: v.type, date: new Date(v.date),
+        warehouseId: wh[v.warehouseKey],
+        targetWarehouseId: v.targetWarehouseKey ? wh[v.targetWarehouseKey] : undefined,
+        reason: v.reason, isCancelled: v.isCancelled, createdById: user[v.createdByKey],
+        lines: { create: v.lines.map((l: any) => ({
+          productId: l.productId, quantity: l.quantity, unitPrice: l.unitPrice ?? 0,
+        })) },
+      },
+    });
+  }
+  await prisma.stockLevel.createMany({ data: data.stockLevels.map((s: any) => ({
+    productId: s.productId, warehouseId: wh[s.warehouseKey], quantity: s.quantity,
+  })) });
+
+  // ---- Phiếu thu/chi & số dư quỹ ----
+  for (const c of data.cashVouchers) {
+    await prisma.cashVoucher.create({
+      data: {
+        id: c.id, code: c.code, date: new Date(c.date), kind: c.kind, category: c.category,
+        partnerType: c.partnerType, customerId: c.customerId, supplierId: c.supplierId,
+        accountId: acc[c.accountKey], amount: c.amount, settledAmount: c.settledAmount,
+        description: c.description, isCancelled: c.isCancelled, createdById: user[c.createdByKey],
+      },
+    });
+  }
+  for (const [key, balance] of Object.entries<number>(data.cashAccountBalances)) {
+    await prisma.cashAccount.update({ where: { id: acc[key] }, data: { balance } });
+  }
+
+  console.log('Đã nạp dữ liệu demo:', {
+    khachHang: data.customers.length, donBan: data.salesOrders.length,
+    donNhap: data.purchaseOrders.length, lenhSanXuat: data.productionOrders.length,
+  });
+}
+
+main()
+  .catch((e) => { console.error(e); process.exit(1); })
+  .finally(() => prisma.$disconnect());

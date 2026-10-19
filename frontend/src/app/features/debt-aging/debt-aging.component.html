@@ -1,0 +1,64 @@
+<div class="page-header">
+  <div>
+    <h1>Tuổi nợ</h1>
+    <p class="subtitle">Công nợ {{ mode() === 'PHAI_TRA' ? 'phải trả' : 'phải thu' }} chia theo số ngày quá hạn</p>
+  </div>
+  <div class="toolbar">
+    <button class="btn">⭳ Xuất Excel</button>
+    <button class="btn">Sổ công nợ</button>
+  </div>
+</div>
+
+<div class="filters-bar">
+  <select [value]="mode()" (change)="mode.set($any($event.target).value)">
+    <option value="PHAI_TRA">Phải trả nhà cung cấp</option>
+    <option value="PHAI_THU">Phải thu khách hàng</option>
+  </select>
+  <input type="text" placeholder="Tìm đối tác..." style="min-width:220px" [value]="query()" (input)="query.set($any($event.target).value)" />
+</div>
+
+<div class="stat-grid">
+  <app-stat-card label="Chưa đến hạn" [value]="formatVnd(totals().notDue)" />
+  <app-stat-card label="Quá hạn 1–30" [value]="formatVnd(totals().overdue1to30)" />
+  <app-stat-card label="31–60 ngày" [value]="formatVnd(totals().overdue31to60)" />
+  <app-stat-card label="61–90 ngày" [value]="formatVnd(totals().overdue61to90)" />
+  <app-stat-card label="Trên 90 ngày" [value]="formatVnd(totals().overdueOver90)" />
+  <app-stat-card label="Tổng còn nợ" [value]="formatVnd(totals().total)" />
+</div>
+
+@if (rows().length === 0) {
+  <div class="card empty-state">
+    <div class="empty-icon">▢</div>
+    <h3>Không có khoản nợ nào đang mở</h3>
+    <p>Mọi khoản đã được đối trừ hết.</p>
+  </div>
+} @else {
+  <div class="table-wrap card">
+    <table>
+      <thead>
+        <tr>
+          <th>Mã / Tên</th>
+          <th style="text-align:right">Chưa đến hạn</th>
+          <th style="text-align:right">1–30</th>
+          <th style="text-align:right">31–60</th>
+          <th style="text-align:right">61–90</th>
+          <th style="text-align:right">&gt; 90</th>
+          <th style="text-align:right">Tổng nợ</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (r of rows(); track r.partnerId) {
+          <tr>
+            <td>{{ r.code }} — {{ r.name }}</td>
+            <td style="text-align:right">{{ formatVnd(r.aging.notDue) }}</td>
+            <td style="text-align:right">{{ formatVnd(r.aging.overdue1to30) }}</td>
+            <td style="text-align:right">{{ formatVnd(r.aging.overdue31to60) }}</td>
+            <td style="text-align:right">{{ formatVnd(r.aging.overdue61to90) }}</td>
+            <td style="text-align:right">{{ formatVnd(r.aging.overdueOver90) }}</td>
+            <td style="text-align:right"><strong>{{ formatVnd(r.aging.total) }}</strong></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

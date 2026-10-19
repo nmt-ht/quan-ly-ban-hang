@@ -1,0 +1,52 @@
+.login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--nt-bg);
+}
+
+.login-card {
+  width: 340px;
+  background: var(--nt-surface);
+  border: 1px solid var(--nt-border);
+  border-radius: 14px;
+  padding: 28px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--nt-accent);
+  color: var(--nt-accent-contrast);
+  font-size: 12px;
+}
+
+.subtitle {
+  color: var(--nt-muted);
+  font-size: 13px;
+  margin: 0 0 20px;
+}
+
+.error {
+  color: var(--nt-danger);
+  font-size: 12px;
+  margin: -8px 0 12px;
+}
+
+button[type="submit"] {
+  width: 100%;
+}

@@ -1,0 +1,62 @@
+<div class="page-header">
+  <div>
+    <h1>Chức vụ & phân quyền</h1>
+    <p class="subtitle">{{ data.roles().length }} chức vụ</p>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:20px;padding:0;overflow-x:auto">
+  <table>
+    <thead>
+      <tr>
+        <th>Chức vụ</th>
+        <th>Mô tả</th>
+        <th style="text-align:right">Người dùng</th>
+        <th style="text-align:right">Số quyền</th>
+        <th>Trạng thái</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr
+        *ngFor="let role of data.roles()"
+        (click)="select(role)"
+        [style.cursor]="'pointer'"
+        [style.background]="selectedRole().id === role.id ? 'var(--nt-bg)' : ''"
+      >
+        <td>
+          {{ role.name }}
+          <span class="badge badge-muted" *ngIf="role.isSystem" style="margin-left:6px">Hệ thống</span>
+        </td>
+        <td style="white-space:normal;max-width:420px">{{ role.description }}</td>
+        <td style="text-align:right">{{ role.userCount }}</td>
+        <td style="text-align:right">{{ role.permissionCount }}</td>
+        <td><span class="badge badge-success">Đang dùng</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0">Phân quyền — {{ selectedRole().name }}</h3>
+  <p class="subtitle" *ngIf="selectedRole().isSystem" style="margin-top:-8px">
+    Chức vụ hệ thống, không sửa được quyền
+  </p>
+
+  <div class="permission-groups">
+    <div class="permission-group" *ngFor="let module of data.permissionModules()">
+      <div class="permission-group-title">
+        {{ module.label }}
+        <span class="subtitle">
+          ({{ selectedRole().isSystem ? module.permissions.length : (module.permissions.length + 1) / 2 | number:'1.0-0' }}/{{ module.permissions.length }})
+        </span>
+      </div>
+      <label class="permission-item" *ngFor="let perm of module.permissions; let i = index">
+        <input type="checkbox" [checked]="hasPermission(i)" [disabled]="selectedRole().isSystem" />
+        <span>
+          {{ perm.label }}
+          <code>{{ perm.code }}</code>
+        </span>
+      </label>
+    </div>
+  </div>
+</div>

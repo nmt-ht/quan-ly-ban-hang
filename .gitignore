@@ -1,0 +1,20 @@
+# Dependencies & build
+node_modules/
+dist/
+.angular/
+coverage/
+
+# Môi trường / bí mật — KHÔNG commit
+.env
+.env.*
+!.env.example
+
+# Hệ điều hành / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Log
+*.log
+npm-debug.log*

@@ -1,0 +1,34 @@
+<div class="page-header">
+  <div>
+    <h1>Phiếu thu chi</h1>
+    <p class="subtitle">{{ data.cashVouchers().length }} phiếu</p>
+  </div>
+  <div class="toolbar">
+    <button class="btn">⭳ Xuất Excel</button>
+    <button class="btn">🏦 Tài khoản tiền</button>
+    <button class="btn">🏷 Loại thu chi</button>
+    <button class="btn btn-primary">+ Phiếu thu</button>
+    <button class="btn btn-primary">+ Phiếu chi</button>
+  </div>
+</div>
+
+<div class="filters-bar">
+  <input type="text" placeholder="Tìm số phiếu, đối tượng, diễn giải..." style="min-width:260px" />
+  <select><option>Thu và chi</option></select>
+  <select><option>Loại thu chi</option></select>
+  <select><option>Hình thức</option></select>
+  <select><option>Tài khoản</option></select>
+  <select><option>Chọn kỳ</option></select>
+  <select><option>Người lập</option></select>
+</div>
+
+<div class="card" style="margin-bottom:20px">
+  <h3 style="margin-top:0">Số dư các đầu tài khoản</h3>
+  <div class="stat-grid" style="margin-bottom:0">
+    <app-stat-card *ngFor="let acc of data.cashAccounts()" [label]="acc.name" [value]="formatVnd(acc.balance)" />
+    <app-stat-card label="Tổng thu" [value]="formatVnd(totalThu())" />
+    <app-stat-card label="Tổng chi" [value]="formatVnd(totalChi())" />
+  </div>
+</div>
+
+<app-data-table [columns]="columns" [rows]="data.cashVouchers()" emptyTitle="Chưa có phiếu thu chi nào" />

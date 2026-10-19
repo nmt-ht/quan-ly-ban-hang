@@ -1,0 +1,11 @@
+<div class="page-header">
+  <div>
+    <h1>Thẻ đánh dấu</h1>
+    <p class="subtitle">Một danh mục dùng chung cho đơn hàng và khách hàng</p>
+  </div>
+  <div class="toolbar">
+    <button class="btn btn-primary">+ Thêm thẻ</button>
+  </div>
+</div>
+
+<app-data-table [columns]="columns" [rows]="data.tags()" emptyTitle="Chưa có thẻ nào" />

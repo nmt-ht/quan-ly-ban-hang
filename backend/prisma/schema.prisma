@@ -1,0 +1,478 @@
+// Ninh Trang ERP — data model
+// Mirrors the entities discovered by crawling the production app and the
+// Angular frontend models in frontend/src/app/core/models/domain.models.ts.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Auth / RBAC ----------
+
+model User {
+  id             String    @id @default(uuid())
+  name           String
+  email          String    @unique
+  passwordHash   String
+  roleId         String
+  role           Role      @relation(fields: [roleId], references: [id])
+  status         UserStatus @default(ACTIVE)
+  lastLoginAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  salesOrders       SalesOrder[]      @relation("SalesOrderCreatedBy")
+  purchaseOrders    PurchaseOrder[]   @relation("PurchaseOrderCreatedBy")
+  warehouseVouchers WarehouseVoucher[] @relation("WarehouseVoucherCreatedBy")
+  cashVouchers      CashVoucher[]     @relation("CashVoucherCreatedBy")
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  isSystem    Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  users       User[]
+  permissions RolePermission[]
+}
+
+// Permission catalog is seeded from a fixed list (see prisma/seed.ts) —
+// matches PermissionModule[] in the frontend mock-data.service.ts.
+model Permission {
+  code        String @id // e.g. "product.view"
+  module      String // e.g. "product"
+  label       String
+
+  roles RolePermission[]
+}
+
+model RolePermission {
+  roleId         String
+  permissionCode String
+  role           Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission     Permission @relation(fields: [permissionCode], references: [code], onDelete: Cascade)
+
+  @@id([roleId, permissionCode])
+}
+
+model CompanyInfo {
+  id      Int     @id @default(1)
+  name    String
+  address String?
+  taxCode String?
+  phone   String?
+  email   String?
+  website String?
+}
+
+model Tag {
+  id       String  @id @default(uuid())
+  name     String
+  sortOrder Int    @default(0)
+  isActive Boolean @default(true)
+
+  customers CustomerTag[]
+  orders    SalesOrderTag[]
+}
+
+// ---------- Catalog ----------
+
+model ProductCategory {
+  id   String @id @default(uuid())
+  name String
+
+  products Product[]
+}
+
+model Warehouse {
+  id   String @id @default(uuid())
+  name String
+
+  stockLevels        StockLevel[]
+  vouchersFrom        WarehouseVoucher[] @relation("VoucherWarehouse")
+  vouchersTo          WarehouseVoucher[] @relation("VoucherTargetWarehouse")
+  defaultForProducts  Product[]
+}
+
+enum ProductType {
+  VAT_TU     // Vật tư hàng hoá
+  THANH_PHAM // Thành phẩm
+  DICH_VU    // Dịch vụ (không tồn kho)
+}
+
+model Product {
+  id                String       @id @default(uuid())
+  code              String       @unique // VT/SP/DV + seq
+  name              String
+  type              ProductType
+  baseUnit          String
+  crossRefCode      String?
+  categoryId        String?
+  category          ProductCategory? @relation(fields: [categoryId], references: [id])
+  defaultWarehouseId String?
+  defaultWarehouse  Warehouse?   @relation(fields: [defaultWarehouseId], references: [id])
+  minStock          Decimal      @default(0)
+  vatRate           Decimal      @default(0)
+  warrantyMonths    Int          @default(0)
+  origin            String?
+  retailPrice       Decimal      @default(0)
+  wholesalePrice    Decimal      @default(0)
+  dropshipPrice     Decimal      @default(0)
+  purchaseNote      String?
+  saleNote          String?
+  description       String?
+  isSellable        Boolean      @default(true)
+  isActive          Boolean      @default(true)
+  createdAt         DateTime     @default(now())
+
+  unitConversions   UnitConversion[]
+  stockLevels       StockLevel[]
+  bomLines          BomLine[]        @relation("BomFinishedProduct")
+  bomComponentOf    BomLine[]        @relation("BomComponent")
+  salesOrderLines   SalesOrderLine[]
+  purchaseOrderLines PurchaseOrderLine[]
+  warehouseVoucherLines WarehouseVoucherLine[]
+  productionOrders  ProductionOrder[]
+}
+
+model UnitConversion {
+  id             String  @id @default(uuid())
+  productId      String
+  product        Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  unitName       String
+  ratioToBaseUnit Decimal
+  price          Decimal
+}
+
+// Snapshot-free BOM definition; ProductionOrder stores its own frozen copy.
+model BomLine {
+  id                String  @id @default(uuid())
+  finishedProductId String
+  finishedProduct   Product @relation("BomFinishedProduct", fields: [finishedProductId], references: [id], onDelete: Cascade)
+  componentId       String
+  component         Product @relation("BomComponent", fields: [componentId], references: [id])
+  quantityPerUnit   Decimal
+}
+
+model StockLevel {
+  productId   String
+  warehouseId String
+  product     Product   @relation(fields: [productId], references: [id])
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+  quantity    Decimal   @default(0)
+
+  @@id([productId, warehouseId])
+}
+
+// ---------- Warehouse vouchers ----------
+
+enum WarehouseVoucherType {
+  NHAP
+  XUAT
+  CHUYEN
+  KIEM_KE
+}
+
+model WarehouseVoucher {
+  id                String   @id @default(uuid())
+  code              String   @unique
+  type              WarehouseVoucherType
+  date              DateTime
+  warehouseId       String
+  warehouse         Warehouse @relation("VoucherWarehouse", fields: [warehouseId], references: [id])
+  targetWarehouseId String?
+  targetWarehouse   Warehouse? @relation("VoucherTargetWarehouse", fields: [targetWarehouseId], references: [id])
+  reason            String?
+  isCancelled       Boolean  @default(false)
+  createdById       String
+  createdBy         User     @relation("WarehouseVoucherCreatedBy", fields: [createdById], references: [id])
+  createdAt         DateTime @default(now())
+
+  lines WarehouseVoucherLine[]
+}
+
+model WarehouseVoucherLine {
+  id        String @id @default(uuid())
+  voucherId String
+  voucher   WarehouseVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Decimal
+  unitPrice Decimal @default(0)
+}
+
+// ---------- Production ----------
+
+enum ProductionOrderStatus {
+  NHAP
+  DANG_SAN_XUAT
+  HOAN_TAT
+  HUY
+}
+
+model ProductionOrder {
+  id             String   @id @default(uuid())
+  code           String   @unique
+  sourceOrderId  String
+  sourceOrder    SalesOrder @relation(fields: [sourceOrderId], references: [id])
+  productId      String
+  product        Product  @relation(fields: [productId], references: [id])
+  quantity       Decimal
+  status         ProductionOrderStatus @default(NHAP)
+  bomSnapshot    Json     // frozen copy of BomLine[] at creation time
+  createdAt      DateTime @default(now())
+}
+
+// ---------- Purchasing ----------
+
+model Supplier {
+  id            String   @id @default(uuid())
+  code          String   @unique
+  name          String
+  contactPhone  String?
+  taxCode       String?
+  address       String?
+  creditAllowed Boolean  @default(false)
+  isActive      Boolean  @default(true)
+
+  purchaseOrders PurchaseOrder[]
+  cashVouchers   CashVoucher[]
+}
+
+enum PurchaseOrderStatus {
+  NHAP
+  DA_GUI_NCC
+  NHAN_MOT_PHAN
+  DA_NHAN_DU
+  HOAN_TAT
+  HUY
+}
+
+model PurchaseOrder {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  supplierId  String
+  supplier    Supplier @relation(fields: [supplierId], references: [id])
+  date        DateTime
+  status      PurchaseOrderStatus @default(NHAP)
+  createdById String
+  createdBy   User     @relation("PurchaseOrderCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  lines PurchaseOrderLine[]
+}
+
+model PurchaseOrderLine {
+  id        String        @id @default(uuid())
+  orderId   String
+  order     PurchaseOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product       @relation(fields: [productId], references: [id])
+  quantity  Decimal
+  unitPrice Decimal
+  receivedQuantity Decimal @default(0)
+}
+
+// ---------- Sales ----------
+
+enum CustomerType {
+  LE
+  SI
+  DROPSHIP
+}
+
+model Customer {
+  id               String   @id @default(uuid())
+  code             String   @unique
+  name             String
+  companyName      String?
+  type             CustomerType @default(LE)
+  creditDays       Int      @default(0)
+  phone            String?
+  email            String?
+  idNumber         String?
+  personalTaxCode  String?
+  companyTaxCode   String?
+  note             String?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+
+  tags         CustomerTag[]
+  salesOrders  SalesOrder[]
+  cashVouchers CashVoucher[]
+}
+
+model CustomerTag {
+  customerId String
+  tagId      String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([customerId, tagId])
+}
+
+enum SalesOrderStatus {
+  CHO_SAN_XUAT
+  DANG_SAN_XUAT
+  CHO_GIAO_HANG
+  DANG_GIAO
+  HOAN_THANH
+  GIAO_MOT_PHAN
+  TRA_TOAN_BO
+  HUY
+}
+
+model SalesOrder {
+  id             String   @id @default(uuid())
+  code           String   @unique
+  customerId     String
+  customer       Customer @relation(fields: [customerId], references: [id])
+  recipientName  String?
+  recipientPhone String?
+  description    String?
+  source         String?
+  orderDate      DateTime
+  neededByDate   DateTime?
+  status         SalesOrderStatus @default(CHO_SAN_XUAT)
+  discountAmount Decimal  @default(0)
+  salesRepId     String?
+  createdById    String
+  createdBy      User     @relation("SalesOrderCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime @default(now())
+
+  lines           SalesOrderLine[]
+  tags            SalesOrderTag[]
+  productionOrders ProductionOrder[]
+  deliveryTripOrders DeliveryTripOrder[]
+}
+
+model SalesOrderTag {
+  orderId String
+  tagId   String
+  order   SalesOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  tag     Tag        @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([orderId, tagId])
+}
+
+model SalesOrderLine {
+  id             String     @id @default(uuid())
+  orderId        String
+  order          SalesOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId      String
+  product        Product    @relation(fields: [productId], references: [id])
+  unit           String
+  quantity       Decimal
+  unitPrice      Decimal
+  length         Decimal?
+  width          Decimal?
+  note           String?
+  // Delivered/receivable quantity is tracked separately so AR is only
+  // recognized on actual customer receipt (see docs/backend-plan.md).
+  receivedQuantity Decimal @default(0)
+}
+
+// ---------- Delivery ----------
+
+enum DeliveryTripStatus {
+  GOM_DON
+  DA_XUAT_KHO
+  XE_VE_KHO
+  HOAN_TAT
+  HUY
+}
+
+model Vehicle {
+  id            String  @id @default(uuid())
+  code          String  @unique
+  plateNumber   String
+  type          String
+  loadCapacity  Decimal?
+  usualDriver   String?
+  isActive      Boolean @default(true)
+
+  trips DeliveryTrip[]
+}
+
+model DeliveryTrip {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  date        DateTime
+  driverName  String?
+  vehicleId   String?
+  vehicle     Vehicle? @relation(fields: [vehicleId], references: [id])
+  status      DeliveryTripStatus @default(GOM_DON)
+  createdAt   DateTime @default(now())
+
+  orders DeliveryTripOrder[]
+}
+
+model DeliveryTripOrder {
+  tripId  String
+  orderId String
+  trip    DeliveryTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  order   SalesOrder   @relation(fields: [orderId], references: [id])
+
+  @@id([tripId, orderId])
+}
+
+// ---------- Cash flow ----------
+
+enum CashAccountType {
+  TIEN_MAT
+  NGAN_HANG
+}
+
+model CashAccount {
+  id      String  @id @default(uuid())
+  name    String
+  type    CashAccountType
+  balance Decimal @default(0)
+
+  vouchers CashVoucher[]
+}
+
+enum VoucherKind {
+  THU
+  CHI
+}
+
+enum PartnerType {
+  KHACH_HANG
+  NHA_CUNG_CAP
+  KHAC
+}
+
+model CashVoucher {
+  id             String      @id @default(uuid())
+  code           String      @unique
+  date           DateTime
+  kind           VoucherKind
+  category       String
+  partnerType    PartnerType
+  customerId     String?
+  customer       Customer?   @relation(fields: [customerId], references: [id])
+  supplierId     String?
+  supplier       Supplier?   @relation(fields: [supplierId], references: [id])
+  accountId      String
+  account        CashAccount @relation(fields: [accountId], references: [id])
+  amount         Decimal
+  settledAmount  Decimal     @default(0)
+  description    String?
+  isCancelled    Boolean     @default(false)
+  createdById    String
+  createdBy      User        @relation("CashVoucherCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime    @default(now())
+}

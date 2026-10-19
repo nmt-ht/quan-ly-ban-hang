@@ -1,0 +1,19 @@
+<div class="page-header">
+  <div>
+    <h1>Chuyến giao hàng</h1>
+    <p class="subtitle">{{ data.deliveryTrips().length }} chuyến</p>
+  </div>
+  <div class="toolbar">
+    <button class="btn">⭳ Xuất Excel</button>
+    <button class="btn btn-primary">+ Tạo chuyến</button>
+  </div>
+</div>
+
+<div class="filters-bar">
+  <input type="text" placeholder="Tìm mã chuyến, tài xế, biển số, mã đơn..." style="min-width:300px" />
+  <select><option>Trạng thái</option></select>
+  <select><option>Chọn kỳ</option></select>
+  <select><option>Tài xế</option></select>
+</div>
+
+<app-data-table [columns]="columns" [rows]="data.deliveryTrips()" emptyTitle="Chưa có chuyến giao hàng nào" />

@@ -1,0 +1,23 @@
+<div class="page-header">
+  <div>
+    <h1>Lệnh sản xuất</h1>
+    <p class="subtitle">{{ data.productionOrders().length }} lệnh</p>
+  </div>
+  <div class="toolbar">
+    <button class="btn">⭳ Xuất Excel</button>
+    <a class="btn btn-primary" routerLink="/don-hang">Đơn chờ sản xuất</a>
+  </div>
+</div>
+
+<div class="filters-bar">
+  <input type="text" placeholder="Tìm mã lệnh, thành phẩm..." style="min-width:260px" />
+  <select><option>Trạng thái</option></select>
+  <select><option>Chọn kỳ</option></select>
+</div>
+
+<app-data-table
+  [columns]="columns"
+  [rows]="data.productionOrders()"
+  emptyTitle="Chưa có lệnh sản xuất nào"
+  emptyHint="Lệnh sản xuất lập từ ĐƠN HÀNG — mở đơn có thành phẩm rồi bấm Lập lệnh sản xuất. Lệnh chụp bản sao định mức lúc tạo và xuất vật tư khi bắt đầu."
+/>

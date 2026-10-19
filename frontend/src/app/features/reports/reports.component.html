@@ -1,0 +1,40 @@
+<div class="page-header">
+  <div>
+    <h1>Báo cáo</h1>
+    <p class="subtitle">{{ active().label }}</p>
+  </div>
+  <div class="toolbar">
+    <button class="btn">⭳ Xuất Excel</button>
+  </div>
+</div>
+
+<div class="report-layout">
+  <nav class="report-nav card">
+    <ng-container *ngFor="let group of groups">
+      <div class="report-group-label">{{ group.label }}</div>
+      <button
+        *ngFor="let item of group.items"
+        class="report-item"
+        [class.active]="active().key === item.key"
+        (click)="select(item)"
+        type="button"
+      >
+        {{ item.label }}
+      </button>
+    </ng-container>
+  </nav>
+
+  <div class="report-body card">
+    <div class="filters-bar">
+      <select><option>Theo thời gian</option></select>
+      <input type="date" />
+      <input type="date" />
+      <select><option>Tháng này</option></select>
+    </div>
+    <div class="empty-state">
+      <div class="empty-icon">⊘</div>
+      <h3>Không có số liệu trong kỳ này</h3>
+      <p>Thử mở rộng khoảng ngày, hoặc kiểm tra xem đã có chứng từ nào trong kỳ chưa.</p>
+    </div>
+  </div>
+</div>

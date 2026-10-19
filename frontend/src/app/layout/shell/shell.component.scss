@@ -1,0 +1,142 @@
+.shell {
+  display: flex;
+  min-height: 100vh;
+  background: var(--nt-bg);
+}
+
+.sidebar {
+  width: 232px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--nt-surface);
+  border-right: 1px solid var(--nt-border);
+  padding: 16px 12px;
+  transition: width 0.15s ease;
+}
+
+.shell.collapsed .sidebar {
+  width: 64px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 20px;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--nt-accent);
+  color: #fff;
+  font-size: 12px;
+}
+
+.nav {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-group-label {
+  margin: 14px 8px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--nt-muted);
+  text-transform: uppercase;
+}
+
+.nav-link {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--nt-text);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-link:hover {
+  background: var(--nt-bg);
+}
+
+.nav-link.active {
+  background: var(--nt-accent-tint);
+  color: var(--nt-accent);
+  font-weight: 500;
+}
+
+.collapse-toggle {
+  margin-top: 12px;
+  border: none;
+  background: none;
+  color: var(--nt-muted);
+  font-size: 13px;
+  text-align: left;
+  padding: 8px;
+  cursor: pointer;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.topbar {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--nt-border);
+  background: var(--nt-surface);
+}
+
+.topbar-spacer {
+  flex: 1;
+}
+
+.icon-btn {
+  border: none;
+  background: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--nt-text);
+}
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.link-btn {
+  border: none;
+  background: none;
+  color: var(--nt-accent);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0;
+}
+
+.content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+}

@@ -1,0 +1,18 @@
+<div class="page-header">
+  <div>
+    <h1>Nhà cung cấp</h1>
+    <p class="subtitle">{{ data.suppliers().length }} nhà cung cấp</p>
+  </div>
+  <div class="toolbar">
+    <button class="btn">⭳ Xuất Excel</button>
+    <button class="btn btn-primary">+ Thêm nhà cung cấp</button>
+  </div>
+</div>
+
+<div class="filters-bar">
+  <input type="text" placeholder="Tìm theo tên, mã, điện thoại, mã số thuế, địa chỉ..." style="min-width:300px" />
+  <select><option>Tất cả trạng thái</option></select>
+  <select><option>Tên A → Z</option></select>
+</div>
+
+<app-data-table [columns]="columns" [rows]="data.suppliers()" emptyTitle="Chưa có nhà cung cấp nào" />

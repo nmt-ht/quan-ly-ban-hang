@@ -1,0 +1,47 @@
+<div class="page-header">
+  <div>
+    <h1>Thông tin công ty</h1>
+    <p class="subtitle">Hiện ở đầu mọi phiếu in: phiếu giao hàng, phiếu kho, phiếu thu chi, biên bản đối chiếu.</p>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:16px">
+  <h3 style="margin-top:0">Thông tin pháp lý</h3>
+  <div class="field">
+    <label>Tên công ty *</label>
+    <input type="text" [(ngModel)]="data.companyInfo().name" (change)="save()" />
+  </div>
+  <div class="field">
+    <label>Địa chỉ</label>
+    <input type="text" [(ngModel)]="data.companyInfo().address" (change)="save()" placeholder="Số nhà, đường, phường/xã, tỉnh/TP" />
+  </div>
+  <div class="form-grid">
+    <div class="field">
+      <label>Mã số thuế</label>
+      <input type="text" [(ngModel)]="data.companyInfo().taxCode" (change)="save()" />
+    </div>
+    <div class="field">
+      <label>Điện thoại</label>
+      <input type="text" [(ngModel)]="data.companyInfo().phone" (change)="save()" />
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" [(ngModel)]="data.companyInfo().email" (change)="save()" />
+    </div>
+    <div class="field">
+      <label>Website</label>
+      <input type="text" [(ngModel)]="data.companyInfo().website" (change)="save()" />
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0">Xem trước tiêu đề phiếu in</h3>
+  <div class="print-preview">
+    <strong>{{ data.companyInfo().name | uppercase }}</strong>
+    <span>PX0000123</span>
+    <br />
+    <span class="subtitle">{{ data.companyInfo().address || '—' }}</span>
+    <span class="subtitle">Ngày {{ today }}</span>
+  </div>
+</div>

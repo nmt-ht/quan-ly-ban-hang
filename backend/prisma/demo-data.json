@@ -1,0 +1,6351 @@
+{
+  "meta": {
+    "generatedFor": "2026-10-19",
+    "note": "Dữ liệu GIẢ do tools/gen-demo-data.mjs sinh ra. Đừng sửa tay."
+  },
+  "warehouses": [
+    {
+      "id": "wh-ninhtrang",
+      "name": "Kho Ninh Trang"
+    },
+    {
+      "id": "wh-phukien",
+      "name": "Kho phụ kiện"
+    },
+    {
+      "id": "wh-thanhpham",
+      "name": "Kho thành phẩm"
+    },
+    {
+      "id": "wh-vattu",
+      "name": "Kho vật tư hàng hoá"
+    }
+  ],
+  "categories": [
+    {
+      "id": "cat-hh",
+      "name": "HH"
+    },
+    {
+      "id": "cat-khung",
+      "name": "Khung tranh"
+    },
+    {
+      "id": "cat-kinh",
+      "name": "Kính - Mica - Hậu"
+    },
+    {
+      "id": "cat-nep",
+      "name": "Nẹp trang trí"
+    },
+    {
+      "id": "cat-nhom",
+      "name": "Nhôm"
+    },
+    {
+      "id": "cat-nvl",
+      "name": "NVL"
+    },
+    {
+      "id": "cat-pk",
+      "name": "Phụ kiện"
+    },
+    {
+      "id": "cat-tp",
+      "name": "TP"
+    }
+  ],
+  "accounts": [
+    {
+      "id": "acc-cash",
+      "name": "Quỹ tiền mặt",
+      "type": "TIEN_MAT"
+    },
+    {
+      "id": "acc-bank",
+      "name": "Tài khoản ngân hàng",
+      "type": "NGAN_HANG"
+    }
+  ],
+  "tags": [
+    {
+      "id": "tag-vip",
+      "name": "VIP",
+      "sortOrder": 1,
+      "isActive": true
+    },
+    {
+      "id": "tag-quen",
+      "name": "Khách quen",
+      "sortOrder": 2,
+      "isActive": true
+    },
+    {
+      "id": "tag-si",
+      "name": "Tranh sỉ",
+      "sortOrder": 3,
+      "isActive": true
+    },
+    {
+      "id": "tag-gap",
+      "name": "Đơn gấp",
+      "sortOrder": 4,
+      "isActive": true
+    },
+    {
+      "id": "tag-shopee",
+      "name": "Dropship Shopee",
+      "sortOrder": 5,
+      "isActive": true
+    }
+  ],
+  "users": [
+    {
+      "key": "user-admin",
+      "name": "Quản trị hệ thống",
+      "email": "admin@ninhtrang.local",
+      "roleName": "CEO",
+      "status": "ACTIVE",
+      "lastLoginAt": "2026-10-19T08:15:00+07:00"
+    },
+    {
+      "key": "user-quanly",
+      "name": "Nguyễn Minh Quân",
+      "email": "quan.ly@ninhtrang.local",
+      "roleName": "Quản lý",
+      "status": "ACTIVE",
+      "lastLoginAt": "2026-10-18T17:40:00+07:00"
+    },
+    {
+      "key": "user-ketoan",
+      "name": "Lê Thị Hoa",
+      "email": "ke.toan@ninhtrang.local",
+      "roleName": "Kế toán",
+      "status": "ACTIVE",
+      "lastLoginAt": "2026-10-19T08:50:00+07:00"
+    },
+    {
+      "key": "user-sale1",
+      "name": "Trần Văn Nam",
+      "email": "sale1@ninhtrang.local",
+      "roleName": "Sale",
+      "status": "ACTIVE",
+      "lastLoginAt": "2026-10-19T09:05:00+07:00"
+    },
+    {
+      "key": "user-sale2",
+      "name": "Phạm Thị Lan",
+      "email": "sale2@ninhtrang.local",
+      "roleName": "Sale",
+      "status": "ACTIVE",
+      "lastLoginAt": "2026-10-18T16:20:00+07:00"
+    },
+    {
+      "key": "user-thukho",
+      "name": "Võ Văn Khoa",
+      "email": "thu.kho@ninhtrang.local",
+      "roleName": "Thủ kho",
+      "status": "ACTIVE",
+      "lastLoginAt": "2026-10-19T07:55:00+07:00"
+    },
+    {
+      "key": "user-taixe",
+      "name": "Đặng Văn Tài",
+      "email": "tai.xe@ninhtrang.local",
+      "roleName": "Nhân viên giao hàng",
+      "status": "ACTIVE",
+      "lastLoginAt": "2026-10-17T06:30:00+07:00"
+    },
+    {
+      "key": "user-xuong",
+      "name": "Hoàng Văn Xưởng",
+      "email": "xuong@ninhtrang.local",
+      "roleName": "Nhân viên xưởng",
+      "status": "ACTIVE",
+      "lastLoginAt": "2026-10-18T07:10:00+07:00"
+    },
+    {
+      "key": "user-cu",
+      "name": "Lâm Văn Cũ",
+      "email": "nv.da.nghi@ninhtrang.local",
+      "roleName": "Nhân viên giao hàng",
+      "status": "DISABLED",
+      "lastLoginAt": "2026-08-30T10:00:00+07:00"
+    }
+  ],
+  "products": [
+    {
+      "id": "vt-nep-soi",
+      "code": "VT0000001",
+      "name": "Nẹp gỗ sồi 2cm (cây 2,4m)",
+      "type": "VAT_TU",
+      "baseUnit": "Cây",
+      "categoryKey": "cat-nep",
+      "warehouseKey": "wh-vattu",
+      "minStock": 100,
+      "vatRate": 8,
+      "warrantyMonths": 0,
+      "origin": "Việt Nam",
+      "retailPrice": 55000,
+      "wholesalePrice": 48000,
+      "dropshipPrice": 52000,
+      "purchaseNote": "Mua theo bó 10 cây. Hao hụt cắt góc khoảng 8%.",
+      "isSellable": true,
+      "isActive": true,
+      "unitConversions": [
+        {
+          "unitName": "Bó",
+          "ratioToBaseUnit": 10,
+          "price": 480000
+        }
+      ]
+    },
+    {
+      "id": "vt-nep-oc-cho",
+      "code": "VT0000002",
+      "name": "Nẹp gỗ óc chó 3cm (cây 2,4m)",
+      "type": "VAT_TU",
+      "baseUnit": "Cây",
+      "categoryKey": "cat-nep",
+      "warehouseKey": "wh-vattu",
+      "minStock": 60,
+      "vatRate": 8,
+      "warrantyMonths": 0,
+      "origin": "Mỹ",
+      "retailPrice": 105000,
+      "wholesalePrice": 92000,
+      "dropshipPrice": 98000,
+      "isSellable": true,
+      "isActive": true,
+      "unitConversions": [
+        {
+          "unitName": "Bó",
+          "ratioToBaseUnit": 10,
+          "price": 1020000
+        }
+      ]
+    },
+    {
+      "id": "vt-nhom-vang",
+      "code": "VT0000003",
+      "name": "Nẹp nhôm vàng 1,5cm (cây 2,5m)",
+      "type": "VAT_TU",
+      "baseUnit": "Cây",
+      "categoryKey": "cat-nhom",
+      "warehouseKey": "wh-vattu",
+      "minStock": 120,
+      "vatRate": 8,
+      "warrantyMonths": 0,
+      "origin": "Việt Nam",
+      "retailPrice": 68000,
+      "wholesalePrice": 58000,
+      "dropshipPrice": 63000,
+      "isSellable": true,
+      "isActive": true,
+      "unitConversions": [
+        {
+          "unitName": "Bó",
+          "ratioToBaseUnit": 20,
+          "price": 1280000
+        }
+      ]
+    },
+    {
+      "id": "vt-nhom-den",
+      "code": "VT0000004",
+      "name": "Nẹp nhôm đen 2cm (cây 2,5m)",
+      "type": "VAT_TU",
+      "baseUnit": "Cây",
+      "categoryKey": "cat-nhom",
+      "warehouseKey": "wh-vattu",
+      "minStock": 120,
+      "vatRate": 8,
+      "warrantyMonths": 0,
+      "origin": "Việt Nam",
+      "retailPrice": 76000,
+      "wholesalePrice": 65000,
+      "dropshipPrice": 71000,
+      "isSellable": true,
+      "isActive": true,
+      "unitConversions": [
+        {
+          "unitName": "Bó",
+          "ratioToBaseUnit": 20,
+          "price": 1420000
+        }
+      ]
+    },
+    {
+      "id": "vt-kinh-3ly",
+      "code": "VT0000005",
+      "name": "Kính trắng 3mm (tấm 1m × 2m)",
+      "type": "VAT_TU",
+      "baseUnit": "Tấm",
+      "categoryKey": "cat-kinh",
+      "warehouseKey": "wh-vattu",
+      "minStock": 20,
+      "vatRate": 8,
+      "warrantyMonths": 0,
+      "origin": "Việt Nam",
+      "retailPrice": 240000,
+      "wholesalePrice": 205000,
+      "dropshipPrice": 225000,
+      "isSellable": true,
+      "isActive": true,
+      "unitConversions": []
+    },
+    {
+      "id": "vt-mica-2ly",
+      "code": "VT0000006",
+      "name": "Mica trong 2mm (tấm 1,22m × 2,44m)",
+      "type": "VAT_TU",
+      "baseUnit": "Tấm",
+      "categoryKey": "cat-kinh",
+      "warehouseKey": "wh-vattu",
+      "minStock": 15,
+      "vatRate": 8,
+      "warrantyMonths": 0,
+      "origin": "Đài Loan",
+      "retailPrice": 590000,
+      "wholesalePrice": 505000,
+      "dropshipPrice": 550000,
+      "isSellable": true,
+      "isActive": true,
+      "unitConversions": []
+    },
+    {
+      "id": "vt-hau-mdf",
+      "code": "VT0000007",
+      "name": "Tấm hậu MDF 3mm (tấm 1,22m × 2,44m)",
+      "type": "VAT_TU",
+      "baseUnit": "Tấm",
+      "categoryKey": "cat-kinh",
+      "warehouseKey": "wh-vattu",
+      "minStock": 25,
+      "vatRate": 8,
+      "warrantyMonths": 0,
+      "retailPrice": 140000,
+      "wholesalePrice": 120000,
+      "dropshipPrice": 132000,
+      "isSellable": true,
+      "isActive": true,
+      "unitConversions": []
+    },
+    {
+      "id": "vt-go-tho",
+      "code": "VT0000008",
+      "name": "Gỗ sồi thanh thô (cây 2,4m)",
+      "type": "VAT_TU",
+      "baseUnit": "Cây",
+      "categoryKey": "cat-nvl",
+      "warehouseKey": "wh-vattu",
+      "minStock": 80,
+      "vatRate": 0,
+      "warrantyMonths": 0,
+      "retailPrice": 0,
+      "wholesalePrice": 0,
+      "dropshipPrice": 0,
+      "purchaseNote": "Nguyên liệu phay nẹp, không bán ra.",
+      "isSellable": false,
+      "isActive": true,
+      "unitConversions": []
+    },
+    {
+      "id": "vt-moc-treo",
+      "code": "VT0000009",
+      "name": "Móc treo tranh số 3",
+      "type": "VAT_TU",
+      "baseUnit": "Cái",
+      "categoryKey": "cat-pk",
+      "warehouseKey": "wh-phukien",
+      "minStock": 500,
+      "vatRate": 8,
+      "warrantyMonths": 0,
+      "retailPrice": 1500,
+      "wholesalePrice": 1000,
+      "dropshipPrice": 1200,
+      "isSellable": true,
+      "isActive": true,
+      "unitConversions": [
+        {
+          "unitName": "Hộp",
+          "ratioToBaseUnit": 100,
+          "price": 90000
+        }
+      ]
+    },
+    {
+      "id": "vt-dinh-ghim",
+      "code": "VT0000010",
+      "name": "Đinh ghim hậu khung (hộp 500 cái)",
+      "type": "VAT_TU",
+      "baseUnit": "Hộp",
+      "categoryKey": "cat-pk",
+      "warehouseKey": "wh-phukien",
+      "minStock": 10,
+      "vatRate": 8,
+      "warrantyMonths": 0,
+      "retailPrice": 45000,
+      "wholesalePrice": 38000,
+      "dropshipPrice": 42000,
+      "isSellable": true,
+      "isActive": true,
+      "unitConversions": []
+    },
+    {
+      "id": "vt-day-thep",
+      "code": "VT0000011",
+      "name": "Dây thép treo tranh 0,8mm",
+      "type": "VAT_TU",
+      "baseUnit": "Cuộn",
+      "categoryKey": "cat-pk",
+      "warehouseKey": "wh-phukien",
+      "minStock": 15,
+      "vatRate": 8,
+      "warrantyMonths": 0,
+      "retailPrice": 38000,
+      "wholesalePrice": 31000,
+      "dropshipPrice": 35000,
+      "isSellable": true,
+      "isActive": true,
+      "unitConversions": []
+    },
+    {
+      "id": "vt-kep-kinh",
+      "code": "VT0000012",
+      "name": "Kẹp giữ kính inox",
+      "type": "VAT_TU",
+      "baseUnit": "Bộ",
+      "categoryKey": "cat-pk",
+      "warehouseKey": "wh-phukien",
+      "minStock": 100,
+      "vatRate": 8,
+      "warrantyMonths": 0,
+      "retailPrice": 6500,
+      "wholesalePrice": 5000,
+      "dropshipPrice": 5500,
+      "isSellable": true,
+      "isActive": true,
+      "unitConversions": []
+    },
+    {
+      "id": "vt-keo-dan",
+      "code": "VT0000013",
+      "name": "Keo dán gỗ 1kg",
+      "type": "VAT_TU",
+      "baseUnit": "Chai",
+      "categoryKey": "cat-pk",
+      "warehouseKey": "wh-phukien",
+      "minStock": 20,
+      "vatRate": 8,
+      "warrantyMonths": 0,
+      "retailPrice": 65000,
+      "wholesalePrice": 55000,
+      "dropshipPrice": 60000,
+      "isSellable": true,
+      "isActive": true,
+      "unitConversions": []
+    },
+    {
+      "id": "vt-den-led",
+      "code": "VT0000014",
+      "name": "Đèn rọi tranh LED 6W",
+      "type": "VAT_TU",
+      "baseUnit": "Cái",
+      "categoryKey": "cat-hh",
+      "warehouseKey": "wh-ninhtrang",
+      "minStock": 10,
+      "vatRate": 8,
+      "warrantyMonths": 12,
+      "origin": "Trung Quốc",
+      "retailPrice": 160000,
+      "wholesalePrice": 135000,
+      "dropshipPrice": 148000,
+      "isSellable": true,
+      "isActive": true,
+      "unitConversions": []
+    },
+    {
+      "id": "vt-ve-sinh-kinh",
+      "code": "VT0000015",
+      "name": "Bộ vệ sinh kính",
+      "type": "VAT_TU",
+      "baseUnit": "Bộ",
+      "categoryKey": "cat-hh",
+      "warehouseKey": "wh-ninhtrang",
+      "minStock": 20,
+      "vatRate": 8,
+      "warrantyMonths": 0,
+      "retailPrice": 35000,
+      "wholesalePrice": 28000,
+      "dropshipPrice": 31000,
+      "isSellable": true,
+      "isActive": true,
+      "unitConversions": []
+    },
+    {
+      "id": "sp-khung-soi-20x30",
+      "code": "SP0000001",
+      "name": "Khung tranh gỗ sồi 20×30 cm",
+      "type": "THANH_PHAM",
+      "baseUnit": "Cái",
+      "categoryKey": "cat-khung",
+      "warehouseKey": "wh-thanhpham",
+      "minStock": 8,
+      "vatRate": 8,
+      "warrantyMonths": 6,
+      "retailPrice": 120000,
+      "wholesalePrice": 102000,
+      "dropshipPrice": 110000,
+      "description": "Đóng khung hoàn chỉnh gồm nẹp, kính, hậu, móc treo.",
+      "isSellable": true,
+      "isActive": true,
+      "unitConversions": []
+    },
+    {
+      "id": "sp-khung-soi-30x40",
+      "code": "SP0000002",
+      "name": "Khung tranh gỗ sồi 30×40 cm",
+      "type": "THANH_PHAM",
+      "baseUnit": "Cái",
+      "categoryKey": "cat-khung",
+      "warehouseKey": "wh-thanhpham",
+      "minStock": 8,
+      "vatRate": 8,
+      "warrantyMonths": 6,
+      "retailPrice": 185000,
+      "wholesalePrice": 157000,
+      "dropshipPrice": 170000,
+      "description": "Đóng khung hoàn chỉnh gồm nẹp, kính, hậu, móc treo.",
+      "isSellable": true,
+      "isActive": true,
+      "unitConversions": []
+    },
+    {
+      "id": "sp-khung-soi-40x60",
+      "code": "SP0000003",
+      "name": "Khung tranh gỗ sồi 40×60 cm",
+      "type": "THANH_PHAM",
+      "baseUnit": "Cái",
+      "categoryKey": "cat-khung",
+      "warehouseKey": "wh-thanhpham",
+      "minStock": 8,
+      "vatRate": 8,
+      "warrantyMonths": 6,
+      "retailPrice": 295000,
+      "wholesalePrice": 251000,
+      "dropshipPrice": 271000,
+      "description": "Đóng khung hoàn chỉnh gồm nẹp, kính, hậu, móc treo.",
+      "isSellable": true,
+      "isActive": true,
+      "unitConversions": []
+    },
+    {
+      "id": "sp-khung-soi-50x70",
+      "code": "SP0000004",
+      "name": "Khung tranh gỗ sồi 50×70 cm",
+      "type": "THANH_PHAM",
+      "baseUnit": "Cái",
+      "categoryKey": "cat-khung",
+      "warehouseKey": "wh-thanhpham",
+      "minStock": 8,
+      "vatRate": 8,
+      "warrantyMonths": 6,
+      "retailPrice": 420000,
+      "wholesalePrice": 357000,
+      "dropshipPrice": 386000,
+      "description": "Đóng khung hoàn chỉnh gồm nẹp, kính, hậu, móc treo.",
+      "isSellable": true,
+      "isActive": true,
+      "unitConversions": []
+    },
+    {
+      "id": "sp-khung-soi-60x90",
+      "code": "SP0000005",
+      "name": "Khung tranh gỗ sồi 60×90 cm",
+      "type": "THANH_PHAM",
+      "baseUnit": "Cái",
+      "categoryKey": "cat-khung",
+      "warehouseKey": "wh-thanhpham",
+      "minStock": 8,
+      "vatRate": 8,
+      "warrantyMonths": 6,
+      "retailPrice": 650000,
+      "wholesalePrice": 553000,
+      "dropshipPrice": 598000,
+      "description": "Đóng khung hoàn chỉnh gồm nẹp, kính, hậu, móc treo.",
+      "isSellable": true,
+      "isActive": true,
+      "unitConversions": []
+    },
+    {
+      "id": "sp-khung-nhom-vang-30x40",
+      "code": "SP0000006",
+      "name": "Khung tranh nhôm vàng 30×40 cm",
+      "type": "THANH_PHAM",
+      "baseUnit": "Cái",
+      "categoryKey": "cat-khung",
+      "warehouseKey": "wh-thanhpham",
+      "minStock": 8,
+      "vatRate": 8,
+      "warrantyMonths": 6,
+      "retailPrice": 210000,
+      "wholesalePrice": 179000,
+      "dropshipPrice": 193000,
+      "description": "Đóng khung hoàn chỉnh gồm nẹp, kính, hậu, móc treo.",
+      "isSellable": true,
+      "isActive": true,
+      "unitConversions": []
+    },
+    {
+      "id": "sp-khung-nhom-den-40x60",
+      "code": "SP0000007",
+      "name": "Khung tranh nhôm đen 40×60 cm",
+      "type": "THANH_PHAM",
+      "baseUnit": "Cái",
+      "categoryKey": "cat-khung",
+      "warehouseKey": "wh-thanhpham",
+      "minStock": 8,
+      "vatRate": 8,
+      "warrantyMonths": 6,
+      "retailPrice": 330000,
+      "wholesalePrice": 281000,
+      "dropshipPrice": 304000,
+      "description": "Đóng khung hoàn chỉnh gồm nẹp, kính, hậu, móc treo.",
+      "isSellable": true,
+      "isActive": true,
+      "unitConversions": []
+    },
+    {
+      "id": "sp-khung-oc-cho-40x60",
+      "code": "SP0000008",
+      "name": "Khung tranh gỗ óc chó 40×60 cm",
+      "type": "THANH_PHAM",
+      "baseUnit": "Cái",
+      "categoryKey": "cat-khung",
+      "warehouseKey": "wh-thanhpham",
+      "minStock": 8,
+      "vatRate": 8,
+      "warrantyMonths": 6,
+      "retailPrice": 480000,
+      "wholesalePrice": 408000,
+      "dropshipPrice": 442000,
+      "description": "Đóng khung hoàn chỉnh gồm nẹp, kính, hậu, móc treo.",
+      "isSellable": true,
+      "isActive": true,
+      "unitConversions": []
+    },
+    {
+      "id": "sp-kinh-cat",
+      "code": "SP0000009",
+      "name": "Kính cắt theo cỡ 3mm",
+      "type": "THANH_PHAM",
+      "baseUnit": "Tấm",
+      "categoryKey": "cat-tp",
+      "warehouseKey": "wh-thanhpham",
+      "minStock": 0,
+      "vatRate": 8,
+      "warrantyMonths": 0,
+      "retailPrice": 120000,
+      "wholesalePrice": 100000,
+      "dropshipPrice": 110000,
+      "saleNote": "Nhập Dài × Rộng (cm) trên dòng đơn.",
+      "isSellable": true,
+      "isActive": true,
+      "unitConversions": []
+    },
+    {
+      "id": "sp-mica-cat",
+      "code": "SP0000010",
+      "name": "Mica cắt theo cỡ 2mm",
+      "type": "THANH_PHAM",
+      "baseUnit": "Tấm",
+      "categoryKey": "cat-tp",
+      "warehouseKey": "wh-thanhpham",
+      "minStock": 0,
+      "vatRate": 8,
+      "warrantyMonths": 0,
+      "retailPrice": 180000,
+      "wholesalePrice": 150000,
+      "dropshipPrice": 165000,
+      "saleNote": "Nhập Dài × Rộng (cm) trên dòng đơn.",
+      "isSellable": true,
+      "isActive": true,
+      "unitConversions": []
+    },
+    {
+      "id": "dv-cong-dong",
+      "code": "DV0000001",
+      "name": "Công đóng khung theo yêu cầu",
+      "type": "DICH_VU",
+      "baseUnit": "Lần",
+      "minStock": 0,
+      "vatRate": 8,
+      "warrantyMonths": 0,
+      "retailPrice": 50000,
+      "wholesalePrice": 45000,
+      "dropshipPrice": 48000,
+      "isSellable": true,
+      "isActive": true,
+      "unitConversions": []
+    },
+    {
+      "id": "dv-giao-hang",
+      "code": "DV0000002",
+      "name": "Phí giao hàng nội thành",
+      "type": "DICH_VU",
+      "baseUnit": "Chuyến",
+      "minStock": 0,
+      "vatRate": 8,
+      "warrantyMonths": 0,
+      "retailPrice": 30000,
+      "wholesalePrice": 30000,
+      "dropshipPrice": 30000,
+      "isSellable": true,
+      "isActive": true,
+      "unitConversions": []
+    }
+  ],
+  "bomLines": [
+    {
+      "finishedProductId": "sp-khung-soi-20x30",
+      "componentId": "vt-nep-soi",
+      "quantityPerUnit": 0.45
+    },
+    {
+      "finishedProductId": "sp-khung-soi-20x30",
+      "componentId": "vt-kinh-3ly",
+      "quantityPerUnit": 0.0345
+    },
+    {
+      "finishedProductId": "sp-khung-soi-20x30",
+      "componentId": "vt-hau-mdf",
+      "quantityPerUnit": 0.0232
+    },
+    {
+      "finishedProductId": "sp-khung-soi-20x30",
+      "componentId": "vt-moc-treo",
+      "quantityPerUnit": 2
+    },
+    {
+      "finishedProductId": "sp-khung-soi-20x30",
+      "componentId": "vt-dinh-ghim",
+      "quantityPerUnit": 0.02
+    },
+    {
+      "finishedProductId": "sp-khung-soi-30x40",
+      "componentId": "vt-nep-soi",
+      "quantityPerUnit": 0.6167
+    },
+    {
+      "finishedProductId": "sp-khung-soi-30x40",
+      "componentId": "vt-kinh-3ly",
+      "quantityPerUnit": 0.069
+    },
+    {
+      "finishedProductId": "sp-khung-soi-30x40",
+      "componentId": "vt-hau-mdf",
+      "quantityPerUnit": 0.0464
+    },
+    {
+      "finishedProductId": "sp-khung-soi-30x40",
+      "componentId": "vt-moc-treo",
+      "quantityPerUnit": 2
+    },
+    {
+      "finishedProductId": "sp-khung-soi-30x40",
+      "componentId": "vt-dinh-ghim",
+      "quantityPerUnit": 0.02
+    },
+    {
+      "finishedProductId": "sp-khung-soi-40x60",
+      "componentId": "vt-nep-soi",
+      "quantityPerUnit": 0.8667
+    },
+    {
+      "finishedProductId": "sp-khung-soi-40x60",
+      "componentId": "vt-kinh-3ly",
+      "quantityPerUnit": 0.138
+    },
+    {
+      "finishedProductId": "sp-khung-soi-40x60",
+      "componentId": "vt-hau-mdf",
+      "quantityPerUnit": 0.0927
+    },
+    {
+      "finishedProductId": "sp-khung-soi-40x60",
+      "componentId": "vt-moc-treo",
+      "quantityPerUnit": 2
+    },
+    {
+      "finishedProductId": "sp-khung-soi-40x60",
+      "componentId": "vt-dinh-ghim",
+      "quantityPerUnit": 0.02
+    },
+    {
+      "finishedProductId": "sp-khung-soi-50x70",
+      "componentId": "vt-nep-soi",
+      "quantityPerUnit": 1.0333
+    },
+    {
+      "finishedProductId": "sp-khung-soi-50x70",
+      "componentId": "vt-kinh-3ly",
+      "quantityPerUnit": 0.2012
+    },
+    {
+      "finishedProductId": "sp-khung-soi-50x70",
+      "componentId": "vt-hau-mdf",
+      "quantityPerUnit": 0.1352
+    },
+    {
+      "finishedProductId": "sp-khung-soi-50x70",
+      "componentId": "vt-moc-treo",
+      "quantityPerUnit": 2
+    },
+    {
+      "finishedProductId": "sp-khung-soi-50x70",
+      "componentId": "vt-dinh-ghim",
+      "quantityPerUnit": 0.02
+    },
+    {
+      "finishedProductId": "sp-khung-soi-60x90",
+      "componentId": "vt-nep-soi",
+      "quantityPerUnit": 1.2833
+    },
+    {
+      "finishedProductId": "sp-khung-soi-60x90",
+      "componentId": "vt-kinh-3ly",
+      "quantityPerUnit": 0.3105
+    },
+    {
+      "finishedProductId": "sp-khung-soi-60x90",
+      "componentId": "vt-hau-mdf",
+      "quantityPerUnit": 0.2086
+    },
+    {
+      "finishedProductId": "sp-khung-soi-60x90",
+      "componentId": "vt-moc-treo",
+      "quantityPerUnit": 2
+    },
+    {
+      "finishedProductId": "sp-khung-soi-60x90",
+      "componentId": "vt-dinh-ghim",
+      "quantityPerUnit": 0.02
+    },
+    {
+      "finishedProductId": "sp-khung-nhom-vang-30x40",
+      "componentId": "vt-nhom-vang",
+      "quantityPerUnit": 0.592
+    },
+    {
+      "finishedProductId": "sp-khung-nhom-vang-30x40",
+      "componentId": "vt-kinh-3ly",
+      "quantityPerUnit": 0.069
+    },
+    {
+      "finishedProductId": "sp-khung-nhom-vang-30x40",
+      "componentId": "vt-hau-mdf",
+      "quantityPerUnit": 0.0464
+    },
+    {
+      "finishedProductId": "sp-khung-nhom-vang-30x40",
+      "componentId": "vt-moc-treo",
+      "quantityPerUnit": 2
+    },
+    {
+      "finishedProductId": "sp-khung-nhom-vang-30x40",
+      "componentId": "vt-dinh-ghim",
+      "quantityPerUnit": 0.02
+    },
+    {
+      "finishedProductId": "sp-khung-nhom-vang-30x40",
+      "componentId": "vt-kep-kinh",
+      "quantityPerUnit": 1
+    },
+    {
+      "finishedProductId": "sp-khung-nhom-den-40x60",
+      "componentId": "vt-nhom-den",
+      "quantityPerUnit": 0.832
+    },
+    {
+      "finishedProductId": "sp-khung-nhom-den-40x60",
+      "componentId": "vt-kinh-3ly",
+      "quantityPerUnit": 0.138
+    },
+    {
+      "finishedProductId": "sp-khung-nhom-den-40x60",
+      "componentId": "vt-hau-mdf",
+      "quantityPerUnit": 0.0927
+    },
+    {
+      "finishedProductId": "sp-khung-nhom-den-40x60",
+      "componentId": "vt-moc-treo",
+      "quantityPerUnit": 2
+    },
+    {
+      "finishedProductId": "sp-khung-nhom-den-40x60",
+      "componentId": "vt-dinh-ghim",
+      "quantityPerUnit": 0.02
+    },
+    {
+      "finishedProductId": "sp-khung-nhom-den-40x60",
+      "componentId": "vt-kep-kinh",
+      "quantityPerUnit": 1
+    },
+    {
+      "finishedProductId": "sp-khung-oc-cho-40x60",
+      "componentId": "vt-nep-oc-cho",
+      "quantityPerUnit": 0.8667
+    },
+    {
+      "finishedProductId": "sp-khung-oc-cho-40x60",
+      "componentId": "vt-kinh-3ly",
+      "quantityPerUnit": 0.138
+    },
+    {
+      "finishedProductId": "sp-khung-oc-cho-40x60",
+      "componentId": "vt-hau-mdf",
+      "quantityPerUnit": 0.0927
+    },
+    {
+      "finishedProductId": "sp-khung-oc-cho-40x60",
+      "componentId": "vt-moc-treo",
+      "quantityPerUnit": 2
+    },
+    {
+      "finishedProductId": "sp-khung-oc-cho-40x60",
+      "componentId": "vt-dinh-ghim",
+      "quantityPerUnit": 0.02
+    },
+    {
+      "finishedProductId": "sp-kinh-cat",
+      "componentId": "vt-kinh-3ly",
+      "quantityPerUnit": 0.25
+    },
+    {
+      "finishedProductId": "sp-mica-cat",
+      "componentId": "vt-mica-2ly",
+      "quantityPerUnit": 0.15
+    }
+  ],
+  "suppliers": [
+    {
+      "id": "ncc-1",
+      "code": "NCC0000001",
+      "name": "Công ty TNHH Gỗ Phú Thịnh",
+      "contactPhone": "0901000101",
+      "taxCode": "0300000011",
+      "address": "45 Đường số 7, KCN Vĩnh Lộc, TP.HCM",
+      "creditAllowed": true,
+      "isActive": true
+    },
+    {
+      "id": "ncc-2",
+      "code": "NCC0000002",
+      "name": "Nhôm Việt Phát",
+      "contactPhone": "0901000102",
+      "taxCode": "0300000012",
+      "address": "18 Quốc lộ 1A, Bình Tân, TP.HCM",
+      "creditAllowed": true,
+      "isActive": true
+    },
+    {
+      "id": "ncc-3",
+      "code": "NCC0000003",
+      "name": "Kính Hoàng Gia",
+      "contactPhone": "0901000103",
+      "taxCode": "0300000013",
+      "address": "112 Nguyễn Văn Linh, Quận 7, TP.HCM",
+      "creditAllowed": true,
+      "isActive": true
+    },
+    {
+      "id": "ncc-4",
+      "code": "NCC0000004",
+      "name": "Phụ kiện Minh Tâm",
+      "contactPhone": "0901000104",
+      "taxCode": "0300000014",
+      "address": "9 Lý Chiêu Hoàng, Quận 6, TP.HCM",
+      "creditAllowed": false,
+      "isActive": true
+    },
+    {
+      "id": "ncc-5",
+      "code": "NCC0000005",
+      "name": "Xưởng gỗ Tư Hiển",
+      "contactPhone": "0901000105",
+      "address": "Ấp 3, Bình Chánh, TP.HCM",
+      "creditAllowed": false,
+      "isActive": false
+    }
+  ],
+  "customers": [
+    {
+      "id": "kh-01",
+      "code": "KH0000001",
+      "name": "Nguyễn Thị Mai Anh",
+      "type": "LE",
+      "creditDays": 0,
+      "phone": "0912000001",
+      "email": "maianh.demo@example.com",
+      "isActive": true,
+      "tagIds": [
+        "tag-quen"
+      ],
+      "createdAt": "2026-08-01T02:00:00.000Z"
+    },
+    {
+      "id": "kh-02",
+      "code": "KH0000002",
+      "name": "Trần Quốc Bảo",
+      "type": "LE",
+      "creditDays": 0,
+      "phone": "0912000002",
+      "isActive": true,
+      "tagIds": [],
+      "createdAt": "2026-08-01T02:00:00.000Z"
+    },
+    {
+      "id": "kh-03",
+      "code": "KH0000003",
+      "name": "Lê Ánh Dương",
+      "companyName": "Cửa hàng Tranh Ánh Dương",
+      "type": "SI",
+      "creditDays": 15,
+      "phone": "0912000003",
+      "companyTaxCode": "8000000003",
+      "note": "Khách sỉ lớn, thanh toán 15 ngày.",
+      "isActive": true,
+      "tagIds": [
+        "tag-vip",
+        "tag-si"
+      ],
+      "createdAt": "2026-08-01T02:00:00.000Z"
+    },
+    {
+      "id": "kh-04",
+      "code": "KH0000004",
+      "name": "Phạm Hồng Phúc",
+      "companyName": "Công ty TNHH Studio Hình Xưa",
+      "type": "SI",
+      "creditDays": 30,
+      "phone": "0912000004",
+      "email": "studio.demo@example.com",
+      "companyTaxCode": "0310000004",
+      "isActive": true,
+      "tagIds": [
+        "tag-vip",
+        "tag-si"
+      ],
+      "createdAt": "2026-08-01T02:00:00.000Z"
+    },
+    {
+      "id": "kh-05",
+      "code": "KH0000005",
+      "name": "Võ Thị Thu Hà",
+      "type": "DROPSHIP",
+      "creditDays": 0,
+      "phone": "0912000005",
+      "isActive": true,
+      "tagIds": [
+        "tag-shopee"
+      ],
+      "createdAt": "2026-08-01T02:00:00.000Z"
+    },
+    {
+      "id": "kh-06",
+      "code": "KH0000006",
+      "name": "Đặng Thuỳ Linh",
+      "companyName": "Shop Decor Nhà Nhỏ",
+      "type": "DROPSHIP",
+      "creditDays": 7,
+      "phone": "0912000006",
+      "isActive": true,
+      "tagIds": [
+        "tag-shopee"
+      ],
+      "createdAt": "2026-08-01T02:00:00.000Z"
+    },
+    {
+      "id": "kh-07",
+      "code": "KH0000007",
+      "name": "Hoàng Văn Thắng",
+      "companyName": "Công ty CP Khách sạn Hoa Sen",
+      "type": "SI",
+      "creditDays": 30,
+      "phone": "0912000007",
+      "companyTaxCode": "0311000007",
+      "note": "Cần xuất hoá đơn VAT.",
+      "isActive": true,
+      "tagIds": [
+        "tag-si"
+      ],
+      "createdAt": "2026-08-01T02:00:00.000Z"
+    },
+    {
+      "id": "kh-08",
+      "code": "KH0000008",
+      "name": "Bùi Thị Cúc",
+      "companyName": "Trường Mầm non Hướng Dương",
+      "type": "SI",
+      "creditDays": 30,
+      "phone": "0912000008",
+      "isActive": true,
+      "tagIds": [],
+      "createdAt": "2026-08-01T02:00:00.000Z"
+    },
+    {
+      "id": "kh-09",
+      "code": "KH0000009",
+      "name": "Ngô Thanh Tùng",
+      "type": "LE",
+      "creditDays": 0,
+      "phone": "0912000009",
+      "isActive": true,
+      "tagIds": [
+        "tag-quen"
+      ],
+      "createdAt": "2026-08-01T02:00:00.000Z"
+    },
+    {
+      "id": "kh-10",
+      "code": "KH0000010",
+      "name": "Đỗ Minh Khôi",
+      "companyName": "Phòng tranh Đồng Xanh",
+      "type": "SI",
+      "creditDays": 15,
+      "phone": "0912000010",
+      "companyTaxCode": "0312000010",
+      "isActive": true,
+      "tagIds": [
+        "tag-si"
+      ],
+      "createdAt": "2026-08-01T02:00:00.000Z"
+    },
+    {
+      "id": "kh-11",
+      "code": "KH0000011",
+      "name": "Lương Hải Yến",
+      "type": "LE",
+      "creditDays": 0,
+      "phone": "0912000011",
+      "note": "Không còn liên lạc được.",
+      "isActive": false,
+      "tagIds": [],
+      "createdAt": "2026-08-01T02:00:00.000Z"
+    },
+    {
+      "id": "kh-12",
+      "code": "KH0000012",
+      "name": "Trịnh Văn Lộc",
+      "companyName": "Nhà hàng Bến Đò",
+      "type": "SI",
+      "creditDays": 15,
+      "phone": "0912000012",
+      "isActive": true,
+      "tagIds": [
+        "tag-si"
+      ],
+      "createdAt": "2026-08-01T02:00:00.000Z"
+    }
+  ],
+  "purchaseOrders": [
+    {
+      "id": "dn-01",
+      "code": "DN0000001",
+      "supplierId": "ncc-1",
+      "date": "2026-08-02T02:00:00.000Z",
+      "status": "HOAN_TAT",
+      "createdByKey": "user-quanly",
+      "lines": [
+        {
+          "id": "dn-01-l1",
+          "productId": "vt-nep-soi",
+          "quantity": 300,
+          "unitPrice": 38000,
+          "receivedQuantity": 300
+        },
+        {
+          "id": "dn-01-l2",
+          "productId": "vt-nep-oc-cho",
+          "quantity": 100,
+          "unitPrice": 72000,
+          "receivedQuantity": 100
+        },
+        {
+          "id": "dn-01-l3",
+          "productId": "vt-go-tho",
+          "quantity": 150,
+          "unitPrice": 30000,
+          "receivedQuantity": 150
+        }
+      ]
+    },
+    {
+      "id": "dn-02",
+      "code": "DN0000002",
+      "supplierId": "ncc-2",
+      "date": "2026-08-04T02:00:00.000Z",
+      "status": "HOAN_TAT",
+      "createdByKey": "user-quanly",
+      "lines": [
+        {
+          "id": "dn-02-l1",
+          "productId": "vt-nhom-vang",
+          "quantity": 200,
+          "unitPrice": 46000,
+          "receivedQuantity": 200
+        },
+        {
+          "id": "dn-02-l2",
+          "productId": "vt-nhom-den",
+          "quantity": 200,
+          "unitPrice": 52000,
+          "receivedQuantity": 200
+        }
+      ]
+    },
+    {
+      "id": "dn-03",
+      "code": "DN0000003",
+      "supplierId": "ncc-3",
+      "date": "2026-08-10T02:00:00.000Z",
+      "status": "DA_NHAN_DU",
+      "createdByKey": "user-quanly",
+      "lines": [
+        {
+          "id": "dn-03-l1",
+          "productId": "vt-kinh-3ly",
+          "quantity": 60,
+          "unitPrice": 165000,
+          "receivedQuantity": 60
+        },
+        {
+          "id": "dn-03-l2",
+          "productId": "vt-mica-2ly",
+          "quantity": 30,
+          "unitPrice": 420000,
+          "receivedQuantity": 30
+        },
+        {
+          "id": "dn-03-l3",
+          "productId": "vt-hau-mdf",
+          "quantity": 80,
+          "unitPrice": 95000,
+          "receivedQuantity": 80
+        }
+      ]
+    },
+    {
+      "id": "dn-04",
+      "code": "DN0000004",
+      "supplierId": "ncc-4",
+      "date": "2026-08-20T02:00:00.000Z",
+      "status": "HOAN_TAT",
+      "createdByKey": "user-quanly",
+      "lines": [
+        {
+          "id": "dn-04-l1",
+          "productId": "vt-moc-treo",
+          "quantity": 3000,
+          "unitPrice": 600,
+          "receivedQuantity": 3000
+        },
+        {
+          "id": "dn-04-l2",
+          "productId": "vt-dinh-ghim",
+          "quantity": 40,
+          "unitPrice": 28000,
+          "receivedQuantity": 40
+        },
+        {
+          "id": "dn-04-l3",
+          "productId": "vt-day-thep",
+          "quantity": 10,
+          "unitPrice": 22000,
+          "receivedQuantity": 10
+        },
+        {
+          "id": "dn-04-l4",
+          "productId": "vt-kep-kinh",
+          "quantity": 400,
+          "unitPrice": 3500,
+          "receivedQuantity": 400
+        },
+        {
+          "id": "dn-04-l5",
+          "productId": "vt-keo-dan",
+          "quantity": 30,
+          "unitPrice": 42000,
+          "receivedQuantity": 30
+        }
+      ]
+    },
+    {
+      "id": "dn-05",
+      "code": "DN0000005",
+      "supplierId": "ncc-1",
+      "date": "2026-09-15T02:00:00.000Z",
+      "status": "NHAN_MOT_PHAN",
+      "createdByKey": "user-quanly",
+      "lines": [
+        {
+          "id": "dn-05-l1",
+          "productId": "vt-nep-soi",
+          "quantity": 400,
+          "unitPrice": 39000,
+          "receivedQuantity": 250
+        },
+        {
+          "id": "dn-05-l2",
+          "productId": "vt-nep-oc-cho",
+          "quantity": 120,
+          "unitPrice": 73000,
+          "receivedQuantity": 120
+        }
+      ]
+    },
+    {
+      "id": "dn-06",
+      "code": "DN0000006",
+      "supplierId": "ncc-3",
+      "date": "2026-10-05T02:00:00.000Z",
+      "status": "DA_GUI_NCC",
+      "createdByKey": "user-quanly",
+      "lines": [
+        {
+          "id": "dn-06-l1",
+          "productId": "vt-kinh-3ly",
+          "quantity": 80,
+          "unitPrice": 168000,
+          "receivedQuantity": 0
+        },
+        {
+          "id": "dn-06-l2",
+          "productId": "vt-mica-2ly",
+          "quantity": 40,
+          "unitPrice": 425000,
+          "receivedQuantity": 0
+        },
+        {
+          "id": "dn-06-l3",
+          "productId": "vt-hau-mdf",
+          "quantity": 100,
+          "unitPrice": 96000,
+          "receivedQuantity": 0
+        }
+      ]
+    },
+    {
+      "id": "dn-07",
+      "code": "DN0000007",
+      "supplierId": "ncc-2",
+      "date": "2026-10-14T02:00:00.000Z",
+      "status": "NHAP",
+      "createdByKey": "user-quanly",
+      "lines": [
+        {
+          "id": "dn-07-l1",
+          "productId": "vt-nhom-vang",
+          "quantity": 150,
+          "unitPrice": 47000,
+          "receivedQuantity": 0
+        }
+      ]
+    },
+    {
+      "id": "dn-08",
+      "code": "DN0000008",
+      "supplierId": "ncc-5",
+      "date": "2026-08-12T02:00:00.000Z",
+      "status": "HUY",
+      "createdByKey": "user-quanly",
+      "lines": [
+        {
+          "id": "dn-08-l1",
+          "productId": "vt-go-tho",
+          "quantity": 200,
+          "unitPrice": 31000,
+          "receivedQuantity": 0
+        }
+      ]
+    },
+    {
+      "id": "dn-09",
+      "code": "DN0000009",
+      "supplierId": "ncc-4",
+      "date": "2026-10-10T02:00:00.000Z",
+      "status": "HOAN_TAT",
+      "createdByKey": "user-quanly",
+      "lines": [
+        {
+          "id": "dn-09-l1",
+          "productId": "vt-den-led",
+          "quantity": 30,
+          "unitPrice": 95000,
+          "receivedQuantity": 30
+        },
+        {
+          "id": "dn-09-l2",
+          "productId": "vt-ve-sinh-kinh",
+          "quantity": 15,
+          "unitPrice": 18000,
+          "receivedQuantity": 15
+        }
+      ]
+    }
+  ],
+  "salesOrders": [
+    {
+      "id": "dh-01",
+      "code": "DH0000001",
+      "customerId": "kh-01",
+      "description": "Khung treo phòng khách",
+      "source": "Zalo",
+      "orderDate": "2026-08-12T02:00:00.000Z",
+      "neededByDate": "2026-08-22T02:00:00.000Z",
+      "status": "HOAN_THANH",
+      "discountAmount": 0,
+      "salesRepKey": "user-sale1",
+      "createdByKey": "user-sale1",
+      "tagIds": [
+        "tag-quen"
+      ],
+      "lines": [
+        {
+          "id": "dh-01-l1",
+          "productId": "sp-khung-soi-30x40",
+          "unit": "Cái",
+          "quantity": 2,
+          "unitPrice": 185000,
+          "receivedQuantity": 2
+        },
+        {
+          "id": "dh-01-l2",
+          "productId": "sp-khung-soi-40x60",
+          "unit": "Cái",
+          "quantity": 1,
+          "unitPrice": 295000,
+          "receivedQuantity": 1
+        }
+      ]
+    },
+    {
+      "id": "dh-02",
+      "code": "DH0000002",
+      "customerId": "kh-03",
+      "source": "Khách quen",
+      "orderDate": "2026-08-13T02:00:00.000Z",
+      "neededByDate": "2026-08-23T02:00:00.000Z",
+      "status": "HOAN_THANH",
+      "discountAmount": 500000,
+      "salesRepKey": "user-sale1",
+      "createdByKey": "user-sale1",
+      "tagIds": [
+        "tag-vip",
+        "tag-si"
+      ],
+      "lines": [
+        {
+          "id": "dh-02-l1",
+          "productId": "sp-khung-soi-40x60",
+          "unit": "Cái",
+          "quantity": 20,
+          "unitPrice": 251000,
+          "receivedQuantity": 20
+        },
+        {
+          "id": "dh-02-l2",
+          "productId": "sp-khung-soi-50x70",
+          "unit": "Cái",
+          "quantity": 10,
+          "unitPrice": 357000,
+          "receivedQuantity": 10
+        }
+      ]
+    },
+    {
+      "id": "dh-03",
+      "code": "DH0000003",
+      "customerId": "kh-05",
+      "recipientName": "Nguyễn Thị Hạnh",
+      "recipientPhone": "0988000111",
+      "source": "Shopee",
+      "orderDate": "2026-08-14T02:00:00.000Z",
+      "neededByDate": "2026-08-24T02:00:00.000Z",
+      "status": "HOAN_THANH",
+      "discountAmount": 0,
+      "salesRepKey": "user-sale2",
+      "createdByKey": "user-sale2",
+      "tagIds": [
+        "tag-shopee"
+      ],
+      "lines": [
+        {
+          "id": "dh-03-l1",
+          "productId": "sp-khung-nhom-vang-30x40",
+          "unit": "Cái",
+          "quantity": 6,
+          "unitPrice": 193000,
+          "receivedQuantity": 6
+        },
+        {
+          "id": "dh-03-l2",
+          "productId": "vt-den-led",
+          "unit": "Cái",
+          "quantity": 6,
+          "unitPrice": 148000,
+          "receivedQuantity": 6
+        }
+      ]
+    },
+    {
+      "id": "dh-04",
+      "code": "DH0000004",
+      "customerId": "kh-04",
+      "source": "Email",
+      "orderDate": "2026-08-20T02:00:00.000Z",
+      "neededByDate": "2026-08-30T02:00:00.000Z",
+      "status": "HOAN_THANH",
+      "discountAmount": 1000000,
+      "salesRepKey": "user-sale1",
+      "createdByKey": "user-sale1",
+      "tagIds": [
+        "tag-vip",
+        "tag-si"
+      ],
+      "lines": [
+        {
+          "id": "dh-04-l1",
+          "productId": "sp-khung-soi-60x90",
+          "unit": "Cái",
+          "quantity": 12,
+          "unitPrice": 553000,
+          "receivedQuantity": 12
+        },
+        {
+          "id": "dh-04-l2",
+          "productId": "sp-khung-oc-cho-40x60",
+          "unit": "Cái",
+          "quantity": 8,
+          "unitPrice": 408000,
+          "receivedQuantity": 8
+        },
+        {
+          "id": "dh-04-l3",
+          "productId": "sp-kinh-cat",
+          "unit": "Tấm",
+          "quantity": 5,
+          "unitPrice": 100000,
+          "length": 80,
+          "width": 120,
+          "receivedQuantity": 5
+        }
+      ]
+    },
+    {
+      "id": "dh-05",
+      "code": "DH0000005",
+      "customerId": "kh-07",
+      "description": "Khung tranh cho 60 phòng khách sạn",
+      "source": "Điện thoại",
+      "orderDate": "2026-08-18T02:00:00.000Z",
+      "neededByDate": "2026-08-28T02:00:00.000Z",
+      "status": "HOAN_THANH",
+      "discountAmount": 0,
+      "salesRepKey": "user-sale2",
+      "createdByKey": "user-sale2",
+      "tagIds": [
+        "tag-si"
+      ],
+      "lines": [
+        {
+          "id": "dh-05-l1",
+          "productId": "sp-khung-soi-50x70",
+          "unit": "Cái",
+          "quantity": 30,
+          "unitPrice": 357000,
+          "receivedQuantity": 30
+        },
+        {
+          "id": "dh-05-l2",
+          "productId": "sp-khung-nhom-den-40x60",
+          "unit": "Cái",
+          "quantity": 30,
+          "unitPrice": 281000,
+          "receivedQuantity": 30
+        }
+      ]
+    },
+    {
+      "id": "dh-06",
+      "code": "DH0000006",
+      "customerId": "kh-09",
+      "source": "Facebook",
+      "orderDate": "2026-08-30T02:00:00.000Z",
+      "neededByDate": "2026-09-09T02:00:00.000Z",
+      "status": "HOAN_THANH",
+      "discountAmount": 0,
+      "salesRepKey": "user-sale1",
+      "createdByKey": "user-sale1",
+      "tagIds": [
+        "tag-quen"
+      ],
+      "lines": [
+        {
+          "id": "dh-06-l1",
+          "productId": "sp-khung-soi-20x30",
+          "unit": "Cái",
+          "quantity": 4,
+          "unitPrice": 120000,
+          "receivedQuantity": 4
+        }
+      ]
+    },
+    {
+      "id": "dh-07",
+      "code": "DH0000007",
+      "customerId": "kh-10",
+      "description": "3 khung 40×60 bị nứt góc, khách trả lại",
+      "source": "Zalo",
+      "orderDate": "2026-08-31T02:00:00.000Z",
+      "neededByDate": "2026-09-10T02:00:00.000Z",
+      "status": "GIAO_MOT_PHAN",
+      "discountAmount": 0,
+      "salesRepKey": "user-sale2",
+      "createdByKey": "user-sale2",
+      "tagIds": [
+        "tag-si"
+      ],
+      "lines": [
+        {
+          "id": "dh-07-l1",
+          "productId": "sp-khung-soi-40x60",
+          "unit": "Cái",
+          "quantity": 10,
+          "unitPrice": 251000,
+          "receivedQuantity": 7
+        },
+        {
+          "id": "dh-07-l2",
+          "productId": "sp-khung-soi-30x40",
+          "unit": "Cái",
+          "quantity": 10,
+          "unitPrice": 157000,
+          "receivedQuantity": 10
+        }
+      ]
+    },
+    {
+      "id": "dh-08",
+      "code": "DH0000008",
+      "customerId": "kh-02",
+      "description": "Khách đổi ý, trả toàn bộ",
+      "source": "Facebook",
+      "orderDate": "2026-09-01T02:00:00.000Z",
+      "neededByDate": "2026-09-11T02:00:00.000Z",
+      "status": "TRA_TOAN_BO",
+      "discountAmount": 0,
+      "salesRepKey": "user-sale1",
+      "createdByKey": "user-sale1",
+      "tagIds": [],
+      "lines": [
+        {
+          "id": "dh-08-l1",
+          "productId": "sp-khung-nhom-vang-30x40",
+          "unit": "Cái",
+          "quantity": 3,
+          "unitPrice": 210000,
+          "receivedQuantity": 0
+        }
+      ]
+    },
+    {
+      "id": "dh-09",
+      "code": "DH0000009",
+      "customerId": "kh-12",
+      "source": "Điện thoại",
+      "orderDate": "2026-09-10T02:00:00.000Z",
+      "neededByDate": "2026-09-20T02:00:00.000Z",
+      "status": "HOAN_THANH",
+      "discountAmount": 0,
+      "salesRepKey": "user-sale2",
+      "createdByKey": "user-sale2",
+      "tagIds": [
+        "tag-si"
+      ],
+      "lines": [
+        {
+          "id": "dh-09-l1",
+          "productId": "sp-khung-soi-40x60",
+          "unit": "Cái",
+          "quantity": 15,
+          "unitPrice": 251000,
+          "receivedQuantity": 15
+        },
+        {
+          "id": "dh-09-l2",
+          "productId": "sp-mica-cat",
+          "unit": "Tấm",
+          "quantity": 6,
+          "unitPrice": 150000,
+          "length": 60,
+          "width": 90,
+          "receivedQuantity": 6
+        }
+      ]
+    },
+    {
+      "id": "dh-10",
+      "code": "DH0000010",
+      "customerId": "kh-06",
+      "recipientName": "Phạm Văn Đức",
+      "recipientPhone": "0988000222",
+      "source": "Shopee",
+      "orderDate": "2026-09-12T02:00:00.000Z",
+      "neededByDate": "2026-09-22T02:00:00.000Z",
+      "status": "HOAN_THANH",
+      "discountAmount": 0,
+      "salesRepKey": "user-sale2",
+      "createdByKey": "user-sale2",
+      "tagIds": [
+        "tag-shopee"
+      ],
+      "lines": [
+        {
+          "id": "dh-10-l1",
+          "productId": "sp-khung-soi-20x30",
+          "unit": "Cái",
+          "quantity": 10,
+          "unitPrice": 110000,
+          "receivedQuantity": 10
+        },
+        {
+          "id": "dh-10-l2",
+          "productId": "sp-khung-soi-30x40",
+          "unit": "Cái",
+          "quantity": 10,
+          "unitPrice": 170000,
+          "receivedQuantity": 10
+        }
+      ]
+    },
+    {
+      "id": "dh-11",
+      "code": "DH0000011",
+      "customerId": "kh-08",
+      "source": "Điện thoại",
+      "orderDate": "2026-09-22T02:00:00.000Z",
+      "neededByDate": "2026-10-02T02:00:00.000Z",
+      "status": "HOAN_THANH",
+      "discountAmount": 800000,
+      "salesRepKey": "user-sale1",
+      "createdByKey": "user-sale1",
+      "tagIds": [],
+      "lines": [
+        {
+          "id": "dh-11-l1",
+          "productId": "sp-khung-soi-40x60",
+          "unit": "Cái",
+          "quantity": 24,
+          "unitPrice": 251000,
+          "receivedQuantity": 24
+        },
+        {
+          "id": "dh-11-l2",
+          "productId": "sp-khung-soi-50x70",
+          "unit": "Cái",
+          "quantity": 12,
+          "unitPrice": 357000,
+          "receivedQuantity": 12
+        },
+        {
+          "id": "dh-11-l3",
+          "productId": "dv-cong-dong",
+          "unit": "Lần",
+          "quantity": 1,
+          "unitPrice": 45000,
+          "receivedQuantity": 1
+        }
+      ]
+    },
+    {
+      "id": "dh-12",
+      "code": "DH0000012",
+      "customerId": "kh-03",
+      "source": "Khách quen",
+      "orderDate": "2026-09-24T02:00:00.000Z",
+      "neededByDate": "2026-10-04T02:00:00.000Z",
+      "status": "HOAN_THANH",
+      "discountAmount": 0,
+      "salesRepKey": "user-sale1",
+      "createdByKey": "user-sale1",
+      "tagIds": [
+        "tag-vip",
+        "tag-si"
+      ],
+      "lines": [
+        {
+          "id": "dh-12-l1",
+          "productId": "sp-khung-oc-cho-40x60",
+          "unit": "Cái",
+          "quantity": 10,
+          "unitPrice": 408000,
+          "receivedQuantity": 10
+        },
+        {
+          "id": "dh-12-l2",
+          "productId": "sp-khung-nhom-den-40x60",
+          "unit": "Cái",
+          "quantity": 10,
+          "unitPrice": 281000,
+          "receivedQuantity": 10
+        }
+      ]
+    },
+    {
+      "id": "dh-13",
+      "code": "DH0000013",
+      "customerId": "kh-01",
+      "source": "Zalo",
+      "orderDate": "2026-09-25T02:00:00.000Z",
+      "neededByDate": "2026-10-05T02:00:00.000Z",
+      "status": "HOAN_THANH",
+      "discountAmount": 0,
+      "salesRepKey": "user-sale2",
+      "createdByKey": "user-sale2",
+      "tagIds": [
+        "tag-quen"
+      ],
+      "lines": [
+        {
+          "id": "dh-13-l1",
+          "productId": "sp-khung-soi-60x90",
+          "unit": "Cái",
+          "quantity": 1,
+          "unitPrice": 650000,
+          "receivedQuantity": 1
+        },
+        {
+          "id": "dh-13-l2",
+          "productId": "sp-khung-soi-30x40",
+          "unit": "Cái",
+          "quantity": 1,
+          "unitPrice": 185000,
+          "receivedQuantity": 1
+        },
+        {
+          "id": "dh-13-l3",
+          "productId": "vt-keo-dan",
+          "unit": "Chai",
+          "quantity": 1,
+          "unitPrice": 65000,
+          "receivedQuantity": 1
+        },
+        {
+          "id": "dh-13-l4",
+          "productId": "vt-ve-sinh-kinh",
+          "unit": "Bộ",
+          "quantity": 2,
+          "unitPrice": 35000,
+          "receivedQuantity": 2
+        }
+      ]
+    },
+    {
+      "id": "dh-14",
+      "code": "DH0000014",
+      "customerId": "kh-04",
+      "source": "Email",
+      "orderDate": "2026-10-05T02:00:00.000Z",
+      "neededByDate": "2026-10-15T02:00:00.000Z",
+      "status": "HOAN_THANH",
+      "discountAmount": 0,
+      "salesRepKey": "user-sale1",
+      "createdByKey": "user-sale1",
+      "tagIds": [
+        "tag-vip",
+        "tag-si"
+      ],
+      "lines": [
+        {
+          "id": "dh-14-l1",
+          "productId": "sp-khung-soi-50x70",
+          "unit": "Cái",
+          "quantity": 16,
+          "unitPrice": 357000,
+          "receivedQuantity": 16
+        },
+        {
+          "id": "dh-14-l2",
+          "productId": "sp-khung-soi-60x90",
+          "unit": "Cái",
+          "quantity": 10,
+          "unitPrice": 553000,
+          "receivedQuantity": 10
+        }
+      ]
+    },
+    {
+      "id": "dh-15",
+      "code": "DH0000015",
+      "customerId": "kh-09",
+      "source": "Facebook",
+      "orderDate": "2026-10-07T02:00:00.000Z",
+      "neededByDate": "2026-10-17T02:00:00.000Z",
+      "status": "DANG_GIAO",
+      "discountAmount": 0,
+      "salesRepKey": "user-sale1",
+      "createdByKey": "user-sale1",
+      "tagIds": [
+        "tag-quen"
+      ],
+      "lines": [
+        {
+          "id": "dh-15-l1",
+          "productId": "sp-khung-nhom-vang-30x40",
+          "unit": "Cái",
+          "quantity": 2,
+          "unitPrice": 210000,
+          "receivedQuantity": 0
+        },
+        {
+          "id": "dh-15-l2",
+          "productId": "sp-khung-soi-30x40",
+          "unit": "Cái",
+          "quantity": 3,
+          "unitPrice": 185000,
+          "receivedQuantity": 0
+        }
+      ]
+    },
+    {
+      "id": "dh-16",
+      "code": "DH0000016",
+      "customerId": "kh-05",
+      "recipientName": "Lý Thị Mận",
+      "recipientPhone": "0988000333",
+      "source": "Shopee",
+      "orderDate": "2026-10-12T02:00:00.000Z",
+      "neededByDate": "2026-10-22T02:00:00.000Z",
+      "status": "DANG_GIAO",
+      "discountAmount": 0,
+      "salesRepKey": "user-sale2",
+      "createdByKey": "user-sale2",
+      "tagIds": [
+        "tag-shopee"
+      ],
+      "lines": [
+        {
+          "id": "dh-16-l1",
+          "productId": "sp-khung-nhom-vang-30x40",
+          "unit": "Cái",
+          "quantity": 8,
+          "unitPrice": 193000,
+          "receivedQuantity": 0
+        },
+        {
+          "id": "dh-16-l2",
+          "productId": "sp-khung-soi-30x40",
+          "unit": "Cái",
+          "quantity": 8,
+          "unitPrice": 170000,
+          "receivedQuantity": 0
+        }
+      ]
+    },
+    {
+      "id": "dh-17",
+      "code": "DH0000017",
+      "customerId": "kh-12",
+      "source": "Điện thoại",
+      "orderDate": "2026-10-13T02:00:00.000Z",
+      "neededByDate": "2026-10-23T02:00:00.000Z",
+      "status": "DANG_GIAO",
+      "discountAmount": 0,
+      "salesRepKey": "user-sale2",
+      "createdByKey": "user-sale2",
+      "tagIds": [
+        "tag-si"
+      ],
+      "lines": [
+        {
+          "id": "dh-17-l1",
+          "productId": "sp-khung-soi-40x60",
+          "unit": "Cái",
+          "quantity": 12,
+          "unitPrice": 251000,
+          "receivedQuantity": 0
+        }
+      ]
+    },
+    {
+      "id": "dh-18",
+      "code": "DH0000018",
+      "customerId": "kh-10",
+      "description": "Khách cần gấp, giao trước thứ Năm",
+      "source": "Zalo",
+      "orderDate": "2026-10-14T02:00:00.000Z",
+      "neededByDate": "2026-10-24T02:00:00.000Z",
+      "status": "CHO_GIAO_HANG",
+      "discountAmount": 0,
+      "salesRepKey": "user-sale2",
+      "createdByKey": "user-sale2",
+      "tagIds": [
+        "tag-si",
+        "tag-gap"
+      ],
+      "lines": [
+        {
+          "id": "dh-18-l1",
+          "productId": "sp-khung-soi-30x40",
+          "unit": "Cái",
+          "quantity": 20,
+          "unitPrice": 157000,
+          "receivedQuantity": 0
+        },
+        {
+          "id": "dh-18-l2",
+          "productId": "vt-nep-soi",
+          "unit": "Bó",
+          "quantity": 2,
+          "unitPrice": 408000,
+          "receivedQuantity": 0
+        }
+      ]
+    },
+    {
+      "id": "dh-19",
+      "code": "DH0000019",
+      "customerId": "kh-07",
+      "source": "Điện thoại",
+      "orderDate": "2026-10-15T02:00:00.000Z",
+      "neededByDate": "2026-10-25T02:00:00.000Z",
+      "status": "CHO_GIAO_HANG",
+      "discountAmount": 0,
+      "salesRepKey": "user-sale1",
+      "createdByKey": "user-sale1",
+      "tagIds": [
+        "tag-si"
+      ],
+      "lines": [
+        {
+          "id": "dh-19-l1",
+          "productId": "sp-khung-nhom-den-40x60",
+          "unit": "Cái",
+          "quantity": 24,
+          "unitPrice": 281000,
+          "receivedQuantity": 0
+        }
+      ]
+    },
+    {
+      "id": "dh-20",
+      "code": "DH0000020",
+      "customerId": "kh-06",
+      "recipientName": "Hồ Thị Sen",
+      "recipientPhone": "0988000444",
+      "source": "Shopee",
+      "orderDate": "2026-10-16T02:00:00.000Z",
+      "neededByDate": "2026-10-26T02:00:00.000Z",
+      "status": "CHO_GIAO_HANG",
+      "discountAmount": 0,
+      "salesRepKey": "user-sale2",
+      "createdByKey": "user-sale2",
+      "tagIds": [
+        "tag-shopee"
+      ],
+      "lines": [
+        {
+          "id": "dh-20-l1",
+          "productId": "vt-den-led",
+          "unit": "Cái",
+          "quantity": 10,
+          "unitPrice": 148000,
+          "receivedQuantity": 0
+        },
+        {
+          "id": "dh-20-l2",
+          "productId": "vt-moc-treo",
+          "unit": "Cái",
+          "quantity": 200,
+          "unitPrice": 1200,
+          "receivedQuantity": 0
+        }
+      ]
+    },
+    {
+      "id": "dh-21",
+      "code": "DH0000021",
+      "customerId": "kh-03",
+      "description": "Khách đặt cọc 5.000.000 đ",
+      "source": "Khách quen",
+      "orderDate": "2026-10-14T02:00:00.000Z",
+      "neededByDate": "2026-10-24T02:00:00.000Z",
+      "status": "DANG_SAN_XUAT",
+      "discountAmount": 0,
+      "salesRepKey": "user-sale1",
+      "createdByKey": "user-sale1",
+      "tagIds": [
+        "tag-vip",
+        "tag-si"
+      ],
+      "lines": [
+        {
+          "id": "dh-21-l1",
+          "productId": "sp-khung-soi-40x60",
+          "unit": "Cái",
+          "quantity": 30,
+          "unitPrice": 251000,
+          "receivedQuantity": 0
+        },
+        {
+          "id": "dh-21-l2",
+          "productId": "sp-khung-oc-cho-40x60",
+          "unit": "Cái",
+          "quantity": 10,
+          "unitPrice": 408000,
+          "receivedQuantity": 0
+        }
+      ]
+    },
+    {
+      "id": "dh-22",
+      "code": "DH0000022",
+      "customerId": "kh-08",
+      "source": "Điện thoại",
+      "orderDate": "2026-10-16T02:00:00.000Z",
+      "neededByDate": "2026-10-26T02:00:00.000Z",
+      "status": "DANG_SAN_XUAT",
+      "discountAmount": 0,
+      "salesRepKey": "user-sale1",
+      "createdByKey": "user-sale1",
+      "tagIds": [],
+      "lines": [
+        {
+          "id": "dh-22-l1",
+          "productId": "sp-khung-soi-50x70",
+          "unit": "Cái",
+          "quantity": 20,
+          "unitPrice": 357000,
+          "receivedQuantity": 0
+        },
+        {
+          "id": "dh-22-l2",
+          "productId": "sp-kinh-cat",
+          "unit": "Tấm",
+          "quantity": 10,
+          "unitPrice": 100000,
+          "length": 100,
+          "width": 150,
+          "receivedQuantity": 0
+        }
+      ]
+    },
+    {
+      "id": "dh-23",
+      "code": "DH0000023",
+      "customerId": "kh-02",
+      "source": "Facebook",
+      "orderDate": "2026-10-17T02:00:00.000Z",
+      "neededByDate": "2026-10-27T02:00:00.000Z",
+      "status": "CHO_SAN_XUAT",
+      "discountAmount": 0,
+      "salesRepKey": "user-sale1",
+      "createdByKey": "user-sale1",
+      "tagIds": [],
+      "lines": [
+        {
+          "id": "dh-23-l1",
+          "productId": "sp-khung-soi-60x90",
+          "unit": "Cái",
+          "quantity": 2,
+          "unitPrice": 650000,
+          "receivedQuantity": 0
+        },
+        {
+          "id": "dh-23-l2",
+          "productId": "sp-khung-soi-20x30",
+          "unit": "Cái",
+          "quantity": 3,
+          "unitPrice": 120000,
+          "receivedQuantity": 0
+        }
+      ]
+    },
+    {
+      "id": "dh-24",
+      "code": "DH0000024",
+      "customerId": "kh-04",
+      "source": "Email",
+      "orderDate": "2026-10-17T02:00:00.000Z",
+      "neededByDate": "2026-10-27T02:00:00.000Z",
+      "status": "CHO_SAN_XUAT",
+      "discountAmount": 0,
+      "salesRepKey": "user-sale1",
+      "createdByKey": "user-sale1",
+      "tagIds": [
+        "tag-vip",
+        "tag-si"
+      ],
+      "lines": [
+        {
+          "id": "dh-24-l1",
+          "productId": "sp-khung-soi-40x60",
+          "unit": "Cái",
+          "quantity": 40,
+          "unitPrice": 251000,
+          "receivedQuantity": 0
+        },
+        {
+          "id": "dh-24-l2",
+          "productId": "sp-mica-cat",
+          "unit": "Tấm",
+          "quantity": 12,
+          "unitPrice": 150000,
+          "length": 70,
+          "width": 100,
+          "receivedQuantity": 0
+        }
+      ]
+    },
+    {
+      "id": "dh-25",
+      "code": "DH0000025",
+      "customerId": "kh-09",
+      "description": "Khách huỷ vì đổi cỡ tranh",
+      "source": "Facebook",
+      "orderDate": "2026-10-10T02:00:00.000Z",
+      "status": "HUY",
+      "discountAmount": 0,
+      "salesRepKey": "user-sale1",
+      "createdByKey": "user-sale1",
+      "tagIds": [
+        "tag-quen"
+      ],
+      "lines": [
+        {
+          "id": "dh-25-l1",
+          "productId": "sp-khung-soi-30x40",
+          "unit": "Cái",
+          "quantity": 1,
+          "unitPrice": 185000,
+          "receivedQuantity": 0
+        }
+      ]
+    },
+    {
+      "id": "dh-26",
+      "code": "DH0000026",
+      "customerId": "kh-01",
+      "source": "Zalo",
+      "orderDate": "2026-10-18T02:00:00.000Z",
+      "neededByDate": "2026-10-28T02:00:00.000Z",
+      "status": "CHO_SAN_XUAT",
+      "discountAmount": 0,
+      "salesRepKey": "user-sale2",
+      "createdByKey": "user-sale2",
+      "tagIds": [
+        "tag-quen"
+      ],
+      "lines": [
+        {
+          "id": "dh-26-l1",
+          "productId": "sp-khung-oc-cho-40x60",
+          "unit": "Cái",
+          "quantity": 1,
+          "unitPrice": 480000,
+          "receivedQuantity": 0
+        },
+        {
+          "id": "dh-26-l2",
+          "productId": "dv-cong-dong",
+          "unit": "Lần",
+          "quantity": 1,
+          "unitPrice": 50000,
+          "receivedQuantity": 0
+        }
+      ]
+    }
+  ],
+  "productionOrders": [
+    {
+      "id": "lsx-01",
+      "code": "LSX0000001",
+      "sourceOrderId": "dh-01",
+      "productId": "sp-khung-soi-30x40",
+      "quantity": 2,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-soi",
+          "quantityPerUnit": 0.6167
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.069
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0464
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-08-13T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-02",
+      "code": "LSX0000002",
+      "sourceOrderId": "dh-01",
+      "productId": "sp-khung-soi-40x60",
+      "quantity": 1,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-soi",
+          "quantityPerUnit": 0.8667
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.138
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0927
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-08-13T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-03",
+      "code": "LSX0000003",
+      "sourceOrderId": "dh-02",
+      "productId": "sp-khung-soi-40x60",
+      "quantity": 20,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-soi",
+          "quantityPerUnit": 0.8667
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.138
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0927
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-08-14T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-04",
+      "code": "LSX0000004",
+      "sourceOrderId": "dh-02",
+      "productId": "sp-khung-soi-50x70",
+      "quantity": 10,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-soi",
+          "quantityPerUnit": 1.0333
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.2012
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.1352
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-08-14T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-05",
+      "code": "LSX0000005",
+      "sourceOrderId": "dh-03",
+      "productId": "sp-khung-nhom-vang-30x40",
+      "quantity": 6,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nhom-vang",
+          "quantityPerUnit": 0.592
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.069
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0464
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        },
+        {
+          "componentId": "vt-kep-kinh",
+          "quantityPerUnit": 1
+        }
+      ],
+      "createdAt": "2026-08-15T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-06",
+      "code": "LSX0000006",
+      "sourceOrderId": "dh-04",
+      "productId": "sp-khung-soi-60x90",
+      "quantity": 12,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-soi",
+          "quantityPerUnit": 1.2833
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.3105
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.2086
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-08-21T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-07",
+      "code": "LSX0000007",
+      "sourceOrderId": "dh-04",
+      "productId": "sp-khung-oc-cho-40x60",
+      "quantity": 8,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-oc-cho",
+          "quantityPerUnit": 0.8667
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.138
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0927
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-08-21T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-08",
+      "code": "LSX0000008",
+      "sourceOrderId": "dh-04",
+      "productId": "sp-kinh-cat",
+      "quantity": 5,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.25
+        }
+      ],
+      "createdAt": "2026-08-21T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-09",
+      "code": "LSX0000009",
+      "sourceOrderId": "dh-05",
+      "productId": "sp-khung-soi-50x70",
+      "quantity": 30,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-soi",
+          "quantityPerUnit": 1.0333
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.2012
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.1352
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-08-19T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-10",
+      "code": "LSX0000010",
+      "sourceOrderId": "dh-05",
+      "productId": "sp-khung-nhom-den-40x60",
+      "quantity": 30,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nhom-den",
+          "quantityPerUnit": 0.832
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.138
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0927
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        },
+        {
+          "componentId": "vt-kep-kinh",
+          "quantityPerUnit": 1
+        }
+      ],
+      "createdAt": "2026-08-19T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-11",
+      "code": "LSX0000011",
+      "sourceOrderId": "dh-06",
+      "productId": "sp-khung-soi-20x30",
+      "quantity": 4,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-soi",
+          "quantityPerUnit": 0.45
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.0345
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0232
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-08-31T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-12",
+      "code": "LSX0000012",
+      "sourceOrderId": "dh-07",
+      "productId": "sp-khung-soi-40x60",
+      "quantity": 10,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-soi",
+          "quantityPerUnit": 0.8667
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.138
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0927
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-09-01T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-13",
+      "code": "LSX0000013",
+      "sourceOrderId": "dh-07",
+      "productId": "sp-khung-soi-30x40",
+      "quantity": 10,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-soi",
+          "quantityPerUnit": 0.6167
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.069
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0464
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-09-01T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-14",
+      "code": "LSX0000014",
+      "sourceOrderId": "dh-08",
+      "productId": "sp-khung-nhom-vang-30x40",
+      "quantity": 3,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nhom-vang",
+          "quantityPerUnit": 0.592
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.069
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0464
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        },
+        {
+          "componentId": "vt-kep-kinh",
+          "quantityPerUnit": 1
+        }
+      ],
+      "createdAt": "2026-09-02T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-15",
+      "code": "LSX0000015",
+      "sourceOrderId": "dh-09",
+      "productId": "sp-khung-soi-40x60",
+      "quantity": 15,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-soi",
+          "quantityPerUnit": 0.8667
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.138
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0927
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-09-11T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-16",
+      "code": "LSX0000016",
+      "sourceOrderId": "dh-09",
+      "productId": "sp-mica-cat",
+      "quantity": 6,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-mica-2ly",
+          "quantityPerUnit": 0.15
+        }
+      ],
+      "createdAt": "2026-09-11T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-17",
+      "code": "LSX0000017",
+      "sourceOrderId": "dh-10",
+      "productId": "sp-khung-soi-20x30",
+      "quantity": 10,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-soi",
+          "quantityPerUnit": 0.45
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.0345
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0232
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-09-13T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-18",
+      "code": "LSX0000018",
+      "sourceOrderId": "dh-10",
+      "productId": "sp-khung-soi-30x40",
+      "quantity": 10,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-soi",
+          "quantityPerUnit": 0.6167
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.069
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0464
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-09-13T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-19",
+      "code": "LSX0000019",
+      "sourceOrderId": "dh-11",
+      "productId": "sp-khung-soi-40x60",
+      "quantity": 24,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-soi",
+          "quantityPerUnit": 0.8667
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.138
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0927
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-09-23T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-20",
+      "code": "LSX0000020",
+      "sourceOrderId": "dh-11",
+      "productId": "sp-khung-soi-50x70",
+      "quantity": 12,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-soi",
+          "quantityPerUnit": 1.0333
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.2012
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.1352
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-09-23T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-21",
+      "code": "LSX0000021",
+      "sourceOrderId": "dh-12",
+      "productId": "sp-khung-oc-cho-40x60",
+      "quantity": 10,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-oc-cho",
+          "quantityPerUnit": 0.8667
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.138
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0927
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-09-25T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-22",
+      "code": "LSX0000022",
+      "sourceOrderId": "dh-12",
+      "productId": "sp-khung-nhom-den-40x60",
+      "quantity": 10,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nhom-den",
+          "quantityPerUnit": 0.832
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.138
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0927
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        },
+        {
+          "componentId": "vt-kep-kinh",
+          "quantityPerUnit": 1
+        }
+      ],
+      "createdAt": "2026-09-25T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-23",
+      "code": "LSX0000023",
+      "sourceOrderId": "dh-13",
+      "productId": "sp-khung-soi-60x90",
+      "quantity": 1,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-soi",
+          "quantityPerUnit": 1.2833
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.3105
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.2086
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-09-26T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-24",
+      "code": "LSX0000024",
+      "sourceOrderId": "dh-13",
+      "productId": "sp-khung-soi-30x40",
+      "quantity": 1,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-soi",
+          "quantityPerUnit": 0.6167
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.069
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0464
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-09-26T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-25",
+      "code": "LSX0000025",
+      "sourceOrderId": "dh-14",
+      "productId": "sp-khung-soi-50x70",
+      "quantity": 16,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-soi",
+          "quantityPerUnit": 1.0333
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.2012
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.1352
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-10-06T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-26",
+      "code": "LSX0000026",
+      "sourceOrderId": "dh-14",
+      "productId": "sp-khung-soi-60x90",
+      "quantity": 10,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-soi",
+          "quantityPerUnit": 1.2833
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.3105
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.2086
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-10-06T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-27",
+      "code": "LSX0000027",
+      "sourceOrderId": "dh-15",
+      "productId": "sp-khung-nhom-vang-30x40",
+      "quantity": 2,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nhom-vang",
+          "quantityPerUnit": 0.592
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.069
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0464
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        },
+        {
+          "componentId": "vt-kep-kinh",
+          "quantityPerUnit": 1
+        }
+      ],
+      "createdAt": "2026-10-08T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-28",
+      "code": "LSX0000028",
+      "sourceOrderId": "dh-15",
+      "productId": "sp-khung-soi-30x40",
+      "quantity": 3,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-soi",
+          "quantityPerUnit": 0.6167
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.069
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0464
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-10-08T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-29",
+      "code": "LSX0000029",
+      "sourceOrderId": "dh-16",
+      "productId": "sp-khung-nhom-vang-30x40",
+      "quantity": 8,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nhom-vang",
+          "quantityPerUnit": 0.592
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.069
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0464
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        },
+        {
+          "componentId": "vt-kep-kinh",
+          "quantityPerUnit": 1
+        }
+      ],
+      "createdAt": "2026-10-13T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-30",
+      "code": "LSX0000030",
+      "sourceOrderId": "dh-16",
+      "productId": "sp-khung-soi-30x40",
+      "quantity": 8,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-soi",
+          "quantityPerUnit": 0.6167
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.069
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0464
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-10-13T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-31",
+      "code": "LSX0000031",
+      "sourceOrderId": "dh-17",
+      "productId": "sp-khung-soi-40x60",
+      "quantity": 12,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-soi",
+          "quantityPerUnit": 0.8667
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.138
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0927
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-10-14T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-32",
+      "code": "LSX0000032",
+      "sourceOrderId": "dh-18",
+      "productId": "sp-khung-soi-30x40",
+      "quantity": 20,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-soi",
+          "quantityPerUnit": 0.6167
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.069
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0464
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-10-15T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-33",
+      "code": "LSX0000033",
+      "sourceOrderId": "dh-19",
+      "productId": "sp-khung-nhom-den-40x60",
+      "quantity": 24,
+      "status": "HOAN_TAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nhom-den",
+          "quantityPerUnit": 0.832
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.138
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0927
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        },
+        {
+          "componentId": "vt-kep-kinh",
+          "quantityPerUnit": 1
+        }
+      ],
+      "createdAt": "2026-10-16T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-34",
+      "code": "LSX0000034",
+      "sourceOrderId": "dh-21",
+      "productId": "sp-khung-soi-40x60",
+      "quantity": 30,
+      "status": "DANG_SAN_XUAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-soi",
+          "quantityPerUnit": 0.8667
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.138
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0927
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-10-15T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-35",
+      "code": "LSX0000035",
+      "sourceOrderId": "dh-21",
+      "productId": "sp-khung-oc-cho-40x60",
+      "quantity": 10,
+      "status": "DANG_SAN_XUAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-oc-cho",
+          "quantityPerUnit": 0.8667
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.138
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0927
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-10-15T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-36",
+      "code": "LSX0000036",
+      "sourceOrderId": "dh-22",
+      "productId": "sp-khung-soi-50x70",
+      "quantity": 20,
+      "status": "DANG_SAN_XUAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-soi",
+          "quantityPerUnit": 1.0333
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.2012
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.1352
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-10-17T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-37",
+      "code": "LSX0000037",
+      "sourceOrderId": "dh-22",
+      "productId": "sp-kinh-cat",
+      "quantity": 10,
+      "status": "DANG_SAN_XUAT",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.25
+        }
+      ],
+      "createdAt": "2026-10-17T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-38",
+      "code": "LSX0000038",
+      "sourceOrderId": "dh-23",
+      "productId": "sp-khung-soi-60x90",
+      "quantity": 2,
+      "status": "NHAP",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-soi",
+          "quantityPerUnit": 1.2833
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.3105
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.2086
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-10-18T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-39",
+      "code": "LSX0000039",
+      "sourceOrderId": "dh-23",
+      "productId": "sp-khung-soi-20x30",
+      "quantity": 3,
+      "status": "NHAP",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-soi",
+          "quantityPerUnit": 0.45
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.0345
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0232
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-10-18T02:00:00.000Z"
+    },
+    {
+      "id": "lsx-40",
+      "code": "LSX0000040",
+      "sourceOrderId": "dh-25",
+      "productId": "sp-khung-soi-30x40",
+      "quantity": 1,
+      "status": "HUY",
+      "bomSnapshot": [
+        {
+          "componentId": "vt-nep-soi",
+          "quantityPerUnit": 0.6167
+        },
+        {
+          "componentId": "vt-kinh-3ly",
+          "quantityPerUnit": 0.069
+        },
+        {
+          "componentId": "vt-hau-mdf",
+          "quantityPerUnit": 0.0464
+        },
+        {
+          "componentId": "vt-moc-treo",
+          "quantityPerUnit": 2
+        },
+        {
+          "componentId": "vt-dinh-ghim",
+          "quantityPerUnit": 0.02
+        }
+      ],
+      "createdAt": "2026-10-11T02:00:00.000Z"
+    }
+  ],
+  "vehicles": [
+    {
+      "id": "xe-1",
+      "code": "XE0000001",
+      "plateNumber": "51C-123.45",
+      "type": "Xe tải 1,5 tấn",
+      "loadCapacity": 1500,
+      "usualDriver": "Đặng Văn Tài"
+    },
+    {
+      "id": "xe-2",
+      "code": "XE0000002",
+      "plateNumber": "51D-678.90",
+      "type": "Xe tải 750kg",
+      "loadCapacity": 750,
+      "usualDriver": "Lý Văn Sáu"
+    },
+    {
+      "id": "xe-3",
+      "code": "XE0000003",
+      "plateNumber": "59C-246.81",
+      "type": "Xe ba gác máy",
+      "loadCapacity": 400
+    }
+  ],
+  "deliveryTrips": [
+    {
+      "id": "ch-1",
+      "code": "CH0000001",
+      "date": "2026-08-20T02:00:00.000Z",
+      "driverName": "Đặng Văn Tài",
+      "vehicleId": "xe-1",
+      "status": "HOAN_TAT",
+      "orderIds": [
+        "dh-01",
+        "dh-02",
+        "dh-03"
+      ]
+    },
+    {
+      "id": "ch-2",
+      "code": "CH0000002",
+      "date": "2026-08-28T02:00:00.000Z",
+      "driverName": "Lý Văn Sáu",
+      "vehicleId": "xe-2",
+      "status": "HOAN_TAT",
+      "orderIds": [
+        "dh-04",
+        "dh-05"
+      ]
+    },
+    {
+      "id": "ch-3",
+      "code": "CH0000003",
+      "date": "2026-09-05T02:00:00.000Z",
+      "driverName": "Đặng Văn Tài",
+      "vehicleId": "xe-1",
+      "status": "HOAN_TAT",
+      "orderIds": [
+        "dh-06",
+        "dh-07",
+        "dh-08"
+      ]
+    },
+    {
+      "id": "ch-4",
+      "code": "CH0000004",
+      "date": "2026-09-18T02:00:00.000Z",
+      "driverName": "Đặng Văn Tài",
+      "vehicleId": "xe-1",
+      "status": "HOAN_TAT",
+      "orderIds": [
+        "dh-09",
+        "dh-10"
+      ]
+    },
+    {
+      "id": "ch-5",
+      "code": "CH0000005",
+      "date": "2026-09-30T02:00:00.000Z",
+      "driverName": "Lý Văn Sáu",
+      "vehicleId": "xe-2",
+      "status": "HOAN_TAT",
+      "orderIds": [
+        "dh-11",
+        "dh-12",
+        "dh-13"
+      ]
+    },
+    {
+      "id": "ch-6",
+      "code": "CH0000006",
+      "date": "2026-10-08T02:00:00.000Z",
+      "driverName": "Nguyễn Văn Bốn (xe thuê 60C-777.77)",
+      "status": "HUY",
+      "orderIds": []
+    },
+    {
+      "id": "ch-7",
+      "code": "CH0000007",
+      "date": "2026-10-12T02:00:00.000Z",
+      "driverName": "Đặng Văn Tài",
+      "vehicleId": "xe-1",
+      "status": "XE_VE_KHO",
+      "orderIds": [
+        "dh-14",
+        "dh-15"
+      ]
+    },
+    {
+      "id": "ch-8",
+      "code": "CH0000008",
+      "date": "2026-10-17T02:00:00.000Z",
+      "driverName": "Lý Văn Sáu",
+      "vehicleId": "xe-2",
+      "status": "DA_XUAT_KHO",
+      "orderIds": [
+        "dh-16",
+        "dh-17"
+      ]
+    },
+    {
+      "id": "ch-9",
+      "code": "CH0000009",
+      "date": "2026-10-19T02:00:00.000Z",
+      "driverName": "Đặng Văn Tài",
+      "vehicleId": "xe-1",
+      "status": "GOM_DON",
+      "orderIds": [
+        "dh-18"
+      ]
+    },
+    {
+      "id": "ch-10",
+      "code": "CH0000010",
+      "date": "2026-10-19T02:00:00.000Z",
+      "status": "GOM_DON",
+      "orderIds": []
+    }
+  ],
+  "warehouseVouchers": [
+    {
+      "id": "pk-kiem_ke-01",
+      "code": "PKK0000001",
+      "type": "KIEM_KE",
+      "date": "2026-08-01T02:00:00.000Z",
+      "warehouseKey": "wh-ninhtrang",
+      "reason": "Kiểm kê, nhập tồn đầu kỳ",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-den-led",
+          "quantity": 25,
+          "unitPrice": 95000
+        },
+        {
+          "productId": "vt-ve-sinh-kinh",
+          "quantity": 2,
+          "unitPrice": 18000
+        }
+      ]
+    },
+    {
+      "id": "pk-kiem_ke-02",
+      "code": "PKK0000002",
+      "type": "KIEM_KE",
+      "date": "2026-08-01T02:00:00.000Z",
+      "warehouseKey": "wh-phukien",
+      "reason": "Kiểm kê, nhập tồn đầu kỳ",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-moc-treo",
+          "quantity": 1208,
+          "unitPrice": 600
+        },
+        {
+          "productId": "vt-dinh-ghim",
+          "quantity": 13.38,
+          "unitPrice": 28000
+        },
+        {
+          "productId": "vt-kep-kinh",
+          "quantity": 229,
+          "unitPrice": 3500
+        },
+        {
+          "productId": "vt-keo-dan",
+          "quantity": 19,
+          "unitPrice": 42000
+        }
+      ]
+    },
+    {
+      "id": "pk-kiem_ke-03",
+      "code": "PKK0000003",
+      "type": "KIEM_KE",
+      "date": "2026-08-01T02:00:00.000Z",
+      "warehouseKey": "wh-thanhpham",
+      "reason": "Kiểm kê, nhập tồn đầu kỳ",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "sp-khung-soi-20x30",
+          "quantity": 10,
+          "unitPrice": 26757
+        },
+        {
+          "productId": "sp-khung-soi-30x40",
+          "quantity": 13,
+          "unitPrice": 40988
+        },
+        {
+          "productId": "sp-khung-soi-40x60",
+          "quantity": 10,
+          "unitPrice": 66271
+        },
+        {
+          "productId": "sp-khung-soi-50x70",
+          "quantity": 10,
+          "unitPrice": 87067
+        },
+        {
+          "productId": "sp-khung-soi-60x90",
+          "quantity": 4,
+          "unitPrice": 121575
+        },
+        {
+          "productId": "sp-khung-nhom-vang-30x40",
+          "quantity": 14,
+          "unitPrice": 48285
+        },
+        {
+          "productId": "sp-khung-nhom-den-40x60",
+          "quantity": 14,
+          "unitPrice": 80101
+        },
+        {
+          "productId": "sp-khung-oc-cho-40x60",
+          "quantity": 9,
+          "unitPrice": 95739
+        }
+      ]
+    },
+    {
+      "id": "pk-kiem_ke-04",
+      "code": "PKK0000004",
+      "type": "KIEM_KE",
+      "date": "2026-08-01T02:00:00.000Z",
+      "warehouseKey": "wh-vattu",
+      "reason": "Kiểm kê, nhập tồn đầu kỳ",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-nep-soi",
+          "quantity": 176,
+          "unitPrice": 38000
+        },
+        {
+          "productId": "vt-nep-oc-cho",
+          "quantity": 117,
+          "unitPrice": 72000
+        },
+        {
+          "productId": "vt-nhom-vang",
+          "quantity": 183,
+          "unitPrice": 46000
+        },
+        {
+          "productId": "vt-nhom-den",
+          "quantity": 177,
+          "unitPrice": 52000
+        },
+        {
+          "productId": "vt-kinh-3ly",
+          "quantity": 13.28,
+          "unitPrice": 165000
+        },
+        {
+          "productId": "vt-mica-2ly",
+          "quantity": 30,
+          "unitPrice": 420000
+        },
+        {
+          "productId": "vt-hau-mdf",
+          "quantity": 40.4,
+          "unitPrice": 95000
+        },
+        {
+          "productId": "vt-go-tho",
+          "quantity": 92,
+          "unitPrice": 30000
+        }
+      ]
+    },
+    {
+      "id": "pk-nhap-01",
+      "code": "PNK0000001",
+      "type": "NHAP",
+      "date": "2026-08-06T02:00:00.000Z",
+      "warehouseKey": "wh-vattu",
+      "reason": "Nhập hàng theo đơn DN0000001",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-nep-soi",
+          "quantity": 300,
+          "unitPrice": 38000
+        },
+        {
+          "productId": "vt-nep-oc-cho",
+          "quantity": 100,
+          "unitPrice": 72000
+        },
+        {
+          "productId": "vt-go-tho",
+          "quantity": 150,
+          "unitPrice": 30000
+        }
+      ]
+    },
+    {
+      "id": "pk-nhap-02",
+      "code": "PNK0000002",
+      "type": "NHAP",
+      "date": "2026-08-09T02:00:00.000Z",
+      "warehouseKey": "wh-vattu",
+      "reason": "Nhập hàng theo đơn DN0000002",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-nhom-vang",
+          "quantity": 200,
+          "unitPrice": 46000
+        },
+        {
+          "productId": "vt-nhom-den",
+          "quantity": 200,
+          "unitPrice": 52000
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-01",
+      "code": "PXK0000001",
+      "type": "XUAT",
+      "date": "2026-08-13T02:00:00.000Z",
+      "warehouseKey": "wh-vattu",
+      "reason": "Xuất vật tư cho LSX0000001, LSX0000002",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-nep-soi",
+          "quantity": 2.1,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kinh-3ly",
+          "quantity": 0.28,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-hau-mdf",
+          "quantity": 0.19,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-02",
+      "code": "PXK0000002",
+      "type": "XUAT",
+      "date": "2026-08-13T02:00:00.000Z",
+      "warehouseKey": "wh-phukien",
+      "reason": "Xuất vật tư cho LSX0000001, LSX0000002",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-moc-treo",
+          "quantity": 6,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-dinh-ghim",
+          "quantity": 0.06,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-03",
+      "code": "PXK0000003",
+      "type": "XUAT",
+      "date": "2026-08-14T02:00:00.000Z",
+      "warehouseKey": "wh-vattu",
+      "reason": "Xuất vật tư cho LSX0000003, LSX0000004",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-nep-soi",
+          "quantity": 27.67,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kinh-3ly",
+          "quantity": 4.77,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-hau-mdf",
+          "quantity": 3.21,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-04",
+      "code": "PXK0000004",
+      "type": "XUAT",
+      "date": "2026-08-14T02:00:00.000Z",
+      "warehouseKey": "wh-phukien",
+      "reason": "Xuất vật tư cho LSX0000003, LSX0000004",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-moc-treo",
+          "quantity": 60,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-dinh-ghim",
+          "quantity": 0.6,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-nhap-03",
+      "code": "PNK0000003",
+      "type": "NHAP",
+      "date": "2026-08-15T02:00:00.000Z",
+      "warehouseKey": "wh-vattu",
+      "reason": "Nhập hàng theo đơn DN0000003",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-kinh-3ly",
+          "quantity": 60,
+          "unitPrice": 165000
+        },
+        {
+          "productId": "vt-mica-2ly",
+          "quantity": 30,
+          "unitPrice": 420000
+        },
+        {
+          "productId": "vt-hau-mdf",
+          "quantity": 80,
+          "unitPrice": 95000
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-05",
+      "code": "PXK0000005",
+      "type": "XUAT",
+      "date": "2026-08-15T02:00:00.000Z",
+      "warehouseKey": "wh-vattu",
+      "reason": "Xuất vật tư cho LSX0000005",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-nhom-vang",
+          "quantity": 3.55,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kinh-3ly",
+          "quantity": 0.41,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-hau-mdf",
+          "quantity": 0.28,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-06",
+      "code": "PXK0000006",
+      "type": "XUAT",
+      "date": "2026-08-15T02:00:00.000Z",
+      "warehouseKey": "wh-phukien",
+      "reason": "Xuất vật tư cho LSX0000005",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-moc-treo",
+          "quantity": 12,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-dinh-ghim",
+          "quantity": 0.12,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kep-kinh",
+          "quantity": 6,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-nhap-04",
+      "code": "PNK0000004",
+      "type": "NHAP",
+      "date": "2026-08-16T02:00:00.000Z",
+      "warehouseKey": "wh-thanhpham",
+      "reason": "Nhập thành phẩm từ xưởng: LSX0000001, LSX0000002",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "sp-khung-soi-30x40",
+          "quantity": 2,
+          "unitPrice": 40988
+        },
+        {
+          "productId": "sp-khung-soi-40x60",
+          "quantity": 1,
+          "unitPrice": 66271
+        }
+      ]
+    },
+    {
+      "id": "pk-nhap-05",
+      "code": "PNK0000005",
+      "type": "NHAP",
+      "date": "2026-08-17T02:00:00.000Z",
+      "warehouseKey": "wh-thanhpham",
+      "reason": "Nhập thành phẩm từ xưởng: LSX0000003, LSX0000004",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "sp-khung-soi-40x60",
+          "quantity": 20,
+          "unitPrice": 66271
+        },
+        {
+          "productId": "sp-khung-soi-50x70",
+          "quantity": 10,
+          "unitPrice": 87067
+        }
+      ]
+    },
+    {
+      "id": "pk-nhap-06",
+      "code": "PNK0000006",
+      "type": "NHAP",
+      "date": "2026-08-18T02:00:00.000Z",
+      "warehouseKey": "wh-thanhpham",
+      "reason": "Nhập thành phẩm từ xưởng: LSX0000005",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "sp-khung-nhom-vang-30x40",
+          "quantity": 6,
+          "unitPrice": 48285
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-07",
+      "code": "PXK0000007",
+      "type": "XUAT",
+      "date": "2026-08-19T02:00:00.000Z",
+      "warehouseKey": "wh-vattu",
+      "reason": "Xuất vật tư cho LSX0000009, LSX0000010",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-nep-soi",
+          "quantity": 31,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kinh-3ly",
+          "quantity": 10.18,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-hau-mdf",
+          "quantity": 6.84,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-nhom-den",
+          "quantity": 24.96,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-08",
+      "code": "PXK0000008",
+      "type": "XUAT",
+      "date": "2026-08-19T02:00:00.000Z",
+      "warehouseKey": "wh-phukien",
+      "reason": "Xuất vật tư cho LSX0000009, LSX0000010",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-moc-treo",
+          "quantity": 120,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-dinh-ghim",
+          "quantity": 1.2,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kep-kinh",
+          "quantity": 30,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-09",
+      "code": "PXK0000009",
+      "type": "XUAT",
+      "date": "2026-08-20T02:00:00.000Z",
+      "warehouseKey": "wh-thanhpham",
+      "reason": "Xuất kho giao hàng — chuyến CH0000001",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "sp-khung-soi-30x40",
+          "quantity": 2,
+          "unitPrice": 0
+        },
+        {
+          "productId": "sp-khung-soi-40x60",
+          "quantity": 21,
+          "unitPrice": 0
+        },
+        {
+          "productId": "sp-khung-soi-50x70",
+          "quantity": 10,
+          "unitPrice": 0
+        },
+        {
+          "productId": "sp-khung-nhom-vang-30x40",
+          "quantity": 6,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-10",
+      "code": "PXK0000010",
+      "type": "XUAT",
+      "date": "2026-08-20T02:00:00.000Z",
+      "warehouseKey": "wh-ninhtrang",
+      "reason": "Xuất kho giao hàng — chuyến CH0000001",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-den-led",
+          "quantity": 6,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-11",
+      "code": "PXK0000011",
+      "type": "XUAT",
+      "date": "2026-08-21T02:00:00.000Z",
+      "warehouseKey": "wh-vattu",
+      "reason": "Xuất vật tư cho LSX0000006, LSX0000007, LSX0000008",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-nep-soi",
+          "quantity": 15.4,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kinh-3ly",
+          "quantity": 6.08,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-hau-mdf",
+          "quantity": 3.24,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-nep-oc-cho",
+          "quantity": 6.93,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-12",
+      "code": "PXK0000012",
+      "type": "XUAT",
+      "date": "2026-08-21T02:00:00.000Z",
+      "warehouseKey": "wh-phukien",
+      "reason": "Xuất vật tư cho LSX0000006, LSX0000007",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-moc-treo",
+          "quantity": 40,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-dinh-ghim",
+          "quantity": 0.4,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-nhap-07",
+      "code": "PNK0000007",
+      "type": "NHAP",
+      "date": "2026-08-22T02:00:00.000Z",
+      "warehouseKey": "wh-thanhpham",
+      "reason": "Nhập thành phẩm từ xưởng: LSX0000009, LSX0000010",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "sp-khung-soi-50x70",
+          "quantity": 30,
+          "unitPrice": 87067
+        },
+        {
+          "productId": "sp-khung-nhom-den-40x60",
+          "quantity": 30,
+          "unitPrice": 80101
+        }
+      ]
+    },
+    {
+      "id": "pk-nhap-08",
+      "code": "PNK0000008",
+      "type": "NHAP",
+      "date": "2026-08-23T02:00:00.000Z",
+      "warehouseKey": "wh-phukien",
+      "reason": "Nhập hàng theo đơn DN0000004",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-moc-treo",
+          "quantity": 3000,
+          "unitPrice": 600
+        },
+        {
+          "productId": "vt-dinh-ghim",
+          "quantity": 40,
+          "unitPrice": 28000
+        },
+        {
+          "productId": "vt-day-thep",
+          "quantity": 10,
+          "unitPrice": 22000
+        },
+        {
+          "productId": "vt-kep-kinh",
+          "quantity": 400,
+          "unitPrice": 3500
+        },
+        {
+          "productId": "vt-keo-dan",
+          "quantity": 30,
+          "unitPrice": 42000
+        }
+      ]
+    },
+    {
+      "id": "pk-nhap-09",
+      "code": "PNK0000009",
+      "type": "NHAP",
+      "date": "2026-08-24T02:00:00.000Z",
+      "warehouseKey": "wh-thanhpham",
+      "reason": "Nhập thành phẩm từ xưởng: LSX0000006, LSX0000007, LSX0000008",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "sp-khung-soi-60x90",
+          "quantity": 12,
+          "unitPrice": 121575
+        },
+        {
+          "productId": "sp-khung-oc-cho-40x60",
+          "quantity": 8,
+          "unitPrice": 95739
+        },
+        {
+          "productId": "sp-kinh-cat",
+          "quantity": 5,
+          "unitPrice": 41250
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-13",
+      "code": "PXK0000013",
+      "type": "XUAT",
+      "date": "2026-08-28T02:00:00.000Z",
+      "warehouseKey": "wh-thanhpham",
+      "reason": "Xuất kho giao hàng — chuyến CH0000002",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "sp-khung-soi-60x90",
+          "quantity": 12,
+          "unitPrice": 0
+        },
+        {
+          "productId": "sp-khung-oc-cho-40x60",
+          "quantity": 8,
+          "unitPrice": 0
+        },
+        {
+          "productId": "sp-kinh-cat",
+          "quantity": 5,
+          "unitPrice": 0
+        },
+        {
+          "productId": "sp-khung-soi-50x70",
+          "quantity": 30,
+          "unitPrice": 0
+        },
+        {
+          "productId": "sp-khung-nhom-den-40x60",
+          "quantity": 30,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-14",
+      "code": "PXK0000014",
+      "type": "XUAT",
+      "date": "2026-08-31T02:00:00.000Z",
+      "warehouseKey": "wh-vattu",
+      "reason": "Xuất vật tư cho LSX0000011",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-nep-soi",
+          "quantity": 1.8,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kinh-3ly",
+          "quantity": 0.14,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-hau-mdf",
+          "quantity": 0.09,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-15",
+      "code": "PXK0000015",
+      "type": "XUAT",
+      "date": "2026-08-31T02:00:00.000Z",
+      "warehouseKey": "wh-phukien",
+      "reason": "Xuất vật tư cho LSX0000011",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-moc-treo",
+          "quantity": 8,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-dinh-ghim",
+          "quantity": 0.08,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-16",
+      "code": "PXK0000016",
+      "type": "XUAT",
+      "date": "2026-09-01T02:00:00.000Z",
+      "warehouseKey": "wh-vattu",
+      "reason": "Xuất vật tư cho LSX0000012, LSX0000013",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-nep-soi",
+          "quantity": 14.83,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kinh-3ly",
+          "quantity": 2.07,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-hau-mdf",
+          "quantity": 1.39,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-17",
+      "code": "PXK0000017",
+      "type": "XUAT",
+      "date": "2026-09-01T02:00:00.000Z",
+      "warehouseKey": "wh-phukien",
+      "reason": "Xuất vật tư cho LSX0000012, LSX0000013",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-moc-treo",
+          "quantity": 40,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-dinh-ghim",
+          "quantity": 0.4,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-18",
+      "code": "PXK0000018",
+      "type": "XUAT",
+      "date": "2026-09-02T02:00:00.000Z",
+      "warehouseKey": "wh-vattu",
+      "reason": "Xuất vật tư cho LSX0000014",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-nhom-vang",
+          "quantity": 1.78,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kinh-3ly",
+          "quantity": 0.21,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-hau-mdf",
+          "quantity": 0.14,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-19",
+      "code": "PXK0000019",
+      "type": "XUAT",
+      "date": "2026-09-02T02:00:00.000Z",
+      "warehouseKey": "wh-phukien",
+      "reason": "Xuất vật tư cho LSX0000014",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-moc-treo",
+          "quantity": 6,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-dinh-ghim",
+          "quantity": 0.06,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kep-kinh",
+          "quantity": 3,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-nhap-10",
+      "code": "PNK0000010",
+      "type": "NHAP",
+      "date": "2026-09-03T02:00:00.000Z",
+      "warehouseKey": "wh-thanhpham",
+      "reason": "Nhập thành phẩm từ xưởng: LSX0000011",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "sp-khung-soi-20x30",
+          "quantity": 4,
+          "unitPrice": 26757
+        }
+      ]
+    },
+    {
+      "id": "pk-nhap-11",
+      "code": "PNK0000011",
+      "type": "NHAP",
+      "date": "2026-09-04T02:00:00.000Z",
+      "warehouseKey": "wh-thanhpham",
+      "reason": "Nhập thành phẩm từ xưởng: LSX0000012, LSX0000013, LSX0000014",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "sp-khung-soi-40x60",
+          "quantity": 10,
+          "unitPrice": 66271
+        },
+        {
+          "productId": "sp-khung-soi-30x40",
+          "quantity": 10,
+          "unitPrice": 40988
+        },
+        {
+          "productId": "sp-khung-nhom-vang-30x40",
+          "quantity": 3,
+          "unitPrice": 48285
+        }
+      ]
+    },
+    {
+      "id": "pk-nhap-12",
+      "code": "PNK0000012",
+      "type": "NHAP",
+      "date": "2026-09-05T02:00:00.000Z",
+      "warehouseKey": "wh-thanhpham",
+      "reason": "Nhập trả về — chuyến CH0000003 (DH0000007, DH0000008)",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "sp-khung-soi-40x60",
+          "quantity": 3,
+          "unitPrice": 0
+        },
+        {
+          "productId": "sp-khung-nhom-vang-30x40",
+          "quantity": 3,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-20",
+      "code": "PXK0000020",
+      "type": "XUAT",
+      "date": "2026-09-05T02:00:00.000Z",
+      "warehouseKey": "wh-thanhpham",
+      "reason": "Xuất kho giao hàng — chuyến CH0000003",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "sp-khung-soi-20x30",
+          "quantity": 4,
+          "unitPrice": 0
+        },
+        {
+          "productId": "sp-khung-soi-40x60",
+          "quantity": 10,
+          "unitPrice": 0
+        },
+        {
+          "productId": "sp-khung-soi-30x40",
+          "quantity": 10,
+          "unitPrice": 0
+        },
+        {
+          "productId": "sp-khung-nhom-vang-30x40",
+          "quantity": 3,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-chuyen-01",
+      "code": "PCK0000001",
+      "type": "CHUYEN",
+      "date": "2026-09-08T02:00:00.000Z",
+      "warehouseKey": "wh-phukien",
+      "targetWarehouseKey": "wh-vattu",
+      "reason": "Chuyển đinh ghim ra xưởng đóng khung",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-dinh-ghim",
+          "quantity": 5,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-21",
+      "code": "PXK0000021",
+      "type": "XUAT",
+      "date": "2026-09-11T02:00:00.000Z",
+      "warehouseKey": "wh-vattu",
+      "reason": "Xuất vật tư cho LSX0000015, LSX0000016",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-nep-soi",
+          "quantity": 13,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kinh-3ly",
+          "quantity": 2.07,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-hau-mdf",
+          "quantity": 1.39,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-mica-2ly",
+          "quantity": 0.9,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-22",
+      "code": "PXK0000022",
+      "type": "XUAT",
+      "date": "2026-09-11T02:00:00.000Z",
+      "warehouseKey": "wh-phukien",
+      "reason": "Xuất vật tư cho LSX0000015",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-moc-treo",
+          "quantity": 30,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-dinh-ghim",
+          "quantity": 0.3,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-23",
+      "code": "PXK0000023",
+      "type": "XUAT",
+      "date": "2026-09-13T02:00:00.000Z",
+      "warehouseKey": "wh-vattu",
+      "reason": "Xuất vật tư cho LSX0000017, LSX0000018",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-nep-soi",
+          "quantity": 10.67,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kinh-3ly",
+          "quantity": 1.04,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-hau-mdf",
+          "quantity": 0.7,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-24",
+      "code": "PXK0000024",
+      "type": "XUAT",
+      "date": "2026-09-13T02:00:00.000Z",
+      "warehouseKey": "wh-phukien",
+      "reason": "Xuất vật tư cho LSX0000017, LSX0000018",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-moc-treo",
+          "quantity": 40,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-dinh-ghim",
+          "quantity": 0.4,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-nhap-13",
+      "code": "PNK0000013",
+      "type": "NHAP",
+      "date": "2026-09-14T02:00:00.000Z",
+      "warehouseKey": "wh-thanhpham",
+      "reason": "Nhập thành phẩm từ xưởng: LSX0000015, LSX0000016",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "sp-khung-soi-40x60",
+          "quantity": 15,
+          "unitPrice": 66271
+        },
+        {
+          "productId": "sp-mica-cat",
+          "quantity": 6,
+          "unitPrice": 63000
+        }
+      ]
+    },
+    {
+      "id": "pk-nhap-14",
+      "code": "PNK0000014",
+      "type": "NHAP",
+      "date": "2026-09-16T02:00:00.000Z",
+      "warehouseKey": "wh-thanhpham",
+      "reason": "Nhập thành phẩm từ xưởng: LSX0000017, LSX0000018",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "sp-khung-soi-20x30",
+          "quantity": 10,
+          "unitPrice": 26757
+        },
+        {
+          "productId": "sp-khung-soi-30x40",
+          "quantity": 10,
+          "unitPrice": 40988
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-25",
+      "code": "PXK0000025",
+      "type": "XUAT",
+      "date": "2026-09-18T02:00:00.000Z",
+      "warehouseKey": "wh-thanhpham",
+      "reason": "Xuất kho giao hàng — chuyến CH0000004",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "sp-khung-soi-40x60",
+          "quantity": 15,
+          "unitPrice": 0
+        },
+        {
+          "productId": "sp-mica-cat",
+          "quantity": 6,
+          "unitPrice": 0
+        },
+        {
+          "productId": "sp-khung-soi-20x30",
+          "quantity": 10,
+          "unitPrice": 0
+        },
+        {
+          "productId": "sp-khung-soi-30x40",
+          "quantity": 10,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-nhap-15",
+      "code": "PNK0000015",
+      "type": "NHAP",
+      "date": "2026-09-22T02:00:00.000Z",
+      "warehouseKey": "wh-vattu",
+      "reason": "Nhập hàng theo đơn DN0000005",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-nep-soi",
+          "quantity": 250,
+          "unitPrice": 39000
+        },
+        {
+          "productId": "vt-nep-oc-cho",
+          "quantity": 120,
+          "unitPrice": 73000
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-26",
+      "code": "PXK0000026",
+      "type": "XUAT",
+      "date": "2026-09-23T02:00:00.000Z",
+      "warehouseKey": "wh-vattu",
+      "reason": "Xuất vật tư cho LSX0000019, LSX0000020",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-nep-soi",
+          "quantity": 33.2,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kinh-3ly",
+          "quantity": 5.73,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-hau-mdf",
+          "quantity": 3.85,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-27",
+      "code": "PXK0000027",
+      "type": "XUAT",
+      "date": "2026-09-23T02:00:00.000Z",
+      "warehouseKey": "wh-phukien",
+      "reason": "Xuất vật tư cho LSX0000019, LSX0000020",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-moc-treo",
+          "quantity": 72,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-dinh-ghim",
+          "quantity": 0.72,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-28",
+      "code": "PXK0000028",
+      "type": "XUAT",
+      "date": "2026-09-25T02:00:00.000Z",
+      "warehouseKey": "wh-vattu",
+      "reason": "Xuất vật tư cho LSX0000021, LSX0000022",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-nep-oc-cho",
+          "quantity": 8.67,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kinh-3ly",
+          "quantity": 2.76,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-hau-mdf",
+          "quantity": 1.85,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-nhom-den",
+          "quantity": 8.32,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-29",
+      "code": "PXK0000029",
+      "type": "XUAT",
+      "date": "2026-09-25T02:00:00.000Z",
+      "warehouseKey": "wh-phukien",
+      "reason": "Xuất vật tư cho LSX0000021, LSX0000022",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-moc-treo",
+          "quantity": 40,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-dinh-ghim",
+          "quantity": 0.4,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kep-kinh",
+          "quantity": 10,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-nhap-16",
+      "code": "PNK0000016",
+      "type": "NHAP",
+      "date": "2026-09-26T02:00:00.000Z",
+      "warehouseKey": "wh-thanhpham",
+      "reason": "Nhập thành phẩm từ xưởng: LSX0000019, LSX0000020",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "sp-khung-soi-40x60",
+          "quantity": 24,
+          "unitPrice": 66271
+        },
+        {
+          "productId": "sp-khung-soi-50x70",
+          "quantity": 12,
+          "unitPrice": 87067
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-30",
+      "code": "PXK0000030",
+      "type": "XUAT",
+      "date": "2026-09-26T02:00:00.000Z",
+      "warehouseKey": "wh-vattu",
+      "reason": "Xuất vật tư cho LSX0000023, LSX0000024",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-nep-soi",
+          "quantity": 1.9,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kinh-3ly",
+          "quantity": 0.38,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-hau-mdf",
+          "quantity": 0.26,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-31",
+      "code": "PXK0000031",
+      "type": "XUAT",
+      "date": "2026-09-26T02:00:00.000Z",
+      "warehouseKey": "wh-phukien",
+      "reason": "Xuất vật tư cho LSX0000023, LSX0000024",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-moc-treo",
+          "quantity": 4,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-dinh-ghim",
+          "quantity": 0.04,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-nhap-17",
+      "code": "PNK0000017",
+      "type": "NHAP",
+      "date": "2026-09-28T02:00:00.000Z",
+      "warehouseKey": "wh-thanhpham",
+      "reason": "Nhập thành phẩm từ xưởng: LSX0000021, LSX0000022",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "sp-khung-oc-cho-40x60",
+          "quantity": 10,
+          "unitPrice": 95739
+        },
+        {
+          "productId": "sp-khung-nhom-den-40x60",
+          "quantity": 10,
+          "unitPrice": 80101
+        }
+      ]
+    },
+    {
+      "id": "pk-nhap-18",
+      "code": "PNK0000018",
+      "type": "NHAP",
+      "date": "2026-09-29T02:00:00.000Z",
+      "warehouseKey": "wh-thanhpham",
+      "reason": "Nhập thành phẩm từ xưởng: LSX0000023, LSX0000024",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "sp-khung-soi-60x90",
+          "quantity": 1,
+          "unitPrice": 121575
+        },
+        {
+          "productId": "sp-khung-soi-30x40",
+          "quantity": 1,
+          "unitPrice": 40988
+        }
+      ]
+    },
+    {
+      "id": "pk-kiem_ke-05",
+      "code": "PKK0000005",
+      "type": "KIEM_KE",
+      "date": "2026-09-30T02:00:00.000Z",
+      "warehouseKey": "wh-vattu",
+      "reason": "Kiểm kê định kỳ cuối tháng 9",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-nep-soi",
+          "quantity": 571.43,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kinh-3ly",
+          "quantity": 36.16,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-32",
+      "code": "PXK0000032",
+      "type": "XUAT",
+      "date": "2026-09-30T02:00:00.000Z",
+      "warehouseKey": "wh-thanhpham",
+      "reason": "Xuất kho giao hàng — chuyến CH0000005",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "sp-khung-soi-40x60",
+          "quantity": 24,
+          "unitPrice": 0
+        },
+        {
+          "productId": "sp-khung-soi-50x70",
+          "quantity": 12,
+          "unitPrice": 0
+        },
+        {
+          "productId": "sp-khung-oc-cho-40x60",
+          "quantity": 10,
+          "unitPrice": 0
+        },
+        {
+          "productId": "sp-khung-nhom-den-40x60",
+          "quantity": 10,
+          "unitPrice": 0
+        },
+        {
+          "productId": "sp-khung-soi-60x90",
+          "quantity": 1,
+          "unitPrice": 0
+        },
+        {
+          "productId": "sp-khung-soi-30x40",
+          "quantity": 1,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-33",
+      "code": "PXK0000033",
+      "type": "XUAT",
+      "date": "2026-09-30T02:00:00.000Z",
+      "warehouseKey": "wh-phukien",
+      "reason": "Xuất kho giao hàng — chuyến CH0000005",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-keo-dan",
+          "quantity": 1,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-34",
+      "code": "PXK0000034",
+      "type": "XUAT",
+      "date": "2026-09-30T02:00:00.000Z",
+      "warehouseKey": "wh-ninhtrang",
+      "reason": "Xuất kho giao hàng — chuyến CH0000005",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-ve-sinh-kinh",
+          "quantity": 2,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-35",
+      "code": "PXK0000035",
+      "type": "XUAT",
+      "date": "2026-10-06T02:00:00.000Z",
+      "warehouseKey": "wh-vattu",
+      "reason": "Xuất vật tư cho LSX0000025, LSX0000026",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-nep-soi",
+          "quantity": 29.37,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kinh-3ly",
+          "quantity": 6.32,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-hau-mdf",
+          "quantity": 4.25,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-36",
+      "code": "PXK0000036",
+      "type": "XUAT",
+      "date": "2026-10-06T02:00:00.000Z",
+      "warehouseKey": "wh-phukien",
+      "reason": "Xuất vật tư cho LSX0000025, LSX0000026",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-moc-treo",
+          "quantity": 52,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-dinh-ghim",
+          "quantity": 0.52,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-37",
+      "code": "PXK0000037",
+      "type": "XUAT",
+      "date": "2026-10-08T02:00:00.000Z",
+      "warehouseKey": "wh-vattu",
+      "reason": "Xuất vật tư cho LSX0000027, LSX0000028",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-nhom-vang",
+          "quantity": 1.18,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kinh-3ly",
+          "quantity": 0.35,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-hau-mdf",
+          "quantity": 0.23,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-nep-soi",
+          "quantity": 1.85,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-38",
+      "code": "PXK0000038",
+      "type": "XUAT",
+      "date": "2026-10-08T02:00:00.000Z",
+      "warehouseKey": "wh-phukien",
+      "reason": "Xuất vật tư cho LSX0000027, LSX0000028",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-moc-treo",
+          "quantity": 10,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-dinh-ghim",
+          "quantity": 0.1,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kep-kinh",
+          "quantity": 2,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-nhap-19",
+      "code": "PNK0000019",
+      "type": "NHAP",
+      "date": "2026-10-09T02:00:00.000Z",
+      "warehouseKey": "wh-thanhpham",
+      "reason": "Nhập thành phẩm từ xưởng: LSX0000025, LSX0000026",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "sp-khung-soi-50x70",
+          "quantity": 16,
+          "unitPrice": 87067
+        },
+        {
+          "productId": "sp-khung-soi-60x90",
+          "quantity": 10,
+          "unitPrice": 121575
+        }
+      ]
+    },
+    {
+      "id": "pk-nhap-20",
+      "code": "PNK0000020",
+      "type": "NHAP",
+      "date": "2026-10-11T02:00:00.000Z",
+      "warehouseKey": "wh-thanhpham",
+      "reason": "Nhập thành phẩm từ xưởng: LSX0000027, LSX0000028",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "sp-khung-nhom-vang-30x40",
+          "quantity": 2,
+          "unitPrice": 48285
+        },
+        {
+          "productId": "sp-khung-soi-30x40",
+          "quantity": 3,
+          "unitPrice": 40988
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-39",
+      "code": "PXK0000039",
+      "type": "XUAT",
+      "date": "2026-10-12T02:00:00.000Z",
+      "warehouseKey": "wh-thanhpham",
+      "reason": "Xuất kho giao hàng — chuyến CH0000007",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "sp-khung-soi-50x70",
+          "quantity": 16,
+          "unitPrice": 0
+        },
+        {
+          "productId": "sp-khung-soi-60x90",
+          "quantity": 10,
+          "unitPrice": 0
+        },
+        {
+          "productId": "sp-khung-nhom-vang-30x40",
+          "quantity": 2,
+          "unitPrice": 0
+        },
+        {
+          "productId": "sp-khung-soi-30x40",
+          "quantity": 3,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-nhap-21",
+      "code": "PNK0000021",
+      "type": "NHAP",
+      "date": "2026-10-13T02:00:00.000Z",
+      "warehouseKey": "wh-ninhtrang",
+      "reason": "Nhập hàng theo đơn DN0000009",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-den-led",
+          "quantity": 30,
+          "unitPrice": 95000
+        },
+        {
+          "productId": "vt-ve-sinh-kinh",
+          "quantity": 15,
+          "unitPrice": 18000
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-40",
+      "code": "PXK0000040",
+      "type": "XUAT",
+      "date": "2026-10-13T02:00:00.000Z",
+      "warehouseKey": "wh-vattu",
+      "reason": "Xuất vật tư cho LSX0000029, LSX0000030",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-nhom-vang",
+          "quantity": 4.74,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kinh-3ly",
+          "quantity": 1.1,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-hau-mdf",
+          "quantity": 0.74,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-nep-soi",
+          "quantity": 4.93,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-41",
+      "code": "PXK0000041",
+      "type": "XUAT",
+      "date": "2026-10-13T02:00:00.000Z",
+      "warehouseKey": "wh-phukien",
+      "reason": "Xuất vật tư cho LSX0000029, LSX0000030",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-moc-treo",
+          "quantity": 32,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-dinh-ghim",
+          "quantity": 0.32,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kep-kinh",
+          "quantity": 8,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-42",
+      "code": "PXK0000042",
+      "type": "XUAT",
+      "date": "2026-10-14T02:00:00.000Z",
+      "warehouseKey": "wh-vattu",
+      "reason": "Xuất vật tư cho LSX0000031",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-nep-soi",
+          "quantity": 10.4,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kinh-3ly",
+          "quantity": 1.66,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-hau-mdf",
+          "quantity": 1.11,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-43",
+      "code": "PXK0000043",
+      "type": "XUAT",
+      "date": "2026-10-14T02:00:00.000Z",
+      "warehouseKey": "wh-phukien",
+      "reason": "Xuất vật tư cho LSX0000031",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-moc-treo",
+          "quantity": 24,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-dinh-ghim",
+          "quantity": 0.24,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-44",
+      "code": "PXK0000044",
+      "type": "XUAT",
+      "date": "2026-10-15T02:00:00.000Z",
+      "warehouseKey": "wh-vattu",
+      "reason": "Xuất vật tư cho LSX0000032, LSX0000034, LSX0000035",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-nep-soi",
+          "quantity": 38.34,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kinh-3ly",
+          "quantity": 6.9,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-hau-mdf",
+          "quantity": 4.64,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-nep-oc-cho",
+          "quantity": 8.67,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-45",
+      "code": "PXK0000045",
+      "type": "XUAT",
+      "date": "2026-10-15T02:00:00.000Z",
+      "warehouseKey": "wh-phukien",
+      "reason": "Xuất vật tư cho LSX0000032, LSX0000034, LSX0000035",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-moc-treo",
+          "quantity": 120,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-dinh-ghim",
+          "quantity": 1.2,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-nhap-22",
+      "code": "PNK0000022",
+      "type": "NHAP",
+      "date": "2026-10-16T02:00:00.000Z",
+      "warehouseKey": "wh-thanhpham",
+      "reason": "Nhập thành phẩm từ xưởng: LSX0000029, LSX0000030, LSX0000031",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "sp-khung-nhom-vang-30x40",
+          "quantity": 8,
+          "unitPrice": 48285
+        },
+        {
+          "productId": "sp-khung-soi-30x40",
+          "quantity": 8,
+          "unitPrice": 40988
+        },
+        {
+          "productId": "sp-khung-soi-40x60",
+          "quantity": 12,
+          "unitPrice": 66271
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-46",
+      "code": "PXK0000046",
+      "type": "XUAT",
+      "date": "2026-10-16T02:00:00.000Z",
+      "warehouseKey": "wh-vattu",
+      "reason": "Xuất vật tư cho LSX0000033",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-nhom-den",
+          "quantity": 19.97,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kinh-3ly",
+          "quantity": 3.31,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-hau-mdf",
+          "quantity": 2.22,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-47",
+      "code": "PXK0000047",
+      "type": "XUAT",
+      "date": "2026-10-16T02:00:00.000Z",
+      "warehouseKey": "wh-phukien",
+      "reason": "Xuất vật tư cho LSX0000033",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-moc-treo",
+          "quantity": 48,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-dinh-ghim",
+          "quantity": 0.48,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kep-kinh",
+          "quantity": 24,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-48",
+      "code": "PXK0000048",
+      "type": "XUAT",
+      "date": "2026-10-17T02:00:00.000Z",
+      "warehouseKey": "wh-vattu",
+      "reason": "Xuất vật tư cho LSX0000036, LSX0000037",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-nep-soi",
+          "quantity": 20.67,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-kinh-3ly",
+          "quantity": 6.52,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-hau-mdf",
+          "quantity": 2.7,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-49",
+      "code": "PXK0000049",
+      "type": "XUAT",
+      "date": "2026-10-17T02:00:00.000Z",
+      "warehouseKey": "wh-phukien",
+      "reason": "Xuất vật tư cho LSX0000036",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "vt-moc-treo",
+          "quantity": 40,
+          "unitPrice": 0
+        },
+        {
+          "productId": "vt-dinh-ghim",
+          "quantity": 0.4,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-xuat-50",
+      "code": "PXK0000050",
+      "type": "XUAT",
+      "date": "2026-10-17T02:00:00.000Z",
+      "warehouseKey": "wh-thanhpham",
+      "reason": "Xuất kho giao hàng — chuyến CH0000008",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "sp-khung-nhom-vang-30x40",
+          "quantity": 8,
+          "unitPrice": 0
+        },
+        {
+          "productId": "sp-khung-soi-30x40",
+          "quantity": 8,
+          "unitPrice": 0
+        },
+        {
+          "productId": "sp-khung-soi-40x60",
+          "quantity": 12,
+          "unitPrice": 0
+        }
+      ]
+    },
+    {
+      "id": "pk-nhap-23",
+      "code": "PNK0000023",
+      "type": "NHAP",
+      "date": "2026-10-18T02:00:00.000Z",
+      "warehouseKey": "wh-thanhpham",
+      "reason": "Nhập thành phẩm từ xưởng: LSX0000032",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "sp-khung-soi-30x40",
+          "quantity": 20,
+          "unitPrice": 40988
+        }
+      ]
+    },
+    {
+      "id": "pk-nhap-24",
+      "code": "PNK0000024",
+      "type": "NHAP",
+      "date": "2026-10-19T02:00:00.000Z",
+      "warehouseKey": "wh-thanhpham",
+      "reason": "Nhập thành phẩm từ xưởng: LSX0000033",
+      "isCancelled": false,
+      "createdByKey": "user-thukho",
+      "lines": [
+        {
+          "productId": "sp-khung-nhom-den-40x60",
+          "quantity": 24,
+          "unitPrice": 80101
+        }
+      ]
+    }
+  ],
+  "stockLevels": [
+    {
+      "productId": "sp-khung-nhom-den-40x60",
+      "warehouseKey": "wh-thanhpham",
+      "quantity": 38
+    },
+    {
+      "productId": "sp-khung-nhom-vang-30x40",
+      "warehouseKey": "wh-thanhpham",
+      "quantity": 17
+    },
+    {
+      "productId": "sp-khung-oc-cho-40x60",
+      "warehouseKey": "wh-thanhpham",
+      "quantity": 9
+    },
+    {
+      "productId": "sp-khung-soi-20x30",
+      "warehouseKey": "wh-thanhpham",
+      "quantity": 10
+    },
+    {
+      "productId": "sp-khung-soi-30x40",
+      "warehouseKey": "wh-thanhpham",
+      "quantity": 33
+    },
+    {
+      "productId": "sp-khung-soi-40x60",
+      "warehouseKey": "wh-thanhpham",
+      "quantity": 13
+    },
+    {
+      "productId": "sp-khung-soi-50x70",
+      "warehouseKey": "wh-thanhpham",
+      "quantity": 10
+    },
+    {
+      "productId": "sp-khung-soi-60x90",
+      "warehouseKey": "wh-thanhpham",
+      "quantity": 4
+    },
+    {
+      "productId": "vt-day-thep",
+      "warehouseKey": "wh-phukien",
+      "quantity": 10
+    },
+    {
+      "productId": "vt-den-led",
+      "warehouseKey": "wh-ninhtrang",
+      "quantity": 49
+    },
+    {
+      "productId": "vt-dinh-ghim",
+      "warehouseKey": "wh-phukien",
+      "quantity": 40.34
+    },
+    {
+      "productId": "vt-dinh-ghim",
+      "warehouseKey": "wh-vattu",
+      "quantity": 5
+    },
+    {
+      "productId": "vt-go-tho",
+      "warehouseKey": "wh-vattu",
+      "quantity": 242
+    },
+    {
+      "productId": "vt-hau-mdf",
+      "warehouseKey": "wh-vattu",
+      "quantity": 81.08
+    },
+    {
+      "productId": "vt-keo-dan",
+      "warehouseKey": "wh-phukien",
+      "quantity": 48
+    },
+    {
+      "productId": "vt-kep-kinh",
+      "warehouseKey": "wh-phukien",
+      "quantity": 546
+    },
+    {
+      "productId": "vt-kinh-3ly",
+      "warehouseKey": "wh-vattu",
+      "quantity": 10
+    },
+    {
+      "productId": "vt-mica-2ly",
+      "warehouseKey": "wh-vattu",
+      "quantity": 59.1
+    },
+    {
+      "productId": "vt-moc-treo",
+      "warehouseKey": "wh-phukien",
+      "quantity": 3404
+    },
+    {
+      "productId": "vt-nep-oc-cho",
+      "warehouseKey": "wh-vattu",
+      "quantity": 312.73
+    },
+    {
+      "productId": "vt-nep-soi",
+      "warehouseKey": "wh-vattu",
+      "quantity": 465.87
+    },
+    {
+      "productId": "vt-nhom-den",
+      "warehouseKey": "wh-vattu",
+      "quantity": 323.75
+    },
+    {
+      "productId": "vt-nhom-vang",
+      "warehouseKey": "wh-vattu",
+      "quantity": 371.75
+    },
+    {
+      "productId": "vt-ve-sinh-kinh",
+      "warehouseKey": "wh-ninhtrang",
+      "quantity": 15
+    }
+  ],
+  "cashVouchers": [
+    {
+      "id": "pt-01",
+      "code": "PT0000001",
+      "date": "2026-08-01T02:00:00.000Z",
+      "kind": "THU",
+      "category": "Thu khác",
+      "partnerType": "KHAC",
+      "accountKey": "acc-cash",
+      "amount": 25000000,
+      "settledAmount": 0,
+      "description": "Góp vốn đầu kỳ",
+      "isCancelled": false,
+      "createdByKey": "user-admin"
+    },
+    {
+      "id": "pt-02",
+      "code": "PT0000002",
+      "date": "2026-08-01T02:00:00.000Z",
+      "kind": "THU",
+      "category": "Thu khác",
+      "partnerType": "KHAC",
+      "accountKey": "acc-bank",
+      "amount": 221000000,
+      "settledAmount": 0,
+      "description": "Góp vốn đầu kỳ",
+      "isCancelled": false,
+      "createdByKey": "user-admin"
+    },
+    {
+      "id": "pc-01",
+      "code": "PC0000001",
+      "date": "2026-08-05T02:00:00.000Z",
+      "kind": "CHI",
+      "category": "Chi khác",
+      "partnerType": "KHAC",
+      "accountKey": "acc-bank",
+      "amount": 18000000,
+      "settledAmount": 0,
+      "description": "Tiền thuê xưởng tháng 8",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pc-02",
+      "code": "PC0000002",
+      "date": "2026-08-08T02:00:00.000Z",
+      "kind": "CHI",
+      "category": "Chi trả nhà cung cấp",
+      "partnerType": "NHA_CUNG_CAP",
+      "supplierId": "ncc-1",
+      "accountKey": "acc-bank",
+      "amount": 23100000,
+      "settledAmount": 23100000,
+      "description": "Thanh toán đơn nhập DN0000001",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pc-03",
+      "code": "PC0000003",
+      "date": "2026-08-12T02:00:00.000Z",
+      "kind": "CHI",
+      "category": "Chi trả nhà cung cấp",
+      "partnerType": "NHA_CUNG_CAP",
+      "supplierId": "ncc-2",
+      "accountKey": "acc-bank",
+      "amount": 19600000,
+      "settledAmount": 19600000,
+      "description": "Thanh toán đơn nhập DN0000002",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pt-03",
+      "code": "PT0000003",
+      "date": "2026-08-20T02:00:00.000Z",
+      "kind": "THU",
+      "category": "Thu tiền khách hàng",
+      "partnerType": "KHACH_HANG",
+      "customerId": "kh-01",
+      "accountKey": "acc-cash",
+      "amount": 665000,
+      "settledAmount": 665000,
+      "description": "Khách thanh toán đơn DH0000001",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pt-04",
+      "code": "PT0000004",
+      "date": "2026-08-20T02:00:00.000Z",
+      "kind": "THU",
+      "category": "Thu tiền khách hàng",
+      "partnerType": "KHACH_HANG",
+      "customerId": "kh-05",
+      "accountKey": "acc-bank",
+      "amount": 2046000,
+      "settledAmount": 2046000,
+      "description": "Khách thanh toán đơn DH0000003",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pc-04",
+      "code": "PC0000004",
+      "date": "2026-08-20T02:00:00.000Z",
+      "kind": "CHI",
+      "category": "Chi trả nhà cung cấp",
+      "partnerType": "NHA_CUNG_CAP",
+      "supplierId": "ncc-3",
+      "accountKey": "acc-bank",
+      "amount": 15050000,
+      "settledAmount": 15050000,
+      "description": "Thanh toán đơn nhập DN0000003",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pc-05",
+      "code": "PC0000005",
+      "date": "2026-08-20T02:00:00.000Z",
+      "kind": "CHI",
+      "category": "Chi khác",
+      "partnerType": "KHAC",
+      "accountKey": "acc-cash",
+      "amount": 520000,
+      "settledAmount": 0,
+      "description": "Tiền dầu chuyến CH0000001",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pc-06",
+      "code": "PC0000006",
+      "date": "2026-08-23T02:00:00.000Z",
+      "kind": "CHI",
+      "category": "Chi trả nhà cung cấp",
+      "partnerType": "NHA_CUNG_CAP",
+      "supplierId": "ncc-4",
+      "accountKey": "acc-cash",
+      "amount": 5800000,
+      "settledAmount": 5800000,
+      "description": "Thanh toán đơn nhập DN0000004",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pc-07",
+      "code": "PC0000007",
+      "date": "2026-08-28T02:00:00.000Z",
+      "kind": "CHI",
+      "category": "Chi khác",
+      "partnerType": "KHAC",
+      "accountKey": "acc-cash",
+      "amount": 380000,
+      "settledAmount": 0,
+      "description": "Tiền dầu chuyến CH0000002",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pc-08",
+      "code": "PC0000008",
+      "date": "2026-09-02T02:00:00.000Z",
+      "kind": "CHI",
+      "category": "Chi khác",
+      "partnerType": "KHAC",
+      "accountKey": "acc-cash",
+      "amount": 3850000,
+      "settledAmount": 0,
+      "description": "Tiền điện nước tháng 8",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pt-05",
+      "code": "PT0000005",
+      "date": "2026-09-05T02:00:00.000Z",
+      "kind": "THU",
+      "category": "Thu tiền khách hàng",
+      "partnerType": "KHACH_HANG",
+      "customerId": "kh-03",
+      "accountKey": "acc-bank",
+      "amount": 4854000,
+      "settledAmount": 4854000,
+      "description": "Khách thanh toán đơn DH0000002",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pt-06",
+      "code": "PT0000006",
+      "date": "2026-09-05T02:00:00.000Z",
+      "kind": "THU",
+      "category": "Thu tiền khách hàng",
+      "partnerType": "KHACH_HANG",
+      "customerId": "kh-09",
+      "accountKey": "acc-cash",
+      "amount": 480000,
+      "settledAmount": 480000,
+      "description": "Khách thanh toán đơn DH0000006",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pc-09",
+      "code": "PC0000009",
+      "date": "2026-09-05T02:00:00.000Z",
+      "kind": "CHI",
+      "category": "Chi khác",
+      "partnerType": "KHAC",
+      "accountKey": "acc-cash",
+      "amount": 640000,
+      "settledAmount": 0,
+      "description": "Tiền dầu chuyến CH0000003",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pc-10",
+      "code": "PC0000010",
+      "date": "2026-09-05T02:00:00.000Z",
+      "kind": "CHI",
+      "category": "Chi khác",
+      "partnerType": "KHAC",
+      "accountKey": "acc-bank",
+      "amount": 18000000,
+      "settledAmount": 0,
+      "description": "Tiền thuê xưởng tháng 9",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pc-11",
+      "code": "PC0000011",
+      "date": "2026-09-05T02:00:00.000Z",
+      "kind": "CHI",
+      "category": "Chi khác",
+      "partnerType": "KHAC",
+      "accountKey": "acc-bank",
+      "amount": 62000000,
+      "settledAmount": 0,
+      "description": "Lương nhân viên tháng 8",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pc-12",
+      "code": "PC0000012",
+      "date": "2026-09-12T02:00:00.000Z",
+      "kind": "CHI",
+      "category": "Chi khác",
+      "partnerType": "KHAC",
+      "accountKey": "acc-cash",
+      "amount": 2000000,
+      "settledAmount": 0,
+      "description": "Chi nhầm quỹ, đã lập lại phiếu khác",
+      "isCancelled": true,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pt-07",
+      "code": "PT0000007",
+      "date": "2026-09-15T02:00:00.000Z",
+      "kind": "THU",
+      "category": "Thu tiền khách hàng",
+      "partnerType": "KHACH_HANG",
+      "customerId": "kh-10",
+      "accountKey": "acc-bank",
+      "amount": 3327000,
+      "settledAmount": 3327000,
+      "description": "Khách thanh toán đơn DH0000007",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pt-08",
+      "code": "PT0000008",
+      "date": "2026-09-17T02:00:00.000Z",
+      "kind": "THU",
+      "category": "Thu tiền khách hàng",
+      "partnerType": "KHACH_HANG",
+      "customerId": "kh-07",
+      "accountKey": "acc-bank",
+      "amount": 9570000,
+      "settledAmount": 9570000,
+      "description": "Khách thanh toán đơn DH0000005",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pc-13",
+      "code": "PC0000013",
+      "date": "2026-09-18T02:00:00.000Z",
+      "kind": "CHI",
+      "category": "Chi khác",
+      "partnerType": "KHAC",
+      "accountKey": "acc-cash",
+      "amount": 560000,
+      "settledAmount": 0,
+      "description": "Tiền dầu chuyến CH0000004",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pt-09",
+      "code": "PT0000009",
+      "date": "2026-09-20T02:00:00.000Z",
+      "kind": "THU",
+      "category": "Thu khác",
+      "partnerType": "KHAC",
+      "accountKey": "acc-cash",
+      "amount": 1350000,
+      "settledAmount": 0,
+      "description": "Thanh lý phế liệu nhôm",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pc-14",
+      "code": "PC0000014",
+      "date": "2026-09-25T02:00:00.000Z",
+      "kind": "CHI",
+      "category": "Chi trả nhà cung cấp",
+      "partnerType": "NHA_CUNG_CAP",
+      "supplierId": "ncc-1",
+      "accountKey": "acc-bank",
+      "amount": 5553000,
+      "settledAmount": 5553000,
+      "description": "Thanh toán đơn nhập DN0000005",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pt-10",
+      "code": "PT0000010",
+      "date": "2026-09-27T02:00:00.000Z",
+      "kind": "THU",
+      "category": "Thu tiền khách hàng",
+      "partnerType": "KHACH_HANG",
+      "customerId": "kh-06",
+      "accountKey": "acc-bank",
+      "amount": 2800000,
+      "settledAmount": 2800000,
+      "description": "Khách thanh toán đơn DH0000010",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pt-11",
+      "code": "PT0000011",
+      "date": "2026-09-30T02:00:00.000Z",
+      "kind": "THU",
+      "category": "Thu tiền khách hàng",
+      "partnerType": "KHACH_HANG",
+      "customerId": "kh-04",
+      "accountKey": "acc-bank",
+      "amount": 9400000,
+      "settledAmount": 9400000,
+      "description": "Khách thanh toán đơn DH0000004",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pt-12",
+      "code": "PT0000012",
+      "date": "2026-09-30T02:00:00.000Z",
+      "kind": "THU",
+      "category": "Thu tiền khách hàng",
+      "partnerType": "KHACH_HANG",
+      "customerId": "kh-01",
+      "accountKey": "acc-bank",
+      "amount": 970000,
+      "settledAmount": 970000,
+      "description": "Khách thanh toán đơn DH0000013",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pc-15",
+      "code": "PC0000015",
+      "date": "2026-09-30T02:00:00.000Z",
+      "kind": "CHI",
+      "category": "Chi khác",
+      "partnerType": "KHAC",
+      "accountKey": "acc-cash",
+      "amount": 610000,
+      "settledAmount": 0,
+      "description": "Tiền dầu chuyến CH0000005",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pc-16",
+      "code": "PC0000016",
+      "date": "2026-10-02T02:00:00.000Z",
+      "kind": "CHI",
+      "category": "Chi khác",
+      "partnerType": "KHAC",
+      "accountKey": "acc-cash",
+      "amount": 4120000,
+      "settledAmount": 0,
+      "description": "Tiền điện nước tháng 9",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pc-17",
+      "code": "PC0000017",
+      "date": "2026-10-05T02:00:00.000Z",
+      "kind": "CHI",
+      "category": "Chi khác",
+      "partnerType": "KHAC",
+      "accountKey": "acc-bank",
+      "amount": 18000000,
+      "settledAmount": 0,
+      "description": "Tiền thuê xưởng tháng 10",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pc-18",
+      "code": "PC0000018",
+      "date": "2026-10-05T02:00:00.000Z",
+      "kind": "CHI",
+      "category": "Chi khác",
+      "partnerType": "KHAC",
+      "accountKey": "acc-bank",
+      "amount": 64000000,
+      "settledAmount": 0,
+      "description": "Lương nhân viên tháng 9",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pt-13",
+      "code": "PT0000013",
+      "date": "2026-10-10T02:00:00.000Z",
+      "kind": "THU",
+      "category": "Thu tiền khách hàng",
+      "partnerType": "KHACH_HANG",
+      "customerId": "kh-12",
+      "accountKey": "acc-bank",
+      "amount": 4665000,
+      "settledAmount": 4665000,
+      "description": "Khách thanh toán đơn DH0000009",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pc-19",
+      "code": "PC0000019",
+      "date": "2026-10-12T02:00:00.000Z",
+      "kind": "CHI",
+      "category": "Chi khác",
+      "partnerType": "KHAC",
+      "accountKey": "acc-cash",
+      "amount": 480000,
+      "settledAmount": 0,
+      "description": "Tiền dầu chuyến CH0000007",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pc-20",
+      "code": "PC0000020",
+      "date": "2026-10-13T02:00:00.000Z",
+      "kind": "CHI",
+      "category": "Chi trả nhà cung cấp",
+      "partnerType": "NHA_CUNG_CAP",
+      "supplierId": "ncc-4",
+      "accountKey": "acc-bank",
+      "amount": 3120000,
+      "settledAmount": 3120000,
+      "description": "Thanh toán đơn nhập DN0000009",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pt-14",
+      "code": "PT0000014",
+      "date": "2026-10-14T02:00:00.000Z",
+      "kind": "THU",
+      "category": "Thu tiền khách hàng",
+      "partnerType": "KHACH_HANG",
+      "customerId": "kh-03",
+      "accountKey": "acc-bank",
+      "amount": 5000000,
+      "settledAmount": 0,
+      "description": "Khách đặt cọc đơn DH0000021",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    },
+    {
+      "id": "pc-21",
+      "code": "PC0000021",
+      "date": "2026-10-17T02:00:00.000Z",
+      "kind": "CHI",
+      "category": "Chi khác",
+      "partnerType": "KHAC",
+      "accountKey": "acc-cash",
+      "amount": 430000,
+      "settledAmount": 0,
+      "description": "Tiền dầu chuyến CH0000008",
+      "isCancelled": false,
+      "createdByKey": "user-ketoan"
+    }
+  ],
+  "cashAccountBalances": {
+    "acc-cash": 10105000,
+    "acc-bank": 17209000
+  }
+}

@@ -1,0 +1,71 @@
+<div class="page-header">
+  <h1>Thêm khách hàng</h1>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="save()">
+  <div class="card" style="margin-bottom:16px">
+    <h3 style="margin-top:0">Thông tin chung</h3>
+    <div class="form-grid">
+      <div class="field">
+        <label>Tên khách hàng *</label>
+        <input type="text" formControlName="name" />
+      </div>
+      <div class="field">
+        <label>Tên công ty</label>
+        <input type="text" formControlName="companyName" />
+        <span class="hint">Có tên công ty thì chứng từ hiện tên công ty.</span>
+      </div>
+
+      <div class="field">
+        <label>Loại khách hàng</label>
+        <select formControlName="type">
+          <option value="LE">Lẻ</option>
+          <option value="SI">Sỉ</option>
+          <option value="DROPSHIP">Dropship</option>
+        </select>
+        <span class="hint">Quyết định mức giá tự áp khi lên đơn bán.</span>
+      </div>
+      <div class="field">
+        <label>Số ngày được nợ</label>
+        <input type="number" formControlName="creditDays" />
+        <span class="hint">Hạn thanh toán tự tính = ngày khách nhận hàng + số ngày này.</span>
+      </div>
+
+      <div class="field">
+        <label>Điện thoại</label>
+        <input type="text" formControlName="phone" />
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" formControlName="email" />
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <h3 style="margin-top:0">Giấy tờ</h3>
+    <div class="form-grid">
+      <div class="field">
+        <label>CCCD</label>
+        <input type="text" formControlName="idNumber" />
+      </div>
+      <div class="field">
+        <label>MST cá nhân</label>
+        <input type="text" formControlName="personalTaxCode" />
+      </div>
+      <div class="field">
+        <label>MST công ty</label>
+        <input type="text" formControlName="companyTaxCode" />
+      </div>
+    </div>
+    <div class="field">
+      <label>Ghi chú</label>
+      <textarea rows="3" formControlName="note"></textarea>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <a class="btn" routerLink="/khach-hang">Huỷ</a>
+    <button class="btn btn-primary" type="submit">Tạo khách hàng</button>
+  </div>
+</form>
