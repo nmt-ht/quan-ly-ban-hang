@@ -148,6 +148,14 @@ mix in a second icon library or emoji.
 - Storage: localStorage for now; move to a company setting (backend) with the
   `company.update` permission.
 
+## Topbar
+- Right side = one account menu (`layout/account-menu`, WAI-ARIA menu button):
+  avatar initials + name/role (avatar only on mobile) → header (name, email,
+  role) · Giao diện (Sáng / Tối / Theo hệ thống, `menuitemradio`) · separator ·
+  Đăng xuất (danger, last). No loose buttons next to it.
+- Theme is a personal preference (`core/services/theme.service.ts`, saved per
+  browser, follows the OS when "Theo hệ thống").
+
 ## Detail pages
 - Header (title, code + copy, type/status badges, Sửa) then `role=tablist`
   tabs; the tab is kept in `?tab=`. Tabs appear only when they apply to the

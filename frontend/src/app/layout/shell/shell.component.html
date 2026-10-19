@@ -49,13 +49,7 @@
         Menu
       </button>
       <div class="topbar-spacer"></div>
-      <button class="btn theme-btn" type="button" (click)="toggleDarkMode()" [attr.aria-pressed]="darkMode()">
-        {{ darkMode() ? 'Giao diện sáng' : 'Giao diện tối' }}
-      </button>
-      <div class="user-menu">
-        <span class="user-name">{{ user?.name || 'Quản trị hệ thống' }}</span>
-        <button class="link-btn" type="button" (click)="logout()">Đăng xuất</button>
-      </div>
+      <app-account-menu />
     </header>
 
     <main class="content">

@@ -1,0 +1,66 @@
+<button
+  #trigger
+  type="button"
+  class="account-trigger"
+  aria-haspopup="menu"
+  aria-controls="account-menu"
+  [attr.aria-expanded]="open()"
+  [attr.aria-label]="'Tài khoản: ' + name()"
+  (click)="toggle()"
+  (keydown)="onTriggerKey($event)"
+>
+  <span class="avatar" aria-hidden="true">{{ initials() }}</span>
+  <span class="who" aria-hidden="true">
+    <span class="who-name">{{ name() }}</span>
+    @if (user()?.roleName) {
+      <span class="who-role">{{ user()?.roleName }}</span>
+    }
+  </span>
+  <app-nav-icon class="chevron" name="chevron-down" />
+</button>
+
+@if (open()) {
+  <div #menu id="account-menu" class="account-menu" role="menu" aria-label="Tài khoản" (keydown)="onMenuKey($event)">
+    <div class="menu-header">
+      <span class="avatar avatar-lg" aria-hidden="true">{{ initials() }}</span>
+      <div class="menu-header-text">
+        <p class="menu-name">{{ name() }}</p>
+        @if (user()?.email) {
+          <p class="menu-email">{{ user()?.email }}</p>
+        }
+        @if (user()?.roleName) {
+          <span class="badge badge-muted">{{ user()?.roleName }}</span>
+        }
+      </div>
+    </div>
+
+    <div class="menu-sep" role="separator"></div>
+
+    <p class="menu-label" id="account-theme-label">Giao diện</p>
+    <div role="group" aria-labelledby="account-theme-label">
+      @for (t of themes; track t.value) {
+        <button
+          type="button"
+          class="menu-item"
+          role="menuitemradio"
+          tabindex="-1"
+          [attr.aria-checked]="theme.mode() === t.value"
+          (click)="setTheme(t.value)"
+        >
+          <app-nav-icon [name]="t.icon" />
+          <span class="menu-item-label">{{ t.label }}</span>
+          @if (theme.mode() === t.value) {
+            <app-nav-icon class="menu-check" name="check" />
+          }
+        </button>
+      }
+    </div>
+
+    <div class="menu-sep" role="separator"></div>
+
+    <button type="button" class="menu-item menu-item-danger" role="menuitem" tabindex="-1" (click)="logout()">
+      <app-nav-icon name="log-out" />
+      <span class="menu-item-label">Đăng xuất</span>
+    </button>
+  </div>
+}

@@ -42,7 +42,12 @@ export type NavIconName =
   | 'trash'
   | 'image-plus'
   | 'star'
-  | 'palette';
+  | 'palette'
+  | 'sun'
+  | 'moon'
+  | 'monitor'
+  | 'log-out'
+  | 'chevron-down';
 
 // Hand-drawn 24px line icons (stroke = currentColor) — one set for the whole app.
 @Component({
@@ -240,6 +245,24 @@ export type NavIconName =
           <circle cx="7.5" cy="11" r="1" />
           <circle cx="10" cy="7" r="1" />
           <circle cx="14.5" cy="7" r="1" />
+        }
+        @case ('sun') {
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4" />
+        }
+        @case ('moon') {
+          <path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" />
+        }
+        @case ('monitor') {
+          <rect x="3" y="4" width="18" height="12" rx="2" />
+          <path d="M8.5 20h7M12 16v4" />
+        }
+        @case ('log-out') {
+          <path d="M14.5 4H18a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3.5" />
+          <path d="M10 16.5 5.5 12 10 7.5M5.5 12h10" />
+        }
+        @case ('chevron-down') {
+          <path d="M6 9.5l6 6 6-6" />
         }
         @case ('star') {
           <path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" />

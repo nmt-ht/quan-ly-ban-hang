@@ -2,6 +2,7 @@ import { ApplicationConfig, inject, provideAppInitializer, provideBrowserGlobalE
 import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
 import { DisplayColorsService } from './core/services/display-colors.service';
+import { ThemeService } from './core/services/theme.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -10,6 +11,7 @@ export const appConfig: ApplicationConfig = {
     // Writes the user's tag colours (Thiết lập → Màu hiển thị) before any page renders.
     provideAppInitializer(() => {
       inject(DisplayColorsService);
+      inject(ThemeService);
     }),
   ]
 };

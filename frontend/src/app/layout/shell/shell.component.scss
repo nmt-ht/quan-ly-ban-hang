@@ -209,25 +209,8 @@
   flex: 1;
 }
 
-.theme-btn {
-  min-height: 2rem;
-  font-size: var(--text-xs);
-}
-
 .menu-btn {
   display: none;
-}
-
-.user-menu {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  font-size: var(--text-sm);
-  white-space: nowrap;
-}
-
-.user-name {
-  color: var(--color-ink-2);
 }
 
 .content {
@@ -295,26 +278,12 @@
     min-height: 2.75rem;
   }
 
-  .theme-btn {
-    min-height: 2.75rem;
-  }
-
   .topbar {
     gap: var(--space-2xs);
     padding: 0 var(--space-sm);
   }
 
-  .user-name {
-    display: none;
-  }
-
   .content {
     padding: var(--space-sm);
-  }
-}
-
-@media (max-width: 380px) {
-  .theme-btn {
-    padding: 0 var(--space-2xs);
   }
 }
