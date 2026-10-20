@@ -2,10 +2,10 @@ import { Injectable, signal } from '@angular/core';
 import {
   Product, ProductCategory, Warehouse, StockLevel, WarehouseVoucher, ProductionOrder,
   Supplier, PurchaseOrder, Customer, SalesOrder, DeliveryTrip, Vehicle, CashAccount,
-  CashVoucher, Tag, CompanyInfo, Role, PermissionModule, AppUser, BomLine
+  CashVoucher, Tag, CompanyInfo, Role, PermissionModule, AppUser, BomLine, SupplierProduct
 } from '../models/domain.models';
 import {
-  DEMO_PRODUCTS, DEMO_BOM_LINES, DEMO_STOCK_LEVELS, DEMO_WAREHOUSE_VOUCHERS, DEMO_PRODUCTION_ORDERS, DEMO_SUPPLIERS,
+  DEMO_PRODUCTS, DEMO_BOM_LINES, DEMO_STOCK_LEVELS, DEMO_WAREHOUSE_VOUCHERS, DEMO_PRODUCTION_ORDERS, DEMO_SUPPLIERS, DEMO_SUPPLIER_PRODUCTS,
   DEMO_PURCHASE_ORDERS, DEMO_CUSTOMERS, DEMO_SALES_ORDERS, DEMO_DELIVERY_TRIPS, DEMO_VEHICLES,
   DEMO_CASH_ACCOUNTS, DEMO_CASH_VOUCHERS, DEMO_TAGS, DEMO_USERS, DEMO_ROLE_USER_COUNT,
 } from '../data/demo-data';
@@ -38,6 +38,7 @@ export class MockDataService {
   readonly productionOrders = signal<ProductionOrder[]>(DEMO_PRODUCTION_ORDERS);
 
   readonly suppliers = signal<Supplier[]>(DEMO_SUPPLIERS);
+  readonly supplierProducts = signal<SupplierProduct[]>(DEMO_SUPPLIER_PRODUCTS);
 
   readonly purchaseOrders = signal<PurchaseOrder[]>(DEMO_PURCHASE_ORDERS);
 

@@ -1,71 +1,167 @@
-<div class="page-header">
-  <h1>Thêm khách hàng</h1>
-</div>
-
-<form [formGroup]="form" (ngSubmit)="save()">
-  <div class="card" style="margin-bottom:16px">
-    <h3 style="margin-top:0">Thông tin chung</h3>
-    <div class="form-grid">
-      <div class="field">
-        <label>Tên khách hàng <span class="required-mark">*</span></label>
-        <input type="text" formControlName="name" />
-      </div>
-      <div class="field">
-        <label>Tên công ty</label>
-        <input type="text" formControlName="companyName" />
-        <span class="hint">Có tên công ty thì chứng từ hiện tên công ty.</span>
-      </div>
-
-      <div class="field">
-        <label>Loại khách hàng</label>
-        <select formControlName="type">
-          <option value="LE">Lẻ</option>
-          <option value="SI">Sỉ</option>
-          <option value="DROPSHIP">Dropship</option>
-        </select>
-        <span class="hint">Quyết định mức giá tự áp khi lên đơn bán.</span>
-      </div>
-      <div class="field">
-        <label>Số ngày được nợ</label>
-        <input type="number" formControlName="creditDays" />
-        <span class="hint">Hạn thanh toán tự tính = ngày khách nhận hàng + số ngày này.</span>
-      </div>
-
-      <div class="field">
-        <label>Điện thoại</label>
-        <input type="text" formControlName="phone" />
-      </div>
-      <div class="field">
-        <label>Email</label>
-        <input type="email" formControlName="email" />
-      </div>
-    </div>
+@if (notFound) {
+  <div class="card empty-state">
+    <h3>Không tìm thấy khách hàng</h3>
+    <p>Khách hàng có thể đã bị xoá hoặc đường dẫn không đúng.</p>
+    <a class="btn" routerLink="/khach-hang">Về danh sách khách hàng</a>
+  </div>
+} @else {
+  <p class="subtitle">
+    <a class="crumb" routerLink="/khach-hang">Khách hàng</a> /
+    @if (editing) {
+      <a class="crumb" [routerLink]="['/khach-hang', editing.id]">{{ editing.code }}</a> / Sửa
+    } @else {
+      Thêm mới
+    }
+  </p>
+  <div class="page-header">
+    <h1>{{ editing ? 'Sửa khách hàng' : 'Thêm khách hàng' }}</h1>
   </div>
 
-  <div class="card" style="margin-bottom:16px">
-    <h3 style="margin-top:0">Giấy tờ</h3>
-    <div class="form-grid">
-      <div class="field">
-        <label>CCCD</label>
-        <input type="text" formControlName="idNumber" />
-      </div>
-      <div class="field">
-        <label>MST cá nhân</label>
-        <input type="text" formControlName="personalTaxCode" />
-      </div>
-      <div class="field">
-        <label>MST công ty</label>
-        <input type="text" formControlName="companyTaxCode" />
-      </div>
-    </div>
-    <div class="field">
-      <label>Ghi chú</label>
-      <textarea rows="3" formControlName="note"></textarea>
-    </div>
-  </div>
+  <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+    <div class="card section-block">
+      <h3 class="form-section-title">Thông tin chung</h3>
+      <div class="form-grid-3">
+        <div class="field">
+          <label for="cf-code">Mã khách hàng</label>
+          <input id="cf-code" type="text" class="locked-input" [value]="editing?.code ?? 'Tự sinh khi lưu'" readonly tabindex="-1" />
+          <span class="hint">Dạng KH + 7 chữ số, không đổi được.</span>
+        </div>
+        <div class="field">
+          <label for="cf-name">Tên khách hàng <span class="required-mark">*</span></label>
+          <input id="cf-name" type="text" formControlName="name" placeholder="VD: Nguyễn Văn A" autocomplete="name" />
+          @if (showError('name')) {
+            <span class="hint text-danger">Nhập tên khách hàng.</span>
+          } @else if (sameName(); as s) {
+            <span class="hint text-warning">Đã có khách cùng tên: {{ s.code }}. Kiểm tra để tránh tạo trùng.</span>
+          }
+        </div>
+        <div class="field">
+          <label for="cf-company">Tên công ty</label>
+          <input id="cf-company" type="text" formControlName="companyName" placeholder="VD: Công ty TNHH Xây dựng B" autocomplete="organization" />
+          <span class="hint">Có tên công ty thì chứng từ hiện tên công ty.</span>
+        </div>
 
-  <div class="form-actions">
-    <a class="btn" routerLink="/khach-hang">Huỷ</a>
-    <button class="btn btn-primary" type="submit">Tạo khách hàng</button>
-  </div>
-</form>
+        <div class="field">
+          <label for="cf-type">Loại khách hàng</label>
+          <select id="cf-type" formControlName="type">
+            @for (t of types; track t.value) { <option [value]="t.value">{{ t.label }}</option> }
+          </select>
+          <span class="hint">Quyết định mức giá tự áp khi lên đơn bán — {{ typeHint().toLowerCase() }}.</span>
+        </div>
+        <div class="field">
+          <label for="cf-credit">Số ngày được nợ <span class="required-mark">*</span></label>
+          <input id="cf-credit" type="number" min="0" max="365" step="1" formControlName="creditDays" class="num" />
+          @if (showError('creditDays')) {
+            <span class="hint text-danger">Nhập số ngày từ 0 đến 365.</span>
+          } @else {
+            <span class="hint">Hạn thanh toán tự tính = ngày khách nhận hàng + số ngày này.</span>
+          }
+        </div>
+        <div class="field">
+          <label for="cf-phone">Điện thoại</label>
+          <input id="cf-phone" type="tel" formControlName="phone" placeholder="0912345678" autocomplete="tel" class="num" />
+          @if (showError('phone')) {
+            <span class="hint text-danger">Số điện thoại chỉ gồm chữ số (8–15 ký tự).</span>
+          } @else if (samePhone(); as s) {
+            <span class="hint text-warning">Số này đang dùng cho {{ s.code }} — {{ s.name }}.</span>
+          }
+        </div>
+
+        <div class="field">
+          <label for="cf-email">Email</label>
+          <input id="cf-email" type="email" formControlName="email" placeholder="khach@mail.com" autocomplete="email" />
+          @if (showError('email')) { <span class="hint text-danger">Email không đúng định dạng.</span> }
+        </div>
+        <div class="field span-2">
+          <span class="field-label">Thẻ đánh dấu</span>
+          <app-filter-multi-select label="Gắn thẻ" [options]="tagOptions()" [(selected)]="tagIds" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card section-block">
+      <h3 class="form-section-title">Giấy tờ</h3>
+      <div class="form-grid-3">
+        <div class="field">
+          <label for="cf-id">CCCD</label>
+          <input id="cf-id" type="text" inputmode="numeric" formControlName="idNumber" class="num" />
+          @if (showError('idNumber')) { <span class="hint text-danger">CCCD 12 số (hoặc CMND 9 số).</span> }
+        </div>
+        <div class="field">
+          <label for="cf-ptax">MST cá nhân</label>
+          <input id="cf-ptax" type="text" inputmode="numeric" formControlName="personalTaxCode" class="num" />
+          @if (showError('personalTaxCode')) { <span class="hint text-danger">Mã số thuế gồm 10 chữ số.</span> }
+        </div>
+        <div class="field">
+          <label for="cf-ctax">MST công ty</label>
+          <input id="cf-ctax" type="text" inputmode="numeric" formControlName="companyTaxCode" placeholder="0301234567" class="num" />
+          @if (showError('companyTaxCode')) {
+            <span class="hint text-danger">Mã số thuế gồm 10 chữ số (chi nhánh: 10 số + "-" + 3 số).</span>
+          } @else if (sameTax(); as s) {
+            <span class="hint text-warning">Mã số thuế đang dùng cho {{ s.code }} — {{ s.name }}.</span>
+          }
+        </div>
+        <div class="field span-3">
+          <label for="cf-note">Ghi chú</label>
+          <textarea id="cf-note" rows="3" formControlName="note" placeholder="Thói quen mua, người liên hệ, yêu cầu hoá đơn…"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="card section-block">
+      <div class="cf-section-head">
+        <h3 class="form-section-title">Địa chỉ giao hàng</h3>
+        <button type="button" class="btn" (click)="addAddress()"><app-nav-icon name="plus" />Thêm địa chỉ</button>
+      </div>
+      @if (addresses().length) {
+        <p class="hint cf-addr-hint">Địa chỉ mặc định được chọn sẵn khi lên đơn bán.</p>
+        @for (a of addresses(); track a.key; let i = $index) {
+          <div class="cf-addr" [class.is-default]="a.isDefault">
+            <div class="field">
+              <label [for]="'addr-label-' + a.key">Tên điểm giao</label>
+              <input [id]="'addr-label-' + a.key" type="text" placeholder="Nhà riêng, Cửa hàng, Kho…" [ngModel]="a.label" [ngModelOptions]="{ standalone: true }" (ngModelChange)="patchAddress(a.key, { label: $event })" />
+            </div>
+            <div class="field">
+              <label [for]="'addr-rec-' + a.key">Người nhận</label>
+              <input [id]="'addr-rec-' + a.key" type="text" placeholder="Để trống thì lấy tên khách" [ngModel]="a.recipientName" [ngModelOptions]="{ standalone: true }" (ngModelChange)="patchAddress(a.key, { recipientName: $event })" />
+            </div>
+            <div class="field">
+              <label [for]="'addr-phone-' + a.key">Điện thoại</label>
+              <input [id]="'addr-phone-' + a.key" type="tel" class="num" [ngModel]="a.phone" [ngModelOptions]="{ standalone: true }" (ngModelChange)="patchAddress(a.key, { phone: $event })" />
+            </div>
+            <div class="field cf-addr-main">
+              <label [for]="'addr-' + a.key">Địa chỉ <span class="required-mark">*</span></label>
+              <input [id]="'addr-' + a.key" type="text" placeholder="Số nhà, đường, phường/xã, tỉnh/TP" [ngModel]="a.address" [ngModelOptions]="{ standalone: true }"
+                (ngModelChange)="patchAddress(a.key, { address: $event })" [attr.aria-invalid]="attempted() && addressError(a) ? 'true' : null" />
+              @if (attempted() && addressError(a)) { <span class="hint text-danger">{{ addressError(a) }}</span> }
+            </div>
+            <label class="cf-default">
+              <input type="radio" name="defaultAddress" [checked]="a.isDefault" (change)="setDefault(a.key)" /> Mặc định
+            </label>
+            <button type="button" class="icon-action danger-action" (click)="removeAddress(a.key)" [attr.aria-label]="'Xoá địa chỉ ' + (i + 1)" title="Xoá địa chỉ">
+              <app-nav-icon name="trash" />
+            </button>
+          </div>
+        }
+      } @else {
+        <p class="form-note">Chưa có địa chỉ giao hàng. Thêm điểm giao để lên đơn không phải gõ lại địa chỉ mỗi lần.</p>
+      }
+      <p class="hint cf-addr-hint">Danh mục Phường/Xã chưa nạp — tạm gõ địa chỉ đầy đủ.</p>
+    </div>
+
+    <div class="card section-block">
+      <label class="check-line">
+        <input type="checkbox" formControlName="isActive" /> Đang theo dõi
+        <span class="hint">Bỏ chọn khi ngừng theo dõi khách — đơn hàng và công nợ vẫn giữ nguyên, khách không hiện khi lên đơn mới.</span>
+      </label>
+    </div>
+
+    <div class="form-actions-bar">
+      <span class="hint">{{ attempted() && (form.invalid || addressIssues()) ? 'Còn thông tin chưa hợp lệ' : 'Điền thông tin rồi bấm Lưu' }}</span>
+      <div class="form-actions">
+        <a class="btn" [routerLink]="editing ? ['/khach-hang', editing.id] : '/khach-hang'">Huỷ</a>
+        <button class="btn btn-primary" type="submit"><app-nav-icon name="check" />{{ editing ? 'Lưu thay đổi' : 'Tạo khách hàng' }}</button>
+      </div>
+    </div>
+  </form>
+}

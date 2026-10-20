@@ -1,0 +1,90 @@
+<dialog #dialog class="rg-dialog" aria-labelledby="dd-title">
+  <header class="rg-head">
+    <div>
+      <h2 id="dd-title">Giao hàng — <span class="num">{{ order().code }}</span></h2>
+      <p class="subtitle">Ghi số khách thực nhận lần này. Lập phiếu xuất kho; tồn kho và công nợ phải thu cập nhật ngay.</p>
+    </div>
+    <button type="button" class="icon-action" aria-label="Đóng" (click)="close()"><app-nav-icon name="x" /></button>
+  </header>
+
+  <div class="rg-body">
+    <div class="rg-meta">
+      <label class="field">
+        <span>Ngày khách nhận <span class="required-mark">*</span></span>
+        <input type="date" [ngModel]="date()" (ngModelChange)="date.set($event)" />
+      </label>
+      <label class="field rg-note">
+        <span>Ghi chú</span>
+        <input type="text" placeholder="VD: Giao đợt 1, khách ký nhận" [ngModel]="note()" (ngModelChange)="note.set($event)" />
+      </label>
+      <div class="toolbar rg-quick">
+        <button type="button" class="btn" (click)="deliverAll()">Giao đủ tất cả</button>
+        <button type="button" class="btn" (click)="clearAll()">Xoá số giao</button>
+      </div>
+    </div>
+
+    <div class="rg-scroll">
+      <table class="rg-table">
+        <thead>
+          <tr>
+            <th scope="col">Hàng hoá</th>
+            <th scope="col">ĐVT</th>
+            <th scope="col" class="c-num">Đặt</th>
+            <th scope="col" class="c-num">Đã giao</th>
+            <th scope="col" class="c-num">Còn lại</th>
+            <th scope="col" class="c-num">Giao lần này</th>
+            <th scope="col">Kho xuất</th>
+            <th scope="col" class="c-num">Tồn tại kho</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of rows(); track r.lineIndex; let i = $index) {
+            <tr>
+              <td><span class="num rg-code">{{ r.productCode }}</span> {{ r.productName }}</td>
+              <td>{{ r.unit }}</td>
+              <td class="c-num num">{{ r.ordered.toLocaleString('vi-VN') }}</td>
+              <td class="c-num num">{{ r.delivered.toLocaleString('vi-VN') }}</td>
+              <td class="c-num num">{{ r.remaining.toLocaleString('vi-VN') }}</td>
+              <td class="c-num">
+                <input type="number" min="0" step="any" [max]="r.remaining" [ngModel]="r.quantity"
+                  (ngModelChange)="patch(i, { quantity: $event })" [attr.aria-label]="'Giao lần này ' + r.productCode"
+                  [attr.aria-invalid]="attempted() && rowError(r) ? 'true' : null" />
+                @if (attempted() && rowError(r)) { <span class="rg-err">{{ rowError(r) }}</span> }
+              </td>
+              <td>
+                @if (r.stocked) {
+                  <select [ngModel]="r.warehouseId" (ngModelChange)="patch(i, { warehouseId: $event })" [attr.aria-label]="'Kho xuất ' + r.productCode">
+                    <option value="">— Chọn kho —</option>
+                    @for (w of data.warehouses(); track w.id) { <option [value]="w.id">{{ w.name }}</option> }
+                  </select>
+                } @else {
+                  <span class="subtitle">Dịch vụ — không xuất kho</span>
+                }
+              </td>
+              <td class="c-num num" [class.text-warning]="shortOf(r) > 0">
+                {{ available(r) === null ? '—' : available(r)!.toLocaleString('vi-VN') }}
+                @if (shortOf(r) > 0) { <span class="rg-err text-warning">Thiếu {{ shortOf(r).toLocaleString('vi-VN') }}</span> }
+              </td>
+            </tr>
+          } @empty {
+            <tr><td colspan="8" class="rg-empty">Đơn đã giao đủ hàng.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer class="rg-foot">
+    <p class="rg-summary" [class.text-danger]="attempted() && issues().length" role="status">
+      @if (attempted() && issues().length) {
+        {{ issues()[0] }}
+      } @else {
+        {{ delivering().length }} dòng · ghi công nợ phải thu (sau chiết khấu, gồm thuế): <strong class="num">{{ money(value()) }}</strong>
+      }
+    </p>
+    <div class="toolbar">
+      <button type="button" class="btn" (click)="close()">Huỷ</button>
+      <button type="button" class="btn btn-primary" (click)="confirm()">Xác nhận giao hàng</button>
+    </div>
+  </footer>
+</dialog>

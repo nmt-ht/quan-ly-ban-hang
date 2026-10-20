@@ -22,6 +22,8 @@ export interface DataTableColumn<T> {
   image?: (row: T) => string | undefined;
   // Render the value as a router link (e.g. a code that opens the detail page).
   link?: (row: T) => string | unknown[];
+  // Query params for that link (e.g. ?partnerId= on the same page).
+  linkQuery?: (row: T) => Record<string, string>;
 }
 
 @Component({
@@ -95,7 +97,7 @@ export interface DataTableColumn<T> {
               <ng-template #textCell>
                 <span *ngIf="col.badge; else plain" class="badge" [ngClass]="col.badge(row)">{{ cellText(col, row) }}</span>
                 <ng-template #plain>
-                  <a *ngIf="col.link; else text" class="code-link" [routerLink]="col.link(row)">{{ cellText(col, row) }}</a>
+                  <a *ngIf="col.link; else text" class="code-link" [routerLink]="col.link(row)" [queryParams]="col.linkQuery?.(row)">{{ cellText(col, row) }}</a>
                   <ng-template #text>{{ cellText(col, row) }}</ng-template>
                 </ng-template>
               </ng-template>
@@ -118,6 +120,7 @@ export interface DataTableColumn<T> {
       <div class="card empty-state">
         <h3>{{ emptyTitle }}</h3>
         <p *ngIf="emptyHint">{{ emptyHint }}</p>
+        <ng-container *ngIf="emptyAction" [ngTemplateOutlet]="emptyAction" />
       </div>
     </ng-template>
   `,
@@ -205,6 +208,8 @@ export class DataTableComponent<T extends Record<string, any> = any> {
   @Input() rows: T[] = [];
   @Input() emptyTitle = 'Chưa có dữ liệu';
   @Input() emptyHint = '';
+  // Optional call to action under the empty message (e.g. "Lập đơn nhập").
+  @Input() emptyAction?: TemplateRef<unknown> | null;
   // Optional per-row actions column; the template receives the row as $implicit.
   @Input() actions?: TemplateRef<{ $implicit: T }>;
   @Input() actionsLabel = 'Thao tác';

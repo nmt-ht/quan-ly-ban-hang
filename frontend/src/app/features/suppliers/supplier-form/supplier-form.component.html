@@ -1,0 +1,104 @@
+@if (notFound) {
+  <div class="card empty-state">
+    <h3>Không tìm thấy nhà cung cấp</h3>
+    <p>Nhà cung cấp có thể đã bị xoá hoặc đường dẫn không đúng.</p>
+    <a class="btn" routerLink="/nha-cung-cap">Về danh sách nhà cung cấp</a>
+  </div>
+} @else {
+  <p class="subtitle">
+    <a class="crumb" routerLink="/nha-cung-cap">Nhà cung cấp</a> /
+    @if (editing) {
+      <a class="crumb" [routerLink]="['/nha-cung-cap', editing.id]">{{ editing.code }}</a> / Sửa
+    } @else {
+      Thêm mới
+    }
+  </p>
+  <div class="page-header">
+    <h1>{{ editing ? 'Sửa nhà cung cấp' : 'Thêm nhà cung cấp' }}</h1>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+    <div class="card section-block">
+      <h3 class="form-section-title">Thông tin chung</h3>
+      <div class="form-grid-3">
+        <div class="field">
+          <label for="sf-code">Mã nhà cung cấp</label>
+          <input id="sf-code" type="text" class="locked-input" [value]="editing?.code ?? 'Tự sinh khi lưu'" readonly tabindex="-1" />
+          <span class="hint">Dạng NCC + 7 chữ số, không đổi được.</span>
+        </div>
+        <div class="field span-2">
+          <label for="sf-name">Tên nhà cung cấp <span class="required-mark">*</span></label>
+          <input id="sf-name" type="text" formControlName="name" placeholder="VD: Công ty TNHH Nhôm Kính Đông Á" autocomplete="organization" />
+          @if (showError('name')) {
+            <span class="hint text-danger">Nhập tên nhà cung cấp.</span>
+          } @else if (sameName(); as s) {
+            <span class="hint text-warning">Đã có nhà cung cấp cùng tên: {{ s.code }}. Kiểm tra lại để tránh tạo trùng.</span>
+          }
+        </div>
+
+        <div class="field">
+          <label for="sf-phone">Điện thoại</label>
+          <input id="sf-phone" type="tel" formControlName="contactPhone" placeholder="0912345678" autocomplete="tel" class="num" />
+          @if (showError('contactPhone')) {
+            <span class="hint text-danger">Số điện thoại chỉ gồm chữ số (8–15 ký tự).</span>
+          }
+        </div>
+        <div class="field">
+          <label for="sf-email">Email</label>
+          <input id="sf-email" type="email" formControlName="email" placeholder="lienhe@congty.vn" autocomplete="email" />
+          @if (showError('email')) {
+            <span class="hint text-danger">Email không đúng định dạng.</span>
+          }
+        </div>
+        <div class="field">
+          <label for="sf-tax">Mã số thuế</label>
+          <input id="sf-tax" type="text" inputmode="numeric" formControlName="taxCode" placeholder="0301234567" class="num" />
+          @if (showError('taxCode')) {
+            @if (form.controls.taxCode.errors?.['duplicate']) {
+              <span class="hint text-danger">Mã số thuế đã dùng cho {{ form.controls.taxCode.errors?.['duplicate'] }}.</span>
+            } @else {
+              <span class="hint text-danger">Mã số thuế gồm 10 chữ số (chi nhánh: 10 số + "-" + 3 số).</span>
+            }
+          }
+        </div>
+
+        <div class="field">
+          <label for="sf-credit">Số ngày được nợ <span class="required-mark">*</span></label>
+          <input id="sf-credit" type="number" min="0" max="365" step="1" formControlName="creditDays" class="num" />
+          @if (showError('creditDays')) {
+            <span class="hint text-danger">Nhập số ngày từ 0 đến 365.</span>
+          } @else {
+            <span class="hint">
+              Hạn thanh toán tự tính = ngày nhập kho + số ngày này.
+              {{ creditDays() > 0 ? '' : '0 = trả ngay khi nhận hàng.' }}
+            </span>
+          }
+        </div>
+        <div class="field span-2">
+          <label for="sf-address">Địa chỉ</label>
+          <input id="sf-address" type="text" formControlName="address" placeholder="Số nhà, ngõ, đường, phường/xã, tỉnh/TP" autocomplete="street-address" />
+        </div>
+
+        <div class="field span-3">
+          <label for="sf-note">Ghi chú</label>
+          <textarea id="sf-note" rows="3" formControlName="note" placeholder="Lịch giao hàng, người liên hệ, điều kiện riêng…"></textarea>
+        </div>
+      </div>
+
+      <label class="check-line">
+        <input type="checkbox" formControlName="isActive" /> Còn hợp tác
+        <span class="hint">Bỏ chọn khi ngừng mua của nhà cung cấp này — lịch sử đơn nhập và công nợ vẫn giữ nguyên.</span>
+      </label>
+    </div>
+
+    <div class="form-actions-bar">
+      <span class="hint">{{ form.invalid && form.touched ? 'Còn thông tin chưa hợp lệ' : 'Điền thông tin rồi bấm Lưu' }}</span>
+      <div class="form-actions">
+        <a class="btn" [routerLink]="editing ? ['/nha-cung-cap', editing.id] : '/nha-cung-cap'">Huỷ</a>
+        <button class="btn btn-primary" type="submit">
+          <app-nav-icon name="check" />{{ editing ? 'Lưu thay đổi' : 'Tạo nhà cung cấp' }}
+        </button>
+      </div>
+    </div>
+  </form>
+}

@@ -39,6 +39,24 @@ export const TAG_GROUPS: TagGroup[] = [
     items: items({ ACTIVE: 'Đang kinh doanh', INACTIVE: 'Ngừng kinh doanh' }, { ACTIVE: 150, INACTIVE: 'neutral' }),
   },
   {
+    id: 'customer-type',
+    label: 'Loại khách hàng',
+    hint: 'Badge Loại ở danh sách và trang chi tiết khách hàng.',
+    items: items({ LE: 'Lẻ', SI: 'Sỉ', DROPSHIP: 'Dropship' }, { LE: 'neutral', SI: 200, DROPSHIP: 300 }),
+  },
+  {
+    id: 'customer-status',
+    label: 'Trạng thái khách hàng',
+    hint: 'Cột Trạng thái của danh sách và trang chi tiết khách hàng.',
+    items: items({ ACTIVE: 'Đang theo dõi', INACTIVE: 'Ngừng theo dõi' }, { ACTIVE: 150, INACTIVE: 'neutral' }),
+  },
+  {
+    id: 'supplier-status',
+    label: 'Trạng thái nhà cung cấp',
+    hint: 'Cột Trạng thái của danh sách và trang chi tiết nhà cung cấp.',
+    items: items({ ACTIVE: 'Còn hợp tác', INACTIVE: 'Ngừng hợp tác' }, { ACTIVE: 150, INACTIVE: 'neutral' }),
+  },
+  {
     id: 'sales-order',
     label: 'Trạng thái đơn hàng bán',
     hint: 'Cột Trạng thái của Đơn hàng bán.',

@@ -1,28 +1,96 @@
 <div class="page-header">
   <div>
     <h1>Đơn hàng bán</h1>
-    <p class="subtitle">{{ data.salesOrders().length }} đơn</p>
+    <p class="subtitle">{{ orders().length }} đơn</p>
   </div>
   <div class="toolbar">
-    <button class="btn">Xuất Excel</button>
-    <a class="btn btn-primary" routerLink="/don-hang/them">+ Lập đơn hàng</a>
+    <button type="button" class="btn" [disabled]="exporting()" (click)="exportExcel()">
+      <app-nav-icon name="download" />{{ exporting() ? 'Đang xuất…' : 'Xuất Excel' }}
+    </button>
+    <a class="btn btn-primary" routerLink="/don-hang/them-moi"><app-nav-icon name="plus" />Lập đơn hàng</a>
   </div>
 </div>
 
 <div class="filters-bar">
-  <input type="text" placeholder="Tìm mã đơn, khách hàng, người nhận, mặt hàng..." class="filter-search" />
-  <select><option>Trạng thái</option></select>
-  <select><option>Thẻ</option></select>
-  <select><option>Chọn kỳ</option></select>
-  <select><option>Nhân viên bán</option></select>
-  <select><option>Người lập</option></select>
-  <select><option>Giá trị đơn</option></select>
-  <select><option>Mới nhất</option></select>
+  <input
+    type="text"
+    class="filter-search"
+    placeholder="Tìm mã đơn, khách hàng, người nhận, mặt hàng…"
+    aria-label="Tìm đơn hàng"
+    [value]="search()"
+    (input)="search.set($any($event.target).value)"
+  />
+  <app-filter-multi-select label="Trạng thái" [options]="statusOptions()" [searchable]="true" [(selected)]="statuses" />
+  <app-filter-multi-select label="Thẻ" [options]="tagOptions()" [(selected)]="tags" />
+  <app-period-filter [(value)]="period" />
+  <app-filter-multi-select label="Nhân viên bán" [options]="userOptions()" [(selected)]="reps" />
+  <app-filter-multi-select label="Người lập" [options]="userOptions()" [(selected)]="createdBy" />
+  <app-range-filter label="Giá trị đơn" [(value)]="value" />
+  <button type="button" class="filter-toggle" [attr.aria-pressed]="lateOnly()" (click)="lateOnly.set(!lateOnly())">Trễ hẹn giao</button>
+  <select aria-label="Sắp xếp" [value]="sort()" (change)="sort.set($any($event.target).value)">
+    @for (s of sorts; track s.value) {
+      <option [value]="s.value">{{ s.label }}</option>
+    }
+  </select>
 </div>
+
+@if (chips().length) {
+  <div class="filter-chips" aria-label="Bộ lọc đang áp dụng">
+    @for (c of chips(); track c.label) {
+      <span class="filter-chip">
+        {{ c.label }}
+        <button type="button" class="filter-chip-remove" [attr.aria-label]="'Bỏ lọc ' + c.label" (click)="c.clear()">
+          <app-nav-icon name="x" />
+        </button>
+      </span>
+    }
+    <button type="button" class="filter-clear-all" (click)="clearAll()"><app-nav-icon name="x" />Xoá tất cả bộ lọc</button>
+  </div>
+}
+
+@if (orders().length) {
+  <dl class="list-totals">
+    <div><dt>Tổng giá trị đơn</dt><dd class="num">{{ money(totals().value) }}</dd></div>
+    <div><dt>Khách đã nhận</dt><dd class="num">{{ money(totals().received) }}</dd></div>
+    <div><dt>Còn chờ giao</dt><dd class="num">{{ money(totals().pending) }}</dd></div>
+    @if (totals().late) {
+      <div><dt>Trễ hẹn giao</dt><dd class="num text-danger">{{ totals().late }} đơn</dd></div>
+    }
+  </dl>
+}
 
 <app-data-table
   [columns]="columns"
-  [rows]="data.salesOrders()"
-  emptyTitle="Chưa có đơn hàng nào"
-  emptyHint="Lập đơn để bắt đầu bán hàng. Công nợ phải thu chỉ ghi khi khách thực nhận hàng."
+  [rows]="pagedOrders()"
+  [actions]="rowActions"
+  [filterable]="true"
+  [filters]="columnFilters()"
+  (filtersChange)="columnFilters.set($event)"
+  [optionRows]="data.salesOrders()"
+  [emptyAction]="chips().length || search() ? clearCta : createCta"
+  [emptyTitle]="chips().length || search() ? 'Không tìm thấy đơn nào' : 'Chưa có đơn hàng nào'"
+  [emptyHint]="chips().length || search() ? 'Thử bỏ bớt bộ lọc hoặc mở rộng khoảng ngày.' : 'Lập đơn để bắt đầu bán hàng. Công nợ phải thu chỉ ghi khi khách thực nhận hàng.'"
 />
+
+<app-pagination [total]="orders().length" unit="đơn" [(page)]="page" [(pageSize)]="pageSize" />
+
+<ng-template #createCta>
+  <a class="btn btn-primary" routerLink="/don-hang/them-moi"><app-nav-icon name="plus" />Lập đơn hàng</a>
+</ng-template>
+
+<ng-template #clearCta>
+  <button type="button" class="btn" (click)="clearAll(); search.set('')"><app-nav-icon name="x" />Xoá tất cả bộ lọc</button>
+</ng-template>
+
+<ng-template #rowActions let-o>
+  <span class="row-actions">
+    @if (canEdit(o)) {
+      <a class="icon-action" [routerLink]="['/don-hang', o.id, 'sua']" [attr.aria-label]="'Sửa ' + o.code" title="Sửa">
+        <app-nav-icon name="pencil" />
+      </a>
+    }
+    <a class="icon-action" [routerLink]="['/don-hang', o.id]" [attr.aria-label]="'Xem chi tiết ' + o.code" title="Xem chi tiết">
+      <app-nav-icon name="eye" />
+    </a>
+  </span>
+</ng-template>

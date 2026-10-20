@@ -1,0 +1,70 @@
+// Khách hàng — form. Shared form pieces (.field, .form-grid-3, .form-actions-bar) live in styles.scss.
+
+.cf-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-2xs);
+}
+
+.cf-section-head .form-section-title {
+  margin: 0;
+}
+
+.cf-addr-hint {
+  display: block;
+  margin: 0 0 var(--space-xs);
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+// Repeating row = bordered paper well (design.md › Forms).
+.cf-addr {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1fr) minmax(9rem, 1fr) minmax(8rem, 0.8fr) minmax(16rem, 2.2fr) auto auto;
+  gap: 0 var(--space-sm);
+  align-items: end;
+  margin-bottom: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border: var(--rule-hair) solid var(--color-rule);
+  border-radius: var(--radius-control);
+  background: var(--color-paper);
+}
+
+.cf-addr.is-default {
+  border-color: var(--color-rule-strong);
+}
+
+.cf-addr .field {
+  margin-bottom: 0;
+}
+
+.cf-default {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--control-h);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  .cf-addr {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-2xs) var(--space-sm);
+  }
+
+  .cf-addr-main {
+    grid-column: 1 / -1;
+  }
+}
+
+.danger-action {
+  @media (hover: hover) {
+    &:hover {
+      color: var(--color-danger);
+      background: var(--color-danger-tint);
+    }
+  }
+}

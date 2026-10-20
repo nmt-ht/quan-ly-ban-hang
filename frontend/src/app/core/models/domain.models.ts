@@ -92,6 +92,9 @@ export interface WarehouseVoucher {
   createdBy: string;
   isCancelled: boolean;
   lines?: WarehouseVoucherLine[];
+  purchaseOrderId?: string; // phiếu nhập lập từ "Nhận hàng" của đơn nhập
+  salesOrderId?: string; // phiếu xuất lập từ "Giao hàng" của đơn bán
+  productionOrderId?: string; // phiếu xuất vật tư / nhập thành phẩm của lệnh sản xuất
 }
 
 export interface WarehouseVoucherLine {
@@ -110,6 +113,9 @@ export interface ProductionOrder {
   quantity: number;
   status: ProductionOrderStatus;
   createdDate: string;
+  startDate?: string;
+  completeDate?: string;
+  cancelReason?: string;
 }
 
 export interface Supplier {
@@ -117,21 +123,36 @@ export interface Supplier {
   code: string;
   name: string;
   contactPhone?: string;
+  email?: string;
   taxCode?: string;
   address?: string;
-  creditAllowed: boolean;
-  productCount: number;
-  purchaseOrderCount: number;
+  /** Số ngày được nợ: hạn thanh toán = ngày nhập kho + số ngày này (0 = trả ngay). */
+  creditDays: number;
+  note?: string;
   isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/** Danh mục hàng theo NCC — một mặt hàng có thể do nhiều NCC cung cấp với giá khác nhau. */
+export interface SupplierProduct {
+  supplierId: string;
+  productId: string;
+  supplierCode?: string; // mã hàng theo NCC
+  purchasePrice: number; // giá mua, theo đơn vị cơ bản
 }
 
 export type PurchaseOrderStatus = 'NHAP' | 'DA_GUI_NCC' | 'NHAN_MOT_PHAN' | 'DA_NHAN_DU' | 'HOAN_TAT' | 'HUY';
 
 export interface PurchaseOrderLine {
   productId: string;
-  quantity: number;
-  unitPrice: number;
-  receivedQuantity: number;
+  quantity: number; // in unitName (defaults to the product's base unit)
+  unitPrice: number; // per unitName
+  receivedQuantity: number; // in unitName
+  unitName?: string; // ordering in a conversion unit (e.g. Bó); undefined = base unit
+  ratioToBase?: number; // base units per unitName; undefined = 1
+  vatRate?: number; // % thuế GTGT; undefined = 0 (orders created before VAT lines)
+  warehouseId?: string; // kho nhập dự kiến
 }
 
 export interface PurchaseOrder {
@@ -145,6 +166,10 @@ export interface PurchaseOrder {
   lines: PurchaseOrderLine[];
   receivedValue: number; // giá trị hàng đã nhận thực tế = công nợ phải trả
   receivedDate?: string;
+  note?: string;
+  sentDate?: string; // ngày gửi NCC
+  cancelReason?: string;
+  updatedAt?: string;
 }
 
 export interface Customer {
@@ -161,8 +186,20 @@ export interface Customer {
   companyTaxCode?: string;
   note?: string;
   tagIds: string[];
-  orderCount: number;
-  isActive: boolean;
+  orderCount?: number; // legacy; the UI derives it from salesOrders
+  isActive: boolean; // Đang theo dõi
+  createdAt?: string;
+  updatedAt?: string;
+  addresses?: CustomerAddress[]; // địa chỉ giao hàng
+}
+
+export interface CustomerAddress {
+  id: string;
+  label?: string; // Nhà riêng, Cửa hàng, Kho…
+  recipientName?: string;
+  phone?: string;
+  address: string;
+  isDefault: boolean;
 }
 
 export type SalesOrderStatus =
@@ -172,12 +209,18 @@ export type SalesOrderStatus =
 export interface SalesOrderLine {
   id: string;
   productId: string;
-  unit: string;
-  quantity: number;
-  unitPrice: number;
-  lineTotal: number;
-  receivedQuantity?: number; // khách thực nhận
-  length?: number;
+  unit: string; // ĐVT bán (đơn vị chính hoặc đơn vị quy đổi)
+  unitName?: string; // set when selling in a conversion unit (Bó, Thùng…)
+  ratioToBase?: number; // base units in 1 unit of this line (default 1)
+  quantity: number; // theo ĐVT của dòng
+  unitPrice: number; // theo ĐVT của dòng, chốt khi lưu
+  lineTotal: number; // thành tiền = SL × đơn giá (trước chiết khấu, trước thuế)
+  discountRate?: number; // % chiết khấu dòng (hiển thị)
+  discountAmount?: number; // tiền chiết khấu dòng
+  vatRate?: number; // % thuế GTGT
+  warehouseId?: string; // kho xuất
+  receivedQuantity?: number; // khách thực nhận, theo ĐVT của dòng
+  length?: number; // cm — thành phẩm cắt theo cỡ
   width?: number;
   note?: string;
 }
@@ -188,6 +231,7 @@ export interface SalesOrder {
   customerId: string;
   recipientName?: string;
   recipientPhone?: string;
+  deliveryAddress?: string; // địa chỉ giao hàng (chép từ danh sách điểm giao của khách hoặc gõ tay)
   description?: string;
   source?: string; // Zalo, Facebook, khách quen...
   tagIds: string[];
@@ -202,8 +246,12 @@ export interface SalesOrder {
   createdBy: string;
   tripId?: string;
   deliveredDate?: string;
-  receivedValue: number; // giá trị khách thực nhận (đã phân bổ chiết khấu) = công nợ phải thu
+  receivedValue: number; // giá trị khách thực nhận (đã phân bổ chiết khấu, gồm thuế) = công nợ phải thu
   dueDate?: string;
+  vatAmount?: number;
+  cancelReason?: string;
+  closedDate?: string; // "Kết thúc đơn": khách không lấy phần còn lại
+  updatedAt?: string;
 }
 
 export type DeliveryTripStatus = 'GOM_DON' | 'DA_XUAT_KHO' | 'XE_VE_KHO' | 'HOAN_TAT' | 'HUY';
@@ -256,8 +304,16 @@ export interface CashVoucher {
   amount: number;
   settledAmount: number;
   description?: string;
+  /** Đối trừ "Chọn tay": số tiền trừ vào từng chứng từ (mã đơn). Phần còn lại đối trừ cũ nhất trước. */
+  allocations?: CashAllocation[];
   isCancelled: boolean;
   createdBy: string;
+  createdAt?: string;
+}
+
+export interface CashAllocation {
+  ref: string; // mã chứng từ công nợ (DN…/DH…)
+  amount: number;
 }
 
 export interface DebtAgingBucket {

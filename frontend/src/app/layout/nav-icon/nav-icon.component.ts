@@ -47,7 +47,9 @@ export type NavIconName =
   | 'moon'
   | 'monitor'
   | 'log-out'
-  | 'chevron-down';
+  | 'chevron-down'
+  | 'calendar'
+  | 'printer';
 
 // Hand-drawn 24px line icons (stroke = currentColor) — one set for the whole app.
 @Component({
@@ -260,6 +262,15 @@ export type NavIconName =
         @case ('log-out') {
           <path d="M14.5 4H18a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3.5" />
           <path d="M10 16.5 5.5 12 10 7.5M5.5 12h10" />
+        }
+        @case ('printer') {
+          <path d="M7 8.5V3.5h10v5" />
+          <rect x="3.5" y="8.5" width="17" height="8" rx="2" />
+          <path d="M7 14h10v6.5H7z" />
+        }
+        @case ('calendar') {
+          <rect x="3.5" y="5" width="17" height="15.5" rx="2" />
+          <path d="M3.5 10h17M8 3v4M16 3v4" />
         }
         @case ('chevron-down') {
           <path d="M6 9.5l6 6 6-6" />

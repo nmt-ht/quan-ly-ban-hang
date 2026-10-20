@@ -1,5 +1,5 @@
 import {
-  DeliveryTripStatus, ProductionOrderStatus, ProductType, PurchaseOrderStatus, SalesOrderStatus,
+  CustomerType, DeliveryTripStatus, ProductionOrderStatus, ProductType, PurchaseOrderStatus, SalesOrderStatus,
 } from '../core/models/domain.models';
 import { tagClass } from './tag-class';
 
@@ -17,6 +17,12 @@ export const PRODUCT_TYPE_CLASS: Record<ProductType, string> = {
 };
 
 export const businessStatusClass = (isActive: boolean) => tagClass('business-status', isActive ? 'ACTIVE' : 'INACTIVE');
+export const CUSTOMER_TYPE_SHORT: Record<CustomerType, string> = { LE: 'Lẻ', SI: 'Sỉ', DROPSHIP: 'Dropship' };
+export const customerTypeClass = (t: CustomerType) => tagClass('customer-type', t);
+export const customerStatusClass = (isActive: boolean) => tagClass('customer-status', isActive ? 'ACTIVE' : 'INACTIVE');
+export const customerStatusLabel = (isActive: boolean) => (isActive ? 'Đang theo dõi' : 'Ngừng theo dõi');
+export const supplierStatusClass = (isActive: boolean) => tagClass('supplier-status', isActive ? 'ACTIVE' : 'INACTIVE');
+export const supplierStatusLabel = (isActive: boolean) => (isActive ? 'Còn hợp tác' : 'Ngừng hợp tác');
 export const salesOrderStatusClass = (s: SalesOrderStatus) => tagClass('sales-order', s);
 export const purchaseOrderStatusClass = (s: PurchaseOrderStatus) => tagClass('purchase-order', s);
 export const productionOrderStatusClass = (s: ProductionOrderStatus) => tagClass('production-order', s);

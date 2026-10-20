@@ -4,7 +4,7 @@
 // Toàn bộ dữ liệu là GIẢ, chỉ để thử giao diện.
 import type {
   Product, StockLevel, WarehouseVoucher, ProductionOrder, Supplier, PurchaseOrder, Customer, SalesOrder,
-  DeliveryTrip, Vehicle, CashAccount, CashVoucher, Tag, AppUser, BomLine,
+  DeliveryTrip, Vehicle, CashAccount, CashVoucher, Tag, AppUser, BomLine, SupplierProduct,
 } from '../models/domain.models';
 
 export const DEMO_TODAY = '2026-10-19';
@@ -3360,24 +3360,25 @@ export const DEMO_SUPPLIERS: Supplier[] = [
     "code": "NCC0000001",
     "name": "Công ty TNHH Gỗ Phú Thịnh",
     "contactPhone": "0901000101",
+    "email": "kinhdoanh@gophuthinh.demo",
     "taxCode": "0300000011",
     "address": "45 Đường số 7, KCN Vĩnh Lộc, TP.HCM",
-    "creditAllowed": true,
-    "productCount": 3,
-    "purchaseOrderCount": 2,
-    "isActive": true
+    "creditDays": 30,
+    "note": "Giao hàng thứ 3 và thứ 6 hằng tuần.",
+    "isActive": true,
+    "createdAt": "2026-08-01T02:00:00.000Z"
   },
   {
     "id": "ncc-2",
     "code": "NCC0000002",
     "name": "Nhôm Việt Phát",
     "contactPhone": "0901000102",
+    "email": "banhang@nhomvietphat.demo",
     "taxCode": "0300000012",
     "address": "18 Quốc lộ 1A, Bình Tân, TP.HCM",
-    "creditAllowed": true,
-    "productCount": 2,
-    "purchaseOrderCount": 2,
-    "isActive": true
+    "creditDays": 30,
+    "isActive": true,
+    "createdAt": "2026-08-01T02:00:00.000Z"
   },
   {
     "id": "ncc-3",
@@ -3386,10 +3387,10 @@ export const DEMO_SUPPLIERS: Supplier[] = [
     "contactPhone": "0901000103",
     "taxCode": "0300000013",
     "address": "112 Nguyễn Văn Linh, Quận 7, TP.HCM",
-    "creditAllowed": true,
-    "productCount": 3,
-    "purchaseOrderCount": 2,
-    "isActive": true
+    "creditDays": 15,
+    "note": "Kính cắt theo khổ yêu cầu, báo trước 2 ngày.",
+    "isActive": true,
+    "createdAt": "2026-08-01T02:00:00.000Z"
   },
   {
     "id": "ncc-4",
@@ -3398,10 +3399,9 @@ export const DEMO_SUPPLIERS: Supplier[] = [
     "contactPhone": "0901000104",
     "taxCode": "0300000014",
     "address": "9 Lý Chiêu Hoàng, Quận 6, TP.HCM",
-    "creditAllowed": false,
-    "productCount": 7,
-    "purchaseOrderCount": 2,
-    "isActive": true
+    "creditDays": 0,
+    "isActive": true,
+    "createdAt": "2026-08-01T02:00:00.000Z"
   },
   {
     "id": "ncc-5",
@@ -3409,10 +3409,99 @@ export const DEMO_SUPPLIERS: Supplier[] = [
     "name": "Xưởng gỗ Tư Hiển",
     "contactPhone": "0901000105",
     "address": "Ấp 3, Bình Chánh, TP.HCM",
-    "creditAllowed": false,
-    "productCount": 1,
-    "purchaseOrderCount": 1,
-    "isActive": false
+    "creditDays": 0,
+    "note": "Ngừng hợp tác từ 08/2026 do giao hàng trễ.",
+    "isActive": false,
+    "createdAt": "2026-08-01T02:00:00.000Z"
+  }
+];
+export const DEMO_SUPPLIER_PRODUCTS: SupplierProduct[] = [
+  {
+    "supplierId": "ncc-1",
+    "productId": "vt-nep-soi",
+    "purchasePrice": 39000
+  },
+  {
+    "supplierId": "ncc-1",
+    "productId": "vt-nep-oc-cho",
+    "purchasePrice": 73000
+  },
+  {
+    "supplierId": "ncc-1",
+    "productId": "vt-go-tho",
+    "purchasePrice": 30000
+  },
+  {
+    "supplierId": "ncc-2",
+    "productId": "vt-nhom-vang",
+    "purchasePrice": 47000
+  },
+  {
+    "supplierId": "ncc-2",
+    "productId": "vt-nhom-den",
+    "purchasePrice": 52000
+  },
+  {
+    "supplierId": "ncc-3",
+    "productId": "vt-kinh-3ly",
+    "purchasePrice": 168000
+  },
+  {
+    "supplierId": "ncc-3",
+    "productId": "vt-mica-2ly",
+    "purchasePrice": 425000
+  },
+  {
+    "supplierId": "ncc-3",
+    "productId": "vt-hau-mdf",
+    "purchasePrice": 96000
+  },
+  {
+    "supplierId": "ncc-4",
+    "productId": "vt-moc-treo",
+    "supplierCode": "MT-001",
+    "purchasePrice": 600
+  },
+  {
+    "supplierId": "ncc-4",
+    "productId": "vt-dinh-ghim",
+    "supplierCode": "MT-002",
+    "purchasePrice": 28000
+  },
+  {
+    "supplierId": "ncc-4",
+    "productId": "vt-day-thep",
+    "supplierCode": "MT-003",
+    "purchasePrice": 22000
+  },
+  {
+    "supplierId": "ncc-4",
+    "productId": "vt-kep-kinh",
+    "supplierCode": "MT-004",
+    "purchasePrice": 3500
+  },
+  {
+    "supplierId": "ncc-4",
+    "productId": "vt-keo-dan",
+    "supplierCode": "MT-005",
+    "purchasePrice": 42000
+  },
+  {
+    "supplierId": "ncc-4",
+    "productId": "vt-den-led",
+    "supplierCode": "MT-006",
+    "purchasePrice": 95000
+  },
+  {
+    "supplierId": "ncc-4",
+    "productId": "vt-ve-sinh-kinh",
+    "supplierCode": "MT-007",
+    "purchasePrice": 18000
+  },
+  {
+    "supplierId": "ncc-5",
+    "productId": "vt-go-tho",
+    "purchasePrice": 31000
   }
 ];
 export const DEMO_PURCHASE_ORDERS: PurchaseOrder[] = [
@@ -3676,7 +3765,16 @@ export const DEMO_CUSTOMERS: Customer[] = [
       "tag-quen"
     ],
     "orderCount": 3,
-    "isActive": true
+    "isActive": true,
+    "createdAt": "2026-08-01T02:00:00.000Z",
+    "addresses": [
+      {
+        "id": "kh-01-dc1",
+        "label": "Nhà riêng",
+        "address": "25 Trần Hưng Đạo, Phường 1, Quận 5, TP.HCM",
+        "isDefault": true
+      }
+    ]
   },
   {
     "id": "kh-02",
@@ -3687,7 +3785,9 @@ export const DEMO_CUSTOMERS: Customer[] = [
     "phone": "0912000002",
     "tagIds": [],
     "orderCount": 2,
-    "isActive": true
+    "isActive": true,
+    "createdAt": "2026-08-01T02:00:00.000Z",
+    "addresses": []
   },
   {
     "id": "kh-03",
@@ -3704,7 +3804,26 @@ export const DEMO_CUSTOMERS: Customer[] = [
       "tag-si"
     ],
     "orderCount": 3,
-    "isActive": true
+    "isActive": true,
+    "createdAt": "2026-08-01T02:00:00.000Z",
+    "addresses": [
+      {
+        "id": "kh-03-dc1",
+        "label": "Cửa hàng",
+        "address": "88 Lê Văn Sỹ, Phường 13, Quận 3, TP.HCM",
+        "recipientName": "Lê Ánh Dương",
+        "phone": "0912000003",
+        "isDefault": true
+      },
+      {
+        "id": "kh-03-dc2",
+        "label": "Kho",
+        "address": "12/4 Bùi Quang Là, Phường 12, Gò Vấp, TP.HCM",
+        "recipientName": "Anh Tài (thủ kho)",
+        "phone": "0912100003",
+        "isDefault": false
+      }
+    ]
   },
   {
     "id": "kh-04",
@@ -3721,7 +3840,17 @@ export const DEMO_CUSTOMERS: Customer[] = [
       "tag-si"
     ],
     "orderCount": 3,
-    "isActive": true
+    "isActive": true,
+    "createdAt": "2026-08-01T02:00:00.000Z",
+    "addresses": [
+      {
+        "id": "kh-04-dc1",
+        "label": "Studio",
+        "address": "41 Nguyễn Thị Minh Khai, Phường Bến Nghé, Quận 1, TP.HCM",
+        "recipientName": "Phạm Hồng Phúc",
+        "isDefault": true
+      }
+    ]
   },
   {
     "id": "kh-05",
@@ -3734,7 +3863,9 @@ export const DEMO_CUSTOMERS: Customer[] = [
       "tag-shopee"
     ],
     "orderCount": 2,
-    "isActive": true
+    "isActive": true,
+    "createdAt": "2026-08-01T02:00:00.000Z",
+    "addresses": []
   },
   {
     "id": "kh-06",
@@ -3748,7 +3879,9 @@ export const DEMO_CUSTOMERS: Customer[] = [
       "tag-shopee"
     ],
     "orderCount": 2,
-    "isActive": true
+    "isActive": true,
+    "createdAt": "2026-08-01T02:00:00.000Z",
+    "addresses": []
   },
   {
     "id": "kh-07",
@@ -3764,7 +3897,18 @@ export const DEMO_CUSTOMERS: Customer[] = [
       "tag-si"
     ],
     "orderCount": 2,
-    "isActive": true
+    "isActive": true,
+    "createdAt": "2026-08-01T02:00:00.000Z",
+    "addresses": [
+      {
+        "id": "kh-07-dc1",
+        "label": "Khách sạn",
+        "address": "9 Hoàng Diệu, Phường 12, Quận 4, TP.HCM",
+        "recipientName": "Lễ tân Hoa Sen",
+        "phone": "0283900007",
+        "isDefault": true
+      }
+    ]
   },
   {
     "id": "kh-08",
@@ -3776,7 +3920,17 @@ export const DEMO_CUSTOMERS: Customer[] = [
     "phone": "0912000008",
     "tagIds": [],
     "orderCount": 2,
-    "isActive": true
+    "isActive": true,
+    "createdAt": "2026-08-01T02:00:00.000Z",
+    "addresses": [
+      {
+        "id": "kh-08-dc1",
+        "label": "Trường",
+        "address": "150 Phan Văn Trị, Phường 5, Gò Vấp, TP.HCM",
+        "recipientName": "Cô Cúc",
+        "isDefault": true
+      }
+    ]
   },
   {
     "id": "kh-09",
@@ -3789,7 +3943,9 @@ export const DEMO_CUSTOMERS: Customer[] = [
       "tag-quen"
     ],
     "orderCount": 3,
-    "isActive": true
+    "isActive": true,
+    "createdAt": "2026-08-01T02:00:00.000Z",
+    "addresses": []
   },
   {
     "id": "kh-10",
@@ -3804,7 +3960,16 @@ export const DEMO_CUSTOMERS: Customer[] = [
       "tag-si"
     ],
     "orderCount": 2,
-    "isActive": true
+    "isActive": true,
+    "createdAt": "2026-08-01T02:00:00.000Z",
+    "addresses": [
+      {
+        "id": "kh-10-dc1",
+        "label": "Phòng tranh",
+        "address": "7 Đồng Khởi, Phường Bến Nghé, Quận 1, TP.HCM",
+        "isDefault": true
+      }
+    ]
   },
   {
     "id": "kh-11",
@@ -3816,7 +3981,9 @@ export const DEMO_CUSTOMERS: Customer[] = [
     "note": "Không còn liên lạc được.",
     "tagIds": [],
     "orderCount": 0,
-    "isActive": false
+    "isActive": false,
+    "createdAt": "2026-08-01T02:00:00.000Z",
+    "addresses": []
   },
   {
     "id": "kh-12",
@@ -3830,7 +3997,18 @@ export const DEMO_CUSTOMERS: Customer[] = [
       "tag-si"
     ],
     "orderCount": 2,
-    "isActive": true
+    "isActive": true,
+    "createdAt": "2026-08-01T02:00:00.000Z",
+    "addresses": [
+      {
+        "id": "kh-12-dc1",
+        "label": "Nhà hàng",
+        "address": "2 Tôn Đức Thắng, Phường Bến Nghé, Quận 1, TP.HCM",
+        "recipientName": "Quản lý ca",
+        "phone": "0912100012",
+        "isDefault": true
+      }
+    ]
   }
 ];
 export const DEMO_SALES_ORDERS: SalesOrder[] = [

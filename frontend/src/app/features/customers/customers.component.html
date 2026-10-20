@@ -1,19 +1,91 @@
 <div class="page-header">
   <div>
     <h1>Khách hàng</h1>
-    <p class="subtitle">{{ data.customers().length }} khách hàng</p>
+    <p class="subtitle">{{ customers().length }} khách hàng</p>
   </div>
   <div class="toolbar">
-    <button class="btn">Xuất Excel</button>
-    <a class="btn btn-primary" routerLink="/khach-hang/them">+ Thêm khách hàng</a>
+    <button type="button" class="btn" [disabled]="exporting()" (click)="exportExcel()">
+      <app-nav-icon name="download" />{{ exporting() ? 'Đang xuất…' : 'Xuất Excel' }}
+    </button>
+    <a class="btn btn-primary" routerLink="/khach-hang/them-moi"><app-nav-icon name="plus" />Thêm khách hàng</a>
   </div>
 </div>
 
 <div class="filters-bar">
-  <input type="text" placeholder="Tìm theo tên, mã, điện thoại, mã số..." class="filter-search" />
-  <select><option>Loại khách</option></select>
-  <select><option>Thẻ</option></select>
-  <select><option>Tất cả trạng thái</option></select>
+  <input
+    type="text"
+    class="filter-search"
+    placeholder="Tìm theo tên, mã, điện thoại, mã số thuế…"
+    aria-label="Tìm khách hàng"
+    [value]="search()"
+    (input)="search.set($any($event.target).value)"
+  />
+  <app-filter-multi-select label="Loại khách" [options]="typeOptions()" [(selected)]="types" />
+  <app-filter-multi-select label="Thẻ" [options]="tagOptions()" [(selected)]="tags" />
+  <select aria-label="Trạng thái" [value]="status()" (change)="status.set($any($event.target).value)">
+    <option value="all">Tất cả trạng thái ({{ statusCounts().all }})</option>
+    <option value="active">Đang theo dõi ({{ statusCounts().active }})</option>
+    <option value="inactive">Ngừng theo dõi ({{ statusCounts().inactive }})</option>
+  </select>
+  <button type="button" class="filter-toggle" [attr.aria-pressed]="owing()" (click)="owing.set(!owing())">Còn công nợ</button>
+  <select aria-label="Sắp xếp" [value]="sort()" (change)="sort.set($any($event.target).value)">
+    @for (s of sorts; track s.value) {
+      <option [value]="s.value">{{ s.label }}</option>
+    }
+  </select>
 </div>
 
-<app-data-table [columns]="columns" [rows]="data.customers()" emptyTitle="Chưa có khách hàng nào" />
+@if (chips().length) {
+  <div class="filter-chips" aria-label="Bộ lọc đang áp dụng">
+    @for (c of chips(); track c.label) {
+      <span class="filter-chip">
+        {{ c.label }}
+        <button type="button" class="filter-chip-remove" [attr.aria-label]="'Bỏ lọc ' + c.label" (click)="c.clear()">
+          <app-nav-icon name="x" />
+        </button>
+      </span>
+    }
+    <button type="button" class="filter-clear-all" (click)="clearAll()"><app-nav-icon name="x" />Xoá tất cả bộ lọc</button>
+  </div>
+}
+
+@if (customers().length) {
+  <dl class="list-totals">
+    <div><dt>Tổng phải thu</dt><dd class="num">{{ money(totals().receivable) }}</dd></div>
+    <div><dt>Trong đó quá hạn</dt><dd class="num" [class.text-danger]="totals().overdue > 0">{{ money(totals().overdue) }}</dd></div>
+    <div><dt>Doanh số (khách đã nhận)</dt><dd class="num">{{ money(totals().revenue) }}</dd></div>
+  </dl>
+}
+
+<app-data-table
+  [columns]="columns"
+  [rows]="pagedCustomers()"
+  [actions]="rowActions"
+  [filterable]="true"
+  [filters]="columnFilters()"
+  (filtersChange)="columnFilters.set($event)"
+  [optionRows]="data.customers()"
+  [emptyAction]="chips().length || search() ? null : createCta"
+  [emptyTitle]="chips().length || search() ? 'Không có khách hàng phù hợp' : 'Chưa có khách hàng nào'"
+  [emptyHint]="chips().length || search() ? 'Thử bỏ bớt bộ lọc hoặc đổi từ khoá tìm kiếm.' : 'Thêm khách hàng để lên đơn bán và theo dõi công nợ phải thu.'"
+/>
+
+<app-pagination [total]="customers().length" unit="khách hàng" [(page)]="page" [(pageSize)]="pageSize" />
+
+<ng-template #createCta>
+  <a class="btn btn-primary" routerLink="/khach-hang/them-moi"><app-nav-icon name="plus" />Thêm khách hàng</a>
+</ng-template>
+
+<ng-template #rowActions let-c>
+  <span class="row-actions">
+    <a class="icon-action" routerLink="/thu-chi/lap/thu" [queryParams]="{ customerId: c.id, back: '/khach-hang' }" [attr.aria-label]="'Lập phiếu thu của ' + c.name" title="Lập phiếu thu">
+      <app-nav-icon name="cash" />
+    </a>
+    <a class="icon-action" [routerLink]="['/khach-hang', c.id, 'sua']" [attr.aria-label]="'Sửa ' + c.name" title="Sửa">
+      <app-nav-icon name="pencil" />
+    </a>
+    <a class="icon-action" [routerLink]="['/khach-hang', c.id]" [attr.aria-label]="'Xem chi tiết ' + c.name" title="Xem chi tiết">
+      <app-nav-icon name="eye" />
+    </a>
+  </span>
+</ng-template>

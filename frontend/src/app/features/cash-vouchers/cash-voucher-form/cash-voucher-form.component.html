@@ -1,0 +1,182 @@
+<form class="cv" (ngSubmit)="save()" novalidate>
+  <header class="cv-bar">
+    <a class="icon-action" [routerLink]="cancelLink()" [queryParams]="cancelQuery()" aria-label="Quay lại" title="Quay lại"><app-nav-icon name="arrow-left" /></a>
+    <h1>{{ text().title }}</h1>
+  </header>
+
+  <section class="card cv-head">
+    <div class="cv-fields">
+      <div class="field">
+        <label for="cv-cat">{{ kind() === 'CHI' ? 'Loại chi' : 'Loại thu' }} <span class="required-mark">*</span></label>
+        <select id="cv-cat" name="category" [ngModel]="categoryCode()" (ngModelChange)="onCategoryChange($event)">
+          @for (c of categories(); track c.code) {
+            <option [value]="c.code">{{ c.name }}</option>
+          }
+        </select>
+        <span class="hint">{{ category().hint }}</span>
+      </div>
+      <div class="field">
+        <label for="cv-date">Ngày phiếu <span class="required-mark">*</span></label>
+        <input id="cv-date" type="date" name="date" [ngModel]="date()" (ngModelChange)="date.set($event)"
+          [attr.aria-invalid]="attempted() && !date() ? 'true' : null" />
+      </div>
+      <div class="field">
+        <span class="field-label">Số phiếu</span>
+        <p class="field-value num">Tự sinh khi lưu</p>
+      </div>
+
+      @if (needsPartner()) {
+        <div class="field span-2">
+          <label for="cv-partner">{{ text().partner }} <span class="required-mark">*</span></label>
+          <select id="cv-partner" name="partner" [ngModel]="partnerId()" (ngModelChange)="onPartnerChange($event)"
+            [attr.aria-invalid]="attempted() && !partnerId() ? 'true' : null">
+            <option value="">— {{ text().partnerPick }} —</option>
+            @for (p of partners(); track p.id) {
+              <option [value]="p.id">{{ p.code }} — {{ p.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <span class="field-label">Mã số thuế</span>
+          <p class="field-value num">{{ partner()?.taxCode || '—' }}</p>
+        </div>
+      }
+
+      <div class="field">
+        <label for="cv-amount">Số tiền <span class="required-mark">*</span></label>
+        <input id="cv-amount" type="text" appMoney name="amount" placeholder="0" class="cv-money"
+          [disabled]="needsPartner() && !partnerId()"
+          [attr.aria-invalid]="attempted() && !((amount() ?? 0) > 0) ? 'true' : null"
+          [ngModel]="amount()" (ngModelChange)="amount.set($event)" />
+        @if (needsPartner() && !partnerId()) {
+          <span class="hint">{{ text().partnerPick }} trước</span>
+        } @else if (openTotal() > 0 && amount() !== openTotal()) {
+          <button type="button" class="link-btn cv-quick" (click)="payAll()">
+            {{ kind() === 'CHI' ? 'Trả hết nợ' : 'Thu hết nợ' }} {{ money(openTotal()) }}
+          </button>
+        }
+      </div>
+      <div class="field span-2">
+        <label for="cv-account">{{ text().account }} <span class="required-mark">*</span></label>
+        <select id="cv-account" name="account" [ngModel]="accountId()" (ngModelChange)="accountId.set($event)">
+          @for (a of accounts(); track a.id) {
+            <option [value]="a.id">{{ a.name }} · {{ accountTypeLabel[a.type] }} — số dư {{ money(a.balance) }}</option>
+          }
+        </select>
+        @if (overdraw() !== null) {
+          <span class="hint text-warning">Số tiền chi lớn hơn số dư hiện tại ({{ money(overdraw()!) }}) — số dư tài khoản sẽ âm.</span>
+        }
+      </div>
+
+      <div class="field span-3">
+        <label for="cv-desc">Diễn giải</label>
+        <input id="cv-desc" type="text" name="description" [placeholder]="text().descPlaceholder"
+          [ngModel]="description()" (ngModelChange)="description.set($event)" />
+      </div>
+    </div>
+
+    <aside class="cv-summary" [attr.aria-label]="text().debt">
+      <p class="summary-label">{{ text().debt }}</p>
+      @if (!needsPartner()) {
+        <p class="summary-sub">{{ category().name }} không gắn đối tác — chỉ ghi sổ quỹ.</p>
+      } @else if (!partner()) {
+        <p class="summary-sub">{{ text().debtHint }}</p>
+      } @else {
+        <p class="summary-total num">{{ money(debtRow()?.balance ?? 0) }}</p>
+        <p class="summary-sub">
+          @if ((debtRow()?.overdue ?? 0) > 0) {
+            <span class="text-danger">Quá hạn {{ money(debtRow()!.overdue) }}</span> ·
+          }
+          {{ openItems().length }} khoản còn mở
+          @if ((debtRow()?.prepaid ?? 0) > 0) { · đã trả trước {{ money(debtRow()!.prepaid) }} }
+        </p>
+        <dl class="cv-after">
+          <div><dt>Phiếu này đối trừ</dt><dd class="num">{{ money(allocated()) }}</dd></div>
+          <div><dt>Ghi nhận trả trước</dt><dd class="num">{{ money(prepaid()) }}</dd></div>
+          <div class="cv-after-total"><dt>Còn nợ sau phiếu</dt><dd class="num">{{ money(openTotal() - allocated()) }}</dd></div>
+        </dl>
+      }
+    </aside>
+  </section>
+
+  @if (needsPartner() && partner()) {
+    <section class="card cv-alloc" aria-labelledby="cv-alloc-title">
+      <div class="cv-alloc-head">
+        <h3 id="cv-alloc-title">Đối trừ công nợ</h3>
+        @if (openItems().length) {
+          <div class="segmented" role="radiogroup" aria-label="Cách đối trừ">
+            <button type="button" role="radio" [attr.aria-checked]="!manual()" (click)="setManual(false)">Tự động (cũ nhất trước)</button>
+            <button type="button" role="radio" [attr.aria-checked]="manual()" (click)="setManual(true)">Chọn tay</button>
+          </div>
+        }
+      </div>
+      @if (openItems().length) {
+        <p class="hint">
+          {{ text().allocHint }}
+          @if (manual()) { Phần tiền chưa chọn tay sẽ trừ tiếp vào khoản cũ nhất trước; còn dư mới ghi nhận trả trước. }
+        </p>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                @if (manual()) { <th scope="col" class="cv-check"><span class="visually-hidden">Chọn</span></th> }
+                <th scope="col">Chứng từ</th>
+                <th scope="col">Hạn thanh toán</th>
+                <th scope="col">Tình trạng</th>
+                <th scope="col" class="align-right">Còn nợ</th>
+                <th scope="col" class="align-right">Đối trừ lần này</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (i of openItems(); track i.ref) {
+                <tr>
+                  @if (manual()) {
+                    <td class="cv-check">
+                      <input type="checkbox" [checked]="isPicked(i.ref)" (change)="togglePick(i.ref, i.amount)" [attr.aria-label]="'Đối trừ ' + i.ref" />
+                    </td>
+                  }
+                  <td class="num">{{ i.ref }}</td>
+                  <td class="num">{{ day(i.dueDate) }}</td>
+                  <td [class.text-danger]="i.overdueDays > 0">
+                    {{ i.overdueDays > 0 ? 'Quá hạn ' + i.overdueDays + ' ngày' : i.overdueDays === 0 ? 'Đến hạn hôm nay' : 'Còn ' + -i.overdueDays + ' ngày' }}
+                  </td>
+                  <td class="num align-right">{{ money(i.amount) }}</td>
+                  <td class="num align-right">
+                    @if (manual() && isPicked(i.ref)) {
+                      <input type="text" appMoney class="cv-money cv-pick" [name]="'pick-' + i.ref" [attr.aria-label]="'Số đối trừ ' + i.ref"
+                        [attr.aria-invalid]="(picks()[i.ref] ?? 0) > i.amount ? 'true' : null"
+                        [ngModel]="picks()[i.ref]" (ngModelChange)="setPick(i.ref, $event)" />
+                      @if (autoPart().get(i.ref); as extra) {
+                        <span class="cv-extra">+ {{ money(extra) }} tự động</span>
+                      }
+                    } @else {
+                      {{ allocation().get(i.ref) ? money(allocation().get(i.ref)!) : '—' }}
+                    }
+                  </td>
+                </tr>
+              }
+              <tr class="row-total">
+                @if (manual()) { <td></td> }
+                <td colspan="3">Cộng</td>
+                <td class="num align-right">{{ money(openTotal()) }}</td>
+                <td class="num align-right">{{ money(allocated()) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <p class="form-note">{{ text().nothingOwed }}</p>
+      }
+    </section>
+  }
+
+  <div class="form-actions-bar">
+    <span class="hint" [class.text-danger]="attempted() && issues().length">
+      {{ issues()[0] ?? 'Kiểm tra lại rồi bấm ' + text().create }}
+    </span>
+    <div class="form-actions">
+      <a class="btn" [routerLink]="cancelLink()" [queryParams]="cancelQuery()">Huỷ</a>
+      <button type="submit" class="btn btn-primary"><app-nav-icon name="check" />{{ text().create }}</button>
+    </div>
+  </div>
+</form>

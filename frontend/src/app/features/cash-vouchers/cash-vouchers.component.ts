@@ -1,5 +1,7 @@
-import { Component, computed } from '@angular/core';
+import { Component, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
+import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { MockDataService } from '../../core/services/mock-data.service';
 import { DataTableComponent, DataTableColumn } from '../../shared/data-table/data-table.component';
 import { StatCardComponent } from '../../shared/stat-card/stat-card.component';
@@ -9,11 +11,12 @@ import { formatVnd, formatVndSigned } from '../../shared/format.util';
 @Component({
   selector: 'app-cash-vouchers',
   standalone: true,
-  imports: [CommonModule, DataTableComponent, StatCardComponent],
+  imports: [CommonModule, RouterLink, NavIconComponent, DataTableComponent, StatCardComponent],
   templateUrl: './cash-vouchers.component.html',
 })
 export class CashVouchersComponent {
   readonly formatVnd = formatVnd;
+  readonly notice = signal((history.state as { notice?: string } | null)?.notice ?? '');
 
   readonly totalThu = computed(() => this.data.cashVouchers().filter((v) => v.kind === 'THU').reduce((s, v) => s + v.amount, 0));
   readonly totalChi = computed(() => this.data.cashVouchers().filter((v) => v.kind === 'CHI').reduce((s, v) => s + v.amount, 0));

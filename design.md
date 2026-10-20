@@ -156,11 +156,58 @@ mix in a second icon library or emoji.
 - Theme is a personal preference (`core/services/theme.service.ts`, saved per
   browser, follows the OS when "Theo hệ thống").
 
+## Voucher screens (chứng từ, MISA-style) — reference: Đơn nhập hàng
+- The product is being remade to work like MISA. Business documents (đơn nhập,
+  later đơn bán, phiếu kho, phiếu thu chi) use ONE screen for lập / xem / sửa:
+  title bar (back · "Loại chứng từ SỐ" · copy · status badge) → header card
+  (4-col field grid; read-only values on paper-2 wells; right panel = status
+  box + big "Tổng tiền thanh toán") → tabs (lines · related vouchers) →
+  editable goods grid (#, hàng hoá picker, kho, ĐVT, SL, đơn giá, thành tiền,
+  % thuế, tiền thuế; "Cộng" row; paginated) → totals footer (Tổng tiền hàng /
+  Thuế GTGT / Tổng tiền thanh toán) → sticky action bar (left: first missing
+  thing; right: actions allowed by status).
+- No accounting-account columns (no chart of accounts yet).
+- Styles live in `shared/voucher/voucher.scss`; a voucher adds only its own
+  extras (e.g. Đơn hàng bán: Tỷ lệ CK % / Tiền CK, Dài × Rộng for thành phẩm,
+  Ghi chú per line, "Chiết khấu cả đơn" input in the totals footer).
+- Đơn hàng bán: header adds Bảng giá áp dụng (by loại khách) and Hạn thanh
+  toán; hand-typed prices carry a small warning dot and are not re-priced when
+  the customer changes. Status actions in the bar: Lập lệnh sản xuất →
+  Giao hàng (dialog, like Nhận hàng) → Lập phiếu thu / Kết thúc đơn.
+- Product choice uses `app-product-picker` (search, VT/SP/DV tag, code, stock).
+
 ## Detail pages
 - Header (title, code + copy, type/status badges, Sửa) then `role=tablist`
   tabs; the tab is kept in `?tab=`. Tabs appear only when they apply to the
   record (e.g. no Tồn kho / Lịch sử for Dịch vụ).
 - Codes in lists link to their detail page (`.code-link`).
+- Partner pages (reference: Nhà cung cấp): header actions = Danh sách · verb
+  for the next document ("Lập đơn nhập", carries `?ncc=` to pre-fill) ·
+  status switch ("Ngừng hợp tác" as `.btn-danger-ghost`, "Hợp tác lại") ·
+  primary Sửa. Status switches are not deletes; a quiet `.notice` says what
+  still happens (open orders keep receiving). Overview tab = field list left,
+  Công nợ panel right; Công nợ tab = open items with due/overdue + payments.
+
+## Debt pages (công nợ) — reference: Công nợ phải trả
+- List: totals line (Tổng · quá hạn · trả trước) + `.aging-strip` (stacked bar,
+  green → red by tuổi nợ) above the table; "Chỉ đối tác còn nợ" on by default.
+- Sổ chi tiết = same route with `?partnerId=`: big Số dư (all history), facts,
+  period filter → Số dư đầu kỳ / Cộng phát sinh / Số dư cuối kỳ rows; columns
+  Phát sinh tăng · giảm · Đã đối trừ · Còn lại · Hạn / tình trạng · Số dư.
+- Numbers come only from `DebtService` (one settle engine: chọn tay first, then
+  oldest due first); pages never re-derive balances.
+- Biên bản đối chiếu prints from the same data (`.print-only` block).
+- Vouchers opened from a page carry `?back=` and return there with a notice.
+
+## Record forms (thêm / sửa danh mục) — reference: Nhà cung cấp
+- One component for `/x/them` and `/x/:id/sua`; breadcrumb "Danh sách / MÃ / Sửa".
+- System code shown first as a locked field ("Tự sinh khi lưu" on create).
+- Inline messages under the field: `.hint.text-danger` blocks saving
+  (format, duplicate tax code); `.hint.text-warning` only warns (same name).
+- Sticky `.form-actions-bar`: left hint ("Điền thông tin rồi bấm Lưu" /
+  "Còn thông tin chưa hợp lệ"), right Huỷ + primary ("Tạo …" / "Lưu thay đổi").
+  On a failed save, focus moves to the first invalid field.
+- After saving, go to the detail page with a `history.state.notice`.
 
 ## What pages MUST share
 - The `NT` ink mark + "Ninh Trang" wordmark.

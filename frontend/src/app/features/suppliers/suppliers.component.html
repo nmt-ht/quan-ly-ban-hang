@@ -1,18 +1,98 @@
 <div class="page-header">
   <div>
     <h1>Nhà cung cấp</h1>
-    <p class="subtitle">{{ data.suppliers().length }} nhà cung cấp</p>
+    <p class="subtitle">{{ suppliers().length }} nhà cung cấp</p>
   </div>
   <div class="toolbar">
-    <button class="btn">Xuất Excel</button>
-    <button class="btn btn-primary">+ Thêm nhà cung cấp</button>
+    <button type="button" class="btn" [disabled]="exporting()" (click)="exportExcel()">
+      <app-nav-icon name="download" />{{ exporting() ? 'Đang xuất…' : 'Xuất Excel' }}
+    </button>
+    <a class="btn btn-primary" routerLink="/nha-cung-cap/them"><app-nav-icon name="plus" />Thêm nhà cung cấp</a>
   </div>
 </div>
 
 <div class="filters-bar">
-  <input type="text" placeholder="Tìm theo tên, mã, điện thoại, mã số thuế, địa chỉ..." class="filter-search" />
-  <select><option>Tất cả trạng thái</option></select>
-  <select><option>Tên A → Z</option></select>
+  <input
+    type="text"
+    class="filter-search"
+    placeholder="Tìm theo tên, mã, điện thoại, mã số thuế, địa chỉ…"
+    aria-label="Tìm nhà cung cấp"
+    [value]="search()"
+    (input)="search.set($any($event.target).value)"
+  />
+  <select aria-label="Trạng thái" [value]="status()" (change)="status.set($any($event.target).value)">
+    <option value="all">Tất cả trạng thái ({{ statusCounts().all }})</option>
+    <option value="active">Còn hợp tác ({{ statusCounts().active }})</option>
+    <option value="inactive">Ngừng hợp tác ({{ statusCounts().inactive }})</option>
+  </select>
+  <select aria-label="Điều kiện thanh toán" [value]="credit()" (change)="credit.set($any($event.target).value)">
+    <option value="all">Mọi điều kiện thanh toán</option>
+    <option value="credit">Được nợ</option>
+    <option value="cash">Trả ngay</option>
+  </select>
+  <button type="button" class="filter-toggle" [attr.aria-pressed]="owing()" (click)="owing.set(!owing())">Còn công nợ</button>
+  <select aria-label="Sắp xếp" [value]="sort()" (change)="sort.set($any($event.target).value)">
+    @for (s of sorts; track s.value) {
+      <option [value]="s.value">{{ s.label }}</option>
+    }
+  </select>
 </div>
 
-<app-data-table [columns]="columns" [rows]="data.suppliers()" emptyTitle="Chưa có nhà cung cấp nào" />
+@if (chips().length) {
+  <div class="filter-chips" aria-label="Bộ lọc đang áp dụng">
+    @for (c of chips(); track c.label) {
+      <span class="filter-chip">
+        {{ c.label }}
+        <button type="button" class="filter-chip-remove" [attr.aria-label]="'Bỏ lọc ' + c.label" (click)="c.clear()">
+          <app-nav-icon name="x" />
+        </button>
+      </span>
+    }
+    <button type="button" class="filter-clear-all" (click)="clearAll()"><app-nav-icon name="x" />Xoá tất cả bộ lọc</button>
+  </div>
+}
+
+@if (suppliers().length) {
+  <dl class="list-totals">
+    <div><dt>Tổng còn phải trả</dt><dd class="num">{{ money(totals().payable) }}</dd></div>
+    <div><dt>Trong đó quá hạn</dt><dd class="num">{{ money(totals().overdue) }}</dd></div>
+  </dl>
+}
+
+<app-data-table
+  [columns]="columns"
+  [rows]="pagedSuppliers()"
+  [actions]="rowActions"
+  [filterable]="true"
+  [filters]="columnFilters()"
+  (filtersChange)="columnFilters.set($event)"
+  [optionRows]="data.suppliers()"
+  [emptyAction]="chips().length || search() ? null : createCta"
+  [emptyTitle]="chips().length || search() ? 'Không có nhà cung cấp phù hợp' : 'Chưa có nhà cung cấp nào'"
+  [emptyHint]="chips().length || search() ? 'Thử bỏ bớt bộ lọc hoặc đổi từ khoá tìm kiếm.' : 'Thêm nhà cung cấp để lập đơn nhập hàng và theo dõi công nợ phải trả.'"
+/>
+
+<app-pagination [total]="suppliers().length" unit="nhà cung cấp" [(page)]="page" [(pageSize)]="pageSize" />
+
+<ng-template #createCta>
+  <a class="btn btn-primary" routerLink="/nha-cung-cap/them"><app-nav-icon name="plus" />Thêm nhà cung cấp</a>
+</ng-template>
+
+<ng-template #rowActions let-s>
+  <span class="row-actions">
+    @if (s.isActive) {
+      <a class="icon-action" routerLink="/mua-hang/them" [queryParams]="{ ncc: s.id }" [attr.aria-label]="'Lập đơn nhập từ ' + s.name" title="Lập đơn nhập">
+        <app-nav-icon name="plus" />
+      </a>
+    }
+    <a class="icon-action" [routerLink]="['/nha-cung-cap', s.id]" [attr.aria-label]="'Xem chi tiết ' + s.name" title="Xem chi tiết">
+      <app-nav-icon name="eye" />
+    </a>
+    <a class="icon-action" [routerLink]="['/nha-cung-cap', s.id, 'sua']" [attr.aria-label]="'Sửa ' + s.name" title="Sửa">
+      <app-nav-icon name="pencil" />
+    </a>
+    <a class="icon-action" routerLink="/thu-chi/lap/chi" [queryParams]="{ supplierId: s.id }" [attr.aria-label]="'Lập phiếu chi trả ' + s.name" title="Lập phiếu chi">
+      <app-nav-icon name="cash" />
+    </a>
+  </span>
+</ng-template>

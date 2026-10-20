@@ -1,0 +1,329 @@
+@if (supplier(); as s) {
+  <p class="subtitle"><a class="crumb" routerLink="/nha-cung-cap">Nhà cung cấp</a> / {{ s.code }}</p>
+  <div class="page-header">
+    <div>
+      <h1>{{ s.name }}</h1>
+      <p class="subtitle detail-meta">
+        <span><span class="num">{{ s.code }}</span><app-copy-button [text]="s.code" label="mã" /></span>
+        <span class="badge" [ngClass]="statusClass(s.isActive)">{{ statusLabel(s.isActive) }}</span>
+        <span>Được nợ: {{ creditLabel(s.creditDays) }}</span>
+      </p>
+    </div>
+    <div class="toolbar">
+      <a class="btn" routerLink="/nha-cung-cap"><app-nav-icon name="arrow-left" />Danh sách</a>
+      @if (s.isActive) {
+        <a class="btn" routerLink="/mua-hang/them" [queryParams]="{ ncc: s.id }"><app-nav-icon name="plus" />Lập đơn nhập</a>
+        <a class="btn" routerLink="/thu-chi/lap/chi" [queryParams]="{ supplierId: s.id }"><app-nav-icon name="cash" />Lập phiếu chi</a>
+        <button type="button" class="btn btn-danger-ghost" (click)="toggleActive()">Ngừng hợp tác</button>
+      } @else {
+        <button type="button" class="btn" (click)="toggleActive()"><app-nav-icon name="refresh" />Hợp tác lại</button>
+      }
+      <a class="btn btn-primary" [routerLink]="['/nha-cung-cap', s.id, 'sua']"><app-nav-icon name="pencil" />Sửa</a>
+    </div>
+  </div>
+
+  @if (notice()) {
+    <div class="notice" role="status">
+      <span>{{ notice() }}</span>
+      <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+    </div>
+  }
+
+  <div class="detail-tabs" role="tablist" aria-label="Thông tin nhà cung cấp" (keydown)="onTabKey($event)">
+    @for (t of tabs(); track t.id) {
+      <button
+        type="button"
+        role="tab"
+        [id]="'tab-' + t.id"
+        [attr.aria-selected]="tab() === t.id"
+        [attr.aria-controls]="'panel-' + t.id"
+        [tabIndex]="tab() === t.id ? 0 : -1"
+        (click)="selectTab(t.id)"
+      >
+        {{ t.label }}
+        @if (t.count !== undefined && t.count > 0) {
+          <span class="tab-count num">{{ t.count }}</span>
+        }
+      </button>
+    }
+  </div>
+
+  <div class="detail-panel" role="tabpanel" [id]="'panel-' + tab()" [attr.aria-labelledby]="'tab-' + tab()">
+    @switch (tab()) {
+      @case ('chung') {
+        <div class="sd-overview">
+          <section class="card">
+            <dl class="detail-list">
+              <div><dt>Mã nhà cung cấp</dt><dd><span class="num">{{ s.code }}</span><app-copy-button [text]="s.code" label="mã" /></dd></div>
+              <div><dt>Điện thoại</dt><dd class="num">{{ s.contactPhone || '—' }}</dd></div>
+              <div><dt>Email</dt><dd>{{ s.email || '—' }}</dd></div>
+              <div>
+                <dt>Mã số thuế</dt>
+                <dd>
+                  @if (s.taxCode) {
+                    <span class="num">{{ s.taxCode }}</span><app-copy-button [text]="s.taxCode" label="mã số thuế" />
+                  } @else { — }
+                </dd>
+              </div>
+              <div><dt>Số ngày được nợ</dt><dd>{{ creditLabel(s.creditDays) }}</dd></div>
+              <div><dt>Số đơn nhập đã lập</dt><dd class="num">{{ stats().orderCount }}</dd></div>
+              <div><dt>Địa chỉ</dt><dd>{{ s.address || '—' }}</dd></div>
+              <div><dt>Ghi chú</dt><dd>{{ s.note || '—' }}</dd></div>
+              <div><dt>Ngày tạo</dt><dd class="num">{{ s.createdAt ? day(s.createdAt) : '—' }}</dd></div>
+            </dl>
+          </section>
+
+          <section class="card sd-debt" aria-labelledby="sd-debt-title">
+            <h3 id="sd-debt-title">Công nợ phải trả</h3>
+            <p class="subtitle">Công nợ phát sinh khi nhập kho từ nhà cung cấp này.</p>
+            <dl class="ledger-dl">
+              <div><dt>Còn phải trả</dt><dd class="num" [class.text-danger]="(debtRow()?.balance ?? 0) > 0">{{ money(debtRow()?.balance ?? 0) }}</dd></div>
+              <div><dt>Trong đó quá hạn</dt><dd class="num">{{ money(debtRow()?.overdue ?? 0) }}</dd></div>
+              <div><dt>Đã trả</dt><dd class="num">{{ money(paidTotal()) }}</dd></div>
+            </dl>
+            <div class="sd-debt-actions">
+              <a class="link-btn" routerLink="/thu-chi/lap/chi" [queryParams]="{ supplierId: s.id }">Lập phiếu chi</a>
+              <button type="button" class="link-btn" (click)="selectTab('cong-no')">Chi tiết công nợ</button>
+              <a class="link-btn" routerLink="/cong-no/nha-cung-cap" [queryParams]="{ partnerId: s.id }">Xem sổ công nợ</a>
+            </div>
+          </section>
+        </div>
+      }
+
+      @case ('hang') {
+        <section class="card section-block">
+          <form class="sd-catalog-form" (ngSubmit)="addItem()">
+            <div class="field sd-cat-product">
+              <label id="cat-product-label">Hàng hoá <span class="required-mark">*</span></label>
+              <app-product-picker
+                [products]="pickableProducts()"
+                [stock]="stock()"
+                ariaLabel="Hàng hoá"
+                [invalid]="catalogAttempted() && !newProductId()"
+                [value]="newProductId()"
+                (valueChange)="onPickProduct($event)"
+              />
+            </div>
+            <div class="field">
+              <label for="cat-code">Mã hàng theo NCC</label>
+              <input id="cat-code" type="text" name="supplierCode" placeholder="Mã trên báo giá của NCC" [ngModel]="newSupplierCode()" (ngModelChange)="newSupplierCode.set($event)" />
+            </div>
+            <div class="field">
+              <label for="cat-price">Giá mua{{ newProduct() ? ' / ' + newProduct()!.baseUnit : '' }} <span class="required-mark">*</span></label>
+              <input
+                id="cat-price"
+                type="text"
+                appMoney
+                name="purchasePrice"
+                placeholder="0"
+                [attr.aria-invalid]="catalogAttempted() && newPrice() === null ? 'true' : null"
+                [ngModel]="newPrice()"
+                (ngModelChange)="newPrice.set($event)"
+              />
+            </div>
+            <div class="sd-cat-actions">
+              <button type="submit" class="btn btn-primary">
+                <app-nav-icon [name]="existingItem() ? 'check' : 'plus'" />{{ existingItem() ? 'Cập nhật giá' : 'Thêm vào danh mục' }}
+              </button>
+              @if (newProductId()) {
+                <button type="button" class="btn" (click)="resetCatalogForm()">Bỏ chọn</button>
+              }
+            </div>
+          </form>
+          <p class="hint sd-cat-hint">
+            @if (existingItem()) {
+              Mặt hàng này đã có trong danh mục — bấm Cập nhật giá để thay giá mua {{ money(existingItem()!.purchasePrice) }}.
+            } @else {
+              Một mặt hàng có thể do nhiều nhà cung cấp cung cấp với giá khác nhau. Thêm lại mặt hàng đã có sẽ cập nhật giá.
+            }
+          </p>
+
+          @if (catalog().length) {
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Mã hàng</th>
+                    <th scope="col">Tên hàng</th>
+                    <th scope="col">Tính chất</th>
+                    <th scope="col">ĐVT</th>
+                    <th scope="col">Mã hàng theo NCC</th>
+                    <th scope="col" class="align-right">Giá mua</th>
+                    <th scope="col" class="align-right">Giá trên đơn gần nhất</th>
+                    <th scope="col" class="actions-col"><span class="visually-hidden">Thao tác</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (c of catalog(); track c.productId) {
+                    <tr [class.is-editing]="newProductId() === c.productId">
+                      <td class="num"><a class="code-link" [routerLink]="['/hang-hoa', c.productId]">{{ c.product?.code ?? c.productId }}</a></td>
+                      <td>{{ c.product?.name ?? '—' }}</td>
+                      <td>
+                        @if (c.product) {
+                          <span class="badge" [ngClass]="typeClass[c.product.type]">{{ typeLabel[c.product.type] }}</span>
+                        }
+                      </td>
+                      <td>{{ c.product?.baseUnit ?? '—' }}</td>
+                      <td class="num">{{ c.supplierCode || '—' }}</td>
+                      <td class="num align-right">{{ money(c.purchasePrice) }}</td>
+                      <td class="num align-right" [class.sd-price-diff]="c.lastOrderPrice !== undefined && c.lastOrderPrice !== c.purchasePrice">
+                        {{ c.lastOrderPrice !== undefined ? money(c.lastOrderPrice) : '—' }}
+                      </td>
+                      <td class="actions-col">
+                        <span class="row-actions">
+                          <button type="button" class="icon-action" [attr.aria-label]="'Sửa giá ' + (c.product?.code ?? '')" title="Sửa giá" (click)="editItem(c)">
+                            <app-nav-icon name="pencil" />
+                          </button>
+                          <button type="button" class="icon-action" [attr.aria-label]="'Bỏ ' + (c.product?.code ?? '') + ' khỏi danh mục'" title="Bỏ khỏi danh mục" (click)="removeItem(c)">
+                            <app-nav-icon name="trash" />
+                          </button>
+                        </span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="empty-state">
+              <h3>Danh mục hàng còn trống</h3>
+              <p>Thêm mặt hàng để khi lập đơn nhập, hệ thống gợi ý sẵn hàng của nhà cung cấp này.</p>
+            </div>
+          }
+        </section>
+      }
+
+      @case ('don-nhap') {
+        <section class="card section-block">
+          @if (orders().length) {
+            <dl class="list-totals sd-inline-totals">
+              <div><dt>Tổng giá trị đơn</dt><dd class="num">{{ money(orderTotals().value) }}</dd></div>
+              <div><dt>Đã nhận</dt><dd class="num">{{ money(orderTotals().received) }}</dd></div>
+              <div><dt>Còn chờ nhận</dt><dd class="num">{{ money(orderTotals().value - orderTotals().received) }}</dd></div>
+            </dl>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Mã đơn</th>
+                    <th scope="col">Ngày đặt</th>
+                    <th scope="col" class="align-right">Mặt hàng</th>
+                    <th scope="col" class="align-right">Giá trị đơn</th>
+                    <th scope="col" class="align-right">Đã nhận</th>
+                    <th scope="col">Ngày nhận</th>
+                    <th scope="col">Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (o of orders(); track o.id) {
+                    <tr>
+                      <td class="num"><a class="code-link" [routerLink]="['/mua-hang', o.id]">{{ o.code }}</a></td>
+                      <td class="num">{{ day(o.date) }}</td>
+                      <td class="num align-right">{{ o.lines.length }}</td>
+                      <td class="num align-right">{{ money(o.totalValue) }}</td>
+                      <td class="num align-right">{{ o.receivedValue ? money(o.receivedValue) + ' · ' + receivedPercent(o) + '%' : '—' }}</td>
+                      <td class="num">{{ o.receivedDate ? day(o.receivedDate) : '—' }}</td>
+                      <td><span class="badge" [ngClass]="poStatusClass(o.status)">{{ poStatusLabel[o.status] }}</span></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="empty-state">
+              <h3>Chưa có đơn nhập nào</h3>
+              <p>Đơn nhập lập cho nhà cung cấp này sẽ hiện ở đây.</p>
+              @if (s.isActive) {
+                <a class="btn btn-primary" routerLink="/mua-hang/them" [queryParams]="{ ncc: s.id }"><app-nav-icon name="plus" />Lập đơn nhập</a>
+              }
+            </div>
+          }
+        </section>
+      }
+
+      @case ('cong-no') {
+        <section class="card section-block">
+          <h3>Khoản còn phải trả</h3>
+          @if (debtRow()?.items?.length) {
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Chứng từ</th>
+                    <th scope="col">Hạn thanh toán</th>
+                    <th scope="col" class="align-right">Còn nợ</th>
+                    <th scope="col">Tình trạng</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (i of debtRow()!.items; track i.ref) {
+                    <tr>
+                      <td class="num">{{ i.ref }}</td>
+                      <td class="num">{{ day(i.dueDate) }}</td>
+                      <td class="num align-right">{{ money(i.amount) }}</td>
+                      <td [class.text-danger]="i.overdueDays > 0">
+                        {{ i.overdueDays > 0 ? 'Quá hạn ' + i.overdueDays + ' ngày' : i.overdueDays === 0 ? 'Đến hạn hôm nay' : 'Còn ' + -i.overdueDays + ' ngày' }}
+                      </td>
+                    </tr>
+                  }
+                  <tr class="row-total">
+                    <td colspan="2">Cộng</td>
+                    <td class="num align-right">{{ money(debtRow()!.balance) }}</td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <p class="subtitle">
+              {{ (debtRow()?.prepaid ?? 0) > 0 ? 'Không còn khoản phải trả; đã trả trước ' + money(debtRow()!.prepaid) + '.' : 'Không còn khoản phải trả.' }}
+              Hạn thanh toán = ngày nhập kho + {{ s.creditDays }} ngày.
+            </p>
+          }
+        </section>
+
+        <section class="card section-block">
+          <h3>Lịch sử thanh toán</h3>
+          @if (payments().length) {
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Số phiếu</th>
+                    <th scope="col">Ngày</th>
+                    <th scope="col">Tài khoản</th>
+                    <th scope="col">Diễn giải</th>
+                    <th scope="col" class="align-right">Số tiền</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (v of payments(); track v.id) {
+                    <tr>
+                      <td class="num">{{ v.code }}</td>
+                      <td class="num">{{ day(v.date) }}</td>
+                      <td>{{ accountName(v.accountId) }}</td>
+                      <td>{{ v.description || v.category }}</td>
+                      <td class="num align-right">{{ money(v.kind === 'CHI' ? v.amount : -v.amount) }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <p class="subtitle">Chưa có phiếu chi nào cho nhà cung cấp này.</p>
+          }
+          <div class="sd-debt-actions">
+            <a class="link-btn" routerLink="/thu-chi/lap/chi" [queryParams]="{ supplierId: s.id }">Lập phiếu chi</a>
+            <a class="link-btn" routerLink="/cong-no/nha-cung-cap" [queryParams]="{ partnerId: s.id }">Xem sổ công nợ phải trả</a>
+          </div>
+        </section>
+      }
+    }
+  </div>
+} @else {
+  <div class="card empty-state">
+    <h3>Không tìm thấy nhà cung cấp</h3>
+    <p>Nhà cung cấp có thể đã bị xoá hoặc đường dẫn không đúng.</p>
+    <a class="btn" routerLink="/nha-cung-cap">Về danh sách nhà cung cấp</a>
+  </div>
+}

@@ -1,0 +1,294 @@
+@if (customer(); as c) {
+  <p class="subtitle"><a class="crumb" routerLink="/khach-hang">Khách hàng</a> / {{ c.code }}</p>
+  <div class="page-header">
+    <div>
+      <h1>{{ c.companyName || c.name }}</h1>
+      <p class="subtitle detail-meta">
+        <span><span class="num">{{ c.code }}</span><app-copy-button [text]="c.code" label="mã" /></span>
+        <span class="badge" [ngClass]="typeClass(c.type)">{{ typeLabel[c.type] }}</span>
+        <span class="badge" [ngClass]="statusClass(c.isActive)">{{ statusLabel(c.isActive) }}</span>
+        @if (c.companyName) { <span>Liên hệ: {{ c.name }}</span> }
+        <span>Được nợ: {{ creditLabel(c.creditDays) }}</span>
+      </p>
+    </div>
+    <div class="toolbar">
+      <a class="btn" routerLink="/khach-hang"><app-nav-icon name="arrow-left" />Danh sách</a>
+      @if (c.isActive) {
+        <a class="btn" routerLink="/don-hang/them-moi" [queryParams]="{ customerId: c.id }"><app-nav-icon name="plus" />Lập đơn hàng</a>
+      }
+      <a class="btn" routerLink="/thu-chi/lap/thu" [queryParams]="{ customerId: c.id, back: '/khach-hang/' + c.id + '?tab=cong-no' }"><app-nav-icon name="cash" />Lập phiếu thu</a>
+      @if (c.isActive) {
+        <button type="button" class="btn btn-danger-ghost" (click)="toggleActive()">Ngừng theo dõi</button>
+      } @else {
+        <button type="button" class="btn" (click)="toggleActive()"><app-nav-icon name="refresh" />Theo dõi lại</button>
+      }
+      <a class="btn btn-primary" [routerLink]="['/khach-hang', c.id, 'sua']"><app-nav-icon name="pencil" />Sửa</a>
+    </div>
+  </div>
+
+  @if (notice()) {
+    <div class="notice" role="status">
+      <span>{{ notice() }}</span>
+      <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+    </div>
+  }
+
+  <div class="detail-tabs" role="tablist" aria-label="Thông tin khách hàng" (keydown)="onTabKey($event)">
+    @for (t of tabs(); track t.id) {
+      <button type="button" role="tab" [id]="'tab-' + t.id" [attr.aria-selected]="tab() === t.id" [attr.aria-controls]="'panel-' + t.id"
+        [tabIndex]="tab() === t.id ? 0 : -1" (click)="selectTab(t.id)">
+        {{ t.label }}
+        @if (t.count !== undefined && t.count > 0) { <span class="tab-count num">{{ t.count }}</span> }
+      </button>
+    }
+  </div>
+
+  <div class="detail-panel" role="tabpanel" [id]="'panel-' + tab()" [attr.aria-labelledby]="'tab-' + tab()">
+    @switch (tab()) {
+      @case ('chung') {
+        <div class="sd-overview">
+          <section class="card">
+            <dl class="detail-list">
+              <div><dt>Mã khách hàng</dt><dd><span class="num">{{ c.code }}</span><app-copy-button [text]="c.code" label="mã" /></dd></div>
+              <div><dt>Tên cá nhân</dt><dd>{{ c.name }}</dd></div>
+              <div><dt>Tên công ty</dt><dd>{{ c.companyName || '—' }}</dd></div>
+              <div><dt>Loại khách hàng</dt><dd><span class="badge" [ngClass]="typeClass(c.type)">{{ typeLabel[c.type] }}</span></dd></div>
+              <div><dt>Điện thoại</dt><dd class="num">{{ c.phone || '—' }}</dd></div>
+              <div><dt>Email</dt><dd>{{ c.email || '—' }}</dd></div>
+              <div><dt>CCCD</dt><dd class="num">{{ c.idNumber || '—' }}</dd></div>
+              <div><dt>MST cá nhân</dt><dd class="num">{{ c.personalTaxCode || '—' }}</dd></div>
+              <div>
+                <dt>MST công ty</dt>
+                <dd>@if (c.companyTaxCode) { <span class="num">{{ c.companyTaxCode }}</span><app-copy-button [text]="c.companyTaxCode" label="mã số thuế" /> } @else { — }</dd>
+              </div>
+              <div><dt>Số ngày được nợ</dt><dd>{{ creditLabel(c.creditDays) }}</dd></div>
+              <div><dt>Thẻ đánh dấu</dt><dd>{{ tagNames().length ? tagNames().join(', ') : '—' }}</dd></div>
+              <div><dt>Số đơn hàng</dt><dd class="num">{{ stats().orderCount }}</dd></div>
+              <div><dt>Ngày tạo</dt><dd class="num">{{ c.createdAt ? day(c.createdAt) : '—' }}</dd></div>
+              <div><dt>Ghi chú</dt><dd>{{ c.note || '—' }}</dd></div>
+            </dl>
+          </section>
+
+          <div class="cd-side">
+            <section class="card sd-debt" aria-labelledby="cd-buy-title">
+              <h3 id="cd-buy-title">Lịch sử mua hàng</h3>
+              @if (stats().receivedOrders) {
+                <dl class="ledger-dl">
+                  <div><dt>Đã mua</dt><dd class="num">{{ money(stats().revenue) }}</dd></div>
+                  <div><dt>Số đơn đã nhận</dt><dd class="num">{{ stats().receivedOrders }}</dd></div>
+                  <div><dt>Trung bình mỗi đơn</dt><dd class="num">{{ money(average()) }}</dd></div>
+                  <div><dt>Mua lần cuối</dt><dd class="num">{{ stats().lastPurchase ? day(stats().lastPurchase!) : '—' }}</dd></div>
+                </dl>
+                @if (stats().openOrders) {
+                  <p class="subtitle cd-open">{{ stats().openOrders }} đơn đang xử lý</p>
+                }
+              } @else {
+                <p class="subtitle">Chưa mua — lịch sử sẽ hiện ở đây sau khi khách nhận đơn đầu tiên.</p>
+              }
+            </section>
+
+            <section class="card sd-debt" aria-labelledby="cd-debt-title">
+              <h3 id="cd-debt-title">Công nợ phải thu</h3>
+              @if (debtRow(); as d) {
+                <dl class="ledger-dl">
+                  <div><dt>Số dư</dt><dd class="num" [class.text-danger]="d.overdue > 0">{{ money(d.balance) }}</dd></div>
+                  <div><dt>Khoản còn nợ</dt><dd class="num">{{ d.items.length }}</dd></div>
+                  <div><dt>Trong đó quá hạn</dt><dd class="num">{{ money(d.overdue) }}</dd></div>
+                  <div><dt>Trả trước</dt><dd class="num">{{ money(d.prepaid) }}</dd></div>
+                </dl>
+              } @else {
+                <p class="subtitle">Không còn công nợ.</p>
+              }
+              <div class="sd-debt-actions">
+                <button type="button" class="link-btn" (click)="selectTab('cong-no')">Sổ chi tiết</button>
+                <a class="link-btn" routerLink="/thu-chi/lap/thu" [queryParams]="{ customerId: c.id, back: '/khach-hang/' + c.id + '?tab=cong-no' }">Lập phiếu thu</a>
+              </div>
+            </section>
+          </div>
+        </div>
+      }
+
+      @case ('dia-chi') {
+        <section class="card section-block">
+          <div class="cd-addr-head">
+            <p class="subtitle">Địa chỉ mặc định được chọn sẵn khi lên đơn bán. Danh mục Phường/Xã chưa nạp — tạm gõ địa chỉ đầy đủ.</p>
+            @if (!addrEditing()) {
+              <button type="button" class="btn" (click)="startAddress()"><app-nav-icon name="plus" />Thêm địa chỉ</button>
+            }
+          </div>
+
+          @if (addrEditing()) {
+            <form class="cd-addr-form" (ngSubmit)="saveAddress()" novalidate>
+              <div class="field">
+                <label for="ad-label">Tên điểm giao</label>
+                <input id="ad-label" name="label" type="text" placeholder="Nhà riêng, Cửa hàng, Kho…" [ngModel]="addrDraft().label" (ngModelChange)="patchDraft({ label: $event })" />
+              </div>
+              <div class="field">
+                <label for="ad-rec">Người nhận</label>
+                <input id="ad-rec" name="recipient" type="text" placeholder="Để trống thì lấy tên khách" [ngModel]="addrDraft().recipientName" (ngModelChange)="patchDraft({ recipientName: $event })" />
+              </div>
+              <div class="field">
+                <label for="ad-phone">Điện thoại</label>
+                <input id="ad-phone" name="phone" type="tel" class="num" [ngModel]="addrDraft().phone" (ngModelChange)="patchDraft({ phone: $event })" />
+              </div>
+              <div class="field cd-addr-main">
+                <label for="ad-address">Địa chỉ <span class="required-mark">*</span></label>
+                <input id="ad-address" name="address" type="text" placeholder="Số nhà, đường, phường/xã, tỉnh/TP" [ngModel]="addrDraft().address"
+                  (ngModelChange)="patchDraft({ address: $event })" [attr.aria-invalid]="addrAttempted() && addrError() ? 'true' : null" />
+                @if (addrAttempted() && addrError()) { <span class="hint text-danger">{{ addrError() }}</span> }
+              </div>
+              <label class="check-line cd-addr-default">
+                <input type="checkbox" name="isDefault" [ngModel]="addrDraft().isDefault" (ngModelChange)="patchDraft({ isDefault: $event })" /> Đặt làm mặc định
+              </label>
+              <div class="toolbar cd-addr-actions">
+                <button type="button" class="btn" (click)="cancelAddress()">Huỷ</button>
+                <button type="submit" class="btn btn-primary"><app-nav-icon name="check" />{{ addrEditing() === 'new' ? 'Thêm địa chỉ' : 'Lưu địa chỉ' }}</button>
+              </div>
+            </form>
+          }
+
+          @if (c.addresses?.length) {
+            <ul class="cd-addr-list">
+              @for (a of c.addresses; track a.id) {
+                <li class="cd-addr-item" [class.is-default]="a.isDefault">
+                  <div class="cd-addr-text">
+                    <strong>{{ a.label || 'Địa chỉ' }}</strong>
+                    @if (a.isDefault) { <span class="badge cd-default-badge">Mặc định</span> }
+                    <p>{{ a.address }}</p>
+                    <p class="subtitle">{{ a.recipientName || c.name }}@if (a.phone || c.phone) { · <span class="num">{{ a.phone || c.phone }}</span> }</p>
+                  </div>
+                  <span class="row-actions">
+                    @if (!a.isDefault) {
+                      <button type="button" class="btn btn-sm" (click)="makeDefault(a)">Đặt mặc định</button>
+                    }
+                    <button type="button" class="icon-action" (click)="startAddress(a)" [attr.aria-label]="'Sửa địa chỉ ' + (a.label || a.address)" title="Sửa">
+                      <app-nav-icon name="pencil" />
+                    </button>
+                    <button type="button" class="icon-action" (click)="removeAddress(a)" [attr.aria-label]="'Xoá địa chỉ ' + (a.label || a.address)" title="Xoá">
+                      <app-nav-icon name="trash" />
+                    </button>
+                  </span>
+                </li>
+              }
+            </ul>
+          } @else if (!addrEditing()) {
+            <div class="empty-state">
+              <h3>Chưa có địa chỉ giao hàng</h3>
+              <p>Thêm điểm giao để lên đơn không phải gõ lại địa chỉ mỗi lần.</p>
+            </div>
+          }
+        </section>
+      }
+
+      @case ('don-hang') {
+        <section class="card section-block">
+          @if (orders().length) {
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Mã đơn</th>
+                    <th scope="col">Ngày đặt</th>
+                    <th scope="col" class="align-right">Mặt hàng</th>
+                    <th scope="col" class="align-right">Giá trị đơn</th>
+                    <th scope="col" class="align-right">Khách đã nhận</th>
+                    <th scope="col">Cần giao</th>
+                    <th scope="col">Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (o of orders(); track o.id) {
+                    <tr>
+                      <td class="num"><a class="code-link" [routerLink]="['/don-hang', o.id]">{{ o.code }}</a></td>
+                      <td class="num">{{ day(o.orderDate) }}</td>
+                      <td class="num align-right">{{ o.lines.length }}</td>
+                      <td class="num align-right">{{ money(o.totalOrder) }}</td>
+                      <td class="num align-right">{{ o.receivedValue ? money(o.receivedValue) + ' · ' + deliveredPercent(o) + '%' : '—' }}</td>
+                      <td class="num">{{ o.neededByDate ? day(o.neededByDate) : '—' }}</td>
+                      <td><span class="badge" [ngClass]="soClass(o.status)">{{ soLabel[o.status] }}</span></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="empty-state">
+              <h3>Khách chưa có đơn nào</h3>
+              <p>Đơn hàng bán của khách sẽ hiện ở đây.</p>
+              @if (c.isActive) {
+                <a class="btn btn-primary" routerLink="/don-hang/them-moi" [queryParams]="{ customerId: c.id }"><app-nav-icon name="plus" />Lập đơn hàng</a>
+              }
+            </div>
+          }
+        </section>
+      }
+
+      @case ('cong-no') {
+        <section class="card section-block">
+          @if (debtRow(); as d) {
+            <dl class="list-totals">
+              <div><dt>Số dư</dt><dd class="num" [class.text-danger]="d.overdue > 0">{{ money(d.balance) }}</dd></div>
+              <div><dt>Quá hạn</dt><dd class="num">{{ money(d.overdue) }}</dd></div>
+              <div><dt>Trả trước chưa dùng</dt><dd class="num">{{ money(d.prepaid) }}</dd></div>
+              <div><dt>Hạn gần nhất</dt><dd class="num">{{ d.nextDue ? day(d.nextDue) : '—' }}</dd></div>
+            </dl>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Ngày</th>
+                    <th scope="col">Loại</th>
+                    <th scope="col">Chứng từ gốc</th>
+                    <th scope="col">Diễn giải</th>
+                    <th scope="col" class="align-right">Phát sinh tăng</th>
+                    <th scope="col" class="align-right">Phát sinh giảm</th>
+                    <th scope="col" class="align-right">Đã đối trừ</th>
+                    <th scope="col" class="align-right">Còn lại</th>
+                    <th scope="col">Hạn / tình trạng</th>
+                    <th scope="col" class="align-right">Số dư</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (e of entries(); track e.ref + e.kind) {
+                    <tr>
+                      <td class="num">{{ day(e.date) }}</td>
+                      <td>{{ e.typeLabel }}</td>
+                      <td class="num">
+                        @if (e.link) { <a class="code-link" [routerLink]="e.link">{{ e.ref }}</a> } @else { {{ e.ref }} }
+                      </td>
+                      <td class="cd-desc">{{ e.description }}</td>
+                      <td class="num align-right">{{ e.amount > 0 ? money(e.amount) : '' }}</td>
+                      <td class="num align-right">{{ e.amount < 0 ? money(-e.amount) : '' }}</td>
+                      <td class="num align-right">{{ e.settled ? money(e.settled) : '—' }}</td>
+                      <td class="num align-right">{{ e.remaining ? money(e.remaining) : '—' }}</td>
+                      <td [class.text-danger]="(e.overdueDays ?? 0) > 0 && e.remaining > 0">
+                        @if (e.kind === 'PHAT_SINH' && e.dueDate) { <span class="num">{{ day(e.dueDate) }}</span> · }
+                        {{ entryStatus(e) }}
+                      </td>
+                      <td class="num align-right">{{ money(e.balance) }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="empty-state">
+              <h3>Chưa có phát sinh công nợ</h3>
+              <p>Công nợ phải thu ghi khi khách thực nhận hàng của đơn bán.</p>
+            </div>
+          }
+          <div class="sd-debt-actions">
+            <a class="btn btn-primary" routerLink="/thu-chi/lap/thu" [queryParams]="{ customerId: c.id, back: '/khach-hang/' + c.id + '?tab=cong-no' }"><app-nav-icon name="cash" />Lập phiếu thu</a>
+            <a class="btn" routerLink="/cong-no/khach-hang">Xem công nợ phải thu</a>
+          </div>
+        </section>
+      }
+    }
+  </div>
+} @else {
+  <div class="card empty-state">
+    <h3>Không tìm thấy khách hàng</h3>
+    <p>Khách hàng có thể đã bị xoá hoặc đường dẫn không đúng.</p>
+    <a class="btn" routerLink="/khach-hang">Về danh sách khách hàng</a>
+  </div>
+}

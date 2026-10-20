@@ -140,11 +140,11 @@ const hasStock = (pid) => prodById[pid].type !== 'DICH_VU';
 
 // ---------- nhà cung cấp ----------
 const SUPPLIERS = [
-  { id: 'ncc-1', name: 'Công ty TNHH Gỗ Phú Thịnh', phone: '0901000101', tax: '0300000011', addr: '45 Đường số 7, KCN Vĩnh Lộc, TP.HCM', credit: true, active: true, supplies: ['vt-nep-soi', 'vt-nep-oc-cho', 'vt-go-tho'] },
-  { id: 'ncc-2', name: 'Nhôm Việt Phát', phone: '0901000102', tax: '0300000012', addr: '18 Quốc lộ 1A, Bình Tân, TP.HCM', credit: true, active: true, supplies: ['vt-nhom-vang', 'vt-nhom-den'] },
-  { id: 'ncc-3', name: 'Kính Hoàng Gia', phone: '0901000103', tax: '0300000013', addr: '112 Nguyễn Văn Linh, Quận 7, TP.HCM', credit: true, active: true, supplies: ['vt-kinh-3ly', 'vt-mica-2ly', 'vt-hau-mdf'] },
-  { id: 'ncc-4', name: 'Phụ kiện Minh Tâm', phone: '0901000104', tax: '0300000014', addr: '9 Lý Chiêu Hoàng, Quận 6, TP.HCM', credit: false, active: true, supplies: ['vt-moc-treo', 'vt-dinh-ghim', 'vt-day-thep', 'vt-kep-kinh', 'vt-keo-dan', 'vt-den-led', 'vt-ve-sinh-kinh'] },
-  { id: 'ncc-5', name: 'Xưởng gỗ Tư Hiển', phone: '0901000105', tax: undefined, addr: 'Ấp 3, Bình Chánh, TP.HCM', credit: false, active: false, supplies: ['vt-go-tho'] },
+  { id: 'ncc-1', name: 'Công ty TNHH Gỗ Phú Thịnh', phone: '0901000101', tax: '0300000011', addr: '45 Đường số 7, KCN Vĩnh Lộc, TP.HCM', email: 'kinhdoanh@gophuthinh.demo', creditDays: 30, note: 'Giao hàng thứ 3 và thứ 6 hằng tuần.', credit: true, active: true, supplies: ['vt-nep-soi', 'vt-nep-oc-cho', 'vt-go-tho'] },
+  { id: 'ncc-2', name: 'Nhôm Việt Phát', phone: '0901000102', tax: '0300000012', addr: '18 Quốc lộ 1A, Bình Tân, TP.HCM', email: 'banhang@nhomvietphat.demo', creditDays: 30, credit: true, active: true, supplies: ['vt-nhom-vang', 'vt-nhom-den'] },
+  { id: 'ncc-3', name: 'Kính Hoàng Gia', phone: '0901000103', tax: '0300000013', addr: '112 Nguyễn Văn Linh, Quận 7, TP.HCM', creditDays: 15, note: 'Kính cắt theo khổ yêu cầu, báo trước 2 ngày.', credit: true, active: true, supplies: ['vt-kinh-3ly', 'vt-mica-2ly', 'vt-hau-mdf'] },
+  { id: 'ncc-4', name: 'Phụ kiện Minh Tâm', phone: '0901000104', tax: '0300000014', addr: '9 Lý Chiêu Hoàng, Quận 6, TP.HCM', creditDays: 0, credit: false, active: true, supplies: ['vt-moc-treo', 'vt-dinh-ghim', 'vt-day-thep', 'vt-kep-kinh', 'vt-keo-dan', 'vt-den-led', 'vt-ve-sinh-kinh'] },
+  { id: 'ncc-5', name: 'Xưởng gỗ Tư Hiển', phone: '0901000105', tax: undefined, addr: 'Ấp 3, Bình Chánh, TP.HCM', creditDays: 0, note: 'Ngừng hợp tác từ 08/2026 do giao hàng trễ.', credit: false, active: false, supplies: ['vt-go-tho'] },
 ].map((s, i) => ({ ...s, code: code('NCC', i + 1) }));
 const supById = Object.fromEntries(SUPPLIERS.map((s) => [s.id, s]));
 
@@ -163,6 +163,19 @@ const CUSTOMERS = [
   { id: 'kh-11', name: 'Lương Hải Yến', type: 'LE', credit: 0, phone: '0912000011', tags: [], active: false, note: 'Không còn liên lạc được.' },
   { id: 'kh-12', name: 'Trịnh Văn Lộc', company: 'Nhà hàng Bến Đò', type: 'SI', credit: 15, phone: '0912000012', tags: ['tag-si'] },
 ].map((c, i) => ({ ...c, code: code('KH', i + 1), active: c.active !== false }));
+// Địa chỉ giao hàng (giả) — nhiều điểm giao cho một khách, một điểm mặc định.
+const CUSTOMER_ADDRESSES = {
+  'kh-01': [{ label: 'Nhà riêng', address: '25 Trần Hưng Đạo, Phường 1, Quận 5, TP.HCM' }],
+  'kh-03': [
+    { label: 'Cửa hàng', address: '88 Lê Văn Sỹ, Phường 13, Quận 3, TP.HCM', recipientName: 'Lê Ánh Dương', phone: '0912000003' },
+    { label: 'Kho', address: '12/4 Bùi Quang Là, Phường 12, Gò Vấp, TP.HCM', recipientName: 'Anh Tài (thủ kho)', phone: '0912100003' },
+  ],
+  'kh-04': [{ label: 'Studio', address: '41 Nguyễn Thị Minh Khai, Phường Bến Nghé, Quận 1, TP.HCM', recipientName: 'Phạm Hồng Phúc' }],
+  'kh-07': [{ label: 'Khách sạn', address: '9 Hoàng Diệu, Phường 12, Quận 4, TP.HCM', recipientName: 'Lễ tân Hoa Sen', phone: '0283900007' }],
+  'kh-08': [{ label: 'Trường', address: '150 Phan Văn Trị, Phường 5, Gò Vấp, TP.HCM', recipientName: 'Cô Cúc' }],
+  'kh-10': [{ label: 'Phòng tranh', address: '7 Đồng Khởi, Phường Bến Nghé, Quận 1, TP.HCM' }],
+  'kh-12': [{ label: 'Nhà hàng', address: '2 Tôn Đức Thắng, Phường Bến Nghé, Quận 1, TP.HCM', recipientName: 'Quản lý ca', phone: '0912100012' }],
+};
 const custById = Object.fromEntries(CUSTOMERS.map((c) => [c.id, c]));
 
 // ---------- xe & chuyến giao hàng ----------
@@ -502,8 +515,14 @@ const feProducts = PRODUCTS.map((p) => clean({
   saleNote: p.saleNote, description: p.description, isSellable: p.isSellable, isActive: p.isActive,
 }));
 const feSuppliers = SUPPLIERS.map((s) => clean({
-  id: s.id, code: s.code, name: s.name, contactPhone: s.phone, taxCode: s.tax, address: s.addr, creditAllowed: s.credit,
-  productCount: s.supplies.length, purchaseOrderCount: purchaseOrders.filter((p) => p.supplierId === s.id).length, isActive: s.active,
+  id: s.id, code: s.code, name: s.name, contactPhone: s.phone, email: s.email, taxCode: s.tax, address: s.addr, creditDays: s.creditDays,
+  note: s.note, isActive: s.active, createdAt: iso(START),
+}));
+// Danh mục hàng theo NCC: giá mua = giá của đơn nhập gần nhất (nếu có), không thì giá mua chuẩn của mặt hàng.
+const feSupplierProducts = SUPPLIERS.flatMap((s) => s.supplies.map((pid, j) => {
+  const last = purchaseOrders.filter((p) => p.supplierId === s.id).sort((a, b) => b.date.localeCompare(a.date))
+    .flatMap((p) => p.lines).find((l) => l.productId === pid);
+  return clean({ supplierId: s.id, productId: pid, supplierCode: s.id === 'ncc-4' ? `MT-${String(j + 1).padStart(3, '0')}` : undefined, purchasePrice: last?.unitPrice ?? prodById[pid].buy });
 }));
 const fePurchaseOrders = desc(purchaseOrders, (p) => p.date + p.code).map((p) => clean({
   id: p.id, code: p.code, supplierId: p.supplierId, date: p.date, status: p.status, totalValue: p.totalValue, createdBy: userEmail[p.createdBy],
@@ -513,6 +532,8 @@ const fePurchaseOrders = desc(purchaseOrders, (p) => p.date + p.code).map((p) =>
 const feCustomers = CUSTOMERS.map((c) => clean({
   id: c.id, code: c.code, name: c.name, companyName: c.company, type: c.type, creditDays: c.credit, phone: c.phone, email: c.email,
   companyTaxCode: c.ctax, note: c.note, tagIds: c.tags, orderCount: orders.filter((o) => o.customerId === c.id).length, isActive: c.active,
+  createdAt: iso(START),
+  addresses: (CUSTOMER_ADDRESSES[c.id] ?? []).map((a, j) => ({ id: `${c.id}-dc${j + 1}`, ...a, isDefault: j === 0 })),
 }));
 const feSalesOrders = desc(orders, (o) => o.orderDate + o.code).map((o) => clean({
   id: o.id, code: o.code, customerId: o.customerId, recipientName: o.recipientName, recipientPhone: o.recipientPhone, description: o.description,
@@ -558,7 +579,7 @@ const tsOut = `/* eslint-disable */
 // Toàn bộ dữ liệu là GIẢ, chỉ để thử giao diện.
 import type {
   Product, StockLevel, WarehouseVoucher, ProductionOrder, Supplier, PurchaseOrder, Customer, SalesOrder,
-  DeliveryTrip, Vehicle, CashAccount, CashVoucher, Tag, AppUser, BomLine,
+  DeliveryTrip, Vehicle, CashAccount, CashVoucher, Tag, AppUser, BomLine, SupplierProduct,
 } from '../models/domain.models';
 
 export const DEMO_TODAY = '${TODAY}';
@@ -568,6 +589,7 @@ export const DEMO_STOCK_LEVELS: StockLevel[] = ${J(stockLevels)};
 export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = ${J(feWarehouseVouchers)};
 export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = ${J(feProduction)};
 export const DEMO_SUPPLIERS: Supplier[] = ${J(feSuppliers)};
+export const DEMO_SUPPLIER_PRODUCTS: SupplierProduct[] = ${J(feSupplierProducts)};
 export const DEMO_PURCHASE_ORDERS: PurchaseOrder[] = ${J(fePurchaseOrders)};
 export const DEMO_CUSTOMERS: Customer[] = ${J(feCustomers)};
 export const DEMO_SALES_ORDERS: SalesOrder[] = ${J(feSalesOrders)};

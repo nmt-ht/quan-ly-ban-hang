@@ -1,0 +1,197 @@
+// Lập phiếu thu / phiếu chi — MISA "chứng từ" layout: header fields + debt panel, đối trừ grid, sticky bar.
+
+.cv {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.cv-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+
+.cv-bar h1 {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: 600;
+}
+
+.cv-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 17rem;
+  gap: var(--space-xs) var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.cv-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0 var(--space-sm);
+  align-content: start;
+}
+
+.cv-fields .field {
+  margin-bottom: var(--space-xs);
+  min-width: 0;
+}
+
+.cv-fields .span-2 {
+  grid-column: span 2;
+}
+
+.cv-fields .span-3 {
+  grid-column: 1 / -1;
+}
+
+.field-value {
+  margin: 0;
+  min-height: var(--control-h);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-xs);
+  border-radius: var(--radius-control);
+  background: var(--color-paper-2);
+  color: var(--color-ink-2);
+  font-size: var(--text-sm);
+}
+
+.cv-money {
+  text-align: right;
+  font-family: var(--font-mono);
+}
+
+.cv-quick {
+  align-self: flex-start;
+  font-size: var(--text-xs);
+}
+
+.cv-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-3xs);
+  padding-left: var(--space-md);
+  border-left: var(--rule-hair) solid var(--color-rule);
+  text-align: right;
+}
+
+.summary-label {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+.summary-total {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.summary-sub {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-ink-2);
+}
+
+.cv-after {
+  width: 100%;
+  margin: var(--space-xs) 0 0;
+  padding-top: var(--space-2xs);
+  border-top: var(--rule-hair) solid var(--color-rule);
+  font-size: var(--text-sm);
+}
+
+.cv-after > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  padding: 2px 0;
+}
+
+.cv-after dt {
+  color: var(--color-muted);
+}
+
+.cv-after dd {
+  margin: 0;
+}
+
+.cv-after-total {
+  font-weight: 600;
+}
+
+@media (max-width: 1000px) {
+  .cv-head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cv-summary {
+    align-items: stretch;
+    padding: var(--space-sm) 0 0;
+    border-left: none;
+    border-top: var(--rule-hair) solid var(--color-rule);
+    text-align: left;
+  }
+}
+
+@media (max-width: 700px) {
+  .cv-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cv-fields .span-2 {
+    grid-column: auto;
+  }
+}
+
+.cv-alloc {
+  padding: var(--space-sm) var(--space-md);
+}
+
+.cv-alloc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.cv-alloc-head h3 {
+  margin: 0;
+  font-size: var(--text-md);
+}
+
+.cv-alloc .hint {
+  margin: var(--space-2xs) 0 var(--space-xs);
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+.segmented button[aria-checked='true'] {
+  background: var(--color-ink);
+  color: var(--color-surface);
+}
+
+.cv-check {
+  width: 2rem;
+}
+
+.cv-pick {
+  width: 9rem;
+  height: 1.875rem;
+}
+
+.form-actions-bar > .hint.text-danger {
+  color: var(--color-danger);
+}
+
+.cv-extra {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
