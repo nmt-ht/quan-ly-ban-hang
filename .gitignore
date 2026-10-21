@@ -27,3 +27,6 @@ docs/
 .agents/
 .hallmark/
 skills-lock.json
+
+# Build cache của TypeScript
+*.tsbuildinfo
