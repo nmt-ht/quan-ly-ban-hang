@@ -1,31 +1,31 @@
-@if (supplier(); as s) {
+@if (partner(); as p) {
   <div class="screen-only">
-    <p class="subtitle"><a class="crumb" routerLink="/cong-no/nha-cung-cap">Công nợ phải trả</a> / {{ s.code }}</p>
+    <p class="subtitle"><a class="crumb" [routerLink]="t().listPath">{{ t().listTitle }}</a> / {{ p.code }}</p>
     <div class="page-header">
       <div>
         <h1>Sổ chi tiết công nợ</h1>
         <p class="subtitle detail-meta">
-          <span><span class="num">{{ s.code }}</span><app-copy-button [text]="s.code" label="mã" /></span>
-          <span>{{ s.name }}</span>
-          <span>Được nợ: {{ row()?.creditLabel ?? (s.creditDays > 0 ? s.creditDays + ' ngày' : 'Trả ngay') }}</span>
+          <span><span class="num">{{ p.code }}</span><app-copy-button [text]="p.code" label="mã" /></span>
+          <span>{{ p.name }}</span>
+          <span>Được nợ: {{ row()?.creditLabel ?? (p.creditDays > 0 ? p.creditDays + ' ngày' : 'Trả ngay') }}</span>
         </p>
       </div>
       <div class="toolbar">
-        <a class="btn" [routerLink]="['/nha-cung-cap', s.id]"><app-nav-icon name="eye" />Xem nhà cung cấp</a>
+        <a class="btn" [routerLink]="[t().detailPath, p.id]"><app-nav-icon name="eye" />Xem {{ t().partner }}</a>
         <button type="button" class="btn" [disabled]="exporting() || !row()" (click)="exportExcel()">
           <app-nav-icon name="download" />{{ exporting() ? 'Đang xuất…' : 'Xuất Excel' }}
         </button>
         <button type="button" class="btn" [disabled]="!row()" (click)="print()"><app-nav-icon name="printer" />Biên bản đối chiếu</button>
-        <a class="btn btn-primary" routerLink="/thu-chi/lap/chi" [queryParams]="{ supplierId: s.id, back: '/cong-no/nha-cung-cap?partnerId=' + s.id }"><app-nav-icon name="cash" />Lập phiếu chi</a>
+        <a class="btn btn-primary" [routerLink]="t().voucherPath" [queryParams]="voucherQuery()"><app-nav-icon name="cash" />{{ t().voucherLabel }}</a>
       </div>
     </div>
 
     <section class="ledger-summary card" aria-label="Tóm tắt công nợ">
       <div class="ls-main">
         <span class="ls-label">Số dư hiện tại</span>
-        <span class="ls-value num" [class.text-danger]="(row()?.balance ?? 0) > 0">{{ money(row()?.balance ?? 0) }}</span>
+        <span class="ls-value num" [class.amt-neg]="(row()?.balance ?? 0) < 0" [class.text-danger]="(row()?.overdue ?? 0) > 0">{{ money(row()?.balance ?? 0) }}</span>
         <span class="ls-note">
-          {{ (row()?.balance ?? 0) < 0 ? 'Đang trả trước cho nhà cung cấp' : 'Tính trên toàn bộ lịch sử, không phụ thuộc kỳ xem' }}
+          {{ (row()?.balance ?? 0) < 0 ? t().prepaidNote : 'Tính trên toàn bộ lịch sử, không phụ thuộc kỳ xem' }}
         </span>
       </div>
       <dl class="ls-facts">
@@ -62,7 +62,7 @@
             <tbody>
               <tr class="ledger-period-row">
                 <td colspan="9">Số dư cuối kỳ {{ hasPeriod() ? '(' + periodLabel() + ')' : '' }}</td>
-                <td class="num align-right">{{ money(periodTotals().closing) }}</td>
+                <td class="num align-right" [class.amt-neg]="periodTotals().closing < 0">{{ money(periodTotals().closing) }}</td>
               </tr>
               @for (e of entries(); track e.ref + e.kind) {
                 <tr [class.is-payment]="e.kind === 'THANH_TOAN'">
@@ -76,15 +76,15 @@
                     }
                   </td>
                   <td class="ledger-desc">{{ e.description }}</td>
-                  <td class="num align-right">{{ e.amount > 0 ? money(e.amount) : '' }}</td>
-                  <td class="num align-right">{{ e.amount < 0 ? money(-e.amount) : '' }}</td>
+                  <td class="num align-right amt-pos">{{ e.amount > 0 ? signed(e.amount) : '' }}</td>
+                  <td class="num align-right amt-neg">{{ e.amount < 0 ? signed(e.amount) : '' }}</td>
                   <td class="num align-right">{{ e.settled ? money(e.settled) : '—' }}</td>
                   <td class="num align-right">{{ e.remaining ? money(e.remaining) : '—' }}</td>
                   <td [class.text-danger]="(e.overdueDays ?? 0) > 0 && e.remaining > 0">
                     @if (e.kind === 'PHAT_SINH' && e.dueDate) { <span class="num">{{ day(e.dueDate) }}</span> · }
                     {{ statusOf(e) }}
                   </td>
-                  <td class="num align-right">{{ money(e.balance) }}</td>
+                  <td class="num align-right" [class.amt-neg]="e.balance < 0">{{ money(e.balance) }}</td>
                 </tr>
               } @empty {
                 <tr class="no-match">
@@ -96,13 +96,13 @@
               @if (hasPeriod()) {
                 <tr class="ledger-period-row">
                   <td colspan="9">Số dư đầu kỳ</td>
-                  <td class="num align-right">{{ money(opening()) }}</td>
+                  <td class="num align-right" [class.amt-neg]="opening() < 0">{{ money(opening()) }}</td>
                 </tr>
               }
               <tr class="row-total">
                 <td colspan="4">Cộng phát sinh {{ hasPeriod() ? 'trong kỳ' : '' }}</td>
-                <td class="num align-right">{{ money(periodTotals().increase) }}</td>
-                <td class="num align-right">{{ money(periodTotals().decrease) }}</td>
+                <td class="num align-right amt-pos">{{ signed(periodTotals().increase) }}</td>
+                <td class="num align-right amt-neg">{{ signed(-periodTotals().decrease) }}</td>
                 <td colspan="4"></td>
               </tr>
             </tbody>
@@ -110,13 +110,12 @@
         </div>
       </section>
       <p class="hint ledger-hint">
-        Phát sinh tăng khi nhập kho hàng của đơn nhập; giảm khi lập phiếu chi trả nhà cung cấp. Tiền chưa đối trừ vào khoản nào là trả trước —
-        tự trừ vào khoản đến hạn sớm nhất khi có phát sinh mới.
+        {{ t().hint }} Tiền chưa đối trừ vào khoản nào là trả trước — tự trừ vào khoản đến hạn sớm nhất khi có phát sinh mới.
       </p>
     } @else {
       <div class="card empty-state">
         <h3>Chưa có phát sinh công nợ</h3>
-        <p>Công nợ phải trả phát sinh khi nhập kho hàng từ nhà cung cấp này.</p>
+        <p>{{ t().empty }}</p>
       </div>
     }
   </div>
@@ -135,8 +134,8 @@
       <h2>BIÊN BẢN ĐỐI CHIẾU CÔNG NỢ</h2>
       <p class="rc-period">Kỳ đối chiếu: {{ periodLabel() }}</p>
       <dl class="rc-parties">
-        <div><dt>Bên mua (Bên A)</dt><dd>{{ company().name }}</dd></div>
-        <div><dt>Bên bán (Bên B)</dt><dd>{{ s.name }} — {{ s.code }}{{ s.taxCode ? ' — MST ' + s.taxCode : '' }}</dd></div>
+        <div><dt>{{ t().partyA }}</dt><dd>{{ company().name }}</dd></div>
+        <div><dt>{{ t().partyB }}</dt><dd>{{ p.name }} — {{ p.code }}{{ p.taxCode ? ' — MST ' + p.taxCode : '' }}</dd></div>
       </dl>
       <table>
         <thead>
@@ -164,7 +163,7 @@
           </tr>
           <tr>
             <td colspan="5">
-              <strong>Số dư cuối kỳ ({{ periodTotals().closing >= 0 ? 'Bên A còn phải trả Bên B' : 'Bên A đã trả trước cho Bên B' }})</strong>
+              <strong>Số dư cuối kỳ ({{ periodTotals().closing >= 0 ? t().owes : t().prepaid }})</strong>
             </td>
             <td class="r"><strong>{{ money(periodTotals().closing < 0 ? -periodTotals().closing : periodTotals().closing) }}</strong></td>
           </tr>
@@ -179,8 +178,8 @@
   }
 } @else {
   <div class="card empty-state">
-    <h3>Không tìm thấy nhà cung cấp</h3>
+    <h3>Không tìm thấy {{ t().partner }}</h3>
     <p>Đường dẫn có thể không đúng.</p>
-    <a class="btn" routerLink="/cong-no/nha-cung-cap">Về công nợ phải trả</a>
+    <a class="btn" [routerLink]="t().listPath">Về {{ t().listTitle.toLowerCase() }}</a>
   </div>
 }

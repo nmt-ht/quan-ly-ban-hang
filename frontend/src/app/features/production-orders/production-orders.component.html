@@ -1,23 +1,74 @@
 <div class="page-header">
   <div>
     <h1>Lệnh sản xuất</h1>
-    <p class="subtitle">{{ data.productionOrders().length }} lệnh</p>
+    <p class="subtitle">{{ rows().length }} lệnh</p>
   </div>
   <div class="toolbar">
-    <button class="btn">Xuất Excel</button>
-    <a class="btn btn-primary" routerLink="/don-hang">Đơn chờ sản xuất</a>
+    <button type="button" class="btn" [disabled]="exporting()" (click)="exportExcel()">
+      <app-nav-icon name="download" />{{ exporting() ? 'Đang xuất…' : 'Xuất Excel' }}
+    </button>
+    <a class="btn btn-primary" routerLink="/don-hang" [queryParams]="{ status: 'PENDING' }">
+      <app-nav-icon name="receipt" />Đơn chờ sản xuất@if (totals().waitingOrders) { <span class="num">({{ totals().waitingOrders }})</span> }
+    </a>
   </div>
 </div>
 
+@if (notice()) {
+  <div class="notice" role="status">
+    <span>{{ notice() }}</span>
+    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+  </div>
+}
+
 <div class="filters-bar">
-  <input type="text" placeholder="Tìm mã lệnh, thành phẩm..." class="filter-search" />
-  <select><option>Trạng thái</option></select>
-  <select><option>Chọn kỳ</option></select>
+  <input type="text" class="filter-search" placeholder="Tìm mã lệnh, thành phẩm, đơn bán, khách…" aria-label="Tìm lệnh sản xuất"
+    [value]="search()" (input)="search.set($any($event.target).value)" />
+  <app-filter-multi-select label="Trạng thái" [options]="statusOptions()" [(selected)]="statuses" />
+  <app-period-filter [(value)]="period" />
+  <button type="button" class="filter-toggle" [attr.aria-pressed]="lateOnly()" (click)="lateOnly.set(!lateOnly())">Trễ hạn giao</button>
 </div>
+
+@if (chips().length) {
+  <div class="filter-chips" aria-label="Bộ lọc đang áp dụng">
+    @for (c of chips(); track c.label) {
+      <span class="filter-chip">
+        {{ c.label }}
+        <button type="button" class="filter-chip-remove" [attr.aria-label]="'Bỏ lọc ' + c.label" (click)="c.clear()"><app-nav-icon name="x" /></button>
+      </span>
+    }
+    <button type="button" class="filter-clear-all" (click)="clearAll()"><app-nav-icon name="x" />Xoá tất cả bộ lọc</button>
+  </div>
+}
+
+@if (data.productionOrders().length) {
+  <dl class="list-totals">
+    <div><dt>Nháp — chờ bắt đầu</dt><dd class="num">{{ totals().draft }} lệnh</dd></div>
+    <div><dt>Đang sản xuất</dt><dd class="num">{{ totals().running }} lệnh</dd></div>
+    <div><dt>Trễ hạn giao</dt><dd class="num" [class.amt-neg]="totals().late > 0">{{ totals().late }} lệnh</dd></div>
+  </dl>
+}
 
 <app-data-table
   [columns]="columns"
-  [rows]="data.productionOrders()"
-  emptyTitle="Chưa có lệnh sản xuất nào"
-  emptyHint="Lệnh sản xuất lập từ ĐƠN HÀNG — mở đơn có thành phẩm rồi bấm Lập lệnh sản xuất. Lệnh chụp bản sao định mức lúc tạo và xuất vật tư khi bắt đầu."
+  [rows]="paged()"
+  [actions]="rowActions"
+  [filterable]="true"
+  [filters]="columnFilters()"
+  (filtersChange)="columnFilters.set($event)"
+  [optionRows]="data.productionOrders()"
+  [emptyTitle]="chips().length || search() ? 'Không có lệnh phù hợp' : 'Chưa có lệnh sản xuất nào'"
+  [emptyHint]="chips().length || search() ? 'Thử bỏ bớt bộ lọc hoặc mở rộng khoảng ngày.' : 'Lệnh sản xuất lập từ ĐƠN HÀNG — mở đơn có thành phẩm rồi bấm Lập lệnh sản xuất. Lệnh chụp bản sao định mức lúc tạo và xuất vật tư khi bắt đầu.'"
 />
+
+<app-pagination [total]="rows().length" unit="lệnh" [(page)]="page" [(pageSize)]="pageSize" />
+
+<ng-template #rowActions let-x>
+  <span class="row-actions">
+    @if (canStart(x)) {
+      <button type="button" class="btn row-act-btn" (click)="start(x)" [attr.aria-label]="'Bắt đầu sản xuất ' + x.code" title="Xuất vật tư theo định mức và chuyển sang Đang sản xuất">Bắt đầu</button>
+    } @else if (x.status === 'DANG_SAN_XUAT') {
+      <a class="btn row-act-btn" [routerLink]="['/san-xuat', x.id]" [attr.aria-label]="'Hoàn tất ' + x.code" title="Nhập số thực làm được">Hoàn tất…</a>
+    }
+    <a class="icon-action" [routerLink]="['/san-xuat', x.id]" [attr.aria-label]="'Xem ' + x.code" title="Xem lệnh"><app-nav-icon name="eye" /></a>
+  </span>
+</ng-template>

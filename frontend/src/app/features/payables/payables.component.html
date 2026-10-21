@@ -6,7 +6,7 @@
 }
 
 @if (partnerId(); as id) {
-  <app-payable-ledger [partnerId]="id" />
+  <app-debt-ledger side="PHAI_TRA" [partnerId]="id" />
 } @else {
   <div class="page-header">
     <div>
@@ -42,7 +42,7 @@
 
   @if (rows().length) {
     <dl class="list-totals">
-      <div><dt>Tổng phải trả</dt><dd class="num">{{ money(totals().balance) }}</dd></div>
+      <div><dt>Tổng phải trả</dt><dd class="num" [class.amt-neg]="totals().balance < 0">{{ money(totals().balance) }}</dd></div>
       <div><dt>Trong đó quá hạn</dt><dd class="num" [class.text-danger]="totals().overdue > 0">{{ money(totals().overdue) }}</dd></div>
       <div><dt>Trả trước chưa dùng</dt><dd class="num">{{ money(totals().prepaid) }}</dd></div>
     </dl>

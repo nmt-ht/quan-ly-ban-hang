@@ -1,65 +1,75 @@
-import { Component, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, computed, inject } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { map } from 'rxjs';
+import { RevenueReportComponent } from './revenue/revenue-report.component';
 
 interface ReportItem {
-  key: string;
+  slug: string; // ?name= — slugs as on production (docs/crawl/02-bao-cao.md), not derived from the label
   label: string;
+  ready?: boolean;
 }
 interface ReportGroup {
   label: string;
   items: ReportItem[];
 }
 
+const DEFAULT_SLUG = 'ban-hang';
+
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [CommonModule],
+  imports: [RouterLink, RevenueReportComponent],
   templateUrl: './reports.component.html',
 })
 export class ReportsComponent {
   readonly groups: ReportGroup[] = [
     { label: 'Bán hàng', items: [
-      { key: 'doanh-thu', label: 'Doanh thu' },
-      { key: 'chiet-khau', label: 'Chiết khấu đã cấp' },
-      { key: 'khach-ngung-mua', label: 'Khách ngừng mua' },
+      { slug: 'ban-hang', label: 'Doanh thu', ready: true },
+      { slug: 'chiet-khau', label: 'Chiết khấu đã cấp' },
+      { slug: 'khach-ngung-mua', label: 'Khách ngừng mua' },
     ]},
     { label: 'Lợi nhuận', items: [
-      { key: 'lai-gop', label: 'Lãi gộp' },
-      { key: 'ban-duoi-gia-von', label: 'Hàng bán dưới giá vốn' },
+      { slug: 'loi-nhuan', label: 'Lãi gộp' },
+      { slug: 'ban-duoi-gia-von', label: 'Hàng bán dưới giá vốn' },
     ]},
     { label: 'Kho', items: [
-      { key: 'nhap-xuat-ton', label: 'Nhập xuất tồn' },
-      { key: 'hang-khong-phat-sinh', label: 'Hàng không phát sinh lâu ngày' },
-      { key: 'ton-kho-hien-tai', label: 'Tồn kho hiện tại' },
-      { key: 'duoi-ton-toi-thieu', label: 'Hàng dưới tồn tối thiểu' },
-      { key: 'the-kho', label: 'Thẻ kho' },
-      { key: 'vong-quay-ton-kho', label: 'Vòng quay tồn kho' },
+      { slug: 'nhap-xuat-ton', label: 'Nhập xuất tồn' },
+      { slug: 'hang-nam-im', label: 'Hàng không phát sinh lâu ngày' },
+      { slug: 'ton-kho', label: 'Tồn kho hiện tại' },
+      { slug: 'duoi-ton-toi-thieu', label: 'Hàng dưới tồn tối thiểu' },
+      { slug: 'the-kho', label: 'Thẻ kho' },
+      { slug: 'vong-quay-ton-kho', label: 'Vòng quay tồn kho' },
     ]},
     { label: 'Mua hàng', items: [
-      { key: 'nhap-hang', label: 'Nhập hàng' },
-      { key: 'gia-mua-bien-dong', label: 'Giá mua biến động' },
+      { slug: 'mua-hang', label: 'Nhập hàng' },
+      { slug: 'gia-mua', label: 'Giá mua biến động' },
     ]},
     { label: 'Sản xuất', items: [
-      { key: 'san-xuat', label: 'Sản xuất' },
+      { slug: 'san-xuat', label: 'Sản xuất' },
     ]},
     { label: 'Giao hàng', items: [
-      { key: 'giao-hang', label: 'Giao hàng' },
-      { key: 'chi-phi-xe', label: 'Chi phí xe' },
-      { key: 'hieu-qua-tai-xe', label: 'Hiệu quả theo tài xế' },
+      { slug: 'giao-hang', label: 'Giao hàng' },
+      { slug: 'chi-phi-xe', label: 'Chi phí xe' },
+      { slug: 'tai-xe', label: 'Hiệu quả theo tài xế' },
     ]},
     { label: 'Công nợ', items: [
-      { key: 'so-du-cong-no', label: 'Số dư công nợ' },
-      { key: 'tuoi-no', label: 'Tuổi nợ' },
+      { slug: 'cong-no', label: 'Số dư công nợ' },
+      { slug: 'tuoi-no', label: 'Tuổi nợ' },
     ]},
     { label: 'Dòng tiền', items: [
-      { key: 'so-quy', label: 'Sổ quỹ' },
-      { key: 'thu-chi', label: 'Thu chi' },
+      { slug: 'so-quy', label: 'Sổ quỹ' },
+      { slug: 'thu-chi', label: 'Thu chi' },
     ]},
   ];
 
-  readonly active = signal<ReportItem>(this.groups[0].items[0]);
+  private readonly router = inject(Router);
+  private readonly items = this.groups.flatMap((g) => g.items);
+  private readonly name = toSignal(inject(ActivatedRoute).queryParamMap.pipe(map((q) => q.get('name'))), { initialValue: null });
 
-  select(item: ReportItem): void {
-    this.active.set(item);
+  readonly active = computed(() => this.items.find((i) => i.slug === this.name()) ?? this.items.find((i) => i.slug === DEFAULT_SLUG)!);
+
+  open(slug: string): void {
+    this.router.navigate(['/bao-cao'], { queryParams: { name: slug } });
   }
 }

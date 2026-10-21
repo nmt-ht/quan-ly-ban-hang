@@ -40,6 +40,9 @@ export type NavIconName =
   | 'check'
   | 'refresh'
   | 'trash'
+  | 'key'
+  | 'lock'
+  | 'unlock'
   | 'image-plus'
   | 'star'
   | 'palette'
@@ -283,6 +286,19 @@ export type NavIconName =
           <path d="M9.5 6.5V4.5h5v2" />
           <path d="M6.5 6.5l1 13.5h9l1-13.5" />
           <path d="M10 10.5v6M14 10.5v6" />
+        }
+        @case ('key') {
+          <circle cx="8" cy="15" r="4" />
+          <path d="M11 12l8.5-8.5" />
+          <path d="M16.5 7l2.5 2.5M14.5 9l2 2" />
+        }
+        @case ('lock') {
+          <rect x="5" y="10.5" width="14" height="10" rx="2" />
+          <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
+        }
+        @case ('unlock') {
+          <rect x="5" y="10.5" width="14" height="10" rx="2" />
+          <path d="M8 10.5V7.5a4 4 0 0 1 7.6-1.7" />
         }
       }
     </svg>

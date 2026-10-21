@@ -4,12 +4,107 @@
     <p class="subtitle">{{ data.users().length }} tài khoản</p>
   </div>
   <div class="toolbar">
-    <button class="btn btn-primary">+ Thêm người dùng</button>
+    <button type="button" class="btn" [disabled]="exporting()" (click)="exportExcel()">
+      <app-nav-icon name="download" />{{ exporting() ? 'Đang xuất…' : 'Xuất Excel' }}
+    </button>
+    <a class="btn" routerLink="/thiet-lap/chuc-vu"><app-nav-icon name="shield" />Chức vụ &amp; phân quyền</a>
+    <button type="button" class="btn btn-primary" (click)="openCreate()"><app-nav-icon name="plus" />Thêm người dùng</button>
   </div>
 </div>
 
+@if (notice()) {
+  <div class="notice" role="status">
+    <span>{{ notice() }}</span>
+    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+  </div>
+}
+@if (error()) {
+  <p class="form-note text-danger" role="alert">{{ error() }}</p>
+}
+
+<dl class="list-totals">
+  <div><dt>Đang hoạt động</dt><dd class="num">{{ summary().active }}</dd></div>
+  <div><dt>Đã khoá</dt><dd class="num">{{ summary().locked }}</dd></div>
+  <div><dt>Phiên đang mở</dt><dd class="num">{{ summary().sessions }}</dd></div>
+  @if (summary().idle) {
+    <div><dt>Lâu không đăng nhập (&gt; 30 ngày)</dt><dd class="num text-warning">{{ summary().idle }}</dd></div>
+  }
+  @if (summary().mustChange) {
+    <div><dt>Chờ đổi mật khẩu</dt><dd class="num">{{ summary().mustChange }}</dd></div>
+  }
+</dl>
+
 <div class="filters-bar">
-  <input type="text" placeholder="Tìm theo tên hoặc email..." class="filter-search" />
+  <input
+    type="text"
+    class="filter-search"
+    placeholder="Tìm theo tên hoặc email…"
+    aria-label="Tìm người dùng"
+    [value]="search()"
+    (input)="search.set($any($event.target).value)"
+  />
+  <app-filter-multi-select label="Chức vụ" [options]="roleOptions()" [(selected)]="roles" />
+  <select aria-label="Trạng thái" [value]="status()" (change)="status.set($any($event.target).value)">
+    <option value="all">Tất cả trạng thái</option>
+    <option value="ACTIVE">Đang hoạt động</option>
+    <option value="DISABLED">Đã khoá</option>
+  </select>
+  <button type="button" class="filter-toggle" [attr.aria-pressed]="online()" (click)="online.set(!online())">Đang có phiên mở</button>
+  <button type="button" class="filter-toggle" [attr.aria-pressed]="idle()" (click)="idle.set(!idle())">Lâu không đăng nhập</button>
+  @if (search() || roles().length || status() !== 'all' || online() || idle()) {
+    <button type="button" class="filter-clear-all" (click)="clearAll()"><app-nav-icon name="x" />Xoá bộ lọc</button>
+  }
 </div>
 
-<app-data-table [columns]="columns" [rows]="data.users()" emptyTitle="Chưa có người dùng nào" />
+<app-data-table
+  [columns]="columns"
+  [rows]="paged()"
+  [actions]="rowActions"
+  [filterable]="true"
+  [filters]="columnFilters()"
+  (filtersChange)="columnFilters.set($event)"
+  [optionRows]="data.users()"
+  emptyTitle="Không có người dùng phù hợp"
+  emptyHint="Thử bỏ bớt bộ lọc."
+/>
+
+<app-pagination [total]="users().length" unit="tài khoản" [(page)]="page" [(pageSize)]="pageSize" />
+
+<ng-template #rowActions let-u>
+  <span class="row-actions">
+    @if (u.status === 'ACTIVE') {
+      <button type="button" class="icon-action" (click)="openPassword(u)" [attr.aria-label]="'Đặt lại mật khẩu cho ' + u.name" title="Đặt lại mật khẩu">
+        <app-nav-icon name="key" />
+      </button>
+    }
+    @if (canLock(u)) {
+      <button type="button" class="icon-action" (click)="askLock(u)" [attr.aria-label]="'Khoá ' + u.name" title="Khoá tài khoản">
+        <app-nav-icon name="lock" />
+      </button>
+    } @else if (u.status === 'DISABLED') {
+      <button type="button" class="icon-action" (click)="unlock(u)" [attr.aria-label]="'Mở khoá ' + u.name" title="Mở khoá">
+        <app-nav-icon name="unlock" />
+      </button>
+    }
+    <button type="button" class="icon-action" (click)="openEdit(u)" [attr.aria-label]="'Sửa ' + u.name" title="Sửa">
+      <app-nav-icon name="pencil" />
+    </button>
+    <a class="icon-action" [routerLink]="['/thiet-lap/nguoi-dung', u.id]" [attr.aria-label]="'Xem ' + u.name" title="Xem chi tiết">
+      <app-nav-icon name="eye" />
+    </a>
+  </span>
+</ng-template>
+
+@if (lockTarget(); as u) {
+  <div class="confirm-strip" role="alertdialog" aria-labelledby="ul-title">
+    <p id="ul-title"><strong>Khoá tài khoản {{ u.name }}?</strong> Người này bị đăng xuất ngay và không đăng nhập được nữa. Chứng từ đã lập vẫn giữ nguyên.</p>
+    <input type="text" placeholder="Lý do khoá (VD: Nghỉ việc)" aria-label="Lý do khoá" [ngModel]="lockReason()" (ngModelChange)="lockReason.set($event)" />
+    <div class="toolbar">
+      <button type="button" class="btn" (click)="lockTarget.set(null)">Không khoá</button>
+      <button type="button" class="btn btn-danger" (click)="doLock()"><app-nav-icon name="lock" />Khoá tài khoản</button>
+    </div>
+  </div>
+}
+
+<app-user-dialog #userDialog (saved)="onSaved($event)" />
+<app-password-dialog #passwordDialog (done)="notice.set($event)" />

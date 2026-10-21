@@ -1,0 +1,38 @@
+.head-fields .span-full {
+  grid-column: 1 / -1;
+}
+
+.lsx-late {
+  background: var(--color-danger-tint);
+  color: var(--color-danger);
+}
+
+.lsx-title {
+  margin: 0 0 var(--space-xs);
+}
+
+.lsx-sub {
+  margin-left: var(--space-2xs);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  color: var(--color-muted);
+}
+
+.lsx-short {
+  margin-top: var(--space-xs);
+}
+
+.lsx-cancelled td {
+  color: var(--color-muted);
+  text-decoration: line-through;
+}
+
+.lsx-qty {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+
+  input {
+    width: 8rem;
+  }
+}

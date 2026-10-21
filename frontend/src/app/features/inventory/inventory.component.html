@@ -1,24 +1,89 @@
 <div class="page-header">
   <div>
     <h1>Tồn kho</h1>
-    <p class="subtitle">{{ rows().length }} mặt hàng · đang ẩn mặt hàng tồn 0</p>
+    <p class="subtitle">
+      {{ rows().length }} mặt hàng
+      @if (!showZero() && hiddenZero()) { · đang ẩn {{ hiddenZero() }} mặt hàng tồn 0 }
+    </p>
   </div>
   <div class="toolbar">
-    <button class="btn">Xuất Excel</button>
+    <button type="button" class="btn" [disabled]="exporting()" (click)="exportExcel()">
+      <app-nav-icon name="download" />{{ exporting() ? 'Đang xuất…' : 'Xuất Excel' }}
+    </button>
+    <a class="btn" routerLink="/kho/phieu"><app-nav-icon name="voucher" />Phiếu kho</a>
+    <a class="btn btn-primary" routerLink="/mua-hang/them"><app-nav-icon name="plus" />Lập đơn nhập</a>
   </div>
 </div>
 
+<dl class="list-totals">
+  <div><dt>Mặt hàng có tồn</dt><dd class="num">{{ totals().items }}</dd></div>
+  <div><dt>Giá trị tồn (giá vốn ước tính)</dt><dd class="num">{{ money(totals().value) }}</dd></div>
+  @if (totals().belowMin) {
+    <div><dt>Dưới tồn tối thiểu / hết</dt><dd class="num text-warning">{{ totals().belowMin }}</dd></div>
+  }
+  @if (totals().negative) {
+    <div><dt>Đang tồn âm</dt><dd class="num text-danger">{{ totals().negative }}</dd></div>
+  }
+  @if (totals().shortage) {
+    <div><dt>Không đủ hàng cho đơn đã đặt</dt><dd class="num text-danger">{{ totals().shortage }}</dd></div>
+  }
+</dl>
+
 <div class="filters-bar">
-  <input type="text" placeholder="Tìm theo mã, mã đối chiếu hoặc tên..." class="filter-search" />
-  <select><option>Tất cả kho</option></select>
-  <button class="btn">Đang tồn âm</button>
-  <button class="btn">Dưới tồn tối thiểu</button>
-  <button class="btn">Hiện cả tồn 0</button>
+  <input
+    type="text"
+    class="filter-search"
+    placeholder="Tìm theo mã, mã đối chiếu hoặc tên…"
+    aria-label="Tìm mặt hàng"
+    [value]="search()"
+    (input)="search.set($any($event.target).value)"
+  />
+  <select aria-label="Kho" [value]="warehouseId()" (change)="warehouseId.set($any($event.target).value)">
+    <option value="all">Tất cả kho</option>
+    @for (w of data.warehouses(); track w.id) { <option [value]="w.id">{{ w.name }}</option> }
+  </select>
+  <app-filter-multi-select label="Tính chất" [options]="typeOptions()" [(selected)]="types" />
+  <app-filter-multi-select label="Nhóm hàng" [options]="categoryOptions()" [(selected)]="categories" />
+  <button type="button" class="filter-toggle" [attr.aria-pressed]="negativeOnly()" (click)="negativeOnly.set(!negativeOnly())">Đang tồn âm</button>
+  <button type="button" class="filter-toggle" [attr.aria-pressed]="belowMinOnly()" (click)="belowMinOnly.set(!belowMinOnly())">Dưới tồn tối thiểu</button>
+  <button type="button" class="filter-toggle" [attr.aria-pressed]="showZero()" (click)="showZero.set(!showZero())">Hiện cả tồn 0</button>
+  <select aria-label="Sắp xếp" [value]="sort()" (change)="sort.set($any($event.target).value)">
+    <option value="name">Tên A → Z</option>
+    <option value="code">Mã tăng dần</option>
+    <option value="qty-desc">Tồn nhiều → ít</option>
+    <option value="qty-asc">Tồn ít → nhiều</option>
+    <option value="value">Giá trị tồn lớn nhất</option>
+  </select>
+  @if (hasFilters()) {
+    <button type="button" class="filter-clear-all" (click)="clearAll()"><app-nav-icon name="x" />Xoá bộ lọc</button>
+  }
 </div>
 
 <app-data-table
-  [columns]="columns"
-  [rows]="rows()"
-  emptyTitle="Chưa có tồn kho"
-  emptyHint="Tồn kho phát sinh từ phiếu nhập, phiếu kiểm kê. Lập phiếu để bắt đầu."
+  [columns]="columns()"
+  [rows]="paged()"
+  [actions]="rowActions"
+  [filterable]="true"
+  [filters]="columnFilters()"
+  (filtersChange)="columnFilters.set($event)"
+  [emptyTitle]="hasFilters() ? 'Không có mặt hàng phù hợp' : 'Chưa có tồn kho'"
+  [emptyHint]="hasFilters() ? 'Thử bỏ bớt bộ lọc.' : 'Tồn kho phát sinh từ phiếu nhập, phiếu kiểm kê. Lập phiếu để bắt đầu.'"
 />
+
+<app-pagination [total]="rows().length" unit="mặt hàng" [(page)]="page" [(pageSize)]="pageSize" />
+
+<p class="hint inv-hint">
+  Tồn luôn quy về ĐVT chính. Khách đã đặt = đơn bán chưa xuất kho; Có thể bán = tồn − khách đã đặt; Sắp về = đơn nhập đã gửi NCC chưa nhận.
+  Giá trị tồn tính theo giá vốn ước tính (giá nhập gần nhất / định mức).
+</p>
+
+<ng-template #rowActions let-r>
+  <span class="row-actions">
+    <a class="icon-action" [routerLink]="['/hang-hoa', r.product.id]" [queryParams]="{ tab: 'lich-su' }" [attr.aria-label]="'Thẻ kho ' + r.product.code" title="Thẻ kho (lịch sử nhập xuất)">
+      <app-nav-icon name="clock" />
+    </a>
+    <a class="icon-action" [routerLink]="['/hang-hoa', r.product.id]" [queryParams]="{ tab: 'ton-kho' }" [attr.aria-label]="'Tồn theo kho ' + r.product.code" title="Tồn theo kho">
+      <app-nav-icon name="eye" />
+    </a>
+  </span>
+</ng-template>

@@ -3,37 +3,40 @@
     <h1>Báo cáo</h1>
     <p class="subtitle">{{ active().label }}</p>
   </div>
-  <div class="toolbar">
-    <button class="btn">Xuất Excel</button>
-  </div>
 </div>
 
+<label class="report-picker">
+  <span class="visually-hidden">Chọn báo cáo</span>
+  <select [value]="active().slug" (change)="open($any($event.target).value)">
+    @for (group of groups; track group.label) {
+      <optgroup [label]="group.label">
+        @for (item of group.items; track item.slug) { <option [value]="item.slug">{{ item.label }}</option> }
+      </optgroup>
+    }
+  </select>
+</label>
+
 <div class="report-layout">
-  <nav class="report-nav card">
-    <ng-container *ngFor="let group of groups">
+  <nav class="report-nav card" aria-label="Danh sách báo cáo">
+    @for (group of groups; track group.label) {
       <div class="report-group-label">{{ group.label }}</div>
-      <button
-        *ngFor="let item of group.items"
-        class="report-item"
-        [class.active]="active().key === item.key"
-        (click)="select(item)"
-        type="button"
-      >
-        {{ item.label }}
-      </button>
-    </ng-container>
+      @for (item of group.items; track item.slug) {
+        <a class="report-item" [class.active]="active().slug === item.slug" [attr.aria-current]="active().slug === item.slug ? 'page' : null"
+          routerLink="/bao-cao" [queryParams]="{ name: item.slug }">{{ item.label }}</a>
+      }
+    }
   </nav>
 
   <div class="report-body card">
-    <div class="filters-bar">
-      <select><option>Theo thời gian</option></select>
-      <input type="date" />
-      <input type="date" />
-      <select><option>Tháng này</option></select>
-    </div>
-    <div class="empty-state">
-      <h3>Không có số liệu trong kỳ này</h3>
-      <p>Thử mở rộng khoảng ngày, hoặc kiểm tra xem đã có chứng từ nào trong kỳ chưa.</p>
-    </div>
+    @switch (active().slug) {
+      @case ('ban-hang') { <app-revenue-report /> }
+      @default {
+        <div class="empty-state">
+          <h3>{{ active().label }}</h3>
+          <p>Báo cáo này đang được làm lại. Hiện đã có: Doanh thu.</p>
+          <a class="btn" routerLink="/bao-cao" [queryParams]="{ name: 'ban-hang' }">Mở báo cáo Doanh thu</a>
+        </div>
+      }
+    }
   </div>
 </div>

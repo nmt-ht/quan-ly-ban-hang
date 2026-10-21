@@ -52,6 +52,12 @@ Axes: light / geometric-sans / chromatic-moss.
 - Scale: 11 · 12 · 13 (tables, controls) · 14 (body) · 16 (card heading) ·
   20 (stat value) · 24 (page title).
 - Money is always `tabular-nums`, right-aligned in tables.
+- Signed money (format.util): negatives use a true minus "−" (U+2212), never a
+  hyphen. Flows (thu/chi, phát sinh tăng/giảm, Thu − Chi) show "+" / "−" and
+  `.amt-pos` (success green) / `.amt-neg` (danger red). Balances stay ink when
+  positive and only turn `.amt-neg` when below zero (e.g. trả trước). Colour is
+  never the only cue — the sign is always printed. In tables use the column
+  option `tone` (+ `toneFlow: false` for balances).
 
 ## Spacing
 4-point named scale in `tokens.css` (`--space-3xs` 4px → `--space-xl` 48px).

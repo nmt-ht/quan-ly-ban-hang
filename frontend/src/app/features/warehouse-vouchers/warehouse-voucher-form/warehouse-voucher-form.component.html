@@ -1,0 +1,275 @@
+@if (notFound()) {
+  <div class="card empty-state">
+    <h3>Không tìm thấy phiếu kho</h3>
+    <p>Phiếu có thể đã bị xoá hoặc đường dẫn không đúng.</p>
+    <a class="btn" routerLink="/kho/phieu">Về danh sách phiếu kho</a>
+  </div>
+} @else {
+  <div class="voucher screen-only">
+    <header class="voucher-bar">
+      <a class="icon-action" routerLink="/kho/phieu" aria-label="Về danh sách phiếu kho" title="Về danh sách"><app-nav-icon name="arrow-left" /></a>
+      <h1>{{ viewing() ? text().title : 'Lập ' + text().title.toLowerCase() }} @if (voucher(); as v) { <span class="num">{{ v.code }}</span> }</h1>
+      @if (voucher(); as v) {
+        <app-copy-button [text]="v.code" label="số phiếu" />
+        <span class="badge" [ngClass]="kindClass()">{{ kindLabel() }}</span>
+        @if (v.isCancelled) { <span class="badge wv-cancelled">Đã huỷ</span> }
+      }
+    </header>
+
+    @if (notice()) {
+      <div class="notice" role="status">
+        <span>{{ notice() }}</span>
+        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+      </div>
+    }
+    @if (error()) { <p class="form-note text-danger" role="alert">{{ error() }}</p> }
+
+    <section class="card voucher-head">
+      <div class="head-fields">
+        @if (voucher(); as v) {
+          <div class="field"><span class="field-label">Ngày chứng từ</span><p class="field-value num">{{ day(v.date) }}</p></div>
+          <div class="field"><span class="field-label">{{ text().warehouse }}</span><p class="field-value">{{ warehouseName(v.warehouseId) }}</p></div>
+          @if (v.type === 'CHUYEN') {
+            <div class="field"><span class="field-label">Kho nhận</span><p class="field-value">{{ warehouseName(v.targetWarehouseId) }}</p></div>
+          } @else {
+            <div class="field"><span class="field-label">Số chứng từ</span><p class="field-value num">{{ v.code }}</p></div>
+          }
+          <div class="field"><span class="field-label">Người lập</span><p class="field-value">{{ userName(v.createdBy) }}</p></div>
+          <div class="field span-full"><span class="field-label">Lý do</span><p class="field-value">{{ v.reason || '—' }}</p></div>
+          <div class="field span-2">
+            <span class="field-label">Chứng từ gốc</span>
+            <p class="field-value">
+              @if (source(); as s) {
+                {{ s.label }} @if (s.link) { <a class="code-link num" [routerLink]="s.link">{{ s.code ?? 'Mở' }}</a> } @else if (s.code) { <span class="num">{{ s.code }}</span> }
+              } @else { Lập tay }
+            </p>
+          </div>
+          <div class="field span-2"><span class="field-label">Ghi chú phiếu</span><p class="field-value">{{ v.note || (v.cancelReason ? 'Lý do huỷ: ' + v.cancelReason : '—') }}</p></div>
+        } @else {
+          <div class="field">
+            <label for="wv-date">Ngày chứng từ <span class="required-mark">*</span></label>
+            <input id="wv-date" type="date" [ngModel]="date()" (ngModelChange)="date.set($event)" />
+          </div>
+          <div class="field">
+            <label for="wv-wh">{{ text().warehouse }} <span class="required-mark">*</span></label>
+            <select id="wv-wh" [ngModel]="warehouseId()" (ngModelChange)="warehouseId.set($event)" [attr.aria-invalid]="attempted() && !warehouseId() ? 'true' : null">
+              <option value="">— Chọn kho —</option>
+              @for (w of data.warehouses(); track w.id) { <option [value]="w.id">{{ w.name }}</option> }
+            </select>
+          </div>
+          @if (type() === 'CHUYEN') {
+            <div class="field">
+              <label for="wv-target">Kho nhận <span class="required-mark">*</span></label>
+              <select id="wv-target" [ngModel]="targetId()" (ngModelChange)="targetId.set($event)"
+                [attr.aria-invalid]="attempted() && (!targetId() || targetId() === warehouseId()) ? 'true' : null">
+                <option value="">— Chọn kho —</option>
+                @for (w of data.warehouses(); track w.id) { <option [value]="w.id" [disabled]="w.id === warehouseId()">{{ w.name }}</option> }
+              </select>
+            </div>
+          } @else {
+            <div class="field"><span class="field-label">Số chứng từ</span><p class="field-value num">Cấp khi lưu</p></div>
+          }
+          <div class="field"><span class="field-label">Người lập</span><p class="field-value">{{ auth.user()?.name ?? 'Bạn' }}</p></div>
+          <div class="field span-full">
+            <label for="wv-reason">Lý do</label>
+            <input id="wv-reason" type="text" [placeholder]="text().reason" [ngModel]="reason()" (ngModelChange)="reason.set($event)" />
+          </div>
+          <div class="field span-full">
+            <label for="wv-note">Ghi chú phiếu</label>
+            <input id="wv-note" type="text" [ngModel]="note()" (ngModelChange)="note.set($event)" />
+          </div>
+        }
+      </div>
+
+      <aside class="head-summary">
+        @if (type() === 'KIEM_KE') {
+          <p class="summary-label">Chênh lệch (ĐVT chính)</p>
+          <p class="summary-total num" [class.amt-pos]="(voucher() ? viewTotals().delta : totalDiff()) > 0" [class.amt-neg]="(voucher() ? viewTotals().delta : totalDiff()) < 0">
+            {{ signed(voucher() ? viewTotals().delta : totalDiff()) }}
+          </p>
+          <p class="summary-sub">Thừa (+) nhập thêm vào kho, thiếu (−) trừ khỏi kho.</p>
+        } @else if (type() === 'NHAP') {
+          <p class="summary-label">Giá trị nhập</p>
+          <p class="summary-total num">{{ money(voucher() ? viewTotals().value : totalValue()) }}</p>
+          <p class="summary-sub">Tổng SL: <span class="num">{{ (voucher() ? viewTotals().qty : totalQty()).toLocaleString('vi-VN') }}</span> (ĐVT chính)</p>
+        } @else {
+          <p class="summary-label">Tổng số lượng (ĐVT chính)</p>
+          <p class="summary-total num">{{ (voucher() ? viewTotals().qty : totalQty()).toLocaleString('vi-VN') }}</p>
+        }
+      </aside>
+
+      @if (text().note) { <p class="form-note head-note">{{ text().note }}</p> }
+    </section>
+
+    <section class="card voucher-grid-card">
+      <div class="voucher-grid-scroll">
+        <table class="voucher-grid">
+          <thead>
+            <tr>
+              <th scope="col" class="c-idx">#</th>
+              <th scope="col" class="c-product">Hàng hoá @if (!viewing()) { <span class="required-mark">*</span> }</th>
+              <th scope="col" class="c-unit">ĐVT</th>
+              @if (type() === 'KIEM_KE') { <th scope="col" class="c-num">Tồn sổ sách</th> }
+              @if (!viewing() && type() !== 'KIEM_KE') { <th scope="col" class="c-num">Tồn tại kho</th> }
+              <th scope="col" class="c-num">{{ text().qty }}</th>
+              @if (type() === 'KIEM_KE') { <th scope="col" class="c-num">Chênh lệch</th> }
+              @if (type() === 'NHAP') {
+                <th scope="col" class="c-num">Đơn giá nhập</th>
+                <th scope="col" class="c-num">Thành tiền</th>
+              }
+              <th scope="col" class="wv-note-col">Ghi chú</th>
+              @if (!viewing()) { <th scope="col" class="c-act"><span class="visually-hidden">Xoá dòng</span></th> }
+            </tr>
+          </thead>
+          <tbody>
+            @if (viewing()) {
+              @for (l of viewLines(); track l.i) {
+                <tr>
+                  <td class="c-idx num">{{ l.i + 1 }}</td>
+                  <td class="c-product"><a class="code-link num" [routerLink]="['/hang-hoa', l.p?.id]">{{ l.p?.code }}</a> {{ l.p?.name }}</td>
+                  <td class="c-unit">{{ l.unit }}</td>
+                  @if (type() === 'KIEM_KE') { <td class="c-num num">{{ l.book !== undefined ? qty(l.book) : '—' }}</td> }
+                  <td class="c-num num">
+                    {{ l.qty.toLocaleString('vi-VN') }}
+                    @if (l.unit !== l.baseUnit) { <span class="wv-base">= {{ l.base.toLocaleString('vi-VN') }} {{ l.baseUnit }}</span> }
+                  </td>
+                  @if (type() === 'KIEM_KE') {
+                    <td class="c-num num" [class.amt-pos]="l.delta > 0" [class.amt-neg]="l.delta < 0">{{ signed(l.delta) }}</td>
+                  }
+                  @if (type() === 'NHAP') {
+                    <td class="c-num num">{{ l.price ? l.price.toLocaleString('vi-VN') : '—' }}</td>
+                    <td class="c-num num">{{ l.value ? l.value.toLocaleString('vi-VN') : '—' }}</td>
+                  }
+                  <td class="wv-note-col wrap">{{ l.note || '' }}</td>
+                </tr>
+              }
+            } @else {
+              @for (l of lines(); track l.key; let i = $index) {
+                <tr>
+                  <td class="c-idx num">{{ i + 1 }}</td>
+                  <td class="c-product">
+                    <app-product-picker [products]="productOptions()" [stock]="stockHere()" [value]="l.productId" (valueChange)="setProduct(i, $event)"
+                      [invalid]="attempted() && !l.productId && (l.quantity ?? 0) > 0" [ariaLabel]="'Hàng hoá dòng ' + (i + 1)" />
+                  </td>
+                  <td class="c-unit">
+                    @if (units(l.productId).length > 1) {
+                      <select [ngModel]="l.unitName" (ngModelChange)="setUnit(i, $event)" [attr.aria-label]="'Đơn vị dòng ' + (i + 1)">
+                        @for (u of units(l.productId); track u.value) { <option [value]="u.value">{{ u.label }}</option> }
+                      </select>
+                    } @else { {{ product(l.productId)?.baseUnit ?? '—' }} }
+                  </td>
+                  <td class="c-num num" [class.text-warning]="short(l)">{{ book(l) === null ? '—' : qty(book(l)!) }}</td>
+                  <td class="c-num">
+                    <input type="number" min="0" step="any" class="num-input" [ngModel]="l.quantity" (ngModelChange)="patch(i, { quantity: $event })"
+                      [attr.aria-label]="text().qty + ' dòng ' + (i + 1)"
+                      [attr.aria-invalid]="attempted() && l.productId && (l.quantity === null || (type() !== 'KIEM_KE' && !l.quantity)) ? 'true' : null" />
+                    @if (short(l)) { <span class="wv-warn">Vượt tồn</span> }
+                  </td>
+                  @if (type() === 'KIEM_KE') {
+                    <td class="c-num num" [class.amt-pos]="(diff(l) ?? 0) > 0" [class.amt-neg]="(diff(l) ?? 0) < 0">
+                      {{ diff(l) === null ? '—' : signed(diff(l)!) }}
+                    </td>
+                  }
+                  @if (type() === 'NHAP') {
+                    <td class="c-num"><input type="text" appMoney [ngModel]="l.unitPrice" (ngModelChange)="patch(i, { unitPrice: $event })" [attr.aria-label]="'Đơn giá dòng ' + (i + 1)" /></td>
+                    <td class="c-num num">{{ ((l.quantity ?? 0) * (l.unitPrice ?? 0)).toLocaleString('vi-VN') }}</td>
+                  }
+                  <td class="wv-note-col"><input type="text" [ngModel]="l.note" (ngModelChange)="patch(i, { note: $event })" [attr.aria-label]="'Ghi chú dòng ' + (i + 1)" /></td>
+                  <td class="c-act">
+                    <button type="button" class="icon-action" (click)="removeLine(i)" [attr.aria-label]="'Xoá dòng ' + (i + 1)" title="Xoá dòng"><app-nav-icon name="trash" /></button>
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="grid-footer">
+        <div class="grid-footer-left">
+          @if (!viewing()) {
+            <p class="grid-count">{{ validLines().length }} dòng hợp lệ{{ warehouseId() ? '' : ' · chọn kho để thấy tồn hiện tại' }}</p>
+            <div class="toolbar"><button type="button" class="btn" (click)="addLine()"><app-nav-icon name="plus" />Thêm dòng</button></div>
+          } @else {
+            <p class="grid-count">{{ viewLines().length }} dòng · số lượng quy về ĐVT chính khi ghi tồn</p>
+          }
+        </div>
+      </div>
+    </section>
+
+    <footer class="voucher-actions">
+      <p class="actions-hint" [class.text-danger]="!viewing() && attempted() && issues().length" role="status">
+        @if (!viewing()) {
+          {{ issues()[0] ?? 'Sẵn sàng lưu' }}
+        } @else if (voucher()?.isCancelled) {
+          Phiếu đã huỷ — không còn tính vào tồn kho.
+        } @else if (source()) {
+          Phiếu lập từ {{ source()!.label.toLowerCase() }} — huỷ ở chứng từ gốc.
+        } @else {
+          Muốn sửa: huỷ phiếu rồi lập lại để giữ dấu vết.
+        }
+      </p>
+      <div class="toolbar">
+        @if (!viewing()) {
+          <a class="btn" routerLink="/kho/phieu">Huỷ</a>
+          <button type="button" class="btn btn-primary" [disabled]="attempted() && issues().length > 0" (click)="save()"><app-nav-icon name="check" />Lưu phiếu</button>
+        } @else {
+          <button type="button" class="btn" (click)="print()"><app-nav-icon name="printer" />In phiếu</button>
+          @if (canCancel()) {
+            <button type="button" class="btn btn-danger-ghost" (click)="confirmCancel.set(true)">Huỷ phiếu</button>
+          }
+          <a class="btn btn-primary" [routerLink]="['/kho/phieu/lap', newSlug()]"><app-nav-icon name="plus" />Lập {{ text().title.toLowerCase() }} mới</a>
+        }
+      </div>
+    </footer>
+  </div>
+
+  @if (confirmCancel()) {
+    <div class="confirm-strip" role="alertdialog" aria-labelledby="wv-cancel-title">
+      <p id="wv-cancel-title"><strong>Huỷ {{ voucher()?.code }}?</strong> Tồn kho trả về như trước khi lập phiếu; phiếu vẫn lưu để đối chiếu.</p>
+      <input type="text" placeholder="Lý do huỷ" aria-label="Lý do huỷ" [ngModel]="cancelReason()" (ngModelChange)="cancelReason.set($event)" />
+      <div class="toolbar">
+        <button type="button" class="btn" (click)="confirmCancel.set(false)">Không huỷ</button>
+        <button type="button" class="btn btn-danger" (click)="doCancel()">Huỷ phiếu</button>
+      </div>
+    </div>
+  }
+
+  @if (voucher(); as v) {
+    <article class="print-only wv-print">
+      <header class="wv-print-head">
+        <div><strong>{{ company().name }}</strong>@if (company().address) { <div>{{ company().address }}</div> }</div>
+        <div>Số: <strong>{{ v.code }}</strong>@if (v.isCancelled) { <div><strong>ĐÃ HUỶ</strong></div> }</div>
+      </header>
+      <h2>{{ text().print }}</h2>
+      <p class="wv-print-date">Ngày {{ v.date.slice(8, 10) }} tháng {{ v.date.slice(5, 7) }} năm {{ v.date.slice(0, 4) }}</p>
+      <p>{{ text().warehouse }}: <strong>{{ warehouseName(v.warehouseId) }}</strong>@if (v.type === 'CHUYEN') { → Kho nhận: <strong>{{ warehouseName(v.targetWarehouseId) }}</strong> }</p>
+      <p>Lý do: {{ v.reason || '' }}</p>
+      <table>
+        <thead>
+          <tr>
+            <th>STT</th><th>Mã hàng</th><th>Tên hàng</th><th>ĐVT</th>
+            @if (v.type === 'KIEM_KE') { <th class="r">Sổ sách</th><th class="r">Thực đếm</th><th class="r">Chênh lệch</th> }
+            @else { <th class="r">Số lượng</th> }
+            @if (v.type === 'NHAP') { <th class="r">Đơn giá</th><th class="r">Thành tiền</th> }
+          </tr>
+        </thead>
+        <tbody>
+          @for (l of viewLines(); track l.i) {
+            <tr>
+              <td>{{ l.i + 1 }}</td><td>{{ l.p?.code }}</td><td>{{ l.p?.name }}</td><td>{{ l.unit }}</td>
+              @if (v.type === 'KIEM_KE') { <td class="r">{{ l.book !== undefined ? qty(l.book) : '' }}</td><td class="r">{{ qty(l.qty) }}</td><td class="r">{{ signed(l.delta) }}</td> }
+              @else { <td class="r">{{ l.qty.toLocaleString('vi-VN') }}</td> }
+              @if (v.type === 'NHAP') { <td class="r">{{ l.price ? l.price.toLocaleString('vi-VN') : '' }}</td><td class="r">{{ l.value ? l.value.toLocaleString('vi-VN') : '' }}</td> }
+            </tr>
+          }
+        </tbody>
+      </table>
+      <div class="wv-sign">
+        <div><strong>Người lập phiếu</strong><span>(Ký, họ tên)</span></div>
+        <div><strong>{{ v.type === 'NHAP' ? 'Người giao hàng' : v.type === 'XUAT' ? 'Người nhận hàng' : 'Người kiểm' }}</strong><span>(Ký, họ tên)</span></div>
+        <div><strong>Thủ kho</strong><span>(Ký, họ tên)</span></div>
+        <div><strong>Kế toán trưởng</strong><span>(Ký, họ tên)</span></div>
+      </div>
+    </article>
+  }
+}

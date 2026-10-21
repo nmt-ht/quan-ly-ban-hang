@@ -1,77 +1,119 @@
 <div class="page-header">
   <div>
     <h1>Tổng quan</h1>
-    <p class="subtitle">{{ today }}</p>
+    <p class="subtitle">Hôm nay <span class="num">{{ day(today) }}</span> · đang xem {{ periodLabel() }} (<span class="num">{{ day(range().from) }} → {{ day(range().to) }}</span>)</p>
+  </div>
+  <div class="toolbar">
+    <app-period-filter [(value)]="period" />
   </div>
 </div>
 
-<div class="stat-grid">
-  <app-stat-card label="Doanh thu ({{ periodDays }} ngày)" [value]="formatVnd(revenue())" [sub]="'Kỳ trước ' + formatVnd(prevRevenue())" />
-  <app-stat-card label="Số đơn đã giao" [value]="'' + orderCount()" [sub]="'Kỳ trước ' + previous().length + ' đơn'" />
-  <app-stat-card label="Giá trị đơn trung bình" [value]="formatVnd(avgOrder())" />
-  <app-stat-card label="Lãi gộp" value="—" sub="Chưa có giá vốn trong dữ liệu demo" />
-</div>
-
-<section class="section-block section-bare">
-  <h3>Cần chú ý ngay</h3>
-  <div class="stat-grid stat-grid-flush">
-    <a routerLink="/don-hang" [queryParams]="{status:'PENDING'}" class="mini-link">
-      <app-stat-card label="Đơn chờ sản xuất" [value]="'' + pendingProduction()" />
-    </a>
-    <a routerLink="/don-hang" [queryParams]="{status:'SHIPPING'}" class="mini-link">
-      <app-stat-card label="Đơn đang giao" [value]="'' + shipping()" />
-    </a>
-    <a routerLink="/kho/ton-kho" [queryParams]="{belowMin:true}" class="mini-link">
-      <app-stat-card label="Hàng dưới tồn tối thiểu" [value]="'' + belowMin()" />
-    </a>
-    <a routerLink="/cong-no/tuoi-no" class="mini-link">
-      <app-stat-card label="Công nợ quá hạn" [value]="formatVnd(debt.receivableOverdue())" />
-    </a>
-  </div>
-</section>
-
-<section class="section-block section-bare">
-  <h3>Rò rỉ tiền</h3>
-  <p class="subtitle section-lede">Những khoản báo cáo doanh thu không hiện ra. Bấm vào để mở báo cáo chi tiết.</p>
-  <div class="stat-grid stat-grid-flush">
-    <a routerLink="/bao-cao" [queryParams]="{name:'ban-duoi-gia-von'}" class="mini-link">
-      <app-stat-card label="Bán dưới giá vốn" value="0 ₫" />
-    </a>
-    <a routerLink="/bao-cao" [queryParams]="{name:'chiet-khau'}" class="mini-link">
-      <app-stat-card label="Chiết khấu đã cấp" [value]="formatVnd(discountGiven())" />
-    </a>
-    <a routerLink="/bao-cao" [queryParams]="{name:'khach-ngung-mua'}" class="mini-link">
-      <app-stat-card label="Khách ngừng mua" value="0" />
-    </a>
-  </div>
-</section>
-
-<div class="two-col section-block">
-  <section class="card">
-    <h3>Doanh thu theo ngày</h3>
-    @if (byDay().length === 0) {
-      <div class="empty-state">Chưa có doanh thu trong kỳ này</div>
-    } @else {
-      @for (d of byDay(); track d.date) {
-        <div class="bar-row">
-          <span class="bar-label num">{{ d.date.slice(5) }}</span>
-          <div class="bar-track"><div class="bar-fill" [style.width.%]="d.pct"></div></div>
-          <span class="bar-value num">{{ formatVnd(d.value) }}</span>
-        </div>
+<!-- KPI chính, so với kỳ liền trước cùng độ dài -->
+<div class="db-kpis">
+  @let k = kpis();
+  @let p = prevKpis();
+  <a class="db-kpi" routerLink="/don-hang">
+    <span class="db-kpi-label">Doanh thu</span>
+    <span class="db-kpi-value num">{{ money(k.revenue) }}</span>
+    <span class="db-kpi-sub">
+      @if (change(k.revenue, p.revenue); as c) {
+        <span [class]="tone(c)">{{ pct(c) }}</span>
       }
+      Kỳ trước <span class="num">{{ money(p.revenue) }}</span>
+    </span>
+  </a>
+  <a class="db-kpi" routerLink="/don-hang">
+    <span class="db-kpi-label">Số đơn đã giao</span>
+    <span class="db-kpi-value num">{{ k.orders }}</span>
+    <span class="db-kpi-sub">
+      @if (change(k.orders, p.orders); as c) { <span [class]="tone(c)">{{ pct(c) }}</span> }
+      Kỳ trước <span class="num">{{ p.orders }}</span> đơn
+    </span>
+  </a>
+  <div class="db-kpi">
+    <span class="db-kpi-label">Giá trị đơn trung bình</span>
+    <span class="db-kpi-value num">{{ money(k.avg) }}</span>
+    <span class="db-kpi-sub">Kỳ trước <span class="num">{{ money(p.avg) }}</span></span>
+  </div>
+  <div class="db-kpi">
+    <span class="db-kpi-label">Lãi gộp <span class="db-est" title="Giá vốn ước tính theo giá nhập gần nhất và định mức">ước tính</span></span>
+    <span class="db-kpi-value num" [class]="'db-kpi-value num ' + tone(k.profit, false)">{{ money(k.profit) }}</span>
+    <span class="db-kpi-sub">Tỷ suất <span class="num">{{ percent(k.margin) }}</span> · kỳ trước <span class="num">{{ percent(p.margin) }}</span></span>
+  </div>
+</div>
+
+<div class="db-grid">
+  <section class="card db-block db-attention" aria-labelledby="db-att">
+    <h3 id="db-att">Cần chú ý ngay</h3>
+    @let a = attention();
+    <ul class="db-tiles">
+      <li><a routerLink="/don-hang" [queryParams]="{ status: 'PENDING' }" [class.is-hot]="a.pendingProduction > 0">
+        <span class="num db-tile-value">{{ a.pendingProduction }}</span><span>Đơn chờ sản xuất</span></a></li>
+      <li><a routerLink="/don-hang" [queryParams]="{ status: 'SHIPPING' }">
+        <span class="num db-tile-value">{{ a.shipping }}</span><span>Đơn đang giao</span></a></li>
+      <li><a routerLink="/don-hang" [queryParams]="{ late: 1 }" [class.is-bad]="a.late > 0">
+        <span class="num db-tile-value">{{ a.late }}</span><span>Đơn trễ hẹn giao</span></a></li>
+      <li><a routerLink="/kho/ton-kho" [queryParams]="{ belowMin: true }" [class.is-bad]="a.belowMin > 0">
+        <span class="num db-tile-value">{{ a.belowMin }}</span><span>Hàng dưới tồn tối thiểu</span></a></li>
+      <li><a routerLink="/cong-no/tuoi-no" [queryParams]="{ loai: 'phai-thu' }" [class.is-bad]="a.receivableOverdue > 0">
+        <span class="num db-tile-value">{{ money(a.receivableOverdue) }}</span><span>Khách nợ quá hạn · {{ a.overdueCustomers }} khách</span></a></li>
+      <li><a routerLink="/cong-no/tuoi-no" [class.is-hot]="a.payableDue > 0">
+        <span class="num db-tile-value">{{ money(a.payableDue) }}</span><span>Phải trả NCC quá hạn &amp; đến hạn trong 7 ngày · {{ a.payableDueCount }} khoản</span></a></li>
+      <li><a routerLink="/mua-hang">
+        <span class="num db-tile-value">{{ a.poWaiting }}</span><span>Đơn nhập chờ nhận hàng</span></a></li>
+    </ul>
+  </section>
+
+  <section class="card db-block" aria-labelledby="db-leak">
+    <h3 id="db-leak">Rò rỉ tiền</h3>
+    <p class="subtitle">Những khoản báo cáo doanh thu không hiện ra. Bấm vào để mở báo cáo chi tiết.</p>
+    @let l = leaks();
+    <ul class="db-tiles db-tiles-col">
+      <li><a routerLink="/bao-cao" [queryParams]="{ name: 'ban-duoi-gia-von' }" [class.is-bad]="l.belowCostLines > 0">
+        <span class="num db-tile-value">{{ l.belowCostLines }} dòng</span><span>Bán dưới giá vốn · lỗ <span class="num">{{ money(l.belowCostLoss) }}</span></span></a></li>
+      <li><a routerLink="/bao-cao" [queryParams]="{ name: 'chiet-khau' }">
+        <span class="num db-tile-value">{{ money(l.discount) }}</span><span>Chiết khấu đã cấp · {{ l.discountPct }}% giá trị hàng</span></a></li>
+      <li><a routerLink="/bao-cao" [queryParams]="{ name: 'khach-ngung-mua' }" [class.is-hot]="l.stopped > 0">
+        <span class="num db-tile-value">{{ l.stopped }} khách</span><span>Khách ngừng mua (không mua &gt; 60 ngày)</span></a></li>
+    </ul>
+  </section>
+</div>
+
+<div class="db-grid db-grid-wide">
+  <section class="card db-block" aria-labelledby="db-chart">
+    <header class="db-head">
+      <h3 id="db-chart">Doanh thu theo {{ byDay().unit }}</h3>
+      @if (chartMax() > 0) { <span class="subtitle">Cao nhất <span class="num">{{ money(chartMax()) }}</span></span> }
+    </header>
+    @if (kpis().revenue === 0) {
+      <div class="empty-state"><p>Chưa có doanh thu trong kỳ này</p></div>
+    } @else {
+      <div class="db-chart" role="img" [attr.aria-label]="'Biểu đồ doanh thu theo ' + byDay().unit + ', tổng ' + money(kpis().revenue)">
+        @for (b of byDay().bars; track b.key) {
+          <div class="db-col" [title]="b.label + ': ' + money(b.value)">
+            <div class="db-bar" [style.height.%]="b.pct" [class.is-zero]="!b.value"></div>
+            <span class="db-col-label num">{{ b.label }}</span>
+          </div>
+        }
+      </div>
     }
   </section>
-  <section class="card">
-    <h3>Mặt hàng bán chạy</h3>
+
+  <section class="card db-block" aria-labelledby="db-top">
+    <h3 id="db-top">Mặt hàng bán chạy</h3>
     @if (topProducts().length === 0) {
-      <div class="empty-state">Chưa có dữ liệu bán hàng trong kỳ</div>
+      <div class="empty-state"><p>Chưa có dữ liệu bán hàng trong kỳ</p></div>
     } @else {
-      <ol class="ledger-list">
-        @for (p of topProducts(); track p.name; let i = $index) {
+      <ol class="db-top">
+        @for (t of topProducts(); track t.id; let i = $index) {
           <li>
-            <span class="ledger-rank num">{{ i + 1 }}</span>
-            <span class="ledger-name">{{ p.name }} <span class="subtitle">({{ p.qty }} {{ p.unit }})</span></span>
-            <strong class="num">{{ formatVnd(p.value) }}</strong>
+            <span class="db-rank num">{{ i + 1 }}</span>
+            <span class="db-top-name">
+              <a class="code-link" [routerLink]="['/hang-hoa', t.id]">{{ t.name }}</a>
+              <span class="db-share" aria-hidden="true"><span [style.width.%]="t.share"></span></span>
+              <span class="subtitle"><span class="num">{{ t.qty.toLocaleString('vi-VN') }}</span> {{ t.unit }} · {{ t.share.toFixed(0) }}%</span>
+            </span>
+            <strong class="num">{{ money(t.value) }}</strong>
           </li>
         }
       </ol>
@@ -79,22 +121,37 @@
   </section>
 </div>
 
-<div class="two-col">
-  <section class="card">
-    <h3>Công nợ</h3>
-    <div class="stat-grid stat-grid-flush">
-      <app-stat-card label="Phải thu khách hàng" [value]="formatVnd(debt.receivableTotal())" [negative]="debt.receivableTotal() < 0" />
-      <app-stat-card label="Phải trả nhà cung cấp" [value]="formatVnd(debt.payableTotal())" [negative]="debt.payableTotal() < 0" />
-    </div>
-  </section>
-  <section class="card">
-    <h3>Dòng tiền</h3>
+<div class="db-grid">
+  <section class="card db-block" aria-labelledby="db-debt">
+    <h3 id="db-debt">Công nợ <span class="subtitle">toàn bộ lịch sử</span></h3>
     <dl class="ledger-dl">
-      <div><dt>Thu trong kỳ</dt><dd class="num">{{ formatVnd(cashIn()) }}</dd></div>
-      <div><dt>Chi trong kỳ</dt><dd class="num">{{ formatVnd(cashOut()) }}</dd></div>
-      <div class="ledger-total"><dt>Tồn quỹ hiện tại</dt><dd class="num">{{ formatVnd(cashBalance()) }}</dd></div>
+      <div>
+        <dt><a class="code-link" routerLink="/cong-no/khach-hang">Phải thu khách hàng</a></dt>
+        <dd class="num" [class.amt-neg]="debt.receivableTotal() < 0">{{ money(debt.receivableTotal()) }}</dd>
+      </div>
+      <div><dt>· trong đó quá hạn</dt><dd class="num" [class.text-danger]="debt.receivableOverdue() > 0">{{ money(debt.receivableOverdue()) }}</dd></div>
+      <div>
+        <dt><a class="code-link" routerLink="/cong-no/nha-cung-cap">Phải trả nhà cung cấp</a></dt>
+        <dd class="num" [class.amt-neg]="debt.payableTotal() < 0">{{ money(debt.payableTotal()) }}</dd>
+      </div>
+      <div><dt>· trong đó quá hạn</dt><dd class="num" [class.text-danger]="debt.payableOverdue() > 0">{{ money(debt.payableOverdue()) }}</dd></div>
+    </dl>
+    <a class="btn" routerLink="/cong-no/tuoi-no">Báo cáo tuổi nợ</a>
+  </section>
+
+  <section class="card db-block" aria-labelledby="db-cash">
+    <h3 id="db-cash">Dòng tiền</h3>
+    @let c = cash();
+    <dl class="ledger-dl">
+      <div><dt>Thu trong kỳ</dt><dd class="num amt-pos">{{ signed(c.thu) }}</dd></div>
+      <div><dt>Chi trong kỳ</dt><dd class="num amt-neg">{{ signed(-c.chi) }}</dd></div>
+      <div><dt>Thu − Chi</dt><dd class="num" [class]="'num ' + tone(c.net)">{{ signed(c.net) }}</dd></div>
+      <div class="ledger-total"><dt>Tồn quỹ hiện tại</dt><dd class="num" [class.amt-neg]="c.balance < 0">{{ money(c.balance) }}</dd></div>
+      @for (acc of c.accounts; track acc.id) {
+        <div class="db-acc"><dt>· {{ acc.name }}</dt><dd class="num" [class.amt-neg]="acc.balance < 0">{{ money(acc.balance) }}</dd></div>
+      }
     </dl>
     <p class="subtitle">Tồn quỹ tính trên toàn bộ lịch sử, không theo khoảng ngày đang xem.</p>
-    <a routerLink="/thu-chi" class="btn">Xem phiếu thu chi</a>
+    <a class="btn" routerLink="/thu-chi">Xem phiếu thu chi</a>
   </section>
 </div>

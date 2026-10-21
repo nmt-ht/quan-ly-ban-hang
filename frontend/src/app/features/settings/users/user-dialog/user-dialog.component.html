@@ -1,0 +1,69 @@
+<dialog #dialog class="rg-dialog th-dialog" aria-labelledby="ud-title">
+  <header class="rg-head">
+    <div>
+      <h2 id="ud-title">{{ editing() ? 'Sửa người dùng' : 'Thêm người dùng' }}</h2>
+      @if (editing()) { <p class="subtitle">Đổi mật khẩu ở nút "Đặt lại mật khẩu" trên danh sách.</p> }
+    </div>
+    <button type="button" class="icon-action" aria-label="Đóng" (click)="close()"><app-nav-icon name="x" /></button>
+  </header>
+
+  <div class="rg-body th-body">
+    <label class="field">
+      <span>Họ tên <span class="required-mark">*</span></span>
+      <input id="ud-name" type="text" placeholder="VD: Nguyễn Văn A" autocomplete="off" [ngModel]="name()" (ngModelChange)="name.set($event)"
+        [attr.aria-invalid]="attempted() && !name().trim() ? 'true' : null" />
+    </label>
+    <label class="field">
+      <span>Email đăng nhập <span class="required-mark">*</span></span>
+      <input type="email" placeholder="ten@ninhtrang.local" autocomplete="off" [ngModel]="email()" (ngModelChange)="email.set($event)"
+        [attr.aria-invalid]="attempted() && (!email().trim() || duplicate()) ? 'true' : null" />
+      @if (duplicate(); as d) { <span class="hint text-danger">Email đã dùng cho {{ d.name }}.</span> }
+    </label>
+
+    @if (!editing()) {
+      <div class="field th-note">
+        <label for="ud-pw">Mật khẩu <span class="required-mark">*</span></label>
+        <div class="ud-pw">
+          <input id="ud-pw" [type]="showPassword() ? 'text' : 'password'" class="num" autocomplete="new-password"
+            [ngModel]="password()" (ngModelChange)="password.set($event)" [attr.aria-invalid]="attempted() && issues().length && password().length < 8 ? 'true' : null" />
+          <button type="button" class="icon-action" (click)="showPassword.set(!showPassword())" [attr.aria-label]="showPassword() ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'" title="Hiện / ẩn">
+            <app-nav-icon name="eye" />
+          </button>
+          @if (showPassword() && password()) { <app-copy-button [text]="password()" label="mật khẩu" /> }
+          <button type="button" class="btn btn-sm" (click)="suggestPassword()"><app-nav-icon name="refresh" />Tạo ngẫu nhiên</button>
+        </div>
+        <span class="hint">Từ 8 ký tự, có cả chữ và số. Nhắn riêng cho nhân viên và bảo họ đổi lại.</span>
+      </div>
+    }
+
+    <label class="field">
+      <span>Chức vụ <span class="required-mark">*</span></span>
+      <select [disabled]="lockedRole()" [ngModel]="roleId()" (ngModelChange)="roleId.set($event)" [attr.aria-invalid]="attempted() && !roleId() ? 'true' : null">
+        <option value="">— Chọn chức vụ —</option>
+        @for (r of roles(); track r.id) { <option [value]="r.id">{{ r.name }}{{ r.isSystem ? ' (hệ thống)' : '' }}</option> }
+      </select>
+      <span class="hint">{{ lockedRole() ? 'Tài khoản CEO cuối cùng — không đổi chức vụ được.' : 'Chức vụ quyết định toàn bộ quyền hạn của tài khoản.' }}</span>
+    </label>
+    <label class="field">
+      <span>Điện thoại</span>
+      <input type="tel" class="num" placeholder="0912345678" [ngModel]="phone()" (ngModelChange)="phone.set($event)" />
+    </label>
+    @if (role(); as r) {
+      <p class="form-note th-note"><strong>{{ r.name }}</strong> · {{ r.permissionCount }}/{{ r.totalPermissionCount }} quyền — {{ r.description }}</p>
+    }
+    <label class="field th-note">
+      <span>Ghi chú</span>
+      <textarea rows="2" [ngModel]="note()" (ngModelChange)="note.set($event)"></textarea>
+    </label>
+  </div>
+
+  <footer class="rg-foot">
+    <p class="rg-summary" [class.text-danger]="(attempted() && issues().length) || error()" role="status">
+      {{ error() || (attempted() && issues().length ? issues()[0] : editing() ? editing()!.email : 'Tài khoản mới phải đổi mật khẩu ở lần đăng nhập đầu.') }}
+    </p>
+    <div class="toolbar">
+      <button type="button" class="btn" (click)="close()">Huỷ</button>
+      <button type="button" class="btn btn-primary" (click)="confirm()">{{ editing() ? 'Lưu' : 'Tạo tài khoản' }}</button>
+    </div>
+  </footer>
+</dialog>

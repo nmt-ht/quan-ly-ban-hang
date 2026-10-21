@@ -1,0 +1,186 @@
+<header class="rr-head">
+  <div>
+    <h2>{{ title() }}</h2>
+    <p class="subtitle">{{ periodLabel() }} · <span class="num">{{ day(range().from) }} – {{ day(range().to) }}</span></p>
+  </div>
+  <button type="button" class="btn" [disabled]="exporting() || !lines().length" (click)="exportExcel()">
+    <app-nav-icon name="download" />{{ exporting() ? 'Đang xuất…' : 'Xuất Excel' }}
+  </button>
+</header>
+
+<div class="filters-bar">
+  <select aria-label="Cách nhóm" [value]="group()" (change)="group.set($any($event.target).value)">
+    @for (g of groups; track g[0]) { <option [value]="g[0]">{{ g[1] }}</option> }
+  </select>
+  @if (group() === 'time') {
+    <select aria-label="Đơn vị thời gian" [value]="unitChoice()" (change)="unitChoice.set($any($event.target).value)">
+      <option value="auto">Tự động (theo {{ unitWord() }})</option>
+      @for (u of units; track u[0]) { <option [value]="u[0]">Theo {{ u[1].toLowerCase() }}</option> }
+    </select>
+  }
+  <app-period-filter [(value)]="period" />
+  @if (group() !== 'time') {
+    <input type="text" class="filter-search" [placeholder]="group() === 'customer' ? 'Tìm khách hàng…' : group() === 'product' ? 'Tìm mặt hàng…' : 'Tìm…'"
+      aria-label="Tìm trong báo cáo" [value]="search()" (input)="search.set($any($event.target).value)" />
+  }
+</div>
+
+@if (!lines().length) {
+  <div class="empty-state">
+    <h3>Không có số liệu trong kỳ này</h3>
+    <p>Thử mở rộng khoảng ngày, hoặc kiểm tra xem đã có chứng từ nào trong kỳ chưa.</p>
+  </div>
+} @else {
+  @let t = totals();
+  @let p = prevTotals();
+  <div class="rr-kpis">
+    <div class="rr-kpi">
+      <span class="rr-kpi-label">Doanh thu (tổng thanh toán)</span>
+      <span class="rr-kpi-value num">{{ money(t.total) }}</span>
+      <span class="rr-kpi-sub">
+        @if (change(t.total, p.total); as c) { <span [class]="tone(c)">{{ pct(c) }}</span> }
+        @if (hasPrevious()) { Kỳ trước <span class="num">{{ money(p.total) }}</span> } @else { Gồm thuế GTGT }
+      </span>
+    </div>
+    <div class="rr-kpi">
+      <span class="rr-kpi-label">Doanh thu thuần (chưa thuế)</span>
+      <span class="rr-kpi-value num">{{ money(t.net) }}</span>
+      <span class="rr-kpi-sub">Thuế GTGT <span class="num">{{ money(t.vat) }}</span></span>
+    </div>
+    <div class="rr-kpi">
+      <span class="rr-kpi-label">Chiết khấu đã cấp</span>
+      <span class="rr-kpi-value num">{{ money(t.discount) }}</span>
+      <span class="rr-kpi-sub"><span class="num">{{ t.gross ? percent((t.discount / t.gross) * 100) : '0%' }}</span> trên tiền hàng <span class="num">{{ money(t.gross) }}</span></span>
+    </div>
+    <div class="rr-kpi">
+      <span class="rr-kpi-label">Số đơn · khách</span>
+      <span class="rr-kpi-value num">{{ t.orders }} · {{ t.customers }}</span>
+      <span class="rr-kpi-sub">
+        @if (change(t.orders, p.orders); as c) { <span [class]="tone(c)">{{ pct(c) }}</span> }
+        TB <span class="num">{{ money(avg()) }}</span>/đơn
+      </span>
+    </div>
+  </div>
+
+  <section class="rr-chart-card" aria-labelledby="rr-chart-title">
+    <header class="rr-chart-head">
+      <h3 id="rr-chart-title">{{ group() === 'time' ? 'Doanh thu theo ' + unitWord() : 'Top ' + chart().bars.length + ' ' + (group() === 'customer' ? 'khách hàng' : group() === 'product' ? 'mặt hàng' : group() === 'category' ? 'nhóm hàng' : 'nhân viên') }}</h3>
+      @if (best(); as b) { <span class="subtitle">Cao nhất: {{ b.label }} — <span class="num">{{ money(b.total) }}</span></span> }
+    </header>
+    @if (group() === 'time') {
+      <div class="rr-cols" role="img" [attr.aria-label]="'Biểu đồ ' + title() + ', tổng ' + money(t.total)">
+        @for (b of chart().bars; track b.key) {
+          <div class="rr-col" [title]="b.full + ': ' + money(b.value)">
+            <div class="rr-bar" [style.height.%]="b.pct" [class.is-zero]="!b.value"></div>
+            <span class="rr-col-label num">{{ b.label }}</span>
+          </div>
+        }
+      </div>
+    } @else {
+      <ol class="rr-hbars">
+        @for (b of chart().bars; track b.key) {
+          <li>
+            <span class="rr-hbar-label" [title]="b.full">{{ b.label }}</span>
+            <span class="rr-hbar-track"><span class="rr-hbar" [style.width.%]="b.pct"></span></span>
+            <span class="rr-hbar-value num">{{ money(b.value) }}</span>
+          </li>
+        }
+      </ol>
+    }
+  </section>
+
+  <div class="rr-table-wrap">
+    <table class="rr-table">
+      <thead>
+        <tr>
+          <th scope="col" class="rr-expand-col"><span class="visually-hidden">Mở chi tiết</span></th>
+          <th scope="col">{{ group() === 'time' ? 'Kỳ' : group() === 'customer' ? 'Khách hàng' : group() === 'product' ? 'Mặt hàng' : group() === 'category' ? 'Nhóm hàng' : 'Nhân viên bán hàng' }}</th>
+          @if (group() === 'product') { <th scope="col" class="r">Số lượng</th> }
+          <th scope="col" class="r">Số đơn</th>
+          <th scope="col" class="r">Tiền hàng</th>
+          <th scope="col" class="r">Chiết khấu</th>
+          <th scope="col" class="r">Doanh thu thuần</th>
+          <th scope="col" class="r">Thuế GTGT</th>
+          <th scope="col" class="r">Tổng thanh toán</th>
+          <th scope="col" class="r">Tỷ trọng</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (r of visibleRows(); track r.key) {
+          <tr [class.rr-zero]="!r.total" [class.rr-open]="expanded() === r.key">
+            <td class="rr-expand-col">
+              @if (r.total) {
+                <button type="button" class="icon-action" [attr.aria-expanded]="expanded() === r.key" [attr.aria-label]="'Xem đơn hàng của ' + r.label" (click)="toggle(r.key)">
+                  <app-nav-icon [name]="expanded() === r.key ? 'chevron-down' : 'chevron-right'" />
+                </button>
+              }
+            </td>
+            <td>
+              @if (r.code) {
+                @if (r.link) { <a class="code-link num" [routerLink]="r.link">{{ r.code }}</a> } @else { <span class="num">{{ r.code }}</span> }
+              }
+              {{ r.label }}
+              @if (r.sub) { <span class="rr-sub">{{ r.sub }}</span> }
+            </td>
+            @if (group() === 'product') { <td class="r num">{{ qty(r.qty) }} <span class="rr-sub-inline">{{ r.unit }}</span></td> }
+            <td class="r num">{{ r.orders || '—' }}</td>
+            <td class="r num">{{ r.gross ? r.gross.toLocaleString('vi-VN') : '—' }}</td>
+            <td class="r num">{{ r.discount ? r.discount.toLocaleString('vi-VN') : '—' }}</td>
+            <td class="r num">{{ r.net ? r.net.toLocaleString('vi-VN') : '—' }}</td>
+            <td class="r num">{{ r.vat ? r.vat.toLocaleString('vi-VN') : '—' }}</td>
+            <td class="r num rr-strong">{{ r.total ? r.total.toLocaleString('vi-VN') : '—' }}</td>
+            <td class="r num">
+              @if (r.total) {
+                <span class="rr-share"><span class="rr-share-bar" [style.width.%]="r.share"></span></span>{{ percent(r.share) }}
+              } @else { — }
+            </td>
+          </tr>
+          @if (expanded() === r.key) {
+            <tr class="rr-detail-row">
+              <td></td>
+              <td [attr.colspan]="group() === 'product' ? 9 : 8">
+                <table class="rr-detail">
+                  <thead><tr><th scope="col">Đơn hàng</th><th scope="col">Ngày ghi nhận</th><th scope="col">Khách hàng</th><th scope="col" class="r">Doanh thu thuần</th><th scope="col" class="r">Tổng thanh toán</th></tr></thead>
+                  <tbody>
+                    @for (d of details(r); track d.id) {
+                      <tr>
+                        <td><a class="code-link num" [routerLink]="['/don-hang', d.id]">{{ d.code }}</a></td>
+                        <td class="num">{{ day(d.date) }}</td>
+                        <td>{{ d.customer }}</td>
+                        <td class="r num">{{ d.net.toLocaleString('vi-VN') }}</td>
+                        <td class="r num">{{ d.total.toLocaleString('vi-VN') }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+          }
+        } @empty {
+          <tr><td [attr.colspan]="group() === 'product' ? 10 : 9" class="rr-none">Không có dòng nào khớp “{{ search() }}”.</td></tr>
+        }
+      </tbody>
+      <tfoot>
+        @let v = visibleTotals();
+        <tr>
+          <td></td>
+          <th scope="row">TỔNG CỘNG <span class="rr-sub-inline">{{ visibleRows().length }} dòng</span></th>
+          @if (group() === 'product') { <td class="r"></td> }
+          <td class="r num">{{ v.orders }}</td>
+          <td class="r num">{{ v.gross.toLocaleString('vi-VN') }}</td>
+          <td class="r num">{{ v.discount.toLocaleString('vi-VN') }}</td>
+          <td class="r num">{{ v.net.toLocaleString('vi-VN') }}</td>
+          <td class="r num">{{ v.vat.toLocaleString('vi-VN') }}</td>
+          <td class="r num">{{ v.total.toLocaleString('vi-VN') }}</td>
+          <td class="r num">{{ t.total ? percent((v.total / t.total) * 100) : '—' }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+}
+
+<footer class="rr-notes">
+  <p><strong>Doanh thu</strong> ghi nhận khi khách THỰC NHẬN hàng, đúng bằng số đã vào công nợ phải thu, vào ngày giao hàng. Đơn chưa giao hoặc đã huỷ không tính.</p>
+  <p>Chiết khấu của đơn phân bổ về từng dòng theo tỷ lệ giá trị. Doanh thu thuần = tiền hàng − chiết khấu; tổng thanh toán = doanh thu thuần + thuế GTGT.</p>
+  @if (hasPrevious()) { <p>So sánh với kỳ trước cùng độ dài: <span class="num">{{ day(prevRange().from) }} – {{ day(prevRange().to) }}</span>.</p> }
+</footer>

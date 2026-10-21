@@ -1,0 +1,36 @@
+.ud-pw {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+
+.ud-pw input {
+  flex: 1;
+  min-width: 0;
+}
+
+.btn-sm {
+  min-height: 1.875rem;
+  padding: 0 var(--space-xs);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.th-body .field > label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-ink-2);
+}
+
+.pd-once {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  margin: var(--space-2xs) 0;
+  padding: var(--space-xs) var(--space-sm);
+  border: var(--rule-hair) dashed var(--color-rule-strong);
+  border-radius: var(--radius-control);
+  background: var(--color-paper-2);
+  font-size: var(--text-lg);
+  letter-spacing: 0.04em;
+}

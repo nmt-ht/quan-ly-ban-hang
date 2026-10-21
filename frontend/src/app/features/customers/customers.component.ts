@@ -12,6 +12,7 @@ import { foldVi, formatVnd } from '../../shared/format.util';
 import { formatDay } from '../../shared/period';
 import { CUSTOMER_TYPE_SHORT, customerStatusClass, customerStatusLabel, customerTypeClass } from '../../shared/status-labels';
 import { downloadWorkbook, todayStamp } from '../../shared/excel.util';
+import { tagStyle } from '../../shared/tag-colors';
 import { CUSTOMER_SORTS, CUSTOMER_TYPES, CustomerSort, creditLabel, taxCodeOf } from './customer.rules';
 import { CustomerService } from './customer.service';
 
@@ -136,7 +137,10 @@ export class CustomersComponent {
     { key: 'code', label: 'Mã KH', copy: true, link: (r) => ['/khach-hang', r.id] },
     { key: 'name', label: 'Tên khách hàng', format: (r) => (r.companyName ? `${r.name} · ${r.companyName}` : r.name) },
     { key: 'type', label: 'Loại', format: (r) => CUSTOMER_TYPE_SHORT[r.type], badge: (r) => customerTypeClass(r.type) },
-    { key: 'tagIds', label: 'Thẻ', format: (r) => r.tagIds.map((t) => this.tagById().get(t) ?? t).join(', ') || '—' },
+    {
+      key: 'tagIds', label: 'Thẻ', format: (r) => r.tagIds.map((t) => this.tagById().get(t) ?? t).join(', ') || '—',
+      chips: (r) => this.tagChips(r.tagIds),
+    },
     { key: 'phone', label: 'Liên hệ', format: (r) => r.phone || '—', mono: true },
     { key: 'taxCode', label: 'Mã số thuế', format: (r) => taxCodeOf(r) || '—', mono: true },
     { key: 'creditDays', label: 'Được nợ', align: 'right', format: (r) => (r.creditDays > 0 ? creditLabel(r.creditDays) : '—'), filterValue: (r) => r.creditDays },
@@ -161,6 +165,15 @@ export class CustomersComponent {
     effect(() => {
       this.customers();
       untracked(() => this.page.set(1));
+    });
+  }
+
+  private readonly tagObjById = computed(() => new Map(this.data.tags().map((t) => [t.id, t])));
+
+  tagChips(ids: string[]): { label: string; style: Record<string, string> }[] {
+    return ids.flatMap((id) => {
+      const t = this.tagObjById().get(id);
+      return t ? [{ label: t.name, style: tagStyle(t.color) }] : [];
     });
   }
 

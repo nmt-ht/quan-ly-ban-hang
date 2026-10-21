@@ -367,7 +367,15 @@ kbd,
 
 .row-actions {
   display: inline-flex;
+  align-items: center;
   gap: var(--space-3xs);
+}
+
+// Text action inside a table row (Bắt đầu, Hoàn tất…) — sits beside the icon actions.
+.btn.row-act-btn {
+  min-height: 0;
+  padding: 2px var(--space-2xs);
+  font-size: var(--text-xs);
 }
 
 // ---------- product grid (Lưới) ----------
@@ -769,6 +777,68 @@ input[appmoney] {
 
 .text-warning {
   color: var(--color-warning);
+}
+
+// Signed money (format.util › amountTone): green = tiền vào / tăng, red = tiền ra / âm.
+// Colour is never the only cue — signed amounts also carry "+" / "−".
+.amt-pos {
+  color: var(--color-success);
+}
+
+.amt-neg {
+  color: var(--color-danger);
+}
+
+// Tình trạng tồn kho (Tồn kho): fixed meaning, so plain status tokens rather than user colours.
+.badge.stock-ok { background: var(--color-success-tint); color: var(--color-success); }
+.badge.stock-zero { background: var(--color-paper-2); color: var(--color-muted); }
+.badge.stock-low { background: var(--color-warning-tint); color: var(--color-warning); }
+.badge.stock-het,
+.badge.stock-am { background: var(--color-danger-tint); color: var(--color-danger); }
+
+// Header dropdown (Phiếu kho › Lập phiếu): the one shadow is for menus (design.md › Shape).
+.wv-menu {
+  position: relative;
+}
+
+.wv-menu-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  min-width: 12rem;
+  padding: 4px;
+  border: var(--rule-hair) solid var(--color-rule);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: 0 12px 32px var(--color-shadow);
+}
+
+.wv-menu-panel a {
+  padding: 8px 10px;
+  border-radius: var(--radius-control);
+  color: var(--color-ink);
+  font-size: var(--text-sm);
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .wv-menu-panel a:hover {
+    background: var(--color-paper-2);
+  }
+}
+
+.inv-hint {
+  margin: var(--space-xs) 0 0;
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+.amt-pos,
+.amt-neg {
+  font-variant-numeric: tabular-nums;
 }
 
 // ---------- form footer & bits shared by record forms (NCC, khách hàng…) ----------
@@ -1640,6 +1710,26 @@ input[appmoney] {
   }
 }
 
+// Narrow screens: the report menu becomes a dropdown so the report itself stays in view.
+.report-picker {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .report-picker {
+    display: block;
+    margin-bottom: var(--space-xs);
+
+    select {
+      width: 100%;
+    }
+  }
+
+  .report-nav {
+    display: none;
+  }
+}
+
 .report-group-label {
   margin: var(--space-sm) var(--space-2xs) var(--space-3xs);
   font-size: var(--text-xs);
@@ -1653,6 +1743,7 @@ input[appmoney] {
 
 .report-item {
   display: block;
+  text-decoration: none;
   width: 100%;
   text-align: left;
   border: none;

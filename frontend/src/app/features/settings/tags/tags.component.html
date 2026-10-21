@@ -1,11 +1,135 @@
 <div class="page-header">
   <div>
     <h1>Thẻ đánh dấu</h1>
-    <p class="subtitle">Một danh mục dùng chung cho đơn hàng và khách hàng</p>
+    <p class="subtitle">Một danh mục dùng chung cho đơn hàng và khách hàng · {{ data.tags().length }} thẻ</p>
   </div>
   <div class="toolbar">
-    <button class="btn btn-primary">+ Thêm thẻ</button>
+    <button type="button" class="btn btn-primary" (click)="open()"><app-nav-icon name="plus" />Thêm thẻ</button>
   </div>
 </div>
 
-<app-data-table [columns]="columns" [rows]="data.tags()" emptyTitle="Chưa có thẻ nào" />
+@if (notice()) {
+  <div class="notice" role="status">
+    <span>{{ notice() }}</span>
+    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+  </div>
+}
+@if (error()) { <p class="form-note text-danger" role="alert">{{ error() }}</p> }
+
+<div class="filters-bar">
+  <input type="text" class="filter-search" placeholder="Tìm thẻ…" aria-label="Tìm thẻ" [value]="search()" (input)="search.set($any($event.target).value)" />
+  <button type="button" class="filter-toggle" [attr.aria-pressed]="showInactive()" (click)="showInactive.set(!showInactive())">Hiện thẻ ngừng dùng</button>
+</div>
+
+<section class="card table-wrap">
+  @if (tags().length) {
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Thẻ</th>
+            <th scope="col">Màu</th>
+            <th scope="col" class="align-right">Thứ tự</th>
+            <th scope="col" class="align-right">Đơn hàng</th>
+            <th scope="col" class="align-right">Khách hàng</th>
+            <th scope="col">Trạng thái</th>
+            <th scope="col" class="tg-actions"><span class="visually-hidden">Thao tác</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (t of tags(); track t.id) {
+            @let u = svc.usageOf(t.id);
+            <tr [class.tg-off]="!t.isActive">
+              <td><span class="badge tag" [style]="style(t.color)">{{ t.name }}</span></td>
+              <td>{{ colorLabel(t.color) }}</td>
+              <td class="num align-right">{{ t.sortOrder }}</td>
+              <td class="num align-right">
+                @if (u.orders) { <a class="code-link" routerLink="/don-hang">{{ u.orders }}</a> } @else { 0 }
+              </td>
+              <td class="num align-right">
+                @if (u.customers) { <a class="code-link" routerLink="/khach-hang">{{ u.customers }}</a> } @else { 0 }
+              </td>
+              <td>{{ t.isActive ? 'Đang dùng' : 'Ngừng dùng' }}</td>
+              <td class="tg-actions">
+                <span class="row-actions">
+                  <button type="button" class="btn btn-sm" (click)="toggle(t)">{{ t.isActive ? 'Ngừng dùng' : 'Dùng lại' }}</button>
+                  <button type="button" class="icon-action" (click)="open(t)" [attr.aria-label]="'Sửa thẻ ' + t.name" title="Sửa"><app-nav-icon name="pencil" /></button>
+                  <button type="button" class="icon-action" [disabled]="u.orders + u.customers > 0" (click)="confirmDelete.set(t)"
+                    [attr.aria-label]="'Xoá thẻ ' + t.name" [title]="u.orders + u.customers > 0 ? 'Đang dùng — chọn Ngừng dùng' : 'Xoá thẻ'">
+                    <app-nav-icon name="trash" />
+                  </button>
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <div class="empty-state">
+      <h3>{{ search() ? 'Không có thẻ phù hợp' : 'Chưa có thẻ nào' }}</h3>
+      <p>Thẻ giúp đánh dấu khách VIP, đơn giao gấp, khách nợ xấu… và lọc nhanh ở danh sách đơn hàng, khách hàng.</p>
+      <button type="button" class="btn btn-primary" (click)="open()"><app-nav-icon name="plus" />Thêm thẻ</button>
+    </div>
+  }
+</section>
+
+@if (confirmDelete(); as t) {
+  <div class="confirm-strip" role="alertdialog" aria-labelledby="tg-del-title">
+    <p id="tg-del-title"><strong>Xoá thẻ "{{ t.name }}"?</strong> Thẻ chưa gắn vào đơn hay khách nào. Không hoàn tác được.</p>
+    <div class="toolbar">
+      <button type="button" class="btn" (click)="confirmDelete.set(null)">Không xoá</button>
+      <button type="button" class="btn btn-danger" (click)="doDelete()"><app-nav-icon name="trash" />Xoá thẻ</button>
+    </div>
+  </div>
+}
+
+<dialog #dialog class="rg-dialog th-dialog" aria-labelledby="tg-title">
+  <header class="rg-head">
+    <div><h2 id="tg-title">{{ editing() ? 'Sửa thẻ' : 'Thêm thẻ' }}</h2></div>
+    <button type="button" class="icon-action" aria-label="Đóng" (click)="close()"><app-nav-icon name="x" /></button>
+  </header>
+  <div class="rg-body th-body">
+    <label class="field th-note">
+      <span>Tên thẻ <span class="required-mark">*</span></span>
+      <input id="tg-name" type="text" maxlength="40" placeholder="VD: Khách VIP, Giao gấp, Nợ xấu" [ngModel]="name()" (ngModelChange)="name.set($event)"
+        [attr.aria-invalid]="attempted() && issue() ? 'true' : null" />
+      @if (duplicate(); as d) { <span class="hint text-danger">Đã có thẻ "{{ d.name }}".</span> }
+    </label>
+
+    <div class="field th-note">
+      <span>Màu</span>
+      <div class="tg-swatches" role="radiogroup" aria-label="Màu thẻ">
+        @for (c of colors; track c.key) {
+          <button type="button" role="radio" class="tg-swatch tag" [style]="style(c.key)" [attr.aria-checked]="color() === c.key"
+            [attr.aria-label]="c.label" [title]="c.label" (click)="color.set(c.key)">
+            @if (color() === c.key) { <app-nav-icon name="check" /> }
+          </button>
+        }
+      </div>
+      <span class="hint">{{ colorLabel(color()) }} — các màu đều đọc rõ ở giao diện sáng và tối.</span>
+    </div>
+
+    <div class="field th-note">
+      <span>Xem trước</span>
+      <p class="tg-preview">
+        <span class="badge tag" [style]="style(color())">{{ name().trim() || 'Tên thẻ' }}</span>
+      </p>
+    </div>
+
+    <label class="field">
+      <span>Thứ tự hiển thị</span>
+      <input type="number" min="0" step="1" class="num" [ngModel]="sortOrder()" (ngModelChange)="sortOrder.set($event)" />
+    </label>
+    <label class="check-line tg-active">
+      <input type="checkbox" [ngModel]="isActive()" (ngModelChange)="isActive.set($event)" /> Đang dùng
+    </label>
+  </div>
+  <footer class="rg-foot">
+    <p class="rg-summary" [class.text-danger]="attempted() && issue()" role="status">{{ attempted() && issue() ? issue() : '' }}</p>
+    <div class="toolbar">
+      <button type="button" class="btn" (click)="close()">Huỷ</button>
+      <button type="button" class="btn btn-primary" [disabled]="!name().trim()" (click)="save()">Lưu</button>
+    </div>
+  </footer>
+</dialog>

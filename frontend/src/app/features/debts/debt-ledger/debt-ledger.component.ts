@@ -5,34 +5,84 @@ import { DebtEntry, DebtService } from '../../../core/services/debt.service';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { CopyButtonComponent } from '../../../shared/copy-button/copy-button.component';
 import { NO_PERIOD, PeriodFilterComponent, PeriodValue } from '../../../shared/period-filter/period-filter.component';
-import { formatVnd } from '../../../shared/format.util';
+import { amountTone, formatVnd, formatVndSigned } from '../../../shared/format.util';
 import { formatDay, inRange, rangeLabel } from '../../../shared/period';
 import { downloadWorkbook, todayStamp } from '../../../shared/excel.util';
 
-// Sổ chi tiết công nợ phải trả của một nhà cung cấp (/cong-no/nha-cung-cap?partnerId=…).
+export type DebtSide = 'PHAI_TRA' | 'PHAI_THU';
+
+interface Partner {
+  id: string;
+  code: string;
+  name: string;
+  taxCode?: string;
+  creditDays: number;
+}
+
+/** Words and links that differ between công nợ phải trả (NCC) and phải thu (khách hàng). */
+const SIDE = {
+  PHAI_TRA: {
+    listTitle: 'Công nợ phải trả', listPath: '/cong-no/nha-cung-cap', partner: 'nhà cung cấp', detailPath: '/nha-cung-cap',
+    voucherPath: '/thu-chi/lap/chi', voucherLabel: 'Lập phiếu chi', partnerParam: 'supplierId', settledLabel: 'Đã trả đủ',
+    prepaidNote: 'Đang trả trước cho nhà cung cấp',
+    hint: 'Phát sinh tăng khi nhập kho hàng của đơn nhập; giảm khi lập phiếu chi trả nhà cung cấp.',
+    empty: 'Công nợ phải trả phát sinh khi nhập kho hàng từ nhà cung cấp này.',
+    partyA: 'Bên mua (Bên A)', partyB: 'Bên bán (Bên B)', owes: 'Bên A còn phải trả Bên B', prepaid: 'Bên A đã trả trước cho Bên B',
+  },
+  PHAI_THU: {
+    listTitle: 'Công nợ phải thu', listPath: '/cong-no/khach-hang', partner: 'khách hàng', detailPath: '/khach-hang',
+    voucherPath: '/thu-chi/lap/thu', voucherLabel: 'Lập phiếu thu', partnerParam: 'customerId', settledLabel: 'Đã thu đủ',
+    prepaidNote: 'Khách đang trả trước',
+    hint: 'Phát sinh tăng khi khách thực nhận hàng của đơn bán; giảm khi lập phiếu thu tiền khách.',
+    empty: 'Công nợ phải thu ghi khi khách thực nhận hàng của đơn bán.',
+    partyA: 'Bên bán (Bên A)', partyB: 'Bên mua (Bên B)', owes: 'Bên B còn phải trả Bên A', prepaid: 'Bên B đã trả trước cho Bên A',
+  },
+} as const;
+
+// Sổ chi tiết công nợ của một đối tác (…/cong-no/<nha-cung-cap|khach-hang>?partnerId=…), plus the
+// printable Biên bản đối chiếu công nợ.
 @Component({
-  selector: 'app-payable-ledger',
+  selector: 'app-debt-ledger',
   standalone: true,
   imports: [RouterLink, NavIconComponent, CopyButtonComponent, PeriodFilterComponent],
-  templateUrl: './payable-ledger.component.html',
-  styleUrl: './payable-ledger.component.scss',
+  templateUrl: './debt-ledger.component.html',
+  styleUrl: './debt-ledger.component.scss',
 })
-export class PayableLedgerComponent {
+export class DebtLedgerComponent {
   readonly partnerId = input.required<string>();
+  readonly side = input.required<DebtSide>();
 
   private readonly data = inject(MockDataService);
   private readonly debt = inject(DebtService);
 
   readonly money = formatVnd;
+  readonly signed = formatVndSigned;
+  readonly tone = amountTone;
   readonly day = formatDay;
   readonly period = signal<PeriodValue>(NO_PERIOD);
   readonly openOnly = signal(false);
   readonly exporting = signal(false);
   readonly today = new Date().toISOString().slice(0, 10);
 
-  readonly supplier = computed(() => this.data.suppliers().find((s) => s.id === this.partnerId()));
-  readonly row = computed(() => this.debt.payables().find((r) => r.partnerId === this.partnerId()));
+  readonly t = computed(() => SIDE[this.side()]);
+
+  readonly partner = computed<Partner | undefined>(() => {
+    const id = this.partnerId();
+    if (this.side() === 'PHAI_TRA') {
+      const s = this.data.suppliers().find((x) => x.id === id);
+      return s && { id: s.id, code: s.code, name: s.name, taxCode: s.taxCode, creditDays: s.creditDays };
+    }
+    const c = this.data.customers().find((x) => x.id === id);
+    return c && { id: c.id, code: c.code, name: c.companyName || c.name, taxCode: c.companyTaxCode || c.personalTaxCode, creditDays: c.creditDays };
+  });
+
+  readonly row = computed(() =>
+    (this.side() === 'PHAI_TRA' ? this.debt.payables() : this.debt.receivables()).find((r) => r.partnerId === this.partnerId()),
+  );
   readonly company = computed(() => this.data.companyInfo());
+
+  readonly ledgerUrl = computed(() => `${this.t().listPath}?partnerId=${this.partnerId()}`);
+  readonly voucherQuery = computed(() => ({ [this.t().partnerParam]: this.partnerId(), back: this.ledgerUrl() }));
 
   private readonly all = computed(() => this.row()?.entries ?? []);
   private readonly from = computed(() => this.period().range.from);
@@ -65,7 +115,7 @@ export class PayableLedgerComponent {
 
   statusOf(e: DebtEntry): string {
     if (e.kind === 'THANH_TOAN') return e.remaining > 0 ? `${formatVnd(e.remaining)} chưa dùng` : 'Đã đối trừ hết';
-    if (e.remaining <= 0) return 'Đã trả đủ';
+    if (e.remaining <= 0) return this.t().settledLabel;
     if ((e.overdueDays ?? 0) > 0) return `Quá hạn ${e.overdueDays} ngày`;
     if (e.overdueDays === 0) return 'Đến hạn hôm nay';
     return `Còn ${-(e.overdueDays ?? 0)} ngày`;
@@ -76,13 +126,13 @@ export class PayableLedgerComponent {
   }
 
   async exportExcel(): Promise<void> {
-    const s = this.supplier();
-    if (!s) return;
+    const p = this.partner();
+    if (!p) return;
     this.exporting.set(true);
     try {
       const rows = this.inPeriod();
-      await downloadWorkbook(`so-cong-no-${s.code}-${todayStamp()}.xlsx`, [{
-        name: `Sổ công nợ ${s.code}`,
+      await downloadWorkbook(`so-cong-no-${p.code}-${todayStamp()}.xlsx`, [{
+        name: `Sổ công nợ ${p.code}`,
         columns: [
           { header: 'Ngày', width: 12 },
           { header: 'Loại', width: 16 },
@@ -110,5 +160,4 @@ export class PayableLedgerComponent {
       this.exporting.set(false);
     }
   }
-
 }

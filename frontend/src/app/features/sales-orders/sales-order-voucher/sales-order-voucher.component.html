@@ -144,7 +144,7 @@
           @if (editable()) {
             <app-filter-multi-select label="Gắn thẻ" [options]="tagOptions()" [(selected)]="tagIds" />
           } @else {
-            <p class="field-value">{{ tagNames().length ? tagNames().join(', ') : '—' }}</p>
+            <p class="field-value so-tags">@for (t of tagList(); track t.id) { <span class="badge tag" [style]="tagStyle(t.color)">{{ t.name }}</span> } @empty { — }</p>
           }
         </div>
         <div class="field">
@@ -171,6 +171,9 @@
             @if (o.receivedValue > 0) {
               <span>Khách đã nhận <strong class="num">{{ percent() }}%</strong></span>
               <span class="progress" aria-hidden="true"><span [style.width.%]="percent()"></span></span>
+            }
+            @if (activeTrip(); as t) {
+              <span>{{ t.status === 'GOM_DON' ? 'Đã xếp lên' : 'Đang trên' }} chuyến <a class="code-link num" [routerLink]="['/giao-hang', t.id]">{{ t.code }}</a></span>
             }
             @if (o.closedDate) { <span>Đã kết thúc đơn <span class="num">{{ day(o.closedDate) }}</span></span> }
             @if (o.cancelReason) { <span class="text-danger">Lý do huỷ: {{ o.cancelReason }}</span> }

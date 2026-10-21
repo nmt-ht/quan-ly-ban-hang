@@ -3000,7 +3000,30 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-soi-20x30",
     "quantity": 3,
     "status": "NHAP",
-    "createdDate": "2026-10-18"
+    "createdDate": "2026-10-18",
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-soi",
+        "quantityPerUnit": 0.45
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.0345
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0232
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-38",
@@ -3009,7 +3032,30 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-soi-60x90",
     "quantity": 2,
     "status": "NHAP",
-    "createdDate": "2026-10-18"
+    "createdDate": "2026-10-18",
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-soi",
+        "quantityPerUnit": 1.2833
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.3105
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.2086
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-37",
@@ -3018,7 +3064,15 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-kinh-cat",
     "quantity": 10,
     "status": "DANG_SAN_XUAT",
-    "createdDate": "2026-10-17"
+    "createdDate": "2026-10-17",
+    "startDate": "2026-10-17",
+    "bomSnapshot": [
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.25
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-36",
@@ -3027,7 +3081,31 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-soi-50x70",
     "quantity": 20,
     "status": "DANG_SAN_XUAT",
-    "createdDate": "2026-10-17"
+    "createdDate": "2026-10-17",
+    "startDate": "2026-10-17",
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-soi",
+        "quantityPerUnit": 1.0333
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.2012
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.1352
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-33",
@@ -3036,7 +3114,37 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-nhom-den-40x60",
     "quantity": 24,
     "status": "HOAN_TAT",
-    "createdDate": "2026-10-16"
+    "createdDate": "2026-10-16",
+    "startDate": "2026-10-16",
+    "completeDate": "2026-10-19",
+    "producedQuantity": 24,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nhom-den",
+        "quantityPerUnit": 0.832
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.138
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0927
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      },
+      {
+        "componentId": "vt-kep-kinh",
+        "quantityPerUnit": 1
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-35",
@@ -3045,7 +3153,31 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-oc-cho-40x60",
     "quantity": 10,
     "status": "DANG_SAN_XUAT",
-    "createdDate": "2026-10-15"
+    "createdDate": "2026-10-15",
+    "startDate": "2026-10-15",
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-oc-cho",
+        "quantityPerUnit": 0.8667
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.138
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0927
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-34",
@@ -3054,7 +3186,31 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-soi-40x60",
     "quantity": 30,
     "status": "DANG_SAN_XUAT",
-    "createdDate": "2026-10-15"
+    "createdDate": "2026-10-15",
+    "startDate": "2026-10-15",
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-soi",
+        "quantityPerUnit": 0.8667
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.138
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0927
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-32",
@@ -3063,7 +3219,33 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-soi-30x40",
     "quantity": 20,
     "status": "HOAN_TAT",
-    "createdDate": "2026-10-15"
+    "createdDate": "2026-10-15",
+    "startDate": "2026-10-15",
+    "completeDate": "2026-10-18",
+    "producedQuantity": 20,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-soi",
+        "quantityPerUnit": 0.6167
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.069
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0464
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-31",
@@ -3072,7 +3254,33 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-soi-40x60",
     "quantity": 12,
     "status": "HOAN_TAT",
-    "createdDate": "2026-10-14"
+    "createdDate": "2026-10-14",
+    "startDate": "2026-10-14",
+    "completeDate": "2026-10-16",
+    "producedQuantity": 12,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-soi",
+        "quantityPerUnit": 0.8667
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.138
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0927
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-30",
@@ -3081,7 +3289,33 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-soi-30x40",
     "quantity": 8,
     "status": "HOAN_TAT",
-    "createdDate": "2026-10-13"
+    "createdDate": "2026-10-13",
+    "startDate": "2026-10-13",
+    "completeDate": "2026-10-16",
+    "producedQuantity": 8,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-soi",
+        "quantityPerUnit": 0.6167
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.069
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0464
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-29",
@@ -3090,7 +3324,37 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-nhom-vang-30x40",
     "quantity": 8,
     "status": "HOAN_TAT",
-    "createdDate": "2026-10-13"
+    "createdDate": "2026-10-13",
+    "startDate": "2026-10-13",
+    "completeDate": "2026-10-16",
+    "producedQuantity": 8,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nhom-vang",
+        "quantityPerUnit": 0.592
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.069
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0464
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      },
+      {
+        "componentId": "vt-kep-kinh",
+        "quantityPerUnit": 1
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-40",
@@ -3099,7 +3363,31 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-soi-30x40",
     "quantity": 1,
     "status": "HUY",
-    "createdDate": "2026-10-11"
+    "createdDate": "2026-10-11",
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-soi",
+        "quantityPerUnit": 0.6167
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.069
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0464
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local",
+    "cancelReason": "Khách huỷ đơn"
   },
   {
     "id": "lsx-28",
@@ -3108,7 +3396,33 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-soi-30x40",
     "quantity": 3,
     "status": "HOAN_TAT",
-    "createdDate": "2026-10-08"
+    "createdDate": "2026-10-08",
+    "startDate": "2026-10-08",
+    "completeDate": "2026-10-11",
+    "producedQuantity": 3,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-soi",
+        "quantityPerUnit": 0.6167
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.069
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0464
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-27",
@@ -3117,7 +3431,37 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-nhom-vang-30x40",
     "quantity": 2,
     "status": "HOAN_TAT",
-    "createdDate": "2026-10-08"
+    "createdDate": "2026-10-08",
+    "startDate": "2026-10-08",
+    "completeDate": "2026-10-11",
+    "producedQuantity": 2,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nhom-vang",
+        "quantityPerUnit": 0.592
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.069
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0464
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      },
+      {
+        "componentId": "vt-kep-kinh",
+        "quantityPerUnit": 1
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-26",
@@ -3126,7 +3470,33 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-soi-60x90",
     "quantity": 10,
     "status": "HOAN_TAT",
-    "createdDate": "2026-10-06"
+    "createdDate": "2026-10-06",
+    "startDate": "2026-10-06",
+    "completeDate": "2026-10-09",
+    "producedQuantity": 10,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-soi",
+        "quantityPerUnit": 1.2833
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.3105
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.2086
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-25",
@@ -3135,7 +3505,33 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-soi-50x70",
     "quantity": 16,
     "status": "HOAN_TAT",
-    "createdDate": "2026-10-06"
+    "createdDate": "2026-10-06",
+    "startDate": "2026-10-06",
+    "completeDate": "2026-10-09",
+    "producedQuantity": 16,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-soi",
+        "quantityPerUnit": 1.0333
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.2012
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.1352
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-24",
@@ -3144,7 +3540,33 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-soi-30x40",
     "quantity": 1,
     "status": "HOAN_TAT",
-    "createdDate": "2026-09-26"
+    "createdDate": "2026-09-26",
+    "startDate": "2026-09-26",
+    "completeDate": "2026-09-29",
+    "producedQuantity": 1,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-soi",
+        "quantityPerUnit": 0.6167
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.069
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0464
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-23",
@@ -3153,7 +3575,33 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-soi-60x90",
     "quantity": 1,
     "status": "HOAN_TAT",
-    "createdDate": "2026-09-26"
+    "createdDate": "2026-09-26",
+    "startDate": "2026-09-26",
+    "completeDate": "2026-09-29",
+    "producedQuantity": 1,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-soi",
+        "quantityPerUnit": 1.2833
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.3105
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.2086
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-22",
@@ -3162,7 +3610,37 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-nhom-den-40x60",
     "quantity": 10,
     "status": "HOAN_TAT",
-    "createdDate": "2026-09-25"
+    "createdDate": "2026-09-25",
+    "startDate": "2026-09-25",
+    "completeDate": "2026-09-28",
+    "producedQuantity": 10,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nhom-den",
+        "quantityPerUnit": 0.832
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.138
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0927
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      },
+      {
+        "componentId": "vt-kep-kinh",
+        "quantityPerUnit": 1
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-21",
@@ -3171,7 +3649,33 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-oc-cho-40x60",
     "quantity": 10,
     "status": "HOAN_TAT",
-    "createdDate": "2026-09-25"
+    "createdDate": "2026-09-25",
+    "startDate": "2026-09-25",
+    "completeDate": "2026-09-28",
+    "producedQuantity": 10,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-oc-cho",
+        "quantityPerUnit": 0.8667
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.138
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0927
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-20",
@@ -3180,7 +3684,33 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-soi-50x70",
     "quantity": 12,
     "status": "HOAN_TAT",
-    "createdDate": "2026-09-23"
+    "createdDate": "2026-09-23",
+    "startDate": "2026-09-23",
+    "completeDate": "2026-09-26",
+    "producedQuantity": 12,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-soi",
+        "quantityPerUnit": 1.0333
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.2012
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.1352
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-19",
@@ -3189,7 +3719,33 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-soi-40x60",
     "quantity": 24,
     "status": "HOAN_TAT",
-    "createdDate": "2026-09-23"
+    "createdDate": "2026-09-23",
+    "startDate": "2026-09-23",
+    "completeDate": "2026-09-26",
+    "producedQuantity": 24,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-soi",
+        "quantityPerUnit": 0.8667
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.138
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0927
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-18",
@@ -3198,7 +3754,33 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-soi-30x40",
     "quantity": 10,
     "status": "HOAN_TAT",
-    "createdDate": "2026-09-13"
+    "createdDate": "2026-09-13",
+    "startDate": "2026-09-13",
+    "completeDate": "2026-09-16",
+    "producedQuantity": 10,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-soi",
+        "quantityPerUnit": 0.6167
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.069
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0464
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-17",
@@ -3207,7 +3789,33 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-soi-20x30",
     "quantity": 10,
     "status": "HOAN_TAT",
-    "createdDate": "2026-09-13"
+    "createdDate": "2026-09-13",
+    "startDate": "2026-09-13",
+    "completeDate": "2026-09-16",
+    "producedQuantity": 10,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-soi",
+        "quantityPerUnit": 0.45
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.0345
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0232
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-16",
@@ -3216,7 +3824,17 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-mica-cat",
     "quantity": 6,
     "status": "HOAN_TAT",
-    "createdDate": "2026-09-11"
+    "createdDate": "2026-09-11",
+    "startDate": "2026-09-11",
+    "completeDate": "2026-09-14",
+    "producedQuantity": 6,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-mica-2ly",
+        "quantityPerUnit": 0.15
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-15",
@@ -3225,7 +3843,33 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-soi-40x60",
     "quantity": 15,
     "status": "HOAN_TAT",
-    "createdDate": "2026-09-11"
+    "createdDate": "2026-09-11",
+    "startDate": "2026-09-11",
+    "completeDate": "2026-09-14",
+    "producedQuantity": 15,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-soi",
+        "quantityPerUnit": 0.8667
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.138
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0927
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-14",
@@ -3234,7 +3878,37 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-nhom-vang-30x40",
     "quantity": 3,
     "status": "HOAN_TAT",
-    "createdDate": "2026-09-02"
+    "createdDate": "2026-09-02",
+    "startDate": "2026-09-02",
+    "completeDate": "2026-09-04",
+    "producedQuantity": 3,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nhom-vang",
+        "quantityPerUnit": 0.592
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.069
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0464
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      },
+      {
+        "componentId": "vt-kep-kinh",
+        "quantityPerUnit": 1
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-13",
@@ -3243,7 +3917,33 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-soi-30x40",
     "quantity": 10,
     "status": "HOAN_TAT",
-    "createdDate": "2026-09-01"
+    "createdDate": "2026-09-01",
+    "startDate": "2026-09-01",
+    "completeDate": "2026-09-04",
+    "producedQuantity": 10,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-soi",
+        "quantityPerUnit": 0.6167
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.069
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0464
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-12",
@@ -3252,7 +3952,33 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-soi-40x60",
     "quantity": 10,
     "status": "HOAN_TAT",
-    "createdDate": "2026-09-01"
+    "createdDate": "2026-09-01",
+    "startDate": "2026-09-01",
+    "completeDate": "2026-09-04",
+    "producedQuantity": 10,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-soi",
+        "quantityPerUnit": 0.8667
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.138
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0927
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-11",
@@ -3261,7 +3987,33 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-soi-20x30",
     "quantity": 4,
     "status": "HOAN_TAT",
-    "createdDate": "2026-08-31"
+    "createdDate": "2026-08-31",
+    "startDate": "2026-08-31",
+    "completeDate": "2026-09-03",
+    "producedQuantity": 4,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-soi",
+        "quantityPerUnit": 0.45
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.0345
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0232
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-08",
@@ -3270,7 +4022,17 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-kinh-cat",
     "quantity": 5,
     "status": "HOAN_TAT",
-    "createdDate": "2026-08-21"
+    "createdDate": "2026-08-21",
+    "startDate": "2026-08-21",
+    "completeDate": "2026-08-24",
+    "producedQuantity": 5,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.25
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-07",
@@ -3279,7 +4041,33 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-oc-cho-40x60",
     "quantity": 8,
     "status": "HOAN_TAT",
-    "createdDate": "2026-08-21"
+    "createdDate": "2026-08-21",
+    "startDate": "2026-08-21",
+    "completeDate": "2026-08-24",
+    "producedQuantity": 8,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-oc-cho",
+        "quantityPerUnit": 0.8667
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.138
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0927
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-06",
@@ -3288,7 +4076,33 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-soi-60x90",
     "quantity": 12,
     "status": "HOAN_TAT",
-    "createdDate": "2026-08-21"
+    "createdDate": "2026-08-21",
+    "startDate": "2026-08-21",
+    "completeDate": "2026-08-24",
+    "producedQuantity": 12,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-soi",
+        "quantityPerUnit": 1.2833
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.3105
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.2086
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-10",
@@ -3297,7 +4111,37 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-nhom-den-40x60",
     "quantity": 30,
     "status": "HOAN_TAT",
-    "createdDate": "2026-08-19"
+    "createdDate": "2026-08-19",
+    "startDate": "2026-08-19",
+    "completeDate": "2026-08-22",
+    "producedQuantity": 30,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nhom-den",
+        "quantityPerUnit": 0.832
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.138
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0927
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      },
+      {
+        "componentId": "vt-kep-kinh",
+        "quantityPerUnit": 1
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-09",
@@ -3306,7 +4150,33 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-soi-50x70",
     "quantity": 30,
     "status": "HOAN_TAT",
-    "createdDate": "2026-08-19"
+    "createdDate": "2026-08-19",
+    "startDate": "2026-08-19",
+    "completeDate": "2026-08-22",
+    "producedQuantity": 30,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-soi",
+        "quantityPerUnit": 1.0333
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.2012
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.1352
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-05",
@@ -3315,7 +4185,37 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-nhom-vang-30x40",
     "quantity": 6,
     "status": "HOAN_TAT",
-    "createdDate": "2026-08-15"
+    "createdDate": "2026-08-15",
+    "startDate": "2026-08-15",
+    "completeDate": "2026-08-18",
+    "producedQuantity": 6,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nhom-vang",
+        "quantityPerUnit": 0.592
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.069
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0464
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      },
+      {
+        "componentId": "vt-kep-kinh",
+        "quantityPerUnit": 1
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-04",
@@ -3324,7 +4224,33 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-soi-50x70",
     "quantity": 10,
     "status": "HOAN_TAT",
-    "createdDate": "2026-08-14"
+    "createdDate": "2026-08-14",
+    "startDate": "2026-08-14",
+    "completeDate": "2026-08-17",
+    "producedQuantity": 10,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-soi",
+        "quantityPerUnit": 1.0333
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.2012
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.1352
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-03",
@@ -3333,7 +4259,33 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-soi-40x60",
     "quantity": 20,
     "status": "HOAN_TAT",
-    "createdDate": "2026-08-14"
+    "createdDate": "2026-08-14",
+    "startDate": "2026-08-14",
+    "completeDate": "2026-08-17",
+    "producedQuantity": 20,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-soi",
+        "quantityPerUnit": 0.8667
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.138
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0927
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-02",
@@ -3342,7 +4294,33 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-soi-40x60",
     "quantity": 1,
     "status": "HOAN_TAT",
-    "createdDate": "2026-08-13"
+    "createdDate": "2026-08-13",
+    "startDate": "2026-08-13",
+    "completeDate": "2026-08-16",
+    "producedQuantity": 1,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-soi",
+        "quantityPerUnit": 0.8667
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.138
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0927
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "lsx-01",
@@ -3351,7 +4329,33 @@ export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = [
     "productId": "sp-khung-soi-30x40",
     "quantity": 2,
     "status": "HOAN_TAT",
-    "createdDate": "2026-08-13"
+    "createdDate": "2026-08-13",
+    "startDate": "2026-08-13",
+    "completeDate": "2026-08-16",
+    "producedQuantity": 2,
+    "bomSnapshot": [
+      {
+        "componentId": "vt-nep-soi",
+        "quantityPerUnit": 0.6167
+      },
+      {
+        "componentId": "vt-kinh-3ly",
+        "quantityPerUnit": 0.069
+      },
+      {
+        "componentId": "vt-hau-mdf",
+        "quantityPerUnit": 0.0464
+      },
+      {
+        "componentId": "vt-moc-treo",
+        "quantityPerUnit": 2
+      },
+      {
+        "componentId": "vt-dinh-ghim",
+        "quantityPerUnit": 0.02
+      }
+    ],
+    "createdBy": "quan.ly@ninhtrang.local"
   }
 ];
 export const DEMO_SUPPLIERS: Supplier[] = [
@@ -5067,13 +6071,15 @@ export const DEMO_DELIVERY_TRIPS: DeliveryTrip[] = [
     "orderIds": [],
     "totalValue": 0,
     "confirmedCount": 0,
-    "receivedValue": 0
+    "receivedValue": 0,
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "ch-9",
     "code": "CH0000009",
     "date": "2026-10-19",
     "driverName": "Đặng Văn Tài",
+    "driverPhone": "0903111222",
     "plateNumber": "51C-123.45",
     "status": "GOM_DON",
     "orderIds": [
@@ -5082,13 +6088,15 @@ export const DEMO_DELIVERY_TRIPS: DeliveryTrip[] = [
     "totalValue": 3956000,
     "vehicleId": "xe-1",
     "confirmedCount": 0,
-    "receivedValue": 0
+    "receivedValue": 0,
+    "createdBy": "quan.ly@ninhtrang.local"
   },
   {
     "id": "ch-8",
     "code": "CH0000008",
     "date": "2026-10-17",
     "driverName": "Lý Văn Sáu",
+    "driverPhone": "0903333444",
     "plateNumber": "51D-678.90",
     "status": "DA_XUAT_KHO",
     "orderIds": [
@@ -5098,13 +6106,45 @@ export const DEMO_DELIVERY_TRIPS: DeliveryTrip[] = [
     "totalValue": 5916000,
     "vehicleId": "xe-2",
     "confirmedCount": 0,
-    "receivedValue": 0
+    "receivedValue": 0,
+    "createdBy": "quan.ly@ninhtrang.local",
+    "shippedAt": "2026-10-17T08:30:00",
+    "costs": {
+      "fuel": 290000,
+      "toll": 0,
+      "other": 0
+    },
+    "loads": [
+      {
+        "orderId": "dh-16",
+        "lineIndex": 0,
+        "productId": "sp-khung-nhom-vang-30x40",
+        "quantity": 8,
+        "warehouseId": "wh-thanhpham"
+      },
+      {
+        "orderId": "dh-16",
+        "lineIndex": 1,
+        "productId": "sp-khung-soi-30x40",
+        "quantity": 8,
+        "warehouseId": "wh-thanhpham"
+      },
+      {
+        "orderId": "dh-17",
+        "lineIndex": 0,
+        "productId": "sp-khung-soi-40x60",
+        "quantity": 12,
+        "warehouseId": "wh-thanhpham"
+      }
+    ],
+    "confirmations": []
   },
   {
     "id": "ch-7",
     "code": "CH0000007",
     "date": "2026-10-12",
     "driverName": "Đặng Văn Tài",
+    "driverPhone": "0903111222",
     "plateNumber": "51C-123.45",
     "status": "XE_VE_KHO",
     "orderIds": [
@@ -5114,25 +6154,84 @@ export const DEMO_DELIVERY_TRIPS: DeliveryTrip[] = [
     "totalValue": 12217000,
     "vehicleId": "xe-1",
     "confirmedCount": 1,
-    "receivedValue": 11242000
+    "receivedValue": 11242000,
+    "createdBy": "quan.ly@ninhtrang.local",
+    "shippedAt": "2026-10-12T08:30:00",
+    "returnedAt": "2026-10-12T17:15:00",
+    "costs": {
+      "fuel": 325000,
+      "toll": 40000,
+      "other": 0,
+      "note": "Qua trạm BOT An Sương"
+    },
+    "loads": [
+      {
+        "orderId": "dh-14",
+        "lineIndex": 0,
+        "productId": "sp-khung-soi-50x70",
+        "quantity": 16,
+        "warehouseId": "wh-thanhpham"
+      },
+      {
+        "orderId": "dh-14",
+        "lineIndex": 1,
+        "productId": "sp-khung-soi-60x90",
+        "quantity": 10,
+        "warehouseId": "wh-thanhpham"
+      },
+      {
+        "orderId": "dh-15",
+        "lineIndex": 0,
+        "productId": "sp-khung-nhom-vang-30x40",
+        "quantity": 2,
+        "warehouseId": "wh-thanhpham"
+      },
+      {
+        "orderId": "dh-15",
+        "lineIndex": 1,
+        "productId": "sp-khung-soi-30x40",
+        "quantity": 3,
+        "warehouseId": "wh-thanhpham"
+      }
+    ],
+    "confirmations": [
+      {
+        "orderId": "dh-14",
+        "confirmedAt": "2026-10-12T15:00:00",
+        "lines": [
+          {
+            "lineIndex": 0,
+            "received": 16
+          },
+          {
+            "lineIndex": 1,
+            "received": 10
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "ch-6",
     "code": "CH0000006",
     "date": "2026-10-08",
     "driverName": "Nguyễn Văn Bốn",
+    "driverPhone": "0903555666",
     "plateNumber": "60C-777.77",
     "status": "HUY",
     "orderIds": [],
     "totalValue": 0,
     "confirmedCount": 0,
-    "receivedValue": 0
+    "receivedValue": 0,
+    "createdBy": "quan.ly@ninhtrang.local",
+    "cancelReason": "Xe thuê ngoài báo hỏng, dời đơn sang chuyến sau"
   },
   {
     "id": "ch-5",
     "code": "CH0000005",
     "date": "2026-09-30",
     "driverName": "Lý Văn Sáu",
+    "driverPhone": "0903333444",
     "plateNumber": "51D-678.90",
     "status": "HOAN_TAT",
     "orderIds": [
@@ -5143,13 +6242,144 @@ export const DEMO_DELIVERY_TRIPS: DeliveryTrip[] = [
     "totalValue": 17413000,
     "vehicleId": "xe-2",
     "confirmedCount": 3,
-    "receivedValue": 17413000
+    "receivedValue": 17413000,
+    "createdBy": "quan.ly@ninhtrang.local",
+    "shippedAt": "2026-09-30T08:30:00",
+    "returnedAt": "2026-09-30T17:15:00",
+    "completedAt": "2026-09-30T17:30:00",
+    "costs": {
+      "fuel": 255000,
+      "toll": 40000,
+      "other": 0,
+      "note": "Qua trạm BOT An Sương"
+    },
+    "loads": [
+      {
+        "orderId": "dh-11",
+        "lineIndex": 0,
+        "productId": "sp-khung-soi-40x60",
+        "quantity": 24,
+        "warehouseId": "wh-thanhpham"
+      },
+      {
+        "orderId": "dh-11",
+        "lineIndex": 1,
+        "productId": "sp-khung-soi-50x70",
+        "quantity": 12,
+        "warehouseId": "wh-thanhpham"
+      },
+      {
+        "orderId": "dh-11",
+        "lineIndex": 2,
+        "productId": "dv-cong-dong",
+        "quantity": 1
+      },
+      {
+        "orderId": "dh-12",
+        "lineIndex": 0,
+        "productId": "sp-khung-oc-cho-40x60",
+        "quantity": 10,
+        "warehouseId": "wh-thanhpham"
+      },
+      {
+        "orderId": "dh-12",
+        "lineIndex": 1,
+        "productId": "sp-khung-nhom-den-40x60",
+        "quantity": 10,
+        "warehouseId": "wh-thanhpham"
+      },
+      {
+        "orderId": "dh-13",
+        "lineIndex": 0,
+        "productId": "sp-khung-soi-60x90",
+        "quantity": 1,
+        "warehouseId": "wh-thanhpham"
+      },
+      {
+        "orderId": "dh-13",
+        "lineIndex": 1,
+        "productId": "sp-khung-soi-30x40",
+        "quantity": 1,
+        "warehouseId": "wh-thanhpham"
+      },
+      {
+        "orderId": "dh-13",
+        "lineIndex": 2,
+        "productId": "vt-keo-dan",
+        "quantity": 1,
+        "warehouseId": "wh-phukien"
+      },
+      {
+        "orderId": "dh-13",
+        "lineIndex": 3,
+        "productId": "vt-ve-sinh-kinh",
+        "quantity": 2,
+        "warehouseId": "wh-ninhtrang"
+      }
+    ],
+    "confirmations": [
+      {
+        "orderId": "dh-11",
+        "confirmedAt": "2026-09-30T15:00:00",
+        "lines": [
+          {
+            "lineIndex": 0,
+            "received": 24
+          },
+          {
+            "lineIndex": 1,
+            "received": 12
+          },
+          {
+            "lineIndex": 2,
+            "received": 1
+          }
+        ]
+      },
+      {
+        "orderId": "dh-12",
+        "confirmedAt": "2026-09-30T15:00:00",
+        "lines": [
+          {
+            "lineIndex": 0,
+            "received": 10
+          },
+          {
+            "lineIndex": 1,
+            "received": 10
+          }
+        ]
+      },
+      {
+        "orderId": "dh-13",
+        "confirmedAt": "2026-09-30T15:00:00",
+        "lines": [
+          {
+            "lineIndex": 0,
+            "received": 1
+          },
+          {
+            "lineIndex": 1,
+            "received": 1
+          },
+          {
+            "lineIndex": 2,
+            "received": 1
+          },
+          {
+            "lineIndex": 3,
+            "received": 2
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "ch-4",
     "code": "CH0000004",
     "date": "2026-09-18",
     "driverName": "Đặng Văn Tài",
+    "driverPhone": "0903111222",
     "plateNumber": "51C-123.45",
     "status": "HOAN_TAT",
     "orderIds": [
@@ -5159,13 +6389,83 @@ export const DEMO_DELIVERY_TRIPS: DeliveryTrip[] = [
     "totalValue": 7465000,
     "vehicleId": "xe-1",
     "confirmedCount": 2,
-    "receivedValue": 7465000
+    "receivedValue": 7465000,
+    "createdBy": "quan.ly@ninhtrang.local",
+    "shippedAt": "2026-09-18T08:30:00",
+    "returnedAt": "2026-09-18T17:15:00",
+    "completedAt": "2026-09-18T17:30:00",
+    "costs": {
+      "fuel": 290000,
+      "toll": 0,
+      "other": 50000
+    },
+    "loads": [
+      {
+        "orderId": "dh-09",
+        "lineIndex": 0,
+        "productId": "sp-khung-soi-40x60",
+        "quantity": 15,
+        "warehouseId": "wh-thanhpham"
+      },
+      {
+        "orderId": "dh-09",
+        "lineIndex": 1,
+        "productId": "sp-mica-cat",
+        "quantity": 6,
+        "warehouseId": "wh-thanhpham"
+      },
+      {
+        "orderId": "dh-10",
+        "lineIndex": 0,
+        "productId": "sp-khung-soi-20x30",
+        "quantity": 10,
+        "warehouseId": "wh-thanhpham"
+      },
+      {
+        "orderId": "dh-10",
+        "lineIndex": 1,
+        "productId": "sp-khung-soi-30x40",
+        "quantity": 10,
+        "warehouseId": "wh-thanhpham"
+      }
+    ],
+    "confirmations": [
+      {
+        "orderId": "dh-09",
+        "confirmedAt": "2026-09-18T15:00:00",
+        "lines": [
+          {
+            "lineIndex": 0,
+            "received": 15
+          },
+          {
+            "lineIndex": 1,
+            "received": 6
+          }
+        ]
+      },
+      {
+        "orderId": "dh-10",
+        "confirmedAt": "2026-09-18T15:00:00",
+        "lines": [
+          {
+            "lineIndex": 0,
+            "received": 10
+          },
+          {
+            "lineIndex": 1,
+            "received": 10
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "ch-3",
     "code": "CH0000003",
     "date": "2026-09-05",
     "driverName": "Đặng Văn Tài",
+    "driverPhone": "0903111222",
     "plateNumber": "51C-123.45",
     "status": "HOAN_TAT",
     "orderIds": [
@@ -5176,13 +6476,90 @@ export const DEMO_DELIVERY_TRIPS: DeliveryTrip[] = [
     "totalValue": 5190000,
     "vehicleId": "xe-1",
     "confirmedCount": 3,
-    "receivedValue": 3807000
+    "receivedValue": 3807000,
+    "createdBy": "quan.ly@ninhtrang.local",
+    "shippedAt": "2026-09-05T08:30:00",
+    "returnedAt": "2026-09-05T17:15:00",
+    "completedAt": "2026-09-05T17:30:00",
+    "costs": {
+      "fuel": 325000,
+      "toll": 40000,
+      "other": 0,
+      "note": "Qua trạm BOT An Sương"
+    },
+    "loads": [
+      {
+        "orderId": "dh-06",
+        "lineIndex": 0,
+        "productId": "sp-khung-soi-20x30",
+        "quantity": 4,
+        "warehouseId": "wh-thanhpham"
+      },
+      {
+        "orderId": "dh-07",
+        "lineIndex": 0,
+        "productId": "sp-khung-soi-40x60",
+        "quantity": 10,
+        "warehouseId": "wh-thanhpham"
+      },
+      {
+        "orderId": "dh-07",
+        "lineIndex": 1,
+        "productId": "sp-khung-soi-30x40",
+        "quantity": 10,
+        "warehouseId": "wh-thanhpham"
+      },
+      {
+        "orderId": "dh-08",
+        "lineIndex": 0,
+        "productId": "sp-khung-nhom-vang-30x40",
+        "quantity": 3,
+        "warehouseId": "wh-thanhpham"
+      }
+    ],
+    "confirmations": [
+      {
+        "orderId": "dh-06",
+        "confirmedAt": "2026-09-05T15:00:00",
+        "lines": [
+          {
+            "lineIndex": 0,
+            "received": 4
+          }
+        ]
+      },
+      {
+        "orderId": "dh-07",
+        "confirmedAt": "2026-09-05T15:00:00",
+        "lines": [
+          {
+            "lineIndex": 0,
+            "received": 7
+          },
+          {
+            "lineIndex": 1,
+            "received": 10
+          }
+        ]
+      },
+      {
+        "orderId": "dh-08",
+        "confirmedAt": "2026-09-05T15:00:00",
+        "lines": [
+          {
+            "lineIndex": 0,
+            "received": 0
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "ch-2",
     "code": "CH0000002",
     "date": "2026-08-28",
     "driverName": "Lý Văn Sáu",
+    "driverPhone": "0903333444",
     "plateNumber": "51D-678.90",
     "status": "HOAN_TAT",
     "orderIds": [
@@ -5192,13 +6569,94 @@ export const DEMO_DELIVERY_TRIPS: DeliveryTrip[] = [
     "totalValue": 28540000,
     "vehicleId": "xe-2",
     "confirmedCount": 2,
-    "receivedValue": 28540000
+    "receivedValue": 28540000,
+    "createdBy": "quan.ly@ninhtrang.local",
+    "shippedAt": "2026-08-28T08:30:00",
+    "returnedAt": "2026-08-28T17:15:00",
+    "completedAt": "2026-08-28T17:30:00",
+    "costs": {
+      "fuel": 220000,
+      "toll": 0,
+      "other": 0
+    },
+    "loads": [
+      {
+        "orderId": "dh-04",
+        "lineIndex": 0,
+        "productId": "sp-khung-soi-60x90",
+        "quantity": 12,
+        "warehouseId": "wh-thanhpham"
+      },
+      {
+        "orderId": "dh-04",
+        "lineIndex": 1,
+        "productId": "sp-khung-oc-cho-40x60",
+        "quantity": 8,
+        "warehouseId": "wh-thanhpham"
+      },
+      {
+        "orderId": "dh-04",
+        "lineIndex": 2,
+        "productId": "sp-kinh-cat",
+        "quantity": 5,
+        "warehouseId": "wh-thanhpham"
+      },
+      {
+        "orderId": "dh-05",
+        "lineIndex": 0,
+        "productId": "sp-khung-soi-50x70",
+        "quantity": 30,
+        "warehouseId": "wh-thanhpham"
+      },
+      {
+        "orderId": "dh-05",
+        "lineIndex": 1,
+        "productId": "sp-khung-nhom-den-40x60",
+        "quantity": 30,
+        "warehouseId": "wh-thanhpham"
+      }
+    ],
+    "confirmations": [
+      {
+        "orderId": "dh-04",
+        "confirmedAt": "2026-08-28T15:00:00",
+        "lines": [
+          {
+            "lineIndex": 0,
+            "received": 12
+          },
+          {
+            "lineIndex": 1,
+            "received": 8
+          },
+          {
+            "lineIndex": 2,
+            "received": 5
+          }
+        ]
+      },
+      {
+        "orderId": "dh-05",
+        "confirmedAt": "2026-08-28T15:00:00",
+        "lines": [
+          {
+            "lineIndex": 0,
+            "received": 30
+          },
+          {
+            "lineIndex": 1,
+            "received": 30
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "ch-1",
     "code": "CH0000001",
     "date": "2026-08-20",
     "driverName": "Đặng Văn Tài",
+    "driverPhone": "0903111222",
     "plateNumber": "51C-123.45",
     "status": "HOAN_TAT",
     "orderIds": [
@@ -5209,7 +6667,105 @@ export const DEMO_DELIVERY_TRIPS: DeliveryTrip[] = [
     "totalValue": 10801000,
     "vehicleId": "xe-1",
     "confirmedCount": 3,
-    "receivedValue": 10801000
+    "receivedValue": 10801000,
+    "createdBy": "quan.ly@ninhtrang.local",
+    "shippedAt": "2026-08-20T08:30:00",
+    "returnedAt": "2026-08-20T17:15:00",
+    "completedAt": "2026-08-20T17:30:00",
+    "costs": {
+      "fuel": 255000,
+      "toll": 40000,
+      "other": 50000,
+      "note": "Qua trạm BOT An Sương"
+    },
+    "loads": [
+      {
+        "orderId": "dh-01",
+        "lineIndex": 0,
+        "productId": "sp-khung-soi-30x40",
+        "quantity": 2,
+        "warehouseId": "wh-thanhpham"
+      },
+      {
+        "orderId": "dh-01",
+        "lineIndex": 1,
+        "productId": "sp-khung-soi-40x60",
+        "quantity": 1,
+        "warehouseId": "wh-thanhpham"
+      },
+      {
+        "orderId": "dh-02",
+        "lineIndex": 0,
+        "productId": "sp-khung-soi-40x60",
+        "quantity": 20,
+        "warehouseId": "wh-thanhpham"
+      },
+      {
+        "orderId": "dh-02",
+        "lineIndex": 1,
+        "productId": "sp-khung-soi-50x70",
+        "quantity": 10,
+        "warehouseId": "wh-thanhpham"
+      },
+      {
+        "orderId": "dh-03",
+        "lineIndex": 0,
+        "productId": "sp-khung-nhom-vang-30x40",
+        "quantity": 6,
+        "warehouseId": "wh-thanhpham"
+      },
+      {
+        "orderId": "dh-03",
+        "lineIndex": 1,
+        "productId": "vt-den-led",
+        "quantity": 6,
+        "warehouseId": "wh-ninhtrang"
+      }
+    ],
+    "confirmations": [
+      {
+        "orderId": "dh-01",
+        "confirmedAt": "2026-08-20T15:00:00",
+        "lines": [
+          {
+            "lineIndex": 0,
+            "received": 2
+          },
+          {
+            "lineIndex": 1,
+            "received": 1
+          }
+        ]
+      },
+      {
+        "orderId": "dh-02",
+        "confirmedAt": "2026-08-20T15:00:00",
+        "lines": [
+          {
+            "lineIndex": 0,
+            "received": 20
+          },
+          {
+            "lineIndex": 1,
+            "received": 10
+          }
+        ]
+      },
+      {
+        "orderId": "dh-03",
+        "confirmedAt": "2026-08-20T15:00:00",
+        "lines": [
+          {
+            "lineIndex": 0,
+            "received": 6
+          },
+          {
+            "lineIndex": 1,
+            "received": 6
+          }
+        ]
+      }
+    ]
   }
 ];
 export const DEMO_VEHICLES: Vehicle[] = [
@@ -5217,29 +6773,43 @@ export const DEMO_VEHICLES: Vehicle[] = [
     "id": "xe-1",
     "code": "XE0000001",
     "plateNumber": "51C-123.45",
-    "type": "Xe tải 1,5 tấn",
+    "name": "Xe tải 1,5 tấn",
+    "type": "XE_TAI",
     "loadCapacity": 1500,
     "usualDriver": "Đặng Văn Tài",
+    "driverUserId": "user-taixe",
+    "driverPhone": "0903111222",
+    "registrationExpiry": "2027-03-15",
+    "insuranceExpiry": "2026-11-05",
     "status": "DANG_DUNG",
-    "currentTripCode": "CH0000009"
+    "createdAt": "2026-08-01T02:00:00.000Z"
   },
   {
     "id": "xe-2",
     "code": "XE0000002",
     "plateNumber": "51D-678.90",
-    "type": "Xe tải 750kg",
+    "name": "Xe tải 750kg",
+    "type": "XE_TAI",
     "loadCapacity": 750,
     "usualDriver": "Lý Văn Sáu",
+    "driverPhone": "0903333444",
+    "registrationExpiry": "2026-10-30",
+    "insuranceExpiry": "2027-06-01",
+    "note": "Thùng kín, chở được kính khổ lớn.",
     "status": "DANG_DUNG",
-    "currentTripCode": "CH0000008"
+    "createdAt": "2026-08-01T02:00:00.000Z"
   },
   {
     "id": "xe-3",
     "code": "XE0000003",
     "plateNumber": "59C-246.81",
-    "type": "Xe ba gác máy",
+    "name": "Ba gác máy",
+    "type": "XE_BA_GAC",
     "loadCapacity": 400,
-    "status": "BAO_TRI"
+    "registrationExpiry": "2026-09-30",
+    "note": "Đang sửa hộp số.",
+    "status": "BAO_TRI",
+    "createdAt": "2026-08-01T02:00:00.000Z"
   }
 ];
 export const DEMO_CASH_ACCOUNTS: CashAccount[] = [
@@ -5247,13 +6817,27 @@ export const DEMO_CASH_ACCOUNTS: CashAccount[] = [
     "id": "acc-cash",
     "name": "Quỹ tiền mặt",
     "type": "TIEN_MAT",
-    "balance": 10105000
+    "code": "TM",
+    "note": "Tiền mặt tại quỹ",
+    "isDefault": true,
+    "sortOrder": 0,
+    "openingBalance": 0,
+    "balance": 10105000,
+    "isActive": true
   },
   {
     "id": "acc-bank",
     "name": "Tài khoản ngân hàng",
     "type": "NGAN_HANG",
-    "balance": 17209000
+    "code": "NH-9999",
+    "bankName": "Ngân hàng TMCP (demo)",
+    "accountNumber": "0000 9999 0000",
+    "accountHolder": "CONG TY NINH TRANG",
+    "branch": "Chi nhánh TP.HCM",
+    "sortOrder": 1,
+    "openingBalance": 0,
+    "balance": 17209000,
+    "isActive": true
   }
 ];
 export const DEMO_CASH_VOUCHERS: CashVoucher[] = [
@@ -5769,6 +7353,7 @@ export const DEMO_TAGS: Tag[] = [
   {
     "id": "tag-vip",
     "name": "VIP",
+    "color": "amber",
     "sortOrder": 1,
     "orderCount": 6,
     "customerCount": 2,
@@ -5777,6 +7362,7 @@ export const DEMO_TAGS: Tag[] = [
   {
     "id": "tag-quen",
     "name": "Khách quen",
+    "color": "emerald",
     "sortOrder": 2,
     "orderCount": 6,
     "customerCount": 2,
@@ -5785,6 +7371,7 @@ export const DEMO_TAGS: Tag[] = [
   {
     "id": "tag-si",
     "name": "Tranh sỉ",
+    "color": "blue",
     "sortOrder": 3,
     "orderCount": 12,
     "customerCount": 5,
@@ -5793,6 +7380,7 @@ export const DEMO_TAGS: Tag[] = [
   {
     "id": "tag-gap",
     "name": "Đơn gấp",
+    "color": "red",
     "sortOrder": 4,
     "orderCount": 1,
     "customerCount": 0,
@@ -5801,6 +7389,7 @@ export const DEMO_TAGS: Tag[] = [
   {
     "id": "tag-shopee",
     "name": "Dropship Shopee",
+    "color": "orange",
     "sortOrder": 5,
     "orderCount": 4,
     "customerCount": 2,

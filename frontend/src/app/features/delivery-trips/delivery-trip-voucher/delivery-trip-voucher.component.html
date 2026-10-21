@@ -1,0 +1,528 @@
+@if (trip(); as t) {
+  <div class="voucher screen-only">
+    <header class="voucher-bar">
+      <a class="icon-action" routerLink="/giao-hang" aria-label="Về danh sách chuyến" title="Về danh sách"><app-nav-icon name="arrow-left" /></a>
+      <h1>Chuyến giao hàng <span class="num">{{ t.code }}</span></h1>
+      <app-copy-button [text]="t.code" label="mã chuyến" />
+      <span class="badge" [ngClass]="statusClass(t.status)">{{ statusLabel[t.status] }}</span>
+    </header>
+
+    @if (notice()) {
+      <div class="notice" role="status">
+        <span>{{ notice() }}</span>
+        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+      </div>
+    }
+
+    <section class="card voucher-head">
+      <div class="head-fields">
+        <div class="field">
+          <span class="field-label">Ngày chuyến</span>
+          <p class="field-value num">{{ day(t.date) }}</p>
+        </div>
+        <div class="field">
+          <span class="field-label">Xe / biển số</span>
+          <p class="field-value">
+            <span class="num">{{ t.plateNumber || '—' }}</span>
+            <span class="tv-chip">{{ t.vehicleId ? 'Xe công ty' : 'Xe thuê ngoài' }}</span>
+          </p>
+        </div>
+        <div class="field">
+          <span class="field-label">Tài xế</span>
+          <p class="field-value">{{ t.driverName || 'Chưa chọn' }}</p>
+        </div>
+        <div class="field">
+          <span class="field-label">Điện thoại tài xế</span>
+          <p class="field-value num">{{ t.driverPhone || '—' }}</p>
+        </div>
+
+        <div class="field">
+          <span class="field-label">Xuất kho lúc</span>
+          <p class="field-value num">{{ time(t.shippedAt) }}</p>
+        </div>
+        <div class="field">
+          <span class="field-label">Về kho lúc</span>
+          <p class="field-value num">{{ time(t.returnedAt) }}</p>
+        </div>
+        <div class="field">
+          <span class="field-label">Người tạo</span>
+          <p class="field-value">{{ userName(t.createdBy) }}</p>
+        </div>
+        <div class="field">
+          <span class="field-label">Số chứng từ</span>
+          <p class="field-value num">{{ t.code }}</p>
+        </div>
+
+        <div class="field span-full">
+          <span class="field-label">Ghi chú</span>
+          <p class="field-value">{{ t.note || (t.cancelReason ? 'Lý do huỷ: ' + t.cancelReason : '—') }}</p>
+        </div>
+      </div>
+
+      <aside class="head-summary">
+        <dl class="tv-stats">
+          <div><dt>Số đơn</dt><dd class="num">{{ t.orderIds.length }}</dd></div>
+          <div><dt>Chưa chốt giao</dt><dd class="num" [class.text-warning]="t.status === 'DA_XUAT_KHO' && unconfirmed() > 0">{{ t.status === 'GOM_DON' ? '—' : unconfirmed() }}</dd></div>
+          <div><dt>Giá trị đơn</dt><dd class="num">{{ money(t.totalValue) }}</dd></div>
+        </dl>
+        <p class="summary-label">Khách thực nhận</p>
+        <p class="summary-total num">{{ money(t.receivedValue) }}</p>
+        @if (t.status !== 'GOM_DON' && t.totalValue > t.receivedValue && t.confirmedCount === t.orderIds.length && t.orderIds.length) {
+          <p class="summary-sub">Mang về: <span class="num">{{ money(t.totalValue - t.receivedValue) }}</span></p>
+        }
+        @if (can()?.header) {
+          <button type="button" class="link-btn tv-edit" (click)="editHeader()"><app-nav-icon name="pencil" />Sửa thông tin chuyến</button>
+        }
+      </aside>
+
+      <ol class="tv-steps head-note" aria-label="Các bước của chuyến">
+        <li [class.is-done]="t.status !== 'GOM_DON' && t.status !== 'HUY'" [class.is-current]="t.status === 'GOM_DON'">Gom đơn</li>
+        <li [class.is-done]="t.status === 'XE_VE_KHO' || t.status === 'HOAN_TAT'" [class.is-current]="t.status === 'DA_XUAT_KHO'">Xuất kho &amp; chốt giao</li>
+        <li [class.is-done]="t.status === 'HOAN_TAT'" [class.is-current]="t.status === 'XE_VE_KHO'">Xe về kho</li>
+        <li [class.is-done]="t.status === 'HOAN_TAT'">Hoàn tất</li>
+      </ol>
+    </section>
+
+    <div class="detail-tabs voucher-tabs" role="tablist" aria-label="Nội dung chuyến">
+      <button type="button" role="tab" [attr.aria-selected]="tab() === 'don'" (click)="tab.set('don')">
+        Đơn trên chuyến <span class="tab-count num">{{ t.orderIds.length }}</span>
+      </button>
+      <button type="button" role="tab" [attr.aria-selected]="tab() === 'hang'" (click)="tab.set('hang')">Hàng trên xe</button>
+      <button type="button" role="tab" [attr.aria-selected]="tab() === 'phieu'" (click)="tab.set('phieu')">
+        Phiếu kho @if (vouchers().length) { <span class="tab-count num">{{ vouchers().length }}</span> }
+      </button>
+      <button type="button" role="tab" [attr.aria-selected]="tab() === 'chi-phi'" (click)="tab.set('chi-phi')">
+        Chi phí chuyến @if (savedCost()) { <span class="tab-count num">{{ money(savedCost()) }}</span> }
+      </button>
+    </div>
+
+    @switch (tab()) {
+      @case ('don') {
+        <section class="card voucher-grid-card">
+          @if (rows().length) {
+            <div class="voucher-grid-scroll">
+              <table class="voucher-grid tv-grid">
+                <thead>
+                  <tr>
+                    <th scope="col" class="c-idx">#</th>
+                    <th scope="col">Mã đơn</th>
+                    <th scope="col">Khách hàng</th>
+                    <th scope="col">Người nhận · điện thoại</th>
+                    <th scope="col">Địa chỉ giao</th>
+                    <th scope="col" class="c-num">Giá trị</th>
+                    <th scope="col" class="c-num">Khách nhận</th>
+                    <th scope="col">Chốt giao</th>
+                    <th scope="col" class="c-act"><span class="visually-hidden">Thao tác</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (r of rows(); track r.order.id; let i = $index) {
+                    <tr>
+                      <td class="c-idx num">{{ i + 1 }}</td>
+                      <td class="num">
+                        <a class="code-link" [routerLink]="['/don-hang', r.order.id]">{{ r.order.code }}</a>
+                        @if (r.order.neededByDate) { <span class="tv-sub">cần giao {{ day(r.order.neededByDate) }}</span> }
+                      </td>
+                      <td>{{ r.customerName }}</td>
+                      <td>{{ r.recipient }}@if (r.phone) { <span class="tv-sub num">{{ r.phone }}</span> }</td>
+                      <td class="wrap tv-addr">{{ r.address || '—' }}</td>
+                      <td class="c-num num">{{ money(r.value) }}</td>
+                      <td class="c-num num">{{ r.confirmed ? money(r.received) : '—' }}</td>
+                      <td>
+                        @if (r.confirmed) {
+                          <span class="badge" [ngClass]="soClass(r.order.status)">{{ r.outcome }}</span>
+                        } @else if (t.status === 'GOM_DON') {
+                          <span class="subtitle">Chưa xuất kho</span>
+                        } @else {
+                          <span class="text-warning">Chưa chốt</span>
+                        }
+                      </td>
+                      <td class="c-act tv-actions">
+                        @if (can()?.arrange) {
+                          <button type="button" class="icon-action danger-action" (click)="removeOrder(r)" [attr.aria-label]="'Gỡ ' + r.order.code + ' khỏi chuyến'" title="Gỡ khỏi chuyến">
+                            <app-nav-icon name="x" />
+                          </button>
+                        }
+                        @if (can()?.confirm) {
+                          @if (r.confirmed) {
+                            <button type="button" class="btn btn-sm" (click)="unconfirm(r)">Bỏ chốt</button>
+                          } @else {
+                            <button type="button" class="btn btn-sm btn-primary" (click)="openConfirm(r)">Chốt giao</button>
+                          }
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td></td>
+                    <td colspan="4" class="foot-label">Cộng {{ rows().length }} đơn</td>
+                    <td class="c-num num">{{ money(t.totalValue) }}</td>
+                    <td class="c-num num">{{ money(t.receivedValue) }}</td>
+                    <td colspan="2"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          } @else {
+            <div class="empty-state">
+              <h3>Chuyến chưa có đơn nào</h3>
+              <p>Xếp các đơn đang ở trạng thái Chờ giao hàng lên chuyến rồi xuất kho một lượt.</p>
+              @if (can()?.arrange) {
+                <button type="button" class="btn btn-primary" (click)="openAdd()"><app-nav-icon name="plus" />Xếp đơn lên chuyến</button>
+              }
+            </div>
+          }
+        </section>
+      }
+
+      @case ('hang') {
+        <section class="card voucher-grid-card">
+          @if (picking().length || services().length) {
+            @for (g of picking(); track g.warehouseId) {
+              <h3 class="tv-group">{{ warehouseName(g.warehouseId) }}</h3>
+              <div class="voucher-grid-scroll">
+                <table class="voucher-grid">
+                  <thead>
+                    <tr>
+                      <th scope="col">Mã hàng</th>
+                      <th scope="col">Tên hàng</th>
+                      <th scope="col">ĐVT chính</th>
+                      <th scope="col" class="c-num">Số lượng</th>
+                      @if (t.status === 'GOM_DON') { <th scope="col" class="c-num">Tồn tại kho</th> }
+                      <th scope="col">Của đơn</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (it of g.items; track it.productId) {
+                      <tr>
+                        <td class="num">{{ it.code }}</td>
+                        <td>{{ it.name }}</td>
+                        <td>{{ it.unit }}</td>
+                        <td class="c-num num">{{ it.qty.toLocaleString('vi-VN') }}</td>
+                        @if (t.status === 'GOM_DON') {
+                          <td class="c-num num" [class.text-warning]="it.stock < it.qty">{{ it.stock.toLocaleString('vi-VN') }}</td>
+                        }
+                        <td class="wrap">{{ it.orders }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+            @if (services().length) {
+              <h3 class="tv-group">Dịch vụ đi kèm (không xuất kho)</h3>
+              <ul class="tv-services">
+                @for (s of services(); track s.key) { <li><span class="num">{{ s.code }}</span> {{ s.name }} · {{ s.qty }} {{ s.unit }} · {{ s.order }}</li> }
+              </ul>
+            }
+            <p class="grid-hint">
+              {{ t.status === 'GOM_DON' ? 'Dự kiến theo phần còn phải giao của các đơn — chốt lại lúc xuất kho.' : 'Số đã xếp lên xe lúc xuất kho.' }}
+            </p>
+          } @else {
+            <div class="empty-state"><h3>Chưa có hàng</h3><p>Xếp đơn lên chuyến để xem hàng cần soạn.</p></div>
+          }
+        </section>
+      }
+
+      @case ('phieu') {
+        <section class="card voucher-grid-card">
+          @if (vouchers().length) {
+            <div class="voucher-grid-scroll">
+              <table class="voucher-grid">
+                <thead>
+                  <tr>
+                    <th scope="col">Ngày</th>
+                    <th scope="col">Số phiếu</th>
+                    <th scope="col">Loại</th>
+                    <th scope="col">Kho</th>
+                    <th scope="col">Diễn giải</th>
+                    <th scope="col" class="c-num">Số dòng</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (v of vouchers(); track v.id) {
+                    <tr>
+                      <td class="num">{{ day(v.date) }}</td>
+                      <td class="num">{{ v.code }}</td>
+                      <td>{{ v.type === 'XUAT' ? 'Xuất kho' : 'Nhập trả về' }}</td>
+                      <td>{{ warehouseName(v.warehouseId) }}</td>
+                      <td class="wrap">{{ v.reason }}</td>
+                      <td class="c-num num">{{ v.lines?.length ?? 0 }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="empty-state">
+              <h3>Chưa có phiếu kho</h3>
+              <p>Xuất kho một lượt lập phiếu xuất cho cả chuyến; xe về kho lập phiếu nhập trả về cho hàng khách không nhận.</p>
+            </div>
+          }
+        </section>
+      }
+
+      @case ('chi-phi') {
+        <section class="card tv-costs">
+          <p class="form-note">Đây là số liệu điều vận, không phải phiếu chi. Tiền thật ra khỏi quỹ vẫn phải lập phiếu chi ở màn hình Thu chi.</p>
+          <div class="tv-cost-grid">
+            <label class="field">
+              <span class="field-label">Tiền dầu</span>
+              <input type="text" appMoney placeholder="0" [disabled]="!can()?.costs" [ngModel]="fuel()" (ngModelChange)="fuel.set($event)" />
+            </label>
+            <label class="field">
+              <span class="field-label">Cầu đường, bến bãi</span>
+              <input type="text" appMoney placeholder="0" [disabled]="!can()?.costs" [ngModel]="toll()" (ngModelChange)="toll.set($event)" />
+            </label>
+            <label class="field">
+              <span class="field-label">Chi phí khác</span>
+              <input type="text" appMoney placeholder="0" [disabled]="!can()?.costs" [ngModel]="other()" (ngModelChange)="other.set($event)" />
+            </label>
+            <div class="field tv-cost-total">
+              <span class="field-label">Tổng</span>
+              <p class="num">{{ money(costSum()) }}</p>
+            </div>
+            <label class="field tv-cost-note">
+              <span class="field-label">Ghi chú chi phí</span>
+              <input type="text" placeholder="Đổ 30 lít tại cây xăng Ninh Trang" [disabled]="!can()?.costs" [ngModel]="costNote()" (ngModelChange)="costNote.set($event)" />
+            </label>
+          </div>
+          @if (can()?.costs) {
+            <div class="toolbar">
+              <button type="button" class="btn btn-primary" [disabled]="!costDirty()" (click)="saveCosts()"><app-nav-icon name="check" />Lưu chi phí</button>
+              @if (savedCost() > 0) {
+                <a class="btn" routerLink="/thu-chi/lap/chi"
+                  [queryParams]="{ category: 'CHI_KHAC', amount: savedCost(), desc: 'Chi phí chuyến ' + t.code + (t.plateNumber ? ' — xe ' + t.plateNumber : ''), back: '/giao-hang/' + t.id }">
+                  <app-nav-icon name="cash" />Lập phiếu chi
+                </a>
+              }
+            </div>
+          }
+        </section>
+      }
+    }
+
+    <footer class="voucher-actions">
+      <p class="actions-hint" role="status">
+        @switch (t.status) {
+          @case ('GOM_DON') { {{ t.orderIds.length ? 'Đủ đơn thì xuất kho một lượt cho cả chuyến.' : 'Xếp đơn Chờ giao hàng lên chuyến.' }} }
+          @case ('DA_XUAT_KHO') { {{ unconfirmed() ? 'Còn ' + unconfirmed() + ' đơn chưa chốt giao.' : 'Đã chốt đủ — xác nhận xe về kho để nhập lại hàng mang về.' }} }
+          @case ('XE_VE_KHO') { Ghi chi phí chuyến rồi hoàn tất. }
+          @case ('HOAN_TAT') { Chuyến đã hoàn tất <span class="num">{{ time(t.completedAt) }}</span>. }
+          @case ('HUY') { Chuyến đã huỷ. }
+        }
+      </p>
+      <div class="toolbar">
+        @if (t.orderIds.length) {
+          <button type="button" class="btn" (click)="print('soan')"><app-nav-icon name="printer" />Phiếu soạn hàng</button>
+          <button type="button" class="btn" (click)="print('giao')"><app-nav-icon name="printer" />Phiếu giao hàng</button>
+        }
+        @if (can()?.cancel) {
+          <button type="button" class="btn btn-danger-ghost" (click)="confirmCancel.set(true)">Huỷ chuyến</button>
+        }
+        @if (can()?.arrange) {
+          <button type="button" class="btn" [class.btn-primary]="!t.orderIds.length" (click)="openAdd()"><app-nav-icon name="plus" />Xếp đơn</button>
+        }
+        @if (can()?.ship) {
+          <button type="button" class="btn btn-primary" (click)="ship()"><app-nav-icon name="upload" />Xuất kho</button>
+        }
+        @if (t.status === 'DA_XUAT_KHO') {
+          <button type="button" class="btn btn-primary" [disabled]="!can()?.return" [title]="can()?.return ? '' : 'Chốt giao hết các đơn trước'" (click)="returnToWarehouse()">
+            <app-nav-icon name="download" />Xe về kho
+          </button>
+        }
+        @if (can()?.complete) {
+          <button type="button" class="btn btn-primary" (click)="complete()"><app-nav-icon name="check" />Hoàn tất chuyến</button>
+        }
+      </div>
+    </footer>
+  </div>
+
+  @if (confirmCancel()) {
+    <div class="confirm-strip" role="alertdialog" aria-labelledby="tv-cancel-title">
+      <p id="tv-cancel-title"><strong>Huỷ chuyến {{ t.code }}?</strong> Các đơn trên chuyến được gỡ ra, vẫn ở Chờ giao hàng.</p>
+      <input type="text" placeholder="Lý do huỷ (không bắt buộc)" aria-label="Lý do huỷ" [ngModel]="cancelReason()" (ngModelChange)="cancelReason.set($event)" />
+      <div class="toolbar">
+        <button type="button" class="btn" (click)="confirmCancel.set(false)">Không huỷ</button>
+        <button type="button" class="btn btn-danger" (click)="doCancel()">Huỷ chuyến</button>
+      </div>
+    </div>
+  }
+
+  <!-- Xếp đơn -->
+  <dialog #addDialog class="rg-dialog" aria-labelledby="tv-add-title">
+    <header class="rg-head">
+      <div>
+        <h2 id="tv-add-title">Xếp đơn lên chuyến {{ t.code }}</h2>
+        <p class="subtitle">Chỉ đơn Chờ giao hàng (hoặc giao một phần còn hàng), chưa nằm trên chuyến đang chạy khác.</p>
+      </div>
+      <button type="button" class="icon-action" aria-label="Đóng" (click)="closeAdd()"><app-nav-icon name="x" /></button>
+    </header>
+    <div class="rg-body">
+      <div class="rg-meta">
+        <label class="field rg-note">
+          <span>Tìm đơn</span>
+          <input type="text" placeholder="Mã đơn, khách hàng, địa chỉ…" [ngModel]="addSearch()" (ngModelChange)="addSearch.set($event)" />
+        </label>
+      </div>
+      <div class="rg-scroll">
+        <table class="rg-table">
+          <thead>
+            <tr>
+              <th scope="col"><input type="checkbox" aria-label="Chọn tất cả" [checked]="candidates().length > 0 && addPicked().length === candidates().length" (change)="pickAll()" /></th>
+              <th scope="col">Mã đơn</th>
+              <th scope="col">Khách hàng</th>
+              <th scope="col">Địa chỉ giao</th>
+              <th scope="col">Cần giao</th>
+              <th scope="col">Trạng thái</th>
+              <th scope="col" class="c-num">Còn phải giao</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of candidates(); track c.order.id) {
+              <tr (click)="togglePick(c.order.id)" class="tv-pick-row">
+                <td><input type="checkbox" [checked]="addPicked().includes(c.order.id)" (click)="$event.stopPropagation()" (change)="togglePick(c.order.id)" [attr.aria-label]="'Chọn ' + c.order.code" /></td>
+                <td class="num">{{ c.order.code }}</td>
+                <td>{{ c.customerName }}</td>
+                <td class="tv-addr">{{ c.address || '—' }}</td>
+                <td class="num">{{ c.order.neededByDate ? day(c.order.neededByDate) : '—' }}</td>
+                <td><span class="badge" [ngClass]="soClass(c.order.status)">{{ soLabel[c.order.status] }}</span></td>
+                <td class="c-num num">{{ money(c.value) }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="7" class="rg-empty">Không có đơn nào sẵn sàng giao.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <footer class="rg-foot">
+      <p class="rg-summary">{{ addPicked().length }} đơn · <strong class="num">{{ money(pickedValue()) }}</strong></p>
+      <div class="toolbar">
+        <button type="button" class="btn" (click)="closeAdd()">Huỷ</button>
+        <button type="button" class="btn btn-primary" [disabled]="!addPicked().length" (click)="confirmAdd()">Xếp {{ addPicked().length || '' }} đơn lên chuyến</button>
+      </div>
+    </footer>
+  </dialog>
+
+  <!-- Chốt giao -->
+  <dialog #confirmDialog class="rg-dialog" aria-labelledby="tv-confirm-title">
+    @if (confirmOrder(); as r) {
+      <header class="rg-head">
+        <div>
+          <h2 id="tv-confirm-title">Chốt giao — <span class="num">{{ r.order.code }}</span> · {{ r.customerName }}</h2>
+          <p class="subtitle">Ghi số khách thực nhận. Công nợ phải thu ghi đúng số này; phần không nhận nhập lại kho khi xe về.</p>
+        </div>
+        <button type="button" class="icon-action" aria-label="Đóng" (click)="closeConfirm()"><app-nav-icon name="x" /></button>
+      </header>
+      <div class="rg-body">
+        <div class="rg-meta">
+          <label class="field rg-note">
+            <span>Ghi chú</span>
+            <input type="text" placeholder="VD: Khách trả 1 khung bị trầy" [ngModel]="confirmNote()" (ngModelChange)="confirmNote.set($event)" />
+          </label>
+          <div class="toolbar rg-quick">
+            <button type="button" class="btn" (click)="receiveAll('all')">Khách nhận đủ</button>
+            <button type="button" class="btn" (click)="receiveAll('none')">Khách không nhận</button>
+          </div>
+        </div>
+        <div class="rg-scroll">
+          <table class="rg-table">
+            <thead>
+              <tr>
+                <th scope="col">Hàng hoá</th>
+                <th scope="col">ĐVT</th>
+                <th scope="col" class="c-num">Đã xếp lên xe</th>
+                <th scope="col" class="c-num">Khách nhận</th>
+                <th scope="col" class="c-num">Mang về</th>
+                <th scope="col" class="c-num">Giá trị nhận</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (x of confirmRows(); track x.lineIndex; let i = $index) {
+                <tr>
+                  <td><span class="num rg-code">{{ x.code }}</span> {{ x.name }}</td>
+                  <td>{{ x.unit }}</td>
+                  <td class="c-num num">{{ x.loaded.toLocaleString('vi-VN') }}</td>
+                  <td class="c-num">
+                    <input type="number" min="0" step="any" [max]="x.loaded" [ngModel]="x.received" (ngModelChange)="setReceived(i, $event)"
+                      [attr.aria-label]="'Khách nhận ' + x.code" [attr.aria-invalid]="confirmAttempted() && rowError(x) ? 'true' : null" />
+                    @if (confirmAttempted() && rowError(x)) { <span class="rg-err">{{ rowError(x) }}</span> }
+                  </td>
+                  <td class="c-num num">{{ (x.loaded - (x.received ?? 0) > 0 ? x.loaded - (x.received ?? 0) : 0).toLocaleString('vi-VN') }}</td>
+                  <td class="c-num num">{{ money((x.received ?? 0) * x.unitValue) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <footer class="rg-foot">
+        <p class="rg-summary" [class.text-danger]="confirmAttempted() && confirmIssue()" role="status">
+          @if (confirmAttempted() && confirmIssue()) { {{ confirmIssue() }} } @else {
+            Ghi công nợ: <strong class="num">{{ money(confirmValue()) }}</strong> / {{ money(confirmLoadedValue()) }}
+          }
+        </p>
+        <div class="toolbar">
+          <button type="button" class="btn" (click)="closeConfirm()">Huỷ</button>
+          <button type="button" class="btn btn-primary" (click)="doConfirm()">Chốt giao</button>
+        </div>
+      </footer>
+    }
+  </dialog>
+
+  <app-trip-header-dialog #headerDialog (saved)="onHeaderSaved($event)" />
+
+  <!-- Print: phiếu soạn hàng / phiếu giao hàng -->
+  @if (printMode() === 'soan') {
+    <article class="print-only tv-print">
+      <h2>PHIẾU SOẠN HÀNG</h2>
+      <p class="tv-print-meta">Chuyến <strong>{{ t.code }}</strong> · ngày {{ day(t.date) }} · xe {{ t.plateNumber || '—' }} · tài xế {{ t.driverName || '—' }}</p>
+      @for (g of picking(); track g.warehouseId) {
+        <h3>{{ warehouseName(g.warehouseId) }}</h3>
+        <table>
+          <thead><tr><th>Đã soạn</th><th>Mã hàng</th><th>Tên hàng</th><th>ĐVT</th><th class="r">Số lượng</th><th>Của đơn</th></tr></thead>
+          <tbody>
+            @for (it of g.items; track it.productId) {
+              <tr><td class="box">☐</td><td>{{ it.code }}</td><td>{{ it.name }}</td><td>{{ it.unit }}</td><td class="r">{{ it.qty.toLocaleString('vi-VN') }}</td><td>{{ it.orders }}</td></tr>
+            }
+          </tbody>
+        </table>
+      }
+      <div class="tv-sign"><div><strong>Thủ kho</strong><span>(Ký, ghi rõ họ tên)</span></div><div><strong>Tài xế</strong><span>(Ký, ghi rõ họ tên)</span></div></div>
+    </article>
+  }
+  @if (printMode() === 'giao') {
+    <article class="print-only tv-print">
+      @for (r of rows(); track r.order.id; let last = $last) {
+        <section class="tv-print-order" [class.page-break]="!last">
+          <h2>PHIẾU GIAO HÀNG</h2>
+          <p class="tv-print-meta">Đơn <strong>{{ r.order.code }}</strong> · chuyến {{ t.code }} · ngày {{ day(t.date) }} · xe {{ t.plateNumber || '—' }}</p>
+          <dl class="tv-print-party">
+            <div><dt>Khách hàng</dt><dd>{{ r.customerName }}</dd></div>
+            <div><dt>Người nhận</dt><dd>{{ r.recipient }}{{ r.phone ? ' — ' + r.phone : '' }}</dd></div>
+            <div><dt>Địa chỉ</dt><dd>{{ r.address || '—' }}</dd></div>
+          </dl>
+          <table>
+            <thead><tr><th>#</th><th>Mã hàng</th><th>Tên hàng</th><th>ĐVT</th><th class="r">Số lượng giao</th><th class="r">Khách nhận</th></tr></thead>
+            <tbody>
+              @for (l of linesOf(r.order); track l.key; let i = $index) {
+                <tr><td>{{ i + 1 }}</td><td>{{ l.code }}</td><td>{{ l.name }}</td><td>{{ l.unit }}</td><td class="r">{{ l.qty.toLocaleString('vi-VN') }}</td><td></td></tr>
+              }
+            </tbody>
+          </table>
+          <p>Giá trị đơn trên chuyến: <strong>{{ money(r.value) }}</strong></p>
+          <div class="tv-sign"><div><strong>Người giao</strong><span>(Ký, ghi rõ họ tên)</span></div><div><strong>Khách ký nhận</strong><span>(Ký, ghi rõ họ tên)</span></div></div>
+        </section>
+      }
+    </article>
+  }
+} @else {
+  <div class="card empty-state">
+    <h3>Không tìm thấy chuyến</h3>
+    <p>Chuyến có thể đã bị xoá hoặc đường dẫn không đúng.</p>
+    <a class="btn" routerLink="/giao-hang">Về danh sách chuyến</a>
+  </div>
+}

@@ -10,7 +10,8 @@ import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
 import { foldVi, formatVnd } from '../../shared/format.util';
 import { formatDay } from '../../shared/period';
 import { downloadWorkbook, todayStamp } from '../../shared/excel.util';
-import { PayableLedgerComponent } from './payable-ledger/payable-ledger.component';
+import { DebtLedgerComponent } from '../debts/debt-ledger/debt-ledger.component';
+import { AGING_COLUMNS } from '../debts/aging';
 
 type PayableSort = 'balance' | 'overdue' | 'due' | 'name';
 
@@ -21,19 +22,11 @@ const SORTS: { value: PayableSort; label: string }[] = [
   { value: 'name', label: 'Tên A → Z' },
 ];
 
-export const AGING_COLUMNS: { key: Exclude<keyof DebtRow['aging'], 'total'>; label: string }[] = [
-  { key: 'notDue', label: 'Chưa đến hạn' },
-  { key: 'overdue1to30', label: 'Quá hạn 1–30 ngày' },
-  { key: 'overdue31to60', label: '31–60 ngày' },
-  { key: 'overdue61to90', label: '61–90 ngày' },
-  { key: 'overdueOver90', label: 'Trên 90 ngày' },
-];
-
 // /cong-no/nha-cung-cap — list; with ?partnerId= it shows the Sổ chi tiết công nợ (as in production).
 @Component({
   selector: 'app-payables',
   standalone: true,
-  imports: [RouterLink, DataTableComponent, PaginationComponent, NavIconComponent, PayableLedgerComponent],
+  imports: [RouterLink, DataTableComponent, PaginationComponent, NavIconComponent, DebtLedgerComponent],
   templateUrl: './payables.component.html',
 })
 export class PayablesComponent {
@@ -61,7 +54,7 @@ export class PayablesComponent {
     { key: 'nextDue', label: 'Hạn gần nhất', format: (r) => (r.nextDue ? formatDay(r.nextDue) : '—'), mono: true },
     { key: 'prepaid', label: 'Trả trước', align: 'right', format: (r) => (r.prepaid ? formatVnd(r.prepaid) : '—'), filterValue: (r) => r.prepaid },
     { key: 'overdue', label: 'Quá hạn', align: 'right', format: (r) => (r.overdue ? formatVnd(r.overdue) : '—'), filterValue: (r) => r.overdue },
-    { key: 'balance', label: 'Số dư', align: 'right', format: (r) => formatVnd(r.balance), filterValue: (r) => r.balance },
+    { key: 'balance', label: 'Số dư', align: 'right', format: (r) => formatVnd(r.balance), filterValue: (r) => r.balance, tone: (r) => r.balance, toneFlow: false },
   ];
 
   readonly rows = computed(() => {

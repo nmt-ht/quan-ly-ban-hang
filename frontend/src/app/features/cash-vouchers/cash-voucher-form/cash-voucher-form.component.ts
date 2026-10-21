@@ -10,7 +10,7 @@ import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { MoneyInputDirective } from '../../../shared/money-input.directive';
 import { formatVnd } from '../../../shared/format.util';
 import { formatDay, isoDay } from '../../../shared/period';
-import { ACCOUNT_TYPE_LABEL, CASH_CATEGORIES, KIND_TEXT, autoAllocate } from '../cash-voucher.rules';
+import { ACCOUNT_TYPE_LABEL, KIND_TEXT, autoAllocate, categoryHint } from '../cash-voucher.rules';
 import { CashVoucherService } from '../cash-voucher.service';
 
 interface Partner {
@@ -43,7 +43,13 @@ export class CashVoucherFormComponent {
     { initialValue: (this.route.snapshot.paramMap.get('kind') === 'thu' ? 'THU' : 'CHI') as VoucherKind },
   );
   readonly text = computed(() => KIND_TEXT[this.kind()]);
-  readonly categories = computed(() => CASH_CATEGORIES[this.kind()]);
+  /** Loại đang dùng của loại phiếu; loại mặc định đứng đầu. */
+  readonly categories = computed(() =>
+    this.data.cashCategories()
+      .filter((c) => c.kind === this.kind() && c.isActive)
+      .sort((a, b) => Number(!!b.isDefault) - Number(!!a.isDefault)),
+  );
+  readonly categoryHint = categoryHint;
 
   readonly money = formatVnd;
   readonly day = formatDay;
@@ -70,14 +76,18 @@ export class CashVoucherFormComponent {
         const q = this.route.snapshot.queryParamMap;
         const fromSupplier = kind === 'CHI' ? q.get('supplierId') : null;
         const fromCustomer = kind === 'THU' ? q.get('customerId') : null;
-        this.categoryCode.set(CASH_CATEGORIES[kind][0].code);
+        // ?category=CHI_KHAC&amount=…&desc=… pre-fill a voucher from another screen (e.g. chi phí chuyến).
+        const cats = this.data.cashCategories().filter((c) => c.kind === kind && c.isActive);
+        const cat = cats.find((c) => c.code === q.get('category'));
+        this.categoryCode.set(cat?.code ?? cats.find((c) => c.isDefault)?.code ?? cats[0]?.code ?? '');
         this.date.set(isoDay(new Date()));
         this.partnerId.set(fromSupplier ?? fromCustomer ?? '');
         if (!this.partner()) this.partnerId.set('');
-        this.amount.set(null);
-        const accounts = this.data.cashAccounts();
-        this.accountId.set((accounts.find((a) => a.type === 'TIEN_MAT') ?? accounts[0])?.id ?? '');
-        this.description.set('');
+        const presetAmount = Number(q.get('amount'));
+        this.amount.set(presetAmount > 0 ? Math.round(presetAmount) : null);
+        const accounts = this.accounts();
+        this.accountId.set((accounts.find((a) => a.isDefault) ?? accounts.find((a) => a.type === 'TIEN_MAT') ?? accounts[0])?.id ?? '');
+        this.description.set(q.get('desc') ?? '');
         this.manual.set(false);
         this.picks.set({});
         this.attempted.set(false);
@@ -117,7 +127,10 @@ export class CashVoucherFormComponent {
   readonly openItems = computed(() => this.debtRow()?.items ?? []);
   readonly openTotal = computed(() => this.openItems().reduce((s, i) => s + i.amount, 0));
 
-  readonly accounts = computed(() => this.data.cashAccounts());
+  /** Tài khoản đang dùng, theo thứ tự hiển thị. */
+  readonly accounts = computed(() =>
+    this.data.cashAccounts().filter((a) => a.isActive !== false).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
+  );
   readonly account = computed(() => this.accounts().find((a) => a.id === this.accountId()));
 
   // ---------- đối trừ ----------

@@ -1,0 +1,88 @@
+<p class="subtitle"><a class="crumb" routerLink="/thu-chi">Phiếu thu chi</a> / Loại thu chi</p>
+<div class="page-header">
+  <div>
+    <h1>Loại thu chi</h1>
+    <p class="subtitle">Quyết định phiếu gắn với khách hàng, nhà cung cấp hay không gắn đối tác nào.</p>
+  </div>
+  <div class="toolbar">
+    <a class="btn" routerLink="/thu-chi"><app-nav-icon name="arrow-left" />Phiếu thu chi</a>
+    <button type="button" class="btn btn-primary" (click)="open('THU')"><app-nav-icon name="plus" />Thêm loại</button>
+  </div>
+</div>
+
+@if (notice()) {
+  <div class="notice" role="status">
+    <span>{{ notice() }}</span>
+    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+  </div>
+}
+
+@for (g of groups(); track g.kind) {
+  <section class="card section-block ca-group">
+    <h3>{{ g.label }} <span class="subtitle">({{ g.items.length }} loại)</span></h3>
+    <ul class="ca-list">
+      @for (c of g.items; track c.code) {
+        <li class="ca-item" [class.is-off]="!c.isActive">
+          <div class="ca-main">
+            <strong>{{ c.name }}</strong>
+            @if (c.isDefault) { <span class="badge ca-badge">Mặc định</span> }
+            @if (!c.isActive) { <span class="badge">Ngừng dùng</span> }
+            <p class="subtitle">Gắn đối tác: {{ partnerLabel[c.partnerType] }} · {{ hint(c) }}</p>
+          </div>
+          <dl class="ca-figures">
+            <div><dt>Đã dùng</dt><dd class="num">{{ used(c) }} phiếu</dd></div>
+          </dl>
+          <span class="row-actions">
+            <button type="button" class="btn btn-sm" (click)="toggle(c)">{{ c.isActive ? 'Ngừng dùng' : 'Dùng lại' }}</button>
+            <button type="button" class="icon-action" (click)="open(c.kind, c)" [attr.aria-label]="'Sửa ' + c.name" title="Sửa"><app-nav-icon name="pencil" /></button>
+          </span>
+        </li>
+      }
+    </ul>
+    <button type="button" class="link-btn" (click)="open(g.kind)">+ Thêm loại {{ g.label.toLowerCase() }}</button>
+  </section>
+}
+
+<dialog #dialog class="rg-dialog th-dialog" aria-labelledby="cc-title">
+  <header class="rg-head">
+    <div><h2 id="cc-title">{{ editing() ? 'Sửa loại thu chi' : 'Thêm loại thu chi' }}</h2></div>
+    <button type="button" class="icon-action" aria-label="Đóng" (click)="close()"><app-nav-icon name="x" /></button>
+  </header>
+  <div class="rg-body th-body">
+    <label class="field th-note">
+      <span>Tên loại <span class="required-mark">*</span></span>
+      <input id="cc-name" type="text" placeholder="VD: Chi phí vận chuyển" [ngModel]="name()" (ngModelChange)="name.set($event)"
+        [attr.aria-invalid]="attempted() && issues().length ? 'true' : null" />
+    </label>
+    <label class="field">
+      <span>Dùng cho</span>
+      <select [disabled]="!!editing()" [ngModel]="kind()" (ngModelChange)="kind.set($event)">
+        <option value="THU">Phiếu thu</option>
+        <option value="CHI">Phiếu chi</option>
+      </select>
+    </label>
+    <label class="field">
+      <span>Gắn đối tác</span>
+      <select [disabled]="!!editing()?.isSystem" [ngModel]="partnerType()" (ngModelChange)="partnerType.set($event)">
+        @for (p of partnerTypes; track p) { <option [value]="p">{{ partnerLabel[p] }}</option> }
+      </select>
+      @if (editing()?.isSystem) { <span class="hint">Loại của hệ thống — không đổi cách gắn đối tác.</span> }
+    </label>
+    <p class="form-note th-note">{{ hint({ partnerType: editing()?.isSystem ? editing()!.partnerType : partnerType() }) }}</p>
+    <label class="check-line">
+      <input type="checkbox" [ngModel]="isDefault()" (ngModelChange)="isDefault.set($event)" /> Mặc định khi lập phiếu
+    </label>
+    <label class="check-line">
+      <input type="checkbox" [ngModel]="isActive()" (ngModelChange)="isActive.set($event)" /> Đang dùng
+    </label>
+  </div>
+  <footer class="rg-foot">
+    <p class="rg-summary" [class.text-danger]="attempted() && issues().length" role="status">
+      {{ attempted() && issues().length ? issues()[0] : 'Đổi tên thì các phiếu cũ đổi theo.' }}
+    </p>
+    <div class="toolbar">
+      <button type="button" class="btn" (click)="close()">Huỷ</button>
+      <button type="button" class="btn btn-primary" (click)="save()">Lưu</button>
+    </div>
+  </footer>
+</dialog>

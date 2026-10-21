@@ -71,30 +71,35 @@
     {
       "id": "tag-vip",
       "name": "VIP",
+      "color": "amber",
       "sortOrder": 1,
       "isActive": true
     },
     {
       "id": "tag-quen",
       "name": "Khách quen",
+      "color": "emerald",
       "sortOrder": 2,
       "isActive": true
     },
     {
       "id": "tag-si",
       "name": "Tranh sỉ",
+      "color": "blue",
       "sortOrder": 3,
       "isActive": true
     },
     {
       "id": "tag-gap",
       "name": "Đơn gấp",
+      "color": "red",
       "sortOrder": 4,
       "isActive": true
     },
     {
       "id": "tag-shopee",
       "name": "Dropship Shopee",
+      "color": "orange",
       "sortOrder": 5,
       "isActive": true
     }

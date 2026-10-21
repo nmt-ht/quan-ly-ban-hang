@@ -49,12 +49,17 @@ const ACCOUNTS = [
   { id: 'acc-cash', name: 'Quỹ tiền mặt', type: 'TIEN_MAT' },
   { id: 'acc-bank', name: 'Tài khoản ngân hàng', type: 'NGAN_HANG' },
 ];
+// Thông tin hiển thị của tài khoản tiền (giả — không dùng số tài khoản thật).
+const ACCOUNT_INFO = {
+  'acc-cash': { code: 'TM', note: 'Tiền mặt tại quỹ', isDefault: true, sortOrder: 0 },
+  'acc-bank': { code: 'NH-9999', bankName: 'Ngân hàng TMCP (demo)', accountNumber: '0000 9999 0000', accountHolder: 'CONG TY NINH TRANG', branch: 'Chi nhánh TP.HCM', sortOrder: 1 },
+};
 const TAGS = [
-  { id: 'tag-vip', name: 'VIP', sortOrder: 1 },
-  { id: 'tag-quen', name: 'Khách quen', sortOrder: 2 },
-  { id: 'tag-si', name: 'Tranh sỉ', sortOrder: 3 },
-  { id: 'tag-gap', name: 'Đơn gấp', sortOrder: 4 },
-  { id: 'tag-shopee', name: 'Dropship Shopee', sortOrder: 5 },
+  { id: 'tag-vip', name: 'VIP', color: 'amber', sortOrder: 1 },
+  { id: 'tag-quen', name: 'Khách quen', color: 'emerald', sortOrder: 2 },
+  { id: 'tag-si', name: 'Tranh sỉ', color: 'blue', sortOrder: 3 },
+  { id: 'tag-gap', name: 'Đơn gấp', color: 'red', sortOrder: 4 },
+  { id: 'tag-shopee', name: 'Dropship Shopee', color: 'orange', sortOrder: 5 },
 ].map((t) => ({ ...t, isActive: true }));
 
 const USERS = [
@@ -542,13 +547,41 @@ const feSalesOrders = desc(orders, (o) => o.orderDate + o.code).map((o) => clean
   discountAmount: o.discountAmount, totalGoods: o.totalGoods, totalOrder: o.totalOrder, salesRep: userEmail[o.salesRep], createdBy: userEmail[o.createdBy],
   tripId: o.tripId, deliveredDate: o.deliveredDate, receivedValue: o.receivedValue, dueDate: o.dueDate,
 }));
-const feTrips = desc(trips, (t) => t.date + t.code).map((t) => clean({
-  id: t.id, code: t.code, date: t.date, driverName: t.driverName, plateNumber: t.plateNumber, status: t.status, orderIds: t.orderIds,
-  totalValue: t.totalValue, vehicleId: t.vehicleId, confirmedCount: t.confirmedCount, receivedValue: t.receivedValue,
-}));
+// Chuyến: hàng xếp lên xe (loads) lúc xuất kho, kết quả chốt giao từng đơn, chi phí điều vận.
+const TRIP_DRIVER_PHONE = { 'Đặng Văn Tài': '0903111222', 'Lý Văn Sáu': '0903333444', 'Nguyễn Văn Bốn': '0903555666' };
+const feTrips = desc(trips, (t) => t.date + t.code).map((t, i) => {
+  const os = orders.filter((o) => o.tripId === t.id);
+  const back = ['XE_VE_KHO', 'HOAN_TAT'].includes(t.status);
+  return clean({
+    id: t.id, code: t.code, date: t.date, driverName: t.driverName, driverPhone: TRIP_DRIVER_PHONE[t.driverName], plateNumber: t.plateNumber,
+    status: t.status, orderIds: t.orderIds, totalValue: t.totalValue, vehicleId: t.vehicleId, confirmedCount: t.confirmedCount,
+    receivedValue: t.receivedValue, createdBy: userEmail['user-quanly'], shippedAt: t.shipped ? `${t.date}T08:30:00` : undefined,
+    returnedAt: back ? `${t.date}T17:15:00` : undefined, completedAt: t.status === 'HOAN_TAT' ? `${t.date}T17:30:00` : undefined,
+    cancelReason: t.status === 'HUY' ? 'Xe thuê ngoài báo hỏng, dời đơn sang chuyến sau' : undefined,
+    costs: t.shipped ? { fuel: 220000 + (i % 4) * 35000, toll: i % 2 ? 40000 : 0, other: t.status === 'HOAN_TAT' && i % 3 === 0 ? 50000 : 0, note: i % 2 ? 'Qua trạm BOT An Sương' : undefined } : undefined,
+    loads: t.shipped ? os.flatMap((o) => o.lines.map((l, j) => clean({
+      orderId: o.id, lineIndex: j, productId: l.productId, quantity: l.quantity,
+      warehouseId: hasStock(l.productId) ? prodById[l.productId].defaultWarehouseId : undefined,
+    }))) : undefined,
+    confirmations: t.shipped ? os.filter((o) => DELIVERED.includes(o.status)).map((o) => ({
+      orderId: o.id, confirmedAt: `${t.date}T15:00:00`, lines: o.lines.map((l, j) => ({ lineIndex: j, received: l.receivedQuantity })),
+    })) : undefined,
+  });
+});
+// Xe: loại theo danh mục của production, tên gọi riêng; tình trạng chỉ là Đang dùng / Bảo trì / Ngừng dùng —
+// "đang ở chuyến nào" suy ra từ chuyến.
+const VEHICLE_EXTRA = {
+  'xe-1': { type: 'XE_TAI', name: 'Xe tải 1,5 tấn', reg: '2027-03-15', ins: '2026-11-05', driverUser: 'user-taixe', phone: '0903111222' },
+  'xe-2': { type: 'XE_TAI', name: 'Xe tải 750kg', reg: '2026-10-30', ins: '2027-06-01', phone: '0903333444', note: 'Thùng kín, chở được kính khổ lớn.' },
+  'xe-3': { type: 'XE_BA_GAC', name: 'Ba gác máy', reg: '2026-09-30', note: 'Đang sửa hộp số.' },
+};
 const feVehicles = VEHICLES.map((v) => {
-  const active = trips.find((t) => t.vehicleId === v.id && ['GOM_DON', 'DA_XUAT_KHO'].includes(t.status));
-  return clean({ id: v.id, code: v.code, plateNumber: v.plate, type: v.type, loadCapacity: v.cap, usualDriver: v.usual, status: v.maint ? 'BAO_TRI' : active ? 'DANG_DUNG' : 'RANH', currentTripCode: active?.code });
+  const x = VEHICLE_EXTRA[v.id] ?? {};
+  return clean({
+    id: v.id, code: v.code, plateNumber: v.plate, name: x.name, type: x.type ?? 'KHAC', loadCapacity: v.cap,
+    usualDriver: v.usual, driverUserId: x.driverUser, driverPhone: x.phone, registrationExpiry: x.reg, insuranceExpiry: x.ins,
+    note: x.note, status: v.maint ? 'BAO_TRI' : 'DANG_DUNG', createdAt: iso(START),
+  });
 });
 // Frontend lines also carry the stock change of the voucher's warehouse: a kiểm kê stores the
 // counted quantity, so its change is the delta (the opening kiểm kê starts from 0).
@@ -561,13 +594,18 @@ const feWarehouseVouchers = desc(warehouseVouchers, (v) => v.date + v.code).map(
   id: v.id, code: v.code, type: v.type, date: v.date, warehouseId: v.warehouseId, targetWarehouseId: v.targetWarehouseId, reason: v.reason,
   createdBy: userEmail[v.createdBy], isCancelled: v.isCancelled, lines: feVoucherLines.get(v.id),
 }));
-const feProduction = desc(lsx, (l) => l.createdDate + l.code).map((l) => ({ id: l.id, code: l.code, sourceOrderId: l.sourceOrderId, productId: l.productId, quantity: l.quantity, status: l.status, createdDate: l.createdDate }));
-const feCashAccounts = ACCOUNTS.map((a) => ({ id: a.id, name: a.name, type: a.type, balance: accountBalance(a.id) }));
+const feProduction = desc(lsx, (l) => l.createdDate + l.code).map((l) => clean({
+  id: l.id, code: l.code, sourceOrderId: l.sourceOrderId, productId: l.productId, quantity: l.quantity, status: l.status, createdDate: l.createdDate,
+  startDate: l.startDate, completeDate: l.completeDate, producedQuantity: l.status === 'HOAN_TAT' ? l.quantity : undefined,
+  bomSnapshot: (l.bomSnapshot ?? []).map((b) => ({ componentId: b.componentId, quantityPerUnit: b.quantityPerUnit })),
+  createdBy: userEmail['user-quanly'], cancelReason: l.status === 'HUY' ? 'Khách huỷ đơn' : undefined,
+}));
+const feCashAccounts = ACCOUNTS.map((a) => clean({ id: a.id, name: a.name, type: a.type, ...ACCOUNT_INFO[a.id], openingBalance: 0, balance: accountBalance(a.id), isActive: true }));
 const feCashVouchers = desc(cashVouchers, (c) => c.date + c.code).map((c) => clean({
   id: c.id, code: c.code, date: c.date, kind: c.kind, category: c.category, partnerType: c.partnerType, partnerId: c.partnerId, accountId: c.accountId,
   amount: c.amount, settledAmount: c.settledAmount, description: c.description, isCancelled: c.isCancelled, createdBy: userEmail[c.createdBy],
 }));
-const feTags = TAGS.map((t) => ({ id: t.id, name: t.name, sortOrder: t.sortOrder, orderCount: orders.filter((o) => o.tagIds.includes(t.id)).length, customerCount: CUSTOMERS.filter((c) => c.tags.includes(t.id)).length, isActive: true }));
+const feTags = TAGS.map((t) => ({ id: t.id, name: t.name, color: t.color, sortOrder: t.sortOrder, orderCount: orders.filter((o) => o.tagIds.includes(t.id)).length, customerCount: CUSTOMERS.filter((c) => c.tags.includes(t.id)).length, isActive: true }));
 const feUsers = USERS.map((u) => ({ id: u.id, name: u.name, email: u.email, roleId: ROLE_FE[u.role], lastLoginAt: u.lastLogin, openSessions: u.sessions, status: u.status }));
 const roleUserCount = {};
 for (const u of feUsers) roleUserCount[u.roleId] = (roleUserCount[u.roleId] ?? 0) + 1;

@@ -1,14 +1,16 @@
 <div class="page-header">
   <div>
     <h1>Phiếu thu chi</h1>
-    <p class="subtitle">{{ data.cashVouchers().length }} phiếu</p>
+    <p class="subtitle">{{ vouchers().length }} phiếu</p>
   </div>
   <div class="toolbar">
-    <button class="btn">Xuất Excel</button>
-    <button class="btn">Tài khoản tiền</button>
-    <button class="btn">Loại thu chi</button>
+    <button type="button" class="btn" [disabled]="exporting()" (click)="exportExcel()">
+      <app-nav-icon name="download" />{{ exporting() ? 'Đang xuất…' : 'Xuất Excel' }}
+    </button>
+    <a class="btn" routerLink="/thu-chi/tai-khoan">Tài khoản tiền</a>
+    <a class="btn" routerLink="/thu-chi/loai">Loại thu chi</a>
+    <a class="btn" routerLink="/thu-chi/lap/chi"><app-nav-icon name="plus" />Phiếu chi</a>
     <a class="btn btn-primary" routerLink="/thu-chi/lap/thu"><app-nav-icon name="plus" />Phiếu thu</a>
-    <a class="btn btn-primary" routerLink="/thu-chi/lap/chi"><app-nav-icon name="plus" />Phiếu chi</a>
   </div>
 </div>
 
@@ -19,23 +21,117 @@
   </div>
 }
 
-<div class="filters-bar">
-  <input type="text" placeholder="Tìm số phiếu, đối tượng, diễn giải..." class="filter-search" />
-  <select><option>Thu và chi</option></select>
-  <select><option>Loại thu chi</option></select>
-  <select><option>Hình thức</option></select>
-  <select><option>Tài khoản</option></select>
-  <select><option>Chọn kỳ</option></select>
-  <select><option>Người lập</option></select>
-</div>
+<section class="card cv-balances" aria-labelledby="cv-bal-title">
+  <header class="cv-bal-head">
+    <h3 id="cv-bal-title">Số dư các đầu tài khoản</h3>
+    <span class="subtitle">số dư hiện tại, không theo bộ lọc</span>
+    <strong class="num cv-bal-total">{{ money(totalBalance()) }}</strong>
+    <a class="link-btn" routerLink="/thu-chi/tai-khoan">Quản lý</a>
+  </header>
+  <ul class="cv-bal-list">
+    @for (a of accounts(); track a.id) {
+      <li [class.is-off]="a.isActive === false">
+        <button type="button" class="cv-bal-item" [attr.aria-pressed]="accountId() === a.id" (click)="accountId.set(accountId() === a.id ? 'all' : a.id)"
+          [title]="'Lọc phiếu của ' + a.name">
+          <span class="cv-bal-name">{{ a.name }}</span>
+          <span class="subtitle">{{ accountTypeLabel[a.type] }}{{ a.isActive === false ? ' · ngừng dùng' : '' }}</span>
+          <span class="num cv-bal-value" [class.amt-neg]="a.balance < 0">{{ money(a.balance) }}</span>
+        </button>
+      </li>
+    }
+  </ul>
+</section>
 
-<div class="card" style="margin-bottom:20px">
-  <h3 style="margin-top:0">Số dư các đầu tài khoản</h3>
-  <div class="stat-grid" style="margin-bottom:0">
-    <app-stat-card *ngFor="let acc of data.cashAccounts()" [label]="acc.name" [value]="formatVnd(acc.balance)" />
-    <app-stat-card label="Tổng thu" [value]="formatVnd(totalThu())" />
-    <app-stat-card label="Tổng chi" [value]="formatVnd(totalChi())" />
+<dl class="cv-cards">
+  <div>
+    <dt>Tổng thu</dt>
+    <dd class="num amt-pos">{{ signed(cards().thu) }}</dd>
+    <dd class="cv-split">Tiền mặt <span class="num">{{ money(cards().thuCash) }}</span> · CK <span class="num">{{ money(cards().thuBank) }}</span></dd>
   </div>
+  <div>
+    <dt>Tổng chi</dt>
+    <dd class="num amt-neg">{{ signed(-cards().chi) }}</dd>
+    <dd class="cv-split">Tiền mặt <span class="num">{{ money(cards().chiCash) }}</span> · CK <span class="num">{{ money(cards().chiBank) }}</span></dd>
+  </div>
+  <div>
+    <dt>Thu − Chi trong kỳ</dt>
+    <dd class="num" [ngClass]="tone(cards().net)">{{ signed(cards().net) }}</dd>
+    <dd class="cv-split">{{ cards().count }} phiếu {{ period().preset ? 'trong kỳ' : '' }}</dd>
+  </div>
+  <div>
+    <dt>Tồn quỹ</dt>
+    <dd class="num" [class.amt-neg]="totalBalance() < 0">{{ money(totalBalance()) }}</dd>
+    <dd class="cv-split">Toàn bộ lịch sử</dd>
+  </div>
+</dl>
+
+<div class="filters-bar">
+  <input
+    type="text"
+    class="filter-search"
+    placeholder="Tìm số phiếu, đối tượng, diễn giải…"
+    aria-label="Tìm phiếu"
+    [value]="search()"
+    (input)="search.set($any($event.target).value)"
+  />
+  <select aria-label="Thu hoặc chi" [value]="kind()" (change)="kind.set($any($event.target).value)">
+    <option value="all">Thu và chi</option>
+    <option value="THU">Phiếu thu</option>
+    <option value="CHI">Phiếu chi</option>
+  </select>
+  <app-filter-multi-select label="Loại thu chi" [options]="categoryOptions()" [(selected)]="categories" />
+  <select aria-label="Hình thức" [value]="method()" (change)="method.set($any($event.target).value)">
+    <option value="all">Mọi hình thức</option>
+    <option value="TIEN_MAT">Tiền mặt</option>
+    <option value="NGAN_HANG">Chuyển khoản</option>
+  </select>
+  <select aria-label="Tài khoản" [value]="accountId()" (change)="accountId.set($any($event.target).value)">
+    <option value="all">Mọi tài khoản</option>
+    @for (a of accounts(); track a.id) { <option [value]="a.id">{{ a.name }}</option> }
+  </select>
+  <app-period-filter [(value)]="period" />
+  <app-filter-multi-select label="Người lập" [options]="userOptions()" [(selected)]="createdBy" />
+  <app-range-filter label="Số tiền" [(value)]="amount" />
+  <button type="button" class="filter-toggle" [attr.aria-pressed]="showCancelled()" (click)="showCancelled.set(!showCancelled())">Hiện phiếu đã huỷ</button>
 </div>
 
-<app-data-table [columns]="columns" [rows]="data.cashVouchers()" emptyTitle="Chưa có phiếu thu chi nào" />
+@if (chips().length) {
+  <div class="filter-chips" aria-label="Bộ lọc đang áp dụng">
+    @for (c of chips(); track c.label) {
+      <span class="filter-chip">
+        {{ c.label }}
+        <button type="button" class="filter-chip-remove" [attr.aria-label]="'Bỏ lọc ' + c.label" (click)="c.clear()">
+          <app-nav-icon name="x" />
+        </button>
+      </span>
+    }
+    <button type="button" class="filter-clear-all" (click)="clearAll()"><app-nav-icon name="x" />Xoá tất cả bộ lọc</button>
+  </div>
+}
+
+<app-data-table
+  [columns]="columns"
+  [rows]="paged()"
+  [actions]="rowActions"
+  [filterable]="true"
+  [filters]="columnFilters()"
+  (filtersChange)="columnFilters.set($event)"
+  [optionRows]="data.cashVouchers()"
+  [emptyAction]="chips().length || search() ? null : createCta"
+  [emptyTitle]="chips().length || search() ? 'Không có phiếu phù hợp' : 'Chưa có phiếu thu chi nào'"
+  [emptyHint]="chips().length || search() ? 'Thử bỏ bớt bộ lọc hoặc mở rộng khoảng ngày.' : 'Lập phiếu thu khi nhận tiền, phiếu chi khi trả tiền — mỗi phiếu gắn đúng một tài khoản tiền.'"
+/>
+
+<app-pagination [total]="vouchers().length" unit="phiếu" [(page)]="page" [(pageSize)]="pageSize" />
+
+<ng-template #createCta>
+  <a class="btn btn-primary" routerLink="/thu-chi/lap/thu"><app-nav-icon name="plus" />Lập phiếu thu</a>
+</ng-template>
+
+<ng-template #rowActions let-v>
+  <span class="row-actions">
+    <a class="icon-action" [routerLink]="['/thu-chi', v.id]" [attr.aria-label]="'Xem ' + v.code" title="Xem phiếu">
+      <app-nav-icon name="eye" />
+    </a>
+  </span>
+</ng-template>

@@ -1,0 +1,88 @@
+.head-fields .span-full {
+  grid-column: 1 / -1;
+}
+
+.wv-cancelled {
+  background: var(--color-danger-tint);
+  color: var(--color-danger);
+}
+
+.wv-note-col {
+  min-width: 10rem;
+}
+
+.wv-base {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+.wv-warn {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--color-warning);
+}
+
+.print-only {
+  display: none;
+}
+
+@media print {
+  .screen-only {
+    display: none;
+  }
+
+  .print-only {
+    display: block;
+    color: #000;
+    font-size: 12px;
+  }
+
+  .wv-print-head {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .wv-print h2 {
+    margin: 16px 0 2px;
+    text-align: center;
+    font-size: 18px;
+  }
+
+  .wv-print-date {
+    margin: 0 0 10px;
+    text-align: center;
+    font-style: italic;
+  }
+
+  .wv-print table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0;
+  }
+
+  .wv-print th,
+  .wv-print td {
+    padding: 4px 6px;
+    border: 1px solid #000;
+    text-align: left;
+  }
+
+  .wv-print .r {
+    text-align: right;
+  }
+
+  .wv-sign {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    margin-top: 20px;
+    text-align: center;
+  }
+
+  .wv-sign > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 100px;
+  }
+}

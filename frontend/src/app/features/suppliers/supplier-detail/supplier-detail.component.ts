@@ -11,7 +11,7 @@ import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { CopyButtonComponent } from '../../../shared/copy-button/copy-button.component';
 import { ProductPickerComponent } from '../../../shared/product-picker/product-picker.component';
 import { MoneyInputDirective } from '../../../shared/money-input.directive';
-import { formatVnd } from '../../../shared/format.util';
+import { amountTone, formatVnd, formatVndSigned } from '../../../shared/format.util';
 import { formatDay } from '../../../shared/period';
 import {
   PRODUCT_TYPE_CLASS, PRODUCT_TYPE_LABEL, PURCHASE_ORDER_STATUS_LABEL, purchaseOrderStatusClass, supplierStatusClass,
@@ -50,6 +50,8 @@ export class SupplierDetailComponent {
   readonly stats = computed(() => this.svc.statsOf(this.id()));
 
   readonly money = formatVnd;
+  readonly signed = formatVndSigned;
+  readonly tone = amountTone;
   readonly day = formatDay;
   readonly creditLabel = creditLabel;
   readonly statusClass = supplierStatusClass;

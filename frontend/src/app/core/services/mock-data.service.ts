@@ -2,13 +2,14 @@ import { Injectable, signal } from '@angular/core';
 import {
   Product, ProductCategory, Warehouse, StockLevel, WarehouseVoucher, ProductionOrder,
   Supplier, PurchaseOrder, Customer, SalesOrder, DeliveryTrip, Vehicle, CashAccount,
-  CashVoucher, Tag, CompanyInfo, Role, PermissionModule, AppUser, BomLine, SupplierProduct
+  CashVoucher, Tag, CompanyInfo, Role, PermissionModule, AppUser, BomLine, SupplierProduct, CashCategory
 } from '../models/domain.models';
 import {
   DEMO_PRODUCTS, DEMO_BOM_LINES, DEMO_STOCK_LEVELS, DEMO_WAREHOUSE_VOUCHERS, DEMO_PRODUCTION_ORDERS, DEMO_SUPPLIERS, DEMO_SUPPLIER_PRODUCTS,
   DEMO_PURCHASE_ORDERS, DEMO_CUSTOMERS, DEMO_SALES_ORDERS, DEMO_DELIVERY_TRIPS, DEMO_VEHICLES,
   DEMO_CASH_ACCOUNTS, DEMO_CASH_VOUCHERS, DEMO_TAGS, DEMO_USERS, DEMO_ROLE_USER_COUNT,
 } from '../data/demo-data';
+import { DEFAULT_CASH_CATEGORIES } from '../../features/cash-vouchers/cash-voucher.rules';
 
 // Dữ liệu GIẢ (xem core/data/demo-data.ts, sinh bởi tools/gen-demo-data.mjs) — chỉ để thử giao diện.
 @Injectable({ providedIn: 'root' })
@@ -53,6 +54,8 @@ export class MockDataService {
   readonly cashAccounts = signal<CashAccount[]>(DEMO_CASH_ACCOUNTS);
 
   readonly cashVouchers = signal<CashVoucher[]>(DEMO_CASH_VOUCHERS);
+
+  readonly cashCategories = signal<CashCategory[]>(DEFAULT_CASH_CATEGORIES);
 
   readonly tags = signal<Tag[]>(DEMO_TAGS);
 

@@ -303,7 +303,7 @@
                       <td class="num">{{ day(v.date) }}</td>
                       <td>{{ accountName(v.accountId) }}</td>
                       <td>{{ v.description || v.category }}</td>
-                      <td class="num align-right">{{ money(v.kind === 'CHI' ? v.amount : -v.amount) }}</td>
+                      <td class="num align-right" [ngClass]="tone(v.kind === 'CHI' ? -v.amount : v.amount)">{{ signed(v.kind === 'CHI' ? -v.amount : v.amount) }}</td>
                     </tr>
                   }
                 </tbody>

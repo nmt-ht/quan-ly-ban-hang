@@ -1,19 +1,88 @@
 <div class="page-header">
   <div>
     <h1>Chuyến giao hàng</h1>
-    <p class="subtitle">{{ data.deliveryTrips().length }} chuyến</p>
+    <p class="subtitle">{{ trips().length }} chuyến</p>
   </div>
   <div class="toolbar">
-    <button class="btn">Xuất Excel</button>
-    <button class="btn btn-primary">+ Tạo chuyến</button>
+    <button type="button" class="btn" [disabled]="exporting()" (click)="exportExcel()">
+      <app-nav-icon name="download" />{{ exporting() ? 'Đang xuất…' : 'Xuất Excel' }}
+    </button>
+    <a class="btn" routerLink="/xe">Danh mục xe</a>
+    <button type="button" class="btn btn-primary" (click)="openCreate()"><app-nav-icon name="plus" />Tạo chuyến</button>
   </div>
 </div>
 
 <div class="filters-bar">
-  <input type="text" placeholder="Tìm mã chuyến, tài xế, biển số, mã đơn..." class="filter-search" />
-  <select><option>Trạng thái</option></select>
-  <select><option>Chọn kỳ</option></select>
-  <select><option>Tài xế</option></select>
+  <input
+    type="text"
+    class="filter-search"
+    placeholder="Tìm mã chuyến, tài xế, biển số, mã đơn…"
+    aria-label="Tìm chuyến giao hàng"
+    [value]="search()"
+    (input)="search.set($any($event.target).value)"
+  />
+  <app-filter-multi-select label="Trạng thái" [options]="statusOptions()" [(selected)]="statuses" />
+  <app-period-filter [(value)]="period" />
+  <app-filter-multi-select label="Tài xế" [options]="driverOptions()" [(selected)]="drivers" />
+  <select aria-label="Xe" [value]="vehicle()" (change)="vehicle.set($any($event.target).value)">
+    <option value="all">Tất cả xe</option>
+    @for (v of data.vehicles(); track v.id) {
+      <option [value]="v.id">{{ v.plateNumber }}{{ v.name ? ' · ' + v.name : '' }}</option>
+    }
+    <option value="hired">Xe thuê ngoài</option>
+  </select>
 </div>
 
-<app-data-table [columns]="columns" [rows]="data.deliveryTrips()" emptyTitle="Chưa có chuyến giao hàng nào" />
+@if (chips().length) {
+  <div class="filter-chips" aria-label="Bộ lọc đang áp dụng">
+    @for (c of chips(); track c.label) {
+      <span class="filter-chip">
+        {{ c.label }}
+        <button type="button" class="filter-chip-remove" [attr.aria-label]="'Bỏ lọc ' + c.label" (click)="c.clear()">
+          <app-nav-icon name="x" />
+        </button>
+      </span>
+    }
+    <button type="button" class="filter-clear-all" (click)="clearAll()"><app-nav-icon name="x" />Xoá tất cả bộ lọc</button>
+  </div>
+}
+
+@if (trips().length) {
+  <dl class="list-totals">
+    <div><dt>Giá trị hàng đi giao</dt><dd class="num">{{ money(totals().value) }}</dd></div>
+    <div><dt>Khách thực nhận</dt><dd class="num">{{ money(totals().received) }}</dd></div>
+    <div><dt>Chi phí chuyến</dt><dd class="num">{{ money(totals().cost) }}</dd></div>
+    @if (totals().pending) {
+      <div><dt>Đơn chưa chốt giao</dt><dd class="num text-warning">{{ totals().pending }}</dd></div>
+    }
+  </dl>
+}
+
+<app-data-table
+  [columns]="columns"
+  [rows]="pagedTrips()"
+  [actions]="rowActions"
+  [filterable]="true"
+  [filters]="columnFilters()"
+  (filtersChange)="columnFilters.set($event)"
+  [optionRows]="data.deliveryTrips()"
+  [emptyAction]="chips().length || search() ? null : createCta"
+  [emptyTitle]="chips().length || search() ? 'Không có chuyến phù hợp' : 'Chưa có chuyến giao hàng nào'"
+  [emptyHint]="chips().length || search() ? 'Thử bỏ bớt bộ lọc hoặc mở rộng khoảng ngày.' : 'Tạo chuyến, xếp các đơn Chờ giao hàng lên rồi xuất kho một lượt.'"
+/>
+
+<app-pagination [total]="trips().length" unit="chuyến" [(page)]="page" [(pageSize)]="pageSize" />
+
+<ng-template #createCta>
+  <button type="button" class="btn btn-primary" (click)="openCreate()"><app-nav-icon name="plus" />Tạo chuyến</button>
+</ng-template>
+
+<ng-template #rowActions let-t>
+  <span class="row-actions">
+    <a class="icon-action" [routerLink]="['/giao-hang', t.id]" [attr.aria-label]="'Xem chi tiết ' + t.code" title="Xem chi tiết">
+      <app-nav-icon name="eye" />
+    </a>
+  </span>
+</ng-template>
+
+<app-trip-header-dialog #headerDialog (saved)="onCreated($event)" />

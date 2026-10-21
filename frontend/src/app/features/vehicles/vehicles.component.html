@@ -1,15 +1,83 @@
 <div class="page-header">
   <div>
     <h1>Danh mục xe</h1>
-    <p class="subtitle">{{ data.vehicles().length }} xe</p>
+    <p class="subtitle">{{ vehicles().length }} xe</p>
   </div>
   <div class="toolbar">
-    <button class="btn btn-primary">+ Thêm xe</button>
+    <button type="button" class="btn" [disabled]="exporting()" (click)="exportExcel()">
+      <app-nav-icon name="download" />{{ exporting() ? 'Đang xuất…' : 'Xuất Excel' }}
+    </button>
+    <a class="btn" routerLink="/giao-hang">Chuyến giao hàng</a>
+    <button type="button" class="btn btn-primary" (click)="openCreate()"><app-nav-icon name="plus" />Thêm xe</button>
   </div>
 </div>
 
+@if (notice()) {
+  <div class="notice" role="status">
+    <span>{{ notice() }}</span>
+    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+  </div>
+}
+
+@if (paperAlerts().expired || paperAlerts().soon) {
+  <p class="form-note">
+    @if (paperAlerts().expired) { <strong class="text-danger">{{ paperAlerts().expired }} xe quá hạn đăng kiểm / bảo hiểm.</strong> }
+    @if (paperAlerts().soon) { {{ paperAlerts().soon }} xe sắp hết hạn trong 30 ngày tới. }
+    <button type="button" class="link-btn" (click)="papersDue.set(true)">Xem các xe này</button>
+  </p>
+}
+
 <div class="filters-bar">
-  <input type="text" placeholder="Tìm theo biển số, mã xe, tên gọi" class="filter-search" />
+  <input
+    type="text"
+    class="filter-search"
+    placeholder="Tìm theo biển số, mã xe, tên gọi"
+    aria-label="Tìm xe"
+    [value]="search()"
+    (input)="search.set($any($event.target).value)"
+  />
+  <select aria-label="Tình trạng" [value]="status()" (change)="status.set($any($event.target).value)">
+    <option value="all">Mọi tình trạng</option>
+    @for (s of statuses; track s.value) { <option [value]="s.value">{{ s.label }}</option> }
+  </select>
+  <select aria-label="Loại xe" [value]="type()" (change)="type.set($any($event.target).value)">
+    <option value="all">Mọi loại xe</option>
+    @for (t of types; track t.value) { <option [value]="t.value">{{ t.label }}</option> }
+  </select>
+  <button type="button" class="filter-toggle" [attr.aria-pressed]="papersDue()" (click)="papersDue.set(!papersDue())">Giấy tờ sắp / quá hạn</button>
+  @if (search() || status() !== 'all' || type() !== 'all' || papersDue()) {
+    <button type="button" class="filter-clear-all" (click)="clearAll()"><app-nav-icon name="x" />Xoá bộ lọc</button>
+  }
 </div>
 
-<app-data-table [columns]="columns" [rows]="data.vehicles()" emptyTitle="Chưa có xe nào" />
+<app-data-table
+  [columns]="columns"
+  [rows]="paged()"
+  [actions]="rowActions"
+  [filterable]="true"
+  [filters]="columnFilters()"
+  (filtersChange)="columnFilters.set($event)"
+  [optionRows]="data.vehicles()"
+  [emptyAction]="search() || status() !== 'all' || type() !== 'all' || papersDue() ? null : createCta"
+  [emptyTitle]="search() || status() !== 'all' || type() !== 'all' || papersDue() ? 'Không có xe phù hợp' : 'Chưa có xe nào'"
+  emptyHint="Chỉ khai xe của công ty. Xe thuê ngoài không cần khai — lập chuyến vẫn gõ thẳng biển số được."
+/>
+
+<app-pagination [total]="vehicles().length" unit="xe" [(page)]="page" [(pageSize)]="pageSize" />
+
+<ng-template #createCta>
+  <button type="button" class="btn btn-primary" (click)="openCreate()"><app-nav-icon name="plus" />Thêm xe</button>
+</ng-template>
+
+<ng-template #rowActions let-v>
+  <span class="row-actions">
+    <button type="button" class="icon-action" (click)="openEdit(v)" [attr.aria-label]="'Sửa xe ' + v.plateNumber" title="Sửa">
+      <app-nav-icon name="pencil" />
+    </button>
+    <a class="icon-action" [routerLink]="['/xe', v.id]" [attr.aria-label]="'Xem chi tiết ' + v.plateNumber" title="Xem chi tiết">
+      <app-nav-icon name="eye" />
+    </a>
+  </span>
+</ng-template>
+
+<app-vehicle-dialog #dialog (saved)="onSaved($event)" />

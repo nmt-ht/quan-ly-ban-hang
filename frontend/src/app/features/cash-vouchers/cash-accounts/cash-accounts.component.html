@@ -1,0 +1,133 @@
+<p class="subtitle"><a class="crumb" routerLink="/thu-chi">Phiếu thu chi</a> / Tài khoản tiền</p>
+<div class="page-header">
+  <div>
+    <h1>Tài khoản tiền</h1>
+    <p class="subtitle">Quỹ tiền mặt và các số tài khoản nhận tiền. Mỗi phiếu thu chi gắn đúng một tài khoản, số dư tính riêng từng cái.</p>
+  </div>
+  <div class="toolbar">
+    <a class="btn" routerLink="/thu-chi"><app-nav-icon name="arrow-left" />Phiếu thu chi</a>
+    <button type="button" class="btn btn-primary" (click)="open()"><app-nav-icon name="plus" />Thêm tài khoản</button>
+  </div>
+</div>
+
+@if (notice()) {
+  <div class="notice" role="status">
+    <span>{{ notice() }}</span>
+    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+  </div>
+}
+
+<dl class="list-totals">
+  <div><dt>Tổng số dư các tài khoản đang dùng</dt><dd class="num">{{ money(total()) }}</dd></div>
+</dl>
+
+@for (g of groups(); track g.type) {
+  <section class="card section-block ca-group">
+    <h3>{{ g.label }} <span class="subtitle">({{ g.items.length }} tài khoản)</span></h3>
+    @if (g.items.length) {
+      <ul class="ca-list">
+        @for (a of g.items; track a.id) {
+          <li class="ca-item" [class.is-off]="a.isActive === false">
+            <div class="ca-main">
+              <strong>{{ a.name }}</strong>
+              @if (a.code) { <span class="num ca-code">{{ a.code }}</span> }
+              @if (a.isDefault) { <span class="badge ca-badge">Mặc định</span> }
+              @if (a.isActive === false) { <span class="badge">Ngừng dùng</span> }
+              <p class="subtitle">
+                @if (a.type === 'NGAN_HANG') {
+                  {{ a.bankName || 'Ngân hàng' }} · <span class="num">{{ a.accountNumber || 'Chưa khai số tài khoản' }}</span>
+                  {{ a.accountHolder ? ' · ' + a.accountHolder : '' }}{{ a.branch ? ' · ' + a.branch : '' }}
+                } @else {
+                  {{ a.note || 'Tiền mặt tại quỹ' }}
+                }
+              </p>
+            </div>
+            <dl class="ca-figures">
+              <div><dt>Đầu kỳ</dt><dd class="num">{{ money(a.openingBalance ?? 0) }}</dd></div>
+              <div><dt>Số phiếu</dt><dd class="num">{{ count(a.id) }}</dd></div>
+              <div><dt>Số dư</dt><dd class="num ca-balance" [class.text-danger]="a.balance < 0">{{ money(a.balance) }}</dd></div>
+            </dl>
+            <span class="row-actions">
+              <button type="button" class="btn btn-sm" (click)="toggleActive(a)">{{ a.isActive === false ? 'Dùng lại' : 'Ngừng dùng' }}</button>
+              <button type="button" class="icon-action" (click)="open(a)" [attr.aria-label]="'Sửa ' + a.name" title="Sửa"><app-nav-icon name="pencil" /></button>
+            </span>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="subtitle">Chưa có tài khoản {{ g.label.toLowerCase() }}.</p>
+    }
+  </section>
+}
+
+<dialog #dialog class="rg-dialog th-dialog" aria-labelledby="ca-title">
+  <header class="rg-head">
+    <div><h2 id="ca-title">{{ draft().id ? 'Sửa tài khoản' : 'Thêm tài khoản' }}</h2></div>
+    <button type="button" class="icon-action" aria-label="Đóng" (click)="close()"><app-nav-icon name="x" /></button>
+  </header>
+  <div class="rg-body th-body">
+    <div class="field th-note">
+      <span>Tính chất</span>
+      <div class="segmented" role="radiogroup" aria-label="Tính chất tài khoản">
+        <button type="button" role="radio" [attr.aria-checked]="draft().type === 'TIEN_MAT'" (click)="patch({ type: 'TIEN_MAT' })">Tiền mặt</button>
+        <button type="button" role="radio" [attr.aria-checked]="draft().type === 'NGAN_HANG'" (click)="patch({ type: 'NGAN_HANG' })">Ngân hàng</button>
+      </div>
+    </div>
+    <label class="field">
+      <span>Mã tài khoản</span>
+      <input type="text" class="num" placeholder="TM, TCB-9999" [ngModel]="draft().code" (ngModelChange)="patch({ code: $event })" />
+    </label>
+    <label class="field">
+      <span>Tên tài khoản <span class="required-mark">*</span></span>
+      <input id="ca-name" type="text" [ngModel]="draft().name" (ngModelChange)="patch({ name: $event })"
+        [attr.aria-invalid]="attempted() && !draft().name.trim() ? 'true' : null" />
+    </label>
+    @if (draft().type === 'NGAN_HANG') {
+      <label class="field">
+        <span>Ngân hàng</span>
+        <input type="text" [ngModel]="draft().bankName" (ngModelChange)="patch({ bankName: $event })" />
+      </label>
+      <label class="field">
+        <span>Số tài khoản <span class="required-mark">*</span></span>
+        <input type="text" class="num" [ngModel]="draft().accountNumber" (ngModelChange)="patch({ accountNumber: $event })"
+          [attr.aria-invalid]="attempted() && !draft().accountNumber.trim() ? 'true' : null" />
+      </label>
+      <label class="field">
+        <span>Chủ tài khoản</span>
+        <input type="text" [ngModel]="draft().accountHolder" (ngModelChange)="patch({ accountHolder: $event })" />
+      </label>
+      <label class="field">
+        <span>Chi nhánh</span>
+        <input type="text" [ngModel]="draft().branch" (ngModelChange)="patch({ branch: $event })" />
+      </label>
+    }
+    <label class="field">
+      <span>Số dư đầu kỳ</span>
+      <input type="text" appMoney class="num" placeholder="0" [ngModel]="draft().openingBalance" (ngModelChange)="patch({ openingBalance: $event })" />
+      <span class="hint">Số dư trước khi dùng phần mềm; không nhập thì bắt đầu từ 0.</span>
+    </label>
+    <label class="field">
+      <span>Thứ tự hiển thị</span>
+      <input type="number" min="0" step="1" class="num" [ngModel]="draft().sortOrder" (ngModelChange)="patch({ sortOrder: $event })" />
+    </label>
+    <label class="field th-note">
+      <span>Ghi chú</span>
+      <textarea rows="2" [ngModel]="draft().note" (ngModelChange)="patch({ note: $event })"></textarea>
+    </label>
+    <label class="check-line">
+      <input type="checkbox" [ngModel]="draft().isDefault" (ngModelChange)="patch({ isDefault: $event })" /> Chọn sẵn khi lập phiếu
+    </label>
+    <label class="check-line">
+      <input type="checkbox" [ngModel]="draft().isActive" (ngModelChange)="patch({ isActive: $event })" /> Đang sử dụng
+    </label>
+  </div>
+  <footer class="rg-foot">
+    <p class="rg-summary" [class.text-danger]="attempted() && issues().length" role="status">
+      {{ attempted() && issues().length ? issues()[0] : 'Số dư = đầu kỳ + thu − chi của các phiếu chưa huỷ.' }}
+    </p>
+    <div class="toolbar">
+      <button type="button" class="btn" (click)="close()">Huỷ</button>
+      <button type="button" class="btn btn-primary" (click)="save()">Lưu</button>
+    </div>
+  </footer>
+</dialog>

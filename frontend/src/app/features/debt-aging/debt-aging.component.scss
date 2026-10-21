@@ -1,0 +1,169 @@
+// Tuổi nợ — bucket cards (clickable filters), table severity, print.
+
+.ag-cards {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+}
+
+@media (max-width: 1100px) {
+  .ag-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .ag-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.ag-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--space-xs) var(--space-sm);
+  border: var(--rule-hair) solid var(--color-rule);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  text-align: left;
+  font: inherit;
+}
+
+button.ag-card {
+  cursor: pointer;
+  transition: border-color var(--dur-short) var(--ease-out);
+}
+
+@media (hover: hover) {
+  button.ag-card:hover {
+    border-color: var(--color-rule-strong);
+  }
+}
+
+.ag-card[aria-pressed='true'] {
+  border-color: var(--color-ink);
+  box-shadow: inset 0 0 0 1px var(--color-ink);
+}
+
+.ag-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+.ag-value {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.ag-sub {
+  font-size: var(--text-xs);
+  color: var(--color-ink-2);
+}
+
+.ag-total {
+  background: var(--color-paper-2);
+}
+
+// Overdue severity: amounts get warmer as they age (text colour, never the only cue — the column says the age).
+.ag-card.sev-1 .ag-value,
+td.sev-1 {
+  color: var(--color-warning);
+}
+
+.ag-card.sev-2 .ag-value,
+td.sev-2,
+.ag-card.sev-3 .ag-value,
+td.sev-3 {
+  color: var(--color-danger);
+}
+
+td.sev-3 {
+  font-weight: 600;
+}
+
+td.ag-zero {
+  color: var(--color-muted);
+}
+
+.ag-strip {
+  padding: var(--space-2xs) var(--space-sm);
+}
+
+.table-wrap {
+  padding: 0;
+}
+
+.ag-table th,
+.ag-table td {
+  white-space: nowrap;
+}
+
+.ag-hint {
+  margin: var(--space-xs) 0 0;
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+.segmented button[aria-checked='true'] {
+  background: var(--color-ink);
+  color: var(--color-surface);
+}
+
+// ---------- print ----------
+
+.print-only {
+  display: none;
+}
+
+@media print {
+  .screen-only {
+    display: none;
+  }
+
+  .print-only {
+    display: block;
+    color: #000;
+    font-size: 11px;
+  }
+
+  .ag-print-head {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .ag-print h2 {
+    margin: 14px 0 2px;
+    text-align: center;
+    font-size: 16px;
+  }
+
+  .ag-print-sub {
+    margin: 0 0 10px;
+    text-align: center;
+  }
+
+  .ag-print table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .ag-print th,
+  .ag-print td {
+    padding: 3px 5px;
+    border: 1px solid #000;
+    text-align: left;
+  }
+
+  .ag-print .r {
+    text-align: right;
+    white-space: nowrap;
+  }
+}

@@ -51,6 +51,27 @@ export const TAG_GROUPS: TagGroup[] = [
     items: items({ ACTIVE: 'Đang theo dõi', INACTIVE: 'Ngừng theo dõi' }, { ACTIVE: 150, INACTIVE: 'neutral' }),
   },
   {
+    id: 'warehouse-voucher',
+    label: 'Loại phiếu kho',
+    hint: 'Cột Loại của Phiếu kho.',
+    items: items(
+      { NHAP: 'Nhập kho', XUAT: 'Xuất kho', CHUYEN: 'Chuyển kho', KIEM_KE: 'Kiểm kê', TRA_VE: 'Nhập trả về' },
+      { NHAP: 150, XUAT: 25, CHUYEN: 240, KIEM_KE: 285, TRA_VE: 65 },
+    ),
+  },
+  {
+    id: 'user-status',
+    label: 'Trạng thái người dùng',
+    hint: 'Cột Trạng thái của Thiết lập › Người dùng.',
+    items: items({ ACTIVE: 'Đang hoạt động', DISABLED: 'Đã khoá' }, { ACTIVE: 150, DISABLED: 'neutral' }),
+  },
+  {
+    id: 'vehicle-status',
+    label: 'Tình trạng xe',
+    hint: 'Cột Tình trạng của Danh mục xe.',
+    items: items({ DANG_DUNG: 'Đang dùng', BAO_TRI: 'Bảo trì', NGUNG_DUNG: 'Ngừng dùng' }, { DANG_DUNG: 150, BAO_TRI: 65, NGUNG_DUNG: 'neutral' }),
+  },
+  {
     id: 'supplier-status',
     label: 'Trạng thái nhà cung cấp',
     hint: 'Cột Trạng thái của danh sách và trang chi tiết nhà cung cấp.',

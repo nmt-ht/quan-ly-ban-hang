@@ -1,0 +1,94 @@
+// Tài khoản tiền + Loại thu chi (shared by both small setup pages).
+
+.ca-group h3 {
+  margin: 0 0 var(--space-xs);
+  font-size: var(--text-md);
+}
+
+.ca-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ca-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  border: var(--rule-hair) solid var(--color-rule);
+  border-radius: var(--radius-control);
+}
+
+.ca-item.is-off {
+  opacity: 0.6;
+}
+
+.ca-main .subtitle {
+  margin: 2px 0 0;
+  font-size: var(--text-xs);
+}
+
+.ca-code {
+  margin-left: var(--space-2xs);
+  font-size: var(--text-xs);
+  color: var(--color-ink-2);
+}
+
+.ca-badge {
+  margin-left: var(--space-2xs);
+  background: var(--color-success-tint);
+  color: var(--color-success);
+}
+
+.ca-figures {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(6rem, auto));
+  gap: 0 var(--space-md);
+  margin: 0;
+  text-align: right;
+}
+
+.ca-figures dt {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+.ca-figures dd {
+  margin: 0;
+}
+
+.ca-balance {
+  font-weight: 600;
+}
+
+@media (max-width: 800px) {
+  .ca-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ca-figures {
+    text-align: left;
+  }
+}
+
+.btn-sm {
+  min-height: 1.875rem;
+  padding: 0 var(--space-xs);
+  font-size: var(--text-xs);
+}
+
+.segmented button[aria-checked='true'] {
+  background: var(--color-ink);
+  color: var(--color-surface);
+}
+
+.th-body .field > span:first-child {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-ink-2);
+}

@@ -1,0 +1,64 @@
+.table-wrap {
+  padding: 0;
+}
+
+.tg-off td {
+  color: var(--color-muted);
+}
+
+.tg-off .badge {
+  opacity: 0.6;
+}
+
+.tg-actions {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.btn-sm {
+  min-height: 1.875rem;
+  padding: 0 var(--space-xs);
+  font-size: var(--text-xs);
+}
+
+.tg-swatches {
+  display: grid;
+  grid-template-columns: repeat(6, 2.25rem);
+  gap: var(--space-2xs);
+}
+
+// A swatch shows the tag's own text colour as a solid square (same tokens as the chip).
+.tg-swatch {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  --icon-size: 16px;
+}
+
+.tg-swatch[aria-checked='true'] {
+  border-color: var(--color-ink);
+}
+
+.tg-preview {
+  margin: 0;
+  min-height: var(--control-h);
+  display: flex;
+  align-items: center;
+}
+
+.tg-active {
+  align-self: end;
+  min-height: var(--control-h);
+}
+
+.th-body .field > span:first-child {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-ink-2);
+}

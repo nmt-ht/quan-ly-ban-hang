@@ -17,6 +17,7 @@ import {
   PRODUCTION_ORDER_STATUS_LABEL, SALES_ORDER_STATUS_LABEL, productionOrderStatusClass, salesOrderStatusClass,
 } from '../../../shared/status-labels';
 import { formatVnd } from '../../../shared/format.util';
+import { tagStyle } from '../../../shared/tag-colors';
 import { formatDay, isoDay } from '../../../shared/period';
 import { VAT_RATES, round4 } from '../../purchase-orders/purchase-order.rules';
 import {
@@ -188,6 +189,8 @@ export class SalesOrderVoucherComponent {
     this.data.tags().filter((t) => t.isActive || this.tagIds().includes(t.id)).map((t) => ({ value: t.id, label: t.name })),
   );
   readonly tagNames = computed(() => this.data.tags().filter((t) => this.tagIds().includes(t.id)).map((t) => t.name));
+  readonly tagList = computed(() => this.data.tags().filter((t) => this.tagIds().includes(t.id)));
+  readonly tagStyle = tagStyle;
 
   userName(email: string): string {
     return this.data.users().find((u) => u.email === email)?.name ?? (email || '—');
@@ -432,7 +435,13 @@ export class SalesOrderVoucherComponent {
   // ---------- status & actions (view) ----------
   readonly canEdit = computed(() => !!this.order() && canEdit(this.order()!, this.lsx()));
   readonly canCancel = computed(() => !!this.order() && canCancel(this.order()!));
-  readonly canDeliver = computed(() => !!this.order() && canDeliver(this.order()!));
+  /** Đơn đang nằm trên chuyến giao hàng chưa xong: giao qua chuyến, không giao trực tiếp. */
+  readonly activeTrip = computed(() => {
+    const id = this.order()?.tripId;
+    const t = id ? this.data.deliveryTrips().find((x) => x.id === id) : undefined;
+    return t && (t.status === 'GOM_DON' || t.status === 'DA_XUAT_KHO') ? t : undefined;
+  });
+  readonly canDeliver = computed(() => !!this.order() && canDeliver(this.order()!) && !this.activeTrip());
   readonly canClose = computed(() => !!this.order() && canClose(this.order()!));
   readonly lsxNeeded = computed(() => {
     const o = this.order();

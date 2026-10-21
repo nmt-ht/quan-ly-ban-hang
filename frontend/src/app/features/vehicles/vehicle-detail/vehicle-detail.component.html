@@ -1,0 +1,118 @@
+@if (vehicle(); as v) {
+  <p class="subtitle"><a class="crumb" routerLink="/xe">Danh mục xe</a> / {{ v.code }}</p>
+  <div class="page-header">
+    <div>
+      <h1><span class="num">{{ v.plateNumber }}</span>{{ v.name ? ' · ' + v.name : '' }}</h1>
+      <p class="subtitle detail-meta">
+        <span><span class="num">{{ v.code }}</span><app-copy-button [text]="v.plateNumber" label="biển số" /></span>
+        <span class="badge" [ngClass]="statusClass(v.status)">{{ statusLabel[v.status] }}</span>
+        <span>{{ typeLabel[v.type] }}</span>
+        @if (current(); as t) { <span>Đang ở chuyến <a class="code-link num" [routerLink]="['/giao-hang', t.id]">{{ t.code }}</a></span> }
+      </p>
+    </div>
+    <div class="toolbar">
+      <a class="btn" routerLink="/xe"><app-nav-icon name="arrow-left" />Danh sách</a>
+      @if (v.status === 'DANG_DUNG') {
+        <button type="button" class="btn" (click)="setStatus('BAO_TRI')">Đưa vào bảo trì</button>
+        <button type="button" class="btn btn-danger-ghost" (click)="setStatus('NGUNG_DUNG')">Ngừng dùng</button>
+      } @else {
+        <button type="button" class="btn" (click)="setStatus('DANG_DUNG')"><app-nav-icon name="refresh" />Đưa vào dùng</button>
+      }
+      <button type="button" class="btn btn-primary" (click)="edit()"><app-nav-icon name="pencil" />Sửa</button>
+    </div>
+  </div>
+
+  @if (notice()) {
+    <div class="notice" role="status">
+      <span>{{ notice() }}</span>
+      <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+    </div>
+  }
+
+  <div class="sd-overview">
+    <section class="card">
+      <dl class="detail-list">
+        <div><dt>Biển số</dt><dd class="num">{{ v.plateNumber }}</dd></div>
+        <div><dt>Mã xe</dt><dd class="num">{{ v.code }}</dd></div>
+        <div><dt>Tên gọi</dt><dd>{{ v.name || '—' }}</dd></div>
+        <div><dt>Loại xe</dt><dd>{{ typeLabel[v.type] }}</dd></div>
+        <div><dt>Tải trọng</dt><dd class="num">{{ v.loadCapacity ? v.loadCapacity.toLocaleString('vi-VN') + ' kg' : '—' }}</dd></div>
+        <div><dt>Tài xế thường chạy</dt><dd>{{ v.usualDriver || '—' }}{{ v.driverUserId ? ' (nhân viên)' : '' }}</dd></div>
+        <div><dt>Điện thoại tài xế</dt><dd class="num">{{ v.driverPhone || '—' }}</dd></div>
+        <div>
+          <dt>Hạn đăng kiểm</dt>
+          <dd [class.text-danger]="reg().level === 'expired'" [class.text-warning]="reg().level === 'soon'">
+            {{ v.registrationExpiry ? day(v.registrationExpiry) + ' · ' + reg().label.toLowerCase() : 'Chưa khai' }}
+          </dd>
+        </div>
+        <div>
+          <dt>Hạn bảo hiểm</dt>
+          <dd [class.text-danger]="ins().level === 'expired'" [class.text-warning]="ins().level === 'soon'">
+            {{ v.insuranceExpiry ? day(v.insuranceExpiry) + ' · ' + ins().label.toLowerCase() : 'Chưa khai' }}
+          </dd>
+        </div>
+        <div><dt>Ghi chú</dt><dd>{{ v.note || '—' }}</dd></div>
+      </dl>
+    </section>
+
+    <section class="card sd-debt" aria-labelledby="vh-cost-title">
+      <h3 id="vh-cost-title">Chi phí xe</h3>
+      <p class="subtitle">Tổng hợp từ chi phí các chuyến (chuyến huỷ không tính).</p>
+      <dl class="ledger-dl">
+        <div><dt>Số chuyến</dt><dd class="num">{{ totals().trips }}</dd></div>
+        <div><dt>Giá trị khách nhận</dt><dd class="num">{{ money(totals().delivered) }}</dd></div>
+        <div><dt>Tiền dầu</dt><dd class="num">{{ money(totals().fuel) }}</dd></div>
+        <div><dt>Cầu đường, bến bãi</dt><dd class="num">{{ money(totals().toll) }}</dd></div>
+        <div><dt>Chi phí khác</dt><dd class="num">{{ money(totals().other) }}</dd></div>
+        <div><dt>Tổng chi phí</dt><dd class="num"><strong>{{ money(totals().cost) }}</strong></dd></div>
+        <div><dt>Bình quân / chuyến</dt><dd class="num">{{ money(totals().perTrip) }}</dd></div>
+      </dl>
+    </section>
+  </div>
+
+  <section class="card section-block">
+    <h3>Lịch sử chuyến</h3>
+    @if (trips().length) {
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Mã chuyến</th>
+              <th scope="col">Ngày</th>
+              <th scope="col">Tài xế</th>
+              <th scope="col" class="align-right">Đơn</th>
+              <th scope="col" class="align-right">Giá trị</th>
+              <th scope="col" class="align-right">Khách nhận</th>
+              <th scope="col" class="align-right">Chi phí</th>
+              <th scope="col">Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (t of trips(); track t.id) {
+              <tr>
+                <td class="num"><a class="code-link" [routerLink]="['/giao-hang', t.id]">{{ t.code }}</a></td>
+                <td class="num">{{ day(t.date) }}</td>
+                <td>{{ t.driverName || '—' }}</td>
+                <td class="num align-right">{{ t.confirmedCount }}/{{ t.orderIds.length }}</td>
+                <td class="num align-right">{{ money(t.totalValue) }}</td>
+                <td class="num align-right">{{ t.receivedValue ? money(t.receivedValue) : '—' }}</td>
+                <td class="num align-right">{{ costOf(t.costs) ? money(costOf(t.costs)) : '—' }}</td>
+                <td><span class="badge" [ngClass]="tripClass(t.status)">{{ tripLabel[t.status] }}</span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="empty-state"><h3>Xe chưa chạy chuyến nào</h3><p>Chọn xe này khi tạo chuyến giao hàng.</p></div>
+    }
+  </section>
+
+  <app-vehicle-dialog #dialog (saved)="onSaved($event)" />
+} @else {
+  <div class="card empty-state">
+    <h3>Không tìm thấy xe</h3>
+    <p>Đường dẫn có thể không đúng.</p>
+    <a class="btn" routerLink="/xe">Về danh mục xe</a>
+  </div>
+}

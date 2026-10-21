@@ -1,0 +1,132 @@
+@if (user(); as u) {
+  <p class="subtitle"><a class="crumb" routerLink="/thiet-lap/nguoi-dung">Người dùng</a> / {{ u.name }}</p>
+  <div class="page-header">
+    <div>
+      <h1>{{ u.name }}{{ svc.isMe(u) ? ' (bạn)' : '' }}</h1>
+      <p class="subtitle detail-meta">
+        <span><span class="num">{{ u.email }}</span><app-copy-button [text]="u.email" label="email" /></span>
+        <span class="badge" [ngClass]="statusClass(u.status)">{{ statusLabel[u.status] }}</span>
+        <span>{{ role()?.name }}</span>
+        @if (u.openSessions) { <span>{{ u.openSessions }} phiên đang mở</span> }
+      </p>
+    </div>
+    <div class="toolbar">
+      <a class="btn" routerLink="/thiet-lap/nguoi-dung"><app-nav-icon name="arrow-left" />Danh sách</a>
+      @if (u.openSessions) {
+        <button type="button" class="btn" (click)="endSessions()"><app-nav-icon name="log-out" />Đăng xuất mọi phiên</button>
+      }
+      @if (u.status === 'ACTIVE') {
+        <button type="button" class="btn" (click)="resetPassword()"><app-nav-icon name="key" />Đặt lại mật khẩu</button>
+        @if (!svc.isMe(u) && !svc.isLastAdmin(u)) {
+          <button type="button" class="btn btn-danger-ghost" (click)="confirmLock.set(true)"><app-nav-icon name="lock" />Khoá tài khoản</button>
+        }
+      } @else {
+        <button type="button" class="btn" (click)="unlock()"><app-nav-icon name="unlock" />Mở khoá</button>
+      }
+      <button type="button" class="btn btn-primary" (click)="edit()"><app-nav-icon name="pencil" />Sửa</button>
+    </div>
+  </div>
+
+  @if (notice()) {
+    <div class="notice" role="status">
+      <span>{{ notice() }}</span>
+      <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+    </div>
+  }
+  @if (error()) { <p class="form-note text-danger" role="alert">{{ error() }}</p> }
+
+  <div class="sd-overview">
+    <section class="card">
+      <dl class="detail-list">
+        <div><dt>Họ tên</dt><dd>{{ u.name }}</dd></div>
+        <div><dt>Email đăng nhập</dt><dd class="num">{{ u.email }}</dd></div>
+        <div><dt>Điện thoại</dt><dd class="num">{{ u.phone || '—' }}</dd></div>
+        <div><dt>Chức vụ</dt><dd><a class="code-link" routerLink="/thiet-lap/chuc-vu">{{ role()?.name ?? u.roleId }}</a></dd></div>
+        <div><dt>Trạng thái</dt><dd>{{ statusLabel[u.status] }}{{ u.lockedReason ? ' · ' + u.lockedReason : '' }}</dd></div>
+        @if (u.lockedAt) { <div><dt>Khoá lúc</dt><dd class="num">{{ time(u.lockedAt) }}</dd></div> }
+        <div><dt>Đăng nhập gần nhất</dt><dd class="num">{{ u.lastLoginAt ? time(u.lastLoginAt) : 'Chưa đăng nhập' }}</dd></div>
+        <div><dt>Phiên đang mở</dt><dd class="num">{{ u.openSessions }}</dd></div>
+        <div>
+          <dt>Mật khẩu</dt>
+          <dd>{{ u.passwordUpdatedAt ? 'Đổi lúc ' + time(u.passwordUpdatedAt) : 'Chưa đổi từ khi tạo' }}{{ u.mustChangePassword ? ' · bắt đổi ở lần đăng nhập tới' : '' }}</dd>
+        </div>
+        <div><dt>Ngày tạo</dt><dd class="num">{{ u.createdAt ? day(u.createdAt) : '—' }}</dd></div>
+        <div><dt>Ghi chú</dt><dd>{{ u.note || '—' }}</dd></div>
+      </dl>
+    </section>
+
+    <section class="card sd-debt" aria-labelledby="ud-role-title">
+      <h3 id="ud-role-title">Quyền hạn</h3>
+      @if (role(); as r) {
+        <p class="subtitle">{{ r.description }}</p>
+        <dl class="ledger-dl">
+          <div><dt>Chức vụ</dt><dd>{{ r.name }}{{ r.isSystem ? ' (hệ thống)' : '' }}</dd></div>
+          <div><dt>Số quyền</dt><dd class="num">{{ r.permissionCount }}/{{ r.totalPermissionCount }}</dd></div>
+          <div><dt>Cùng chức vụ</dt><dd class="num">{{ r.userCount }} người</dd></div>
+        </dl>
+        <div class="sd-debt-actions">
+          <a class="link-btn" routerLink="/thiet-lap/chuc-vu">Xem / sửa quyền của chức vụ</a>
+        </div>
+      }
+      <p class="subtitle">Quyền gắn theo chức vụ — muốn đổi quyền của riêng người này thì đổi chức vụ.</p>
+    </section>
+  </div>
+
+  <section class="card section-block">
+    <h3>Hoạt động</h3>
+    @if (activity().length) {
+      <p class="subtitle ud-counts">
+        @for (c of activityCounts(); track c.type; let last = $last) { {{ c.type }}: <strong class="num">{{ c.count }}</strong>{{ last ? '' : ' · ' }} }
+      </p>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Ngày</th>
+              <th scope="col">Việc</th>
+              <th scope="col">Chứng từ</th>
+              <th scope="col">Ghi chú</th>
+              <th scope="col" class="align-right">Giá trị</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (a of visibleActivity(); track a.type + a.code) {
+              <tr>
+                <td class="num">{{ day(a.date) }}</td>
+                <td>{{ a.type }}</td>
+                <td class="num">@if (a.link) { <a class="code-link" [routerLink]="a.link">{{ a.code }}</a> } @else { {{ a.code }} }</td>
+                <td class="ud-detail">{{ a.detail || '' }}</td>
+                <td class="num align-right">{{ a.amount !== undefined ? money(a.amount) : '' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      @if (activity().length > 15) {
+        <button type="button" class="link-btn" (click)="showAll.set(!showAll())">{{ showAll() ? 'Thu gọn' : 'Xem tất cả ' + activity().length + ' việc' }}</button>
+      }
+    } @else {
+      <div class="empty-state"><h3>Chưa có hoạt động</h3><p>Chứng từ do tài khoản này lập sẽ hiện ở đây.</p></div>
+    }
+  </section>
+
+  @if (confirmLock()) {
+    <div class="confirm-strip" role="alertdialog" aria-labelledby="udl-title">
+      <p id="udl-title"><strong>Khoá tài khoản {{ u.name }}?</strong> Người này bị đăng xuất ngay và không đăng nhập được nữa. Chứng từ đã lập vẫn giữ nguyên.</p>
+      <input type="text" placeholder="Lý do khoá (VD: Nghỉ việc)" aria-label="Lý do khoá" [ngModel]="lockReason()" (ngModelChange)="lockReason.set($event)" />
+      <div class="toolbar">
+        <button type="button" class="btn" (click)="confirmLock.set(false)">Không khoá</button>
+        <button type="button" class="btn btn-danger" (click)="doLock()"><app-nav-icon name="lock" />Khoá tài khoản</button>
+      </div>
+    </div>
+  }
+
+  <app-user-dialog #userDialog (saved)="notice.set($event.message)" />
+  <app-password-dialog #passwordDialog (done)="notice.set($event)" />
+} @else {
+  <div class="card empty-state">
+    <h3>Không tìm thấy người dùng</h3>
+    <p>Đường dẫn có thể không đúng.</p>
+    <a class="btn" routerLink="/thiet-lap/nguoi-dung">Về danh sách người dùng</a>
+  </div>
+}

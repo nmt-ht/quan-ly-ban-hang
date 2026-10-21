@@ -13,7 +13,7 @@
             <option [value]="c.code">{{ c.name }}</option>
           }
         </select>
-        <span class="hint">{{ category().hint }}</span>
+        <span class="hint">{{ categoryHint(category()) }}</span>
       </div>
       <div class="field">
         <label for="cv-date">Ngày phiếu <span class="required-mark">*</span></label>

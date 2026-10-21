@@ -2,9 +2,10 @@ import { Injectable } from '@angular/core';
 import { MockDataService } from '../../core/services/mock-data.service';
 import { AuthService } from '../../core/services/auth.service';
 import {
-  ProductionOrder, SalesOrder, SalesOrderLine, StockLevel, WarehouseVoucher, WarehouseVoucherType,
+  ProductionOrder, SalesOrder, SalesOrderLine, WarehouseVoucher, WarehouseVoucherType,
 } from '../../core/models/domain.models';
 import { isoDay } from '../../shared/period';
+import { WarehouseVoucherService } from '../warehouse-vouchers/warehouse-voucher.service';
 import { nextCode, round4 } from '../purchase-orders/purchase-order.rules';
 import {
   canCancel, canClose, canDeliver, canEdit, deriveStatus, lineRatio, lineRemaining, linesNeedingLsx, movesStock,
@@ -41,6 +42,7 @@ export class SalesOrderService {
   constructor(
     private readonly data: MockDataService,
     private readonly auth: AuthService,
+    private readonly stock: WarehouseVoucherService,
   ) {}
 
   get userEmail(): string {
@@ -57,7 +59,7 @@ export class SalesOrderService {
     return this.data.productionOrders().filter((x) => x.sourceOrderId === orderId);
   }
 
-  private find(id: string): SalesOrder {
+  find(id: string): SalesOrder {
     const o = this.data.salesOrders().find((x) => x.id === id);
     if (!o) throw new Error(`Không tìm thấy đơn hàng ${id}`);
     return o;
@@ -140,7 +142,11 @@ export class SalesOrderService {
       codes.push(code);
       return {
         id: crypto.randomUUID(), code, sourceOrderId: o.id, productId: l.productId,
-        quantity: round4(l.quantity * lineRatio(l)), status: 'NHAP', createdDate: isoDay(new Date()),
+        quantity: round4(l.quantity * lineRatio(l)), status: 'NHAP', createdDate: isoDay(new Date()), createdBy: this.userEmail,
+        // Định mức chụp lúc lập lệnh — sửa định mức sau đó không ảnh hưởng lệnh này.
+        bomSnapshot: this.data.bomLines()
+          .filter((b) => b.finishedProductId === l.productId)
+          .map((b) => ({ componentId: b.componentId, quantityPerUnit: b.quantityPerUnit })),
       };
     });
     if (created.length) {
@@ -156,28 +162,43 @@ export class SalesOrderService {
     if (!x || x.status !== 'NHAP') return [];
     const date = isoDay(new Date());
     const byWh = new Map<string, Map<string, number>>();
-    for (const b of this.data.bomLines().filter((l) => l.finishedProductId === x.productId)) {
+    for (const b of this.bomOf(x)) {
       const wh = this.product(b.componentId)?.defaultWarehouseId ?? this.data.warehouses()[0]?.id ?? '';
       const m = byWh.get(wh) ?? new Map<string, number>();
       m.set(b.componentId, round4((m.get(b.componentId) ?? 0) + b.quantityPerUnit * x.quantity));
       byWh.set(wh, m);
     }
     const vouchers = [...byWh].map(([wh, m]) =>
-      this.voucher('XUAT', date, wh, `Xuất vật tư cho ${x.code}`, [...m].map(([productId, q]) => ({ productId, q })), { productionOrderId: x.id }));
-    this.post(vouchers);
+      this.buildVoucher('XUAT', date, wh, `Xuất vật tư cho ${x.code}`, [...m].map(([productId, q]) => ({ productId, q })), { productionOrderId: x.id }));
+    this.postVouchers(vouchers);
     this.setLsx(x.id, { status: 'DANG_SAN_XUAT', startDate: date });
     return vouchers;
   }
 
-  /** Hoàn tất sản xuất: nhập thành phẩm vào Kho thành phẩm. */
-  completeProduction(lsxId: string): WarehouseVoucher[] {
+  /** Định mức của lệnh: bản chụp lúc lập (lệnh cũ không có thì lấy định mức hiện tại). */
+  bomOf(x: ProductionOrder): { componentId: string; quantityPerUnit: number }[] {
+    return x.bomSnapshot?.length ? x.bomSnapshot : this.data.bomLines().filter((l) => l.finishedProductId === x.productId);
+  }
+
+  /** Hoàn tất sản xuất: nhập số thực làm được vào Kho thành phẩm (hàng hỏng làm số này nhỏ hơn số lệnh). */
+  completeProduction(lsxId: string, produced?: number): WarehouseVoucher[] {
     const x = this.data.productionOrders().find((p) => p.id === lsxId);
     if (!x || x.status !== 'DANG_SAN_XUAT') return [];
+    const qty = round4(Math.max(0, produced ?? x.quantity));
     const date = isoDay(new Date());
-    const v = this.voucher('NHAP', date, FINISHED_GOODS_WAREHOUSE, `Nhập thành phẩm từ xưởng: ${x.code}`, [{ productId: x.productId, q: x.quantity }], { productionOrderId: x.id });
-    this.post([v]);
-    this.setLsx(x.id, { status: 'HOAN_TAT', completeDate: date });
-    return [v];
+    const vouchers = qty > 0
+      ? [this.buildVoucher('NHAP', date, FINISHED_GOODS_WAREHOUSE, `Nhập thành phẩm từ xưởng: ${x.code}`, [{ productId: x.productId, q: qty }], { productionOrderId: x.id })]
+      : [];
+    this.postVouchers(vouchers);
+    this.setLsx(x.id, { status: 'HOAN_TAT', completeDate: date, producedQuantity: qty });
+    return vouchers;
+  }
+
+  /** Huỷ lệnh (Nháp hoặc Đang sản xuất). Vật tư đã xuất không tự nhập lại — lập phiếu nhập nếu còn dùng được. */
+  cancelProduction(lsxId: string, reason: string): void {
+    const x = this.data.productionOrders().find((p) => p.id === lsxId);
+    if (!x || (x.status !== 'NHAP' && x.status !== 'DANG_SAN_XUAT')) return;
+    this.setLsx(x.id, { status: 'HUY', cancelReason: reason.trim() || undefined });
   }
 
   private setLsx(id: string, change: Partial<ProductionOrder>): void {
@@ -210,16 +231,57 @@ export class SalesOrderService {
       }
     }
     const vouchers = [...byWh].map(([wh, e]) =>
-      this.voucher('XUAT', date, wh, `Xuất kho giao đơn ${o.code}${note ? ` — ${note}` : ''}`, e, { salesOrderId: o.id }));
-    this.post(vouchers);
+      this.buildVoucher('XUAT', date, wh, `Xuất kho giao đơn ${o.code}${note ? ` — ${note}` : ''}`, e, { salesOrderId: o.id }));
+    this.postVouchers(vouchers);
     this.save({ ...o, lines, deliveredDate: date, dueDate: undefined });
     return vouchers;
   }
 
+  // ---------- chuyến giao hàng ----------
+
+  /** Gắn / gỡ đơn khỏi chuyến (đang gom đơn) — không đổi trạng thái đơn. */
+  setTrip(id: string, tripId: string | undefined): void {
+    const o = this.find(id);
+    this.data.salesOrders.update((list) => list.map((x) => (x.id === id ? { ...o, tripId } : x)));
+  }
+
+  /** Chuyến đã xuất kho: đơn chuyển "Đang giao" (hàng đã rời kho trong phiếu xuất của chuyến). */
+  markShipping(id: string, tripId: string): void {
+    const o = this.find(id);
+    if (o.status === 'HUY') return;
+    this.data.salesOrders.update((list) => list.map((x) => (x.id === id ? { ...o, tripId, status: 'DANG_GIAO' } : x)));
+  }
+
+  /**
+   * Chốt giao trên chuyến: cộng số khách nhận (hàng đã xuất kho cùng chuyến nên không lập phiếu
+   * xuất nữa). Khách không nhận gì và chưa từng nhận → Trả toàn bộ.
+   */
+  recordTripReceipt(id: string, received: { lineIndex: number; received: number }[], date: string, sign: 1 | -1 = 1): SalesOrder {
+    const o = this.find(id);
+    const lines = o.lines.map((l) => ({ ...l }));
+    for (const r of received) {
+      const l = lines[r.lineIndex];
+      if (!l) continue;
+      l.receivedQuantity = Math.max(0, round4((l.receivedQuantity ?? 0) + sign * r.received));
+    }
+    const anyReceived = lines.some((l) => (l.receivedQuantity ?? 0) > 0);
+    const saved = this.save({
+      ...o, lines, status: anyReceived || sign === -1 ? 'DANG_GIAO' : 'TRA_TOAN_BO',
+      deliveredDate: anyReceived ? date : undefined, dueDate: undefined,
+    });
+    if (sign === -1 && saved.status !== 'DANG_GIAO') {
+      // Bỏ chốt: hàng vẫn đang trên xe, dù đơn đã nhận một phần ở chuyến trước.
+      const back = { ...saved, status: 'DANG_GIAO' as const };
+      this.data.salesOrders.update((list) => list.map((x) => (x.id === id ? back : x)));
+      return back;
+    }
+    return saved;
+  }
+
   // ---------- kho ----------
 
-  /** Build a voucher without a code; post() numbers a batch in sequence. */
-  private voucher(
+  /** Build a voucher without a code; WarehouseVoucherService.post numbers and posts it. */
+  buildVoucher(
     type: WarehouseVoucherType, date: string, warehouseId: string, reason: string,
     lines: { productId: string; q: number }[], link: Partial<WarehouseVoucher>,
   ): WarehouseVoucher {
@@ -231,24 +293,7 @@ export class SalesOrderService {
     };
   }
 
-  /** Number and store vouchers, then move stock (NHAP +, XUAT −) per (product, warehouse) in base units. */
-  private post(vouchers: WarehouseVoucher[]): void {
-    if (!vouchers.length) return;
-    const codes = this.data.warehouseVouchers().map((v) => v.code);
-    for (const v of vouchers) {
-      v.code = nextCode(codes, v.type === 'NHAP' ? 'PNK' : 'PXK');
-      codes.push(v.code);
-    }
-    this.data.warehouseVouchers.set([...vouchers, ...this.data.warehouseVouchers()]);
-    const levels: StockLevel[] = this.data.stockLevels().map((x) => ({ ...x }));
-    for (const v of vouchers) {
-      const sign = v.type === 'XUAT' ? -1 : 1;
-      for (const l of v.lines ?? []) {
-        const lv = levels.find((x) => x.productId === l.productId && x.warehouseId === v.warehouseId);
-        if (lv) lv.quantity = round4(lv.quantity + sign * l.delta);
-        else levels.push({ productId: l.productId, warehouseId: v.warehouseId, quantity: sign * l.delta, minStock: this.product(l.productId)?.minStock ?? 0 });
-      }
-    }
-    this.data.stockLevels.set(levels);
+  postVouchers(vouchers: WarehouseVoucher[]): void {
+    this.stock.post(vouchers);
   }
 }

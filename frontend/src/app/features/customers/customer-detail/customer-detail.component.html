@@ -62,7 +62,7 @@
                 <dd>@if (c.companyTaxCode) { <span class="num">{{ c.companyTaxCode }}</span><app-copy-button [text]="c.companyTaxCode" label="mã số thuế" /> } @else { — }</dd>
               </div>
               <div><dt>Số ngày được nợ</dt><dd>{{ creditLabel(c.creditDays) }}</dd></div>
-              <div><dt>Thẻ đánh dấu</dt><dd>{{ tagNames().length ? tagNames().join(', ') : '—' }}</dd></div>
+              <div><dt>Thẻ đánh dấu</dt><dd>@for (t of tagList(); track t.id) { <span class="badge tag" [style]="tagStyle(t.color)">{{ t.name }}</span> } @empty { — }</dd></div>
               <div><dt>Số đơn hàng</dt><dd class="num">{{ stats().orderCount }}</dd></div>
               <div><dt>Ngày tạo</dt><dd class="num">{{ c.createdAt ? day(c.createdAt) : '—' }}</dd></div>
               <div><dt>Ghi chú</dt><dd>{{ c.note || '—' }}</dd></div>
@@ -91,7 +91,7 @@
               <h3 id="cd-debt-title">Công nợ phải thu</h3>
               @if (debtRow(); as d) {
                 <dl class="ledger-dl">
-                  <div><dt>Số dư</dt><dd class="num" [class.text-danger]="d.overdue > 0">{{ money(d.balance) }}</dd></div>
+                  <div><dt>Số dư</dt><dd class="num" [class.amt-neg]="d.balance < 0" [class.text-danger]="d.overdue > 0">{{ money(d.balance) }}</dd></div>
                   <div><dt>Khoản còn nợ</dt><dd class="num">{{ d.items.length }}</dd></div>
                   <div><dt>Trong đó quá hạn</dt><dd class="num">{{ money(d.overdue) }}</dd></div>
                   <div><dt>Trả trước</dt><dd class="num">{{ money(d.prepaid) }}</dd></div>
@@ -227,7 +227,7 @@
         <section class="card section-block">
           @if (debtRow(); as d) {
             <dl class="list-totals">
-              <div><dt>Số dư</dt><dd class="num" [class.text-danger]="d.overdue > 0">{{ money(d.balance) }}</dd></div>
+              <div><dt>Số dư</dt><dd class="num" [class.amt-neg]="d.balance < 0" [class.text-danger]="d.overdue > 0">{{ money(d.balance) }}</dd></div>
               <div><dt>Quá hạn</dt><dd class="num">{{ money(d.overdue) }}</dd></div>
               <div><dt>Trả trước chưa dùng</dt><dd class="num">{{ money(d.prepaid) }}</dd></div>
               <div><dt>Hạn gần nhất</dt><dd class="num">{{ d.nextDue ? day(d.nextDue) : '—' }}</dd></div>
@@ -257,15 +257,15 @@
                         @if (e.link) { <a class="code-link" [routerLink]="e.link">{{ e.ref }}</a> } @else { {{ e.ref }} }
                       </td>
                       <td class="cd-desc">{{ e.description }}</td>
-                      <td class="num align-right">{{ e.amount > 0 ? money(e.amount) : '' }}</td>
-                      <td class="num align-right">{{ e.amount < 0 ? money(-e.amount) : '' }}</td>
+                      <td class="num align-right amt-pos">{{ e.amount > 0 ? signed(e.amount) : '' }}</td>
+                      <td class="num align-right amt-neg">{{ e.amount < 0 ? signed(e.amount) : '' }}</td>
                       <td class="num align-right">{{ e.settled ? money(e.settled) : '—' }}</td>
                       <td class="num align-right">{{ e.remaining ? money(e.remaining) : '—' }}</td>
                       <td [class.text-danger]="(e.overdueDays ?? 0) > 0 && e.remaining > 0">
                         @if (e.kind === 'PHAT_SINH' && e.dueDate) { <span class="num">{{ day(e.dueDate) }}</span> · }
                         {{ entryStatus(e) }}
                       </td>
-                      <td class="num align-right">{{ money(e.balance) }}</td>
+                      <td class="num align-right" [class.amt-neg]="e.balance < 0">{{ money(e.balance) }}</td>
                     </tr>
                   }
                 </tbody>
@@ -279,7 +279,7 @@
           }
           <div class="sd-debt-actions">
             <a class="btn btn-primary" routerLink="/thu-chi/lap/thu" [queryParams]="{ customerId: c.id, back: '/khach-hang/' + c.id + '?tab=cong-no' }"><app-nav-icon name="cash" />Lập phiếu thu</a>
-            <a class="btn" routerLink="/cong-no/khach-hang">Xem công nợ phải thu</a>
+            <a class="btn" routerLink="/cong-no/khach-hang" [queryParams]="{ partnerId: c.id }"><app-nav-icon name="printer" />Sổ chi tiết &amp; biên bản đối chiếu</a>
           </div>
         </section>
       }

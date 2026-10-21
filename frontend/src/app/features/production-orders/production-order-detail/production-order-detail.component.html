@@ -1,0 +1,205 @@
+@if (lsx(); as x) {
+  <div class="voucher">
+    <header class="voucher-bar">
+      <a class="icon-action" routerLink="/san-xuat" aria-label="Về danh sách lệnh sản xuất" title="Về danh sách"><app-nav-icon name="arrow-left" /></a>
+      <h1>Lệnh sản xuất <span class="num">{{ x.code }}</span></h1>
+      <app-copy-button [text]="x.code" label="mã lệnh" />
+      <span class="badge" [ngClass]="statusClass()">{{ statusLabel() }}</span>
+      @if (late()) { <span class="badge lsx-late">Trễ hạn giao</span> }
+    </header>
+
+    @if (notice()) {
+      <div class="notice" role="status">
+        <span>{{ notice() }}</span>
+        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+      </div>
+    }
+
+    <section class="card voucher-head">
+      <div class="head-fields">
+        <div class="field span-2">
+          <span class="field-label">Thành phẩm</span>
+          <p class="field-value">
+            @if (product(); as p) { <a class="code-link num" [routerLink]="['/hang-hoa', p.id]">{{ p.code }}</a> {{ p.name }} } @else { — }
+          </p>
+        </div>
+        <div class="field">
+          <span class="field-label">Số lượng lệnh</span>
+          <p class="field-value num">{{ x.quantity.toLocaleString('vi-VN') }} {{ product()?.baseUnit }}</p>
+        </div>
+        <div class="field">
+          <span class="field-label">Thực nhập kho</span>
+          <p class="field-value num" [class.text-warning]="x.producedQuantity !== undefined && x.producedQuantity < x.quantity">
+            {{ x.producedQuantity !== undefined ? x.producedQuantity.toLocaleString('vi-VN') + ' ' + (product()?.baseUnit ?? '') : '—' }}
+          </p>
+        </div>
+        <div class="field">
+          <span class="field-label">Đơn bán</span>
+          <p class="field-value">@if (order(); as o) { <a class="code-link num" [routerLink]="['/don-hang', o.id]">{{ o.code }}</a> } @else { — }</p>
+        </div>
+        <div class="field span-2">
+          <span class="field-label">Khách hàng</span>
+          <p class="field-value">@if (customer(); as c) { <a class="code-link" [routerLink]="['/khach-hang', c.id]">{{ c.name }}</a> } @else { — }</p>
+        </div>
+        <div class="field">
+          <span class="field-label">Cần giao</span>
+          <p class="field-value num" [class.amt-neg]="late()">{{ order()?.neededByDate ? day(order()!.neededByDate!) : '—' }}</p>
+        </div>
+        <div class="field"><span class="field-label">Ngày lập</span><p class="field-value num">{{ day(x.createdDate) }}</p></div>
+        <div class="field"><span class="field-label">Bắt đầu</span><p class="field-value num">{{ x.startDate ? day(x.startDate) : '—' }}</p></div>
+        <div class="field"><span class="field-label">Hoàn tất</span><p class="field-value num">{{ x.completeDate ? day(x.completeDate) : '—' }}</p></div>
+        <div class="field"><span class="field-label">Người lập</span><p class="field-value">{{ userName(x.createdBy) }}</p></div>
+        @if (x.cancelReason || x.status === 'HUY') {
+          <div class="field span-full"><span class="field-label">Lý do huỷ</span><p class="field-value">{{ x.cancelReason || '—' }}</p></div>
+        }
+      </div>
+
+      <aside class="head-summary">
+        <p class="summary-label">Chi phí vật tư (ước tính)</p>
+        <p class="summary-total num">{{ money(materialCost()) }}</p>
+        <p class="summary-sub">≈ <span class="num">{{ money(unitCost()) }}</span> / {{ product()?.baseUnit }}{{ x.status === 'HOAN_TAT' ? ' (chia số thực nhập)' : '' }}</p>
+      </aside>
+
+      <p class="form-note head-note">
+        @switch (x.status) {
+          @case ('NHAP') { Lệnh nháp — chưa đụng tới kho. Bắt đầu sản xuất sẽ xuất vật tư theo định mức dưới đây từ kho ngầm định của từng vật tư. }
+          @case ('DANG_SAN_XUAT') { Đang sản xuất — vật tư đã xuất. Hoàn tất để nhập số thành phẩm thực làm được (hàng hỏng làm số này nhỏ hơn số lệnh). }
+          @case ('HOAN_TAT') { Đã hoàn tất — thành phẩm đã nhập kho thành phẩm, đơn bán có thể giao. }
+          @default { Lệnh đã huỷ — không còn ảnh hưởng tới đơn bán. }
+        }
+      </p>
+    </section>
+
+    <section class="card voucher-grid-card">
+      <h2 class="form-section-title lsx-title">Định mức vật tư <span class="lsx-sub">bản chụp lúc lập lệnh — sửa định mức sau đó không đổi lệnh này</span></h2>
+      @if (bom().length) {
+        <div class="voucher-grid-scroll">
+          <table class="voucher-grid">
+            <thead>
+              <tr>
+                <th scope="col" class="c-idx">#</th>
+                <th scope="col" class="c-product">Vật tư</th>
+                <th scope="col" class="c-unit">ĐVT</th>
+                <th scope="col" class="c-num">Định mức / 1 {{ product()?.baseUnit }}</th>
+                <th scope="col" class="c-num">Cần dùng</th>
+                <th scope="col">Kho xuất</th>
+                @if (x.status === 'NHAP') {
+                  <th scope="col" class="c-num">Tồn hiện tại</th>
+                  <th scope="col" class="c-num">Thiếu</th>
+                } @else {
+                  <th scope="col" class="c-num">Đã xuất</th>
+                }
+                <th scope="col" class="c-num">Chi phí ước tính</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (b of bom(); track b.i) {
+                <tr>
+                  <td class="c-idx num">{{ b.i + 1 }}</td>
+                  <td class="c-product">@if (b.p) { <a class="code-link num" [routerLink]="['/hang-hoa', b.p.id]">{{ b.p.code }}</a> {{ b.p.name }} }</td>
+                  <td class="c-unit">{{ b.p?.baseUnit }}</td>
+                  <td class="c-num num">{{ b.per.toLocaleString('vi-VN') }}</td>
+                  <td class="c-num num">{{ b.need.toLocaleString('vi-VN') }}</td>
+                  <td>{{ b.wh }}</td>
+                  @if (x.status === 'NHAP') {
+                    <td class="c-num num" [class.amt-neg]="b.onHand < 0">{{ qty(b.onHand) }}</td>
+                    <td class="c-num num" [class.amt-neg]="b.short > 0">{{ b.short ? b.short.toLocaleString('vi-VN') : '—' }}</td>
+                  } @else {
+                    <td class="c-num num">{{ b.issued ? b.issued.toLocaleString('vi-VN') : '—' }}</td>
+                  }
+                  <td class="c-num num">{{ b.value ? b.value.toLocaleString('vi-VN') : '—' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        @if (shortCount()) {
+          <p class="form-note text-warning lsx-short" role="status">
+            Thiếu {{ shortCount() }} vật tư so với tồn hiện tại. Vẫn bắt đầu được (tồn sẽ âm) — nên nhập đủ vật tư trước.
+          </p>
+        }
+      } @else {
+        <p class="form-note">Thành phẩm chưa có định mức — bắt đầu sản xuất sẽ không xuất vật tư nào. Khai báo định mức ở trang hàng hoá.</p>
+      }
+    </section>
+
+    <section class="card voucher-grid-card">
+      <h2 class="form-section-title lsx-title">Phiếu kho của lệnh</h2>
+      @if (vouchers().length) {
+        <div class="voucher-grid-scroll">
+          <table class="voucher-grid">
+            <thead>
+              <tr><th scope="col">Số phiếu</th><th scope="col">Ngày</th><th scope="col">Loại</th><th scope="col">Kho</th><th scope="col">Lý do</th><th scope="col" class="c-num">Số dòng</th></tr>
+            </thead>
+            <tbody>
+              @for (v of vouchers(); track v.id) {
+                <tr [class.lsx-cancelled]="v.isCancelled">
+                  <td><a class="code-link num" [routerLink]="['/kho/phieu', v.id]">{{ v.code }}</a></td>
+                  <td class="num">{{ day(v.date) }}</td>
+                  <td><span class="badge" [ngClass]="kindClass(v)">{{ kindLabel(v) }}</span></td>
+                  <td>{{ warehouseName(v.warehouseId) }}</td>
+                  <td>{{ v.isCancelled ? '[Đã huỷ] ' : '' }}{{ v.reason }}</td>
+                  <td class="c-num num">{{ v.lines?.length ?? 0 }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <p class="form-note">Chưa có phiếu kho — phiếu xuất vật tư sinh khi bắt đầu, phiếu nhập thành phẩm sinh khi hoàn tất.</p>
+      }
+    </section>
+
+    @if (mode() === 'complete') {
+      <div class="confirm-strip" role="alertdialog" aria-labelledby="lsx-complete-title">
+        <p id="lsx-complete-title"><strong>Hoàn tất {{ x.code }}</strong> — nhập số thành phẩm đạt để nhập Kho thành phẩm.</p>
+        <label class="lsx-qty">
+          Số thực làm được ({{ product()?.baseUnit }})
+          <input type="number" min="0" step="any" class="num-input" [ngModel]="produced()" (ngModelChange)="produced.set($event)" />
+        </label>
+        @if ((produced() ?? 0) < x.quantity) {
+          <p class="form-note text-warning">Ít hơn số lệnh {{ (x.quantity - (produced() ?? 0)).toLocaleString('vi-VN') }} — phần hỏng tính vào giá thành; đơn bán có thể cần lập lệnh bổ sung.</p>
+        }
+        <div class="toolbar">
+          <button type="button" class="btn" (click)="mode.set('')">Để sau</button>
+          <button type="button" class="btn btn-primary" [disabled]="produced() === null || produced()! < 0" (click)="complete()"><app-nav-icon name="check" />Hoàn tất &amp; nhập kho</button>
+        </div>
+      </div>
+    }
+
+    @if (mode() === 'cancel') {
+      <div class="confirm-strip" role="alertdialog" aria-labelledby="lsx-cancel-title">
+        <p id="lsx-cancel-title">
+          <strong>Huỷ {{ x.code }}?</strong>
+          @if (x.status === 'DANG_SAN_XUAT') { Vật tư đã xuất <strong>không</strong> tự nhập lại — lập phiếu nhập kho nếu còn dùng được. } @else { Lệnh nháp chưa đụng tới kho. }
+        </p>
+        <input type="text" placeholder="Lý do huỷ" aria-label="Lý do huỷ" [ngModel]="cancelReason()" (ngModelChange)="cancelReason.set($event)" />
+        <div class="toolbar">
+          <button type="button" class="btn" (click)="mode.set('')">Không huỷ</button>
+          <button type="button" class="btn btn-danger" (click)="cancel()">Huỷ lệnh</button>
+        </div>
+      </div>
+    }
+
+    <footer class="voucher-actions">
+      <p class="actions-hint" role="status">
+        @if (canStart()) { Bước tiếp: bắt đầu sản xuất để xuất vật tư. }
+        @else if (canComplete()) { Bước tiếp: hoàn tất khi xưởng làm xong. }
+        @else if (x.status === 'HOAN_TAT' && order()) { Thành phẩm đã vào kho — giao hàng ở đơn {{ order()!.code }}. }
+        @else { Không còn thao tác trên lệnh này. }
+      </p>
+      <div class="toolbar">
+        @if (canCancel()) { <button type="button" class="btn btn-danger-ghost" (click)="mode.set('cancel')">Huỷ lệnh</button> }
+        @if (order()) { <a class="btn" [routerLink]="['/don-hang', order()!.id]"><app-nav-icon name="receipt" />Mở đơn bán</a> }
+        @if (canStart()) { <button type="button" class="btn btn-primary" (click)="start()"><app-nav-icon name="factory" />Bắt đầu sản xuất</button> }
+        @if (canComplete()) { <button type="button" class="btn btn-primary" (click)="openComplete()"><app-nav-icon name="check" />Hoàn tất…</button> }
+      </div>
+    </footer>
+  </div>
+} @else {
+  <div class="card empty-state">
+    <h3>Không tìm thấy lệnh sản xuất</h3>
+    <p>Lệnh có thể đã bị xoá hoặc đường dẫn không đúng.</p>
+    <a class="btn" routerLink="/san-xuat">Về danh sách lệnh sản xuất</a>
+  </div>
+}

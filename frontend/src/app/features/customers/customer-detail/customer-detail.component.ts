@@ -9,12 +9,13 @@ import { DebtEntry, DebtService } from '../../../core/services/debt.service';
 import { CustomerAddress, SalesOrder } from '../../../core/models/domain.models';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { CopyButtonComponent } from '../../../shared/copy-button/copy-button.component';
-import { formatVnd } from '../../../shared/format.util';
+import { amountTone, formatVnd, formatVndSigned } from '../../../shared/format.util';
 import { formatDay } from '../../../shared/period';
 import {
   CUSTOMER_TYPE_SHORT, SALES_ORDER_STATUS_LABEL, customerStatusClass, customerStatusLabel, customerTypeClass, salesOrderStatusClass,
 } from '../../../shared/status-labels';
 import { deliveredPercent } from '../../sales-orders/sales-order.rules';
+import { tagStyle } from '../../../shared/tag-colors';
 import { PHONE_PATTERN, creditLabel } from '../customer.rules';
 import { CustomerService } from '../customer.service';
 
@@ -39,6 +40,8 @@ export class CustomerDetailComponent {
   readonly stats = computed(() => this.svc.statsOf(this.id()));
 
   readonly money = formatVnd;
+  readonly signed = formatVndSigned;
+  readonly tone = amountTone;
   readonly day = formatDay;
   readonly creditLabel = creditLabel;
   readonly typeLabel = CUSTOMER_TYPE_SHORT;
@@ -60,6 +63,12 @@ export class CustomerDetailComponent {
       });
     });
   }
+
+  readonly tagStyle = tagStyle;
+  readonly tagList = computed(() => {
+    const ids = this.customer()?.tagIds ?? [];
+    return this.data.tags().filter((t) => ids.includes(t.id));
+  });
 
   readonly tagNames = computed(() => {
     const ids = this.customer()?.tagIds ?? [];

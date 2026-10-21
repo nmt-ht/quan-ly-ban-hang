@@ -1,63 +1,203 @@
-<div class="page-header">
-  <div>
-    <h1>Tuổi nợ</h1>
-    <p class="subtitle">Công nợ {{ mode() === 'PHAI_TRA' ? 'phải trả' : 'phải thu' }} chia theo số ngày quá hạn</p>
+<div class="screen-only">
+  <div class="page-header">
+    <div>
+      <h1>Tuổi nợ</h1>
+      <p class="subtitle">{{ t().title }} · tính đến hôm nay <span class="num">{{ day(today) }}</span></p>
+    </div>
+    <div class="toolbar">
+      <button type="button" class="btn" [disabled]="exporting()" (click)="exportExcel()">
+        <app-nav-icon name="download" />{{ exporting() ? 'Đang xuất…' : 'Xuất Excel' }}
+      </button>
+      <button type="button" class="btn" (click)="print()"><app-nav-icon name="printer" />In báo cáo</button>
+      <a class="btn btn-primary" [routerLink]="t().ledger">Sổ công nợ</a>
+    </div>
   </div>
-  <div class="toolbar">
-    <button class="btn">Xuất Excel</button>
-    <button class="btn">Sổ công nợ</button>
+
+  <div class="filters-bar">
+    <div class="segmented" role="radiogroup" aria-label="Loại công nợ">
+      <button type="button" role="radio" [attr.aria-checked]="side() === 'PHAI_TRA'" (click)="setSide('PHAI_TRA')">Phải trả nhà cung cấp</button>
+      <button type="button" role="radio" [attr.aria-checked]="side() === 'PHAI_THU'" (click)="setSide('PHAI_THU')">Phải thu khách hàng</button>
+    </div>
+    <input
+      type="text"
+      class="filter-search"
+      [placeholder]="t().search"
+      [attr.aria-label]="t().search"
+      [value]="query()"
+      (input)="query.set($any($event.target).value)"
+    />
+    <button type="button" class="filter-toggle" [attr.aria-pressed]="overdueOnly()" (click)="overdueOnly.set(!overdueOnly())">Chỉ quá hạn</button>
+    <select aria-label="Sắp xếp" [value]="sort()" (change)="sort.set($any($event.target).value)">
+      <option value="overdue">Quá hạn nhiều nhất</option>
+      <option value="oldest">Quá hạn lâu nhất</option>
+      <option value="total">Tổng nợ lớn nhất</option>
+      <option value="name">Tên A → Z</option>
+    </select>
   </div>
-</div>
 
-<div class="filters-bar">
-  <select [value]="mode()" (change)="mode.set($any($event.target).value)">
-    <option value="PHAI_TRA">Phải trả nhà cung cấp</option>
-    <option value="PHAI_THU">Phải thu khách hàng</option>
-  </select>
-  <input type="text" placeholder="Tìm đối tác..." class="filter-search" [value]="query()" (input)="query.set($any($event.target).value)" />
-</div>
-
-<div class="stat-grid">
-  <app-stat-card label="Chưa đến hạn" [value]="formatVnd(totals().notDue)" />
-  <app-stat-card label="Quá hạn 1–30" [value]="formatVnd(totals().overdue1to30)" />
-  <app-stat-card label="31–60 ngày" [value]="formatVnd(totals().overdue31to60)" />
-  <app-stat-card label="61–90 ngày" [value]="formatVnd(totals().overdue61to90)" />
-  <app-stat-card label="Trên 90 ngày" [value]="formatVnd(totals().overdueOver90)" />
-  <app-stat-card label="Tổng còn nợ" [value]="formatVnd(totals().total)" />
-</div>
-
-@if (rows().length === 0) {
-  <div class="card empty-state">
-    <h3>Không có khoản nợ nào đang mở</h3>
-    <p>Mọi khoản đã được đối trừ hết.</p>
+  <!-- Thẻ theo nhóm tuổi nợ: bấm để lọc -->
+  <div class="ag-cards" role="group" aria-label="Lọc theo nhóm tuổi nợ">
+    @for (b of cards().buckets; track b.key) {
+      <button type="button" class="ag-card" [ngClass]="severity(b.key)" [attr.aria-pressed]="bucket() === b.key" (click)="toggleBucket(b.key)">
+        <span class="ag-label"><span [class]="'aging-dot aging-' + b.key" aria-hidden="true"></span>{{ b.label }}</span>
+        <span class="ag-value num">{{ money(b.amount) }}</span>
+        <span class="ag-sub">{{ b.count }} khoản · {{ b.pct }}%</span>
+      </button>
+    }
+    <div class="ag-card ag-total">
+      <span class="ag-label">Tổng còn nợ</span>
+      <span class="ag-value num">{{ money(cards().total) }}</span>
+      <span class="ag-sub">{{ cards().partners }} {{ t().partner.toLowerCase() }}</span>
+    </div>
   </div>
-} @else {
-  <div class="table-wrap card">
-    <table>
-      <thead>
-        <tr>
-          <th>Mã / Tên</th>
-          <th style="text-align:right">Chưa đến hạn</th>
-          <th style="text-align:right">1–30</th>
-          <th style="text-align:right">31–60</th>
-          <th style="text-align:right">61–90</th>
-          <th style="text-align:right">&gt; 90</th>
-          <th style="text-align:right">Tổng nợ</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (r of rows(); track r.partnerId) {
-          <tr>
-            <td>{{ r.code }} — {{ r.name }}</td>
-            <td style="text-align:right">{{ formatVnd(r.aging.notDue) }}</td>
-            <td style="text-align:right">{{ formatVnd(r.aging.overdue1to30) }}</td>
-            <td style="text-align:right">{{ formatVnd(r.aging.overdue31to60) }}</td>
-            <td style="text-align:right">{{ formatVnd(r.aging.overdue61to90) }}</td>
-            <td style="text-align:right">{{ formatVnd(r.aging.overdueOver90) }}</td>
-            <td style="text-align:right"><strong>{{ formatVnd(r.aging.total) }}</strong></td>
-          </tr>
+
+  @if (cards().total > 0) {
+    <div class="aging-strip ag-strip">
+      <div class="aging-bar" aria-hidden="true">
+        @for (b of cards().buckets; track b.key) {
+          @if (b.amount > 0) { <span [class]="'aging-seg aging-' + b.key" [style.flex-grow]="b.amount"></span> }
         }
-      </tbody>
-    </table>
+      </div>
+    </div>
+  }
+
+  @if (bucket()) {
+    <div class="filter-chips">
+      <span class="filter-chip">
+        {{ bucketLabel() }}
+        <button type="button" class="filter-chip-remove" aria-label="Bỏ lọc nhóm tuổi nợ" (click)="bucket.set(null)"><app-nav-icon name="x" /></button>
+      </span>
+    </div>
+  }
+
+  <div class="detail-tabs" role="tablist" aria-label="Cách xem">
+    <button type="button" role="tab" [attr.aria-selected]="view() === 'doi-tac'" (click)="view.set('doi-tac')">
+      Theo {{ t().partner.toLowerCase() }} <span class="tab-count num">{{ partners().length }}</span>
+    </button>
+    <button type="button" role="tab" [attr.aria-selected]="view() === 'chung-tu'" (click)="view.set('chung-tu')">
+      Theo chứng từ <span class="tab-count num">{{ docs().length }}</span>
+    </button>
   </div>
-}
+
+  @if (!docs().length) {
+    <div class="card empty-state">
+      <h3>{{ query() || overdueOnly() || bucket() ? 'Không có khoản nợ phù hợp' : 'Không có khoản nợ nào đang mở' }}</h3>
+      <p>{{ query() || overdueOnly() || bucket() ? 'Thử bỏ bớt bộ lọc.' : t().emptyHint }}</p>
+    </div>
+  } @else if (view() === 'doi-tac') {
+    <section class="card table-wrap">
+      <div class="table-scroll">
+        <table class="ag-table">
+          <thead>
+            <tr>
+              <th scope="col">Mã</th>
+              <th scope="col">{{ t().partner }}</th>
+              <th scope="col">Được nợ</th>
+              @for (b of buckets; track b.key) { <th scope="col" class="align-right">{{ b.label }}</th> }
+              <th scope="col" class="align-right">Tổng còn nợ</th>
+              <th scope="col">Quá hạn lâu nhất</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of partners(); track p.partnerId) {
+              <tr>
+                <td class="num"><a class="code-link" [routerLink]="t().ledger" [queryParams]="{ partnerId: p.partnerId }">{{ p.code }}</a></td>
+                <td>{{ p.name }}</td>
+                <td>{{ p.credit }}</td>
+                @for (b of buckets; track b.key) {
+                  <td class="num align-right" [ngClass]="p.aging[b.key] ? severity(b.key) : 'ag-zero'">{{ p.aging[b.key] ? money(p.aging[b.key]) : '—' }}</td>
+                }
+                <td class="num align-right"><strong>{{ money(p.total) }}</strong></td>
+                <td [class.text-danger]="p.maxDays > 60">{{ p.maxDays > 0 ? p.maxDays + ' ngày' : (p.nextDue ? 'Hạn ' + day(p.nextDue) : '—') }}</td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr class="row-total">
+              <td colspan="3">Tổng cộng</td>
+              @for (b of buckets; track b.key) { <td class="num align-right">{{ money(footer()[b.key]) }}</td> }
+              <td class="num align-right">{{ money(footer().total) }}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+  } @else {
+    <section class="card table-wrap">
+      <div class="table-scroll">
+        <table class="ag-table">
+          <thead>
+            <tr>
+              <th scope="col">{{ t().partner }}</th>
+              <th scope="col">Chứng từ</th>
+              <th scope="col">Ngày phát sinh</th>
+              <th scope="col">Hạn thanh toán</th>
+              <th scope="col">Tuổi nợ</th>
+              <th scope="col" class="align-right">Còn nợ</th>
+              <th scope="col">Nhóm</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (d of docs(); track d.partnerId + d.ref) {
+              <tr>
+                <td><a class="code-link num" [routerLink]="t().ledger" [queryParams]="{ partnerId: d.partnerId }">{{ d.partnerCode }}</a> {{ d.partnerName }}</td>
+                <td class="num">@if (d.link) { <a class="code-link" [routerLink]="d.link">{{ d.ref }}</a> } @else { {{ d.ref }} }</td>
+                <td class="num">{{ d.date ? day(d.date) : '—' }}</td>
+                <td class="num">{{ day(d.dueDate) }}</td>
+                <td [ngClass]="severity(d.bucket)">{{ ageLabel(d.overdueDays) }}</td>
+                <td class="num align-right">{{ money(d.amount) }}</td>
+                <td><span [class]="'aging-dot aging-' + d.bucket" aria-hidden="true"></span> {{ bucketName(d.bucket) }}</td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr class="row-total">
+              <td colspan="5">Tổng cộng {{ docs().length }} khoản</td>
+              <td class="num align-right">{{ money(footer().total) }}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+  }
+
+  <p class="hint ag-hint">
+    Chỉ tính khoản tăng nợ còn chưa trả hết; tiền trả trước chưa gán vào khoản nào không trừ vào tuổi nợ.
+    Số ngày quá hạn tính từ hạn thanh toán = {{ t().from }} + số ngày được nợ. Báo cáo hiện trạng — không lọc theo kỳ.
+  </p>
+</div>
+
+<!-- Bản in -->
+<article class="print-only ag-print">
+  <header class="ag-print-head">
+    <strong>{{ company().name }}</strong>
+    <span>Ngày in: {{ day(today) }}</span>
+  </header>
+  <h2>BÁO CÁO TUỔI NỢ {{ side() === 'PHAI_TRA' ? 'PHẢI TRẢ NHÀ CUNG CẤP' : 'PHẢI THU KHÁCH HÀNG' }}</h2>
+  <p class="ag-print-sub">Tính đến ngày {{ day(today) }}{{ bucketLabel() ? ' · nhóm ' + bucketLabel() : '' }}{{ overdueOnly() ? ' · chỉ khoản quá hạn' : '' }}</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Mã</th><th>{{ t().partner }}</th>
+        @for (b of buckets; track b.key) { <th class="r">{{ b.label }}</th> }
+        <th class="r">Tổng còn nợ</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (p of partners(); track p.partnerId) {
+        <tr>
+          <td>{{ p.code }}</td><td>{{ p.name }}</td>
+          @for (b of buckets; track b.key) { <td class="r">{{ p.aging[b.key] ? money(p.aging[b.key]) : '' }}</td> }
+          <td class="r"><strong>{{ money(p.total) }}</strong></td>
+        </tr>
+      }
+      <tr>
+        <td colspan="2"><strong>Tổng cộng</strong></td>
+        @for (b of buckets; track b.key) { <td class="r"><strong>{{ money(footer()[b.key]) }}</strong></td> }
+        <td class="r"><strong>{{ money(footer().total) }}</strong></td>
+      </tr>
+    </tbody>
+  </table>
+</article>

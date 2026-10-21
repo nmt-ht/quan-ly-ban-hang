@@ -1,0 +1,84 @@
+<dialog #dialog class="rg-dialog th-dialog" aria-labelledby="vd-title">
+  <header class="rg-head">
+    <div>
+      <h2 id="vd-title">{{ editing() ? 'Sửa xe ' + editing()!.plateNumber : 'Thêm xe' }}</h2>
+      <p class="subtitle">Chỉ khai xe của công ty. Xe thuê ngoài không cần khai — lập chuyến vẫn gõ thẳng biển số được.</p>
+    </div>
+    <button type="button" class="icon-action" aria-label="Đóng" (click)="close()"><app-nav-icon name="x" /></button>
+  </header>
+
+  <div class="rg-body th-body">
+    <label class="field">
+      <span>Biển số <span class="required-mark">*</span></span>
+      <input id="vd-plate" type="text" class="num" placeholder="51C-123.45" [ngModel]="plate()" (ngModelChange)="plate.set($event)"
+        [attr.aria-invalid]="attempted() && (!plate().trim() || duplicate()) ? 'true' : null" />
+      @if (duplicate(); as d) { <span class="hint text-danger">Biển số đã khai cho {{ d.code }}.</span> }
+    </label>
+    <label class="field">
+      <span>Tên gọi</span>
+      <input type="text" placeholder="Xe tải nhỏ" [ngModel]="name()" (ngModelChange)="name.set($event)" />
+    </label>
+    <label class="field">
+      <span>Loại xe</span>
+      <select [ngModel]="type()" (ngModelChange)="type.set($event)">
+        @for (t of types; track t.value) { <option [value]="t.value">{{ t.label }}</option> }
+      </select>
+    </label>
+    <label class="field">
+      <span>Tải trọng (kg)</span>
+      <input type="number" min="0" step="10" class="num" placeholder="1500" [ngModel]="capacity()" (ngModelChange)="capacity.set($event)" />
+    </label>
+    <label class="field">
+      <span>Tình trạng</span>
+      <select [ngModel]="status()" (ngModelChange)="status.set($event)">
+        @for (s of statuses; track s.value) { <option [value]="s.value">{{ s.label }}</option> }
+      </select>
+    </label>
+    <span></span>
+    <label class="field">
+      <span>Hạn đăng kiểm</span>
+      <input type="date" [ngModel]="regExpiry()" (ngModelChange)="regExpiry.set($event)" />
+    </label>
+    <label class="field">
+      <span>Hạn bảo hiểm</span>
+      <input type="date" [ngModel]="insExpiry()" (ngModelChange)="insExpiry.set($event)" />
+    </label>
+
+    <fieldset class="vd-driver th-note">
+      <legend>Tài xế thường chạy xe này</legend>
+      <p class="hint">Lập chuyến chọn xe thì tự điền sẵn, vẫn sửa tay được.</p>
+      <div class="th-body vd-driver-grid">
+        <label class="field">
+          <span>Nhân viên trong hệ thống</span>
+          <select [ngModel]="driverUserId()" (ngModelChange)="driverUserId.set($event)">
+            <option value="">— Không gắn —</option>
+            @for (u of userOptions(); track u.id) { <option [value]="u.id">{{ u.label }}</option> }
+          </select>
+        </label>
+        <label class="field">
+          <span>Hoặc tên tài xế</span>
+          <input type="text" placeholder="Người lái thuê ngoài" [disabled]="!!driverUserId()" [ngModel]="driverName()" (ngModelChange)="driverName.set($event)" />
+        </label>
+        <label class="field">
+          <span>Điện thoại</span>
+          <input type="tel" class="num" placeholder="0912345678" [ngModel]="driverPhone()" (ngModelChange)="driverPhone.set($event)" />
+        </label>
+      </div>
+    </fieldset>
+
+    <label class="field th-note">
+      <span>Ghi chú</span>
+      <textarea rows="2" [ngModel]="note()" (ngModelChange)="note.set($event)"></textarea>
+    </label>
+  </div>
+
+  <footer class="rg-foot">
+    <p class="rg-summary" [class.text-danger]="attempted() && issues().length" role="status">
+      {{ attempted() && issues().length ? issues()[0] : editing() ? editing()!.code : 'Mã xe tự sinh khi lưu (XE + 7 số).' }}
+    </p>
+    <div class="toolbar">
+      <button type="button" class="btn" (click)="close()">Huỷ</button>
+      <button type="button" class="btn btn-primary" (click)="confirm()">{{ editing() ? 'Lưu' : 'Thêm xe' }}</button>
+    </div>
+  </footer>
+</dialog>

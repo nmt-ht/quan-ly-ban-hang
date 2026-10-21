@@ -1,28 +1,92 @@
 <div class="page-header">
   <div>
     <h1>Phiếu kho</h1>
-    <p class="subtitle">{{ data.warehouseVouchers().length }} phiếu</p>
+    <p class="subtitle">{{ vouchers().length }} phiếu</p>
   </div>
-  <div class="toolbar" style="position:relative">
-    <button class="btn">Xuất Excel</button>
-    <button class="btn btn-primary" (click)="menuOpen.set(!menuOpen())">+ Lập phiếu</button>
-    <div class="dropdown-menu" *ngIf="menuOpen()">
-      <button *ngFor="let t of voucherTypes" class="dropdown-item" type="button">{{ t.label }}</button>
+  <div class="toolbar wv-toolbar">
+    <button type="button" class="btn" [disabled]="exporting()" (click)="exportExcel()">
+      <app-nav-icon name="download" />{{ exporting() ? 'Đang xuất…' : 'Xuất Excel' }}
+    </button>
+    <a class="btn" routerLink="/kho/ton-kho"><app-nav-icon name="stock" />Tồn kho</a>
+    <div class="wv-menu">
+      <button type="button" class="btn btn-primary" aria-haspopup="menu" [attr.aria-expanded]="menuOpen()" (click)="menuOpen.set(!menuOpen())">
+        <app-nav-icon name="plus" />Lập phiếu<app-nav-icon name="chevron-down" />
+      </button>
+      @if (menuOpen()) {
+        <div class="wv-menu-panel" role="menu">
+          @for (m of createMenu; track m.type) {
+            <a role="menuitem" [routerLink]="['/kho/phieu/lap', m.slug]" (click)="menuOpen.set(false)">{{ m.label }}</a>
+          }
+        </div>
+      }
     </div>
   </div>
 </div>
 
+@if (notice()) {
+  <div class="notice" role="status">
+    <span>{{ notice() }}</span>
+    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+  </div>
+}
+
 <div class="filters-bar">
-  <input type="text" placeholder="Tìm mã phiếu, lý do hoặc hàng hoá trong phiếu..." class="filter-search" />
-  <select><option>Loại phiếu</option></select>
-  <select><option>Tất cả kho</option></select>
-  <select><option>Chọn kỳ</option></select>
-  <select><option>Người lập</option></select>
+  <input
+    type="text"
+    class="filter-search"
+    placeholder="Tìm mã phiếu, lý do hoặc hàng hoá trong phiếu…"
+    aria-label="Tìm phiếu kho"
+    [value]="search()"
+    (input)="search.set($any($event.target).value)"
+  />
+  <app-filter-multi-select label="Loại phiếu" [options]="kindOptions()" [(selected)]="kinds" />
+  <select aria-label="Kho" [value]="warehouseId()" (change)="warehouseId.set($any($event.target).value)">
+    <option value="all">Tất cả kho</option>
+    @for (w of data.warehouses(); track w.id) { <option [value]="w.id">{{ w.name }}</option> }
+  </select>
+  <app-period-filter [(value)]="period" />
+  <app-filter-multi-select label="Người lập" [options]="userOptions()" [(selected)]="createdBy" />
+  <button type="button" class="filter-toggle" [attr.aria-pressed]="showCancelled()" (click)="showCancelled.set(!showCancelled())">Hiện phiếu đã huỷ</button>
 </div>
+
+@if (chips().length) {
+  <div class="filter-chips" aria-label="Bộ lọc đang áp dụng">
+    @for (c of chips(); track c.label) {
+      <span class="filter-chip">
+        {{ c.label }}
+        <button type="button" class="filter-chip-remove" [attr.aria-label]="'Bỏ lọc ' + c.label" (click)="c.clear()"><app-nav-icon name="x" /></button>
+      </span>
+    }
+    <button type="button" class="filter-clear-all" (click)="clearAll()"><app-nav-icon name="x" />Xoá tất cả bộ lọc</button>
+  </div>
+}
+
+@if (vouchers().length) {
+  <dl class="list-totals">
+    <div><dt>Nhập kho</dt><dd class="num">{{ totals().nhap }} phiếu</dd></div>
+    <div><dt>Xuất kho</dt><dd class="num">{{ totals().xuat }} phiếu</dd></div>
+    <div><dt>Chuyển kho</dt><dd class="num">{{ totals().chuyen }} phiếu</dd></div>
+    <div><dt>Kiểm kê</dt><dd class="num">{{ totals().kiemKe }} phiếu</dd></div>
+    @if (totals().value) { <div><dt>Giá trị nhập</dt><dd class="num">{{ totals().value.toLocaleString('vi-VN') }} ₫</dd></div> }
+  </dl>
+}
 
 <app-data-table
   [columns]="columns"
-  [rows]="data.warehouseVouchers()"
-  emptyTitle="Chưa có phiếu kho nào"
-  emptyHint="Lập phiếu nhập, xuất, chuyển kho hoặc kiểm kê để bắt đầu."
+  [rows]="paged()"
+  [actions]="rowActions"
+  [filterable]="true"
+  [filters]="columnFilters()"
+  (filtersChange)="columnFilters.set($event)"
+  [optionRows]="data.warehouseVouchers()"
+  [emptyTitle]="chips().length || search() ? 'Không có phiếu phù hợp' : 'Chưa có phiếu kho nào'"
+  [emptyHint]="chips().length || search() ? 'Thử bỏ bớt bộ lọc hoặc mở rộng khoảng ngày.' : 'Lập phiếu nhập, xuất, chuyển kho hoặc kiểm kê để bắt đầu.'"
 />
+
+<app-pagination [total]="vouchers().length" unit="phiếu" [(page)]="page" [(pageSize)]="pageSize" />
+
+<ng-template #rowActions let-v>
+  <span class="row-actions">
+    <a class="icon-action" [routerLink]="['/kho/phieu', v.id]" [attr.aria-label]="'Xem ' + v.code" title="Xem phiếu"><app-nav-icon name="eye" /></a>
+  </span>
+</ng-template>

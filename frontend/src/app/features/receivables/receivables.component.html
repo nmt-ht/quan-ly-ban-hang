@@ -1,22 +1,96 @@
-<div class="page-header">
-  <div>
-    <h1>Công nợ phải thu</h1>
-    <p class="subtitle">{{ rows().length }} khách hàng</p>
+@if (notice()) {
+  <div class="notice" role="status">
+    <span>{{ notice() }}</span>
+    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
   </div>
-  <div class="toolbar">
-    <button class="btn">Xuất Excel</button>
-    <a class="btn" routerLink="/cong-no/tuoi-no">Báo cáo tuổi nợ</a>
+}
+
+@if (partnerId(); as id) {
+  <app-debt-ledger side="PHAI_THU" [partnerId]="id" />
+} @else {
+  <div class="page-header">
+    <div>
+      <h1>Công nợ phải thu</h1>
+      <p class="subtitle">{{ rows().length }} khách hàng</p>
+    </div>
+    <div class="toolbar">
+      <button type="button" class="btn" [disabled]="exporting()" (click)="exportExcel()">
+        <app-nav-icon name="download" />{{ exporting() ? 'Đang xuất…' : 'Xuất Excel' }}
+      </button>
+      <a class="btn" routerLink="/cong-no/tuoi-no" [queryParams]="{ loai: 'phai-thu' }">Báo cáo tuổi nợ</a>
+      <a class="btn btn-primary" routerLink="/thu-chi/lap/thu" [queryParams]="{ back: '/cong-no/khach-hang' }"><app-nav-icon name="cash" />Lập phiếu thu</a>
+    </div>
   </div>
-</div>
 
-<div class="filters-bar">
-  <input type="text" placeholder="Tìm khách hàng..." class="filter-search" />
-  <button class="btn">Chỉ đối tác còn nợ</button>
-</div>
+  <div class="filters-bar">
+    <input
+      type="text"
+      class="filter-search"
+      placeholder="Tìm khách hàng…"
+      aria-label="Tìm khách hàng"
+      [value]="search()"
+      (input)="search.set($any($event.target).value)"
+    />
+    <app-filter-multi-select label="Loại khách" [options]="typeOptions()" [(selected)]="types" />
+    <button type="button" class="filter-toggle" [attr.aria-pressed]="owingOnly()" (click)="owingOnly.set(!owingOnly())">Chỉ đối tác còn nợ</button>
+    <button type="button" class="filter-toggle" [attr.aria-pressed]="overdueOnly()" (click)="overdueOnly.set(!overdueOnly())">Chỉ quá hạn</button>
+    <select aria-label="Sắp xếp" [value]="sort()" (change)="sort.set($any($event.target).value)">
+      @for (s of sorts; track s.value) {
+        <option [value]="s.value">{{ s.label }}</option>
+      }
+    </select>
+  </div>
 
-<div class="stat-grid">
-  <app-stat-card label="Tổng phải thu (trang này)" [value]="formatVnd(totalBalance())" [negative]="totalBalance() < 0" />
-  <app-stat-card label="Trong đó quá hạn" [value]="formatVnd(totalOverdue())" />
-</div>
+  @if (rows().length) {
+    <dl class="list-totals">
+      <div><dt>Tổng phải thu</dt><dd class="num" [class.amt-neg]="totals().balance < 0">{{ money(totals().balance) }}</dd></div>
+      <div><dt>Trong đó quá hạn</dt><dd class="num" [class.text-danger]="totals().overdue > 0">{{ money(totals().overdue) }}</dd></div>
+      <div><dt>Khách nợ quá hạn</dt><dd class="num">{{ totals().overdueCustomers }}</dd></div>
+      <div><dt>Trả trước chưa dùng</dt><dd class="num">{{ money(totals().prepaid) }}</dd></div>
+    </dl>
 
-<app-data-table [columns]="columns" [rows]="rows()" emptyTitle="Không có công nợ phải thu" />
+    @if (totals().open > 0) {
+      <section class="aging-strip" aria-label="Cơ cấu nợ theo tuổi nợ">
+        <div class="aging-bar" aria-hidden="true">
+          @for (a of totals().aging; track a.key) {
+            @if (a.amount > 0) {
+              <span [class]="'aging-seg aging-' + a.key" [style.flex-grow]="a.amount"></span>
+            }
+          }
+        </div>
+        <dl class="aging-legend">
+          @for (a of totals().aging; track a.key) {
+            <div>
+              <dt><span [class]="'aging-dot aging-' + a.key" aria-hidden="true"></span>{{ a.label }}</dt>
+              <dd class="num">{{ money(a.amount) }} <span class="aging-pct">{{ percent(a.amount, totals().open) }}%</span></dd>
+            </div>
+          }
+        </dl>
+      </section>
+    }
+  }
+
+  <app-data-table
+    [columns]="columns"
+    [rows]="pagedRows()"
+    [actions]="rowActions"
+    [filterable]="true"
+    [filters]="columnFilters()"
+    (filtersChange)="columnFilters.set($event)"
+    [emptyTitle]="hasFilters() ? 'Không có khách hàng phù hợp' : 'Không có công nợ phải thu'"
+    [emptyHint]="hasFilters() ? 'Thử bỏ bớt bộ lọc hoặc đổi từ khoá tìm kiếm.' : 'Công nợ phải thu chỉ ghi khi khách thực nhận hàng.'"
+  />
+
+  <app-pagination [total]="rows().length" unit="khách hàng" [(page)]="page" [(pageSize)]="pageSize" />
+
+  <ng-template #rowActions let-r>
+    <span class="row-actions">
+      <a class="icon-action" routerLink="/thu-chi/lap/thu" [queryParams]="{ customerId: r.partnerId, back: '/cong-no/khach-hang' }" [attr.aria-label]="'Lập phiếu thu của ' + r.name" title="Lập phiếu thu">
+        <app-nav-icon name="cash" />
+      </a>
+      <a class="icon-action" routerLink="/cong-no/khach-hang" [queryParams]="{ partnerId: r.partnerId }" [attr.aria-label]="'Sổ chi tiết công nợ ' + r.name" title="Sổ chi tiết công nợ">
+        <app-nav-icon name="eye" />
+      </a>
+    </span>
+  </ng-template>
+}

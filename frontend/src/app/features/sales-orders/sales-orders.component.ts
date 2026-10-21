@@ -15,6 +15,7 @@ import { PERIOD_PRESETS, formatDay, inRange, isoDay, rangeLabel } from '../../sh
 import { SALES_ORDER_STATUS_LABEL, salesOrderStatusClass } from '../../shared/status-labels';
 import { tagClass } from '../../shared/tag-class';
 import { downloadWorkbook, todayStamp } from '../../shared/excel.util';
+import { tagStyle } from '../../shared/tag-colors';
 import { canEdit, deliveredPercent, lineRemaining } from './sales-order.rules';
 
 interface ActiveChip {
@@ -185,13 +186,22 @@ export class SalesOrdersComponent {
     },
     { key: 'status', label: 'Trạng thái', format: (r) => SALES_ORDER_STATUS_LABEL[r.status], badge: (r) => salesOrderStatusClass(r.status) },
     { key: 'salesRep', label: 'Nhân viên bán', format: (r) => this.userName(r.salesRep) },
+    {
+      key: 'tagIds', label: 'Thẻ', format: (r) => r.tagIds.map((t) => this.tagById().get(t) ?? t).join(', ') || '—',
+      chips: (r) => r.tagIds.flatMap((id) => {
+        const t = this.data.tags().find((x) => x.id === id);
+        return t ? [{ label: t.name, style: tagStyle(t.color) }] : [];
+      }),
+    },
   ];
 
   readonly canEdit = (o: SalesOrder) => canEdit(o, this.data.productionOrders().filter((x) => x.sourceOrderId === o.id));
 
   constructor() {
     // ?status=PENDING|SHIPPING|<code> from dashboard shortcuts.
-    const q = inject(ActivatedRoute).snapshot.queryParamMap.get('status');
+    const params = inject(ActivatedRoute).snapshot.queryParamMap;
+    if (params.get('late')) this.lateOnly.set(true);
+    const q = params.get('status');
     if (q) {
       const s = STATUS_ALIASES[q] ?? (q in SALES_ORDER_STATUS_LABEL ? (q as SalesOrderStatus) : null);
       if (s) this.statuses.set([s]);

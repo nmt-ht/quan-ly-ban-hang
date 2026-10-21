@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, Output, TemplateRef } from '@angular/co
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { CopyButtonComponent } from '../copy-button/copy-button.component';
+import { amountTone } from '../format.util';
 import { ColumnFilterKind, ColumnFilters, columnFilterKind, isActiveFilters, numberPredicate, selectOptions } from '../column-filter';
 
 export interface DataTableColumn<T> {
@@ -21,9 +22,14 @@ export interface DataTableColumn<T> {
   // Thumbnail column: image URL for the row, or undefined for the placeholder.
   image?: (row: T) => string | undefined;
   // Render the value as a router link (e.g. a code that opens the detail page).
-  link?: (row: T) => string | unknown[];
+  link?: (row: T) => string | unknown[] | null; // null → plain text for this row
   // Query params for that link (e.g. ?partnerId= on the same page).
   linkQuery?: (row: T) => Record<string, string>;
+  // Colour the cell by sign (format.util › amountTone): return the signed amount; `flow` = also green when positive.
+  tone?: (row: T) => number | null | undefined;
+  // Render coloured chips (e.g. thẻ đánh dấu) instead of text; filtering still uses `format`.
+  chips?: (row: T) => { label: string; style: Record<string, string> }[];
+  toneFlow?: boolean;
 }
 
 @Component({
@@ -89,16 +95,23 @@ export interface DataTableColumn<T> {
               [style.textAlign]="col.align || 'left'"
               [class.num]="col.align === 'right'"
               [class.code]="isCode(col)"
+              [ngClass]="col.tone ? toneClass(col, row) : ''"
             >
               <ng-container *ngIf="col.image; else textCell">
                 <img *ngIf="col.image(row) as src; else noImg" class="thumb" [src]="src" alt="" loading="lazy" />
                 <ng-template #noImg><span class="thumb thumb-empty" aria-hidden="true"></span></ng-template>
               </ng-container>
               <ng-template #textCell>
-                <span *ngIf="col.badge; else plain" class="badge" [ngClass]="col.badge(row)">{{ cellText(col, row) }}</span>
+                <span *ngIf="col.chips" class="dt-chips">
+                  <span *ngFor="let c of col.chips(row)" class="badge tag" [ngStyle]="c.style">{{ c.label }}</span>
+                  <span *ngIf="!col.chips(row).length" class="dt-none">—</span>
+                </span>
+                <span *ngIf="col.badge && !col.chips; else plain" class="badge" [ngClass]="col.badge(row)">{{ cellText(col, row) }}</span>
                 <ng-template #plain>
-                  <a *ngIf="col.link; else text" class="code-link" [routerLink]="col.link(row)" [queryParams]="col.linkQuery?.(row)">{{ cellText(col, row) }}</a>
+                  <ng-container *ngIf="!col.chips">
+                  <a *ngIf="col.link?.(row); else text" class="code-link" [routerLink]="col.link!(row)" [queryParams]="col.linkQuery?.(row)">{{ cellText(col, row) }}</a>
                   <ng-template #text>{{ cellText(col, row) }}</ng-template>
+                  </ng-container>
                 </ng-template>
               </ng-template>
               <app-copy-button *ngIf="col.copy" class="cell-copy" [text]="cellText(col, row)" [label]="col.label.toLowerCase()" />
@@ -145,6 +158,8 @@ export interface DataTableColumn<T> {
     }
     th.actions-cell { background: var(--color-paper-2); }
     /* Copy button appears on row hover / focus so the column stays quiet. */
+    .dt-chips { display: inline-flex; flex-wrap: wrap; gap: 4px; white-space: normal; }
+    .dt-none { color: var(--color-muted); }
     .cell-copy { margin-left: var(--space-3xs); opacity: 0; transition: opacity var(--dur-short) var(--ease-out); }
     tr:hover .cell-copy, .cell-copy:focus-within { opacity: 1; }
     @media (hover: none) { .cell-copy { opacity: 1; } }
@@ -226,6 +241,10 @@ export class DataTableComponent<T extends Record<string, any> = any> {
   }
 
   // Identifiers (order codes, tax codes, plates) read better in mono.
+  toneClass(col: DataTableColumn<T>, row: T): string {
+    return amountTone(col.tone?.(row), col.toneFlow !== false);
+  }
+
   isCode(col: DataTableColumn<T>): boolean {
     return col.mono ?? CODE_KEYS.has(col.key);
   }

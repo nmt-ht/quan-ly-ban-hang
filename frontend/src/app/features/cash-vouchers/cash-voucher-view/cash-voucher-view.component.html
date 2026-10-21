@@ -1,0 +1,152 @@
+@if (voucher(); as v) {
+  <div class="voucher screen-only">
+    <header class="voucher-bar">
+      <a class="icon-action" routerLink="/thu-chi" aria-label="Về danh sách phiếu thu chi" title="Về danh sách"><app-nav-icon name="arrow-left" /></a>
+      <h1>{{ title() }} <span class="num">{{ v.code }}</span></h1>
+      <app-copy-button [text]="v.code" label="số phiếu" />
+      @if (v.isCancelled) { <span class="badge cvv-cancelled">Đã huỷ</span> }
+    </header>
+
+    @if (notice()) {
+      <div class="notice" role="status">
+        <span>{{ notice() }}</span>
+        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+      </div>
+    }
+
+    <section class="card voucher-head">
+      <div class="head-fields">
+        <div class="field">
+          <span class="field-label">{{ isThu() ? 'Loại thu' : 'Loại chi' }}</span>
+          <p class="field-value">{{ v.category }}</p>
+        </div>
+        <div class="field">
+          <span class="field-label">Ngày phiếu</span>
+          <p class="field-value num">{{ day(v.date) }}</p>
+        </div>
+        <div class="field">
+          <span class="field-label">Số phiếu</span>
+          <p class="field-value num">{{ v.code }}</p>
+        </div>
+        <div class="field">
+          <span class="field-label">Hình thức</span>
+          <p class="field-value">{{ method() }}</p>
+        </div>
+
+        <div class="field span-2">
+          <span class="field-label">{{ isThu() ? 'Người nộp / khách hàng' : 'Người nhận / nhà cung cấp' }}</span>
+          <p class="field-value">
+            @if (partner(); as p) {
+              <a class="code-link num" [routerLink]="p.link">{{ p.code }}</a>&nbsp;{{ p.name }}
+            } @else { Không gắn đối tác }
+          </p>
+        </div>
+        <div class="field span-2">
+          <span class="field-label">{{ isThu() ? 'Tài khoản nhận tiền' : 'Tài khoản chi tiền' }}</span>
+          <p class="field-value">{{ account()?.name ?? v.accountId }}{{ account()?.accountNumber ? ' · ' + account()!.accountNumber : '' }}</p>
+        </div>
+
+        <div class="field span-full">
+          <span class="field-label">Diễn giải</span>
+          <p class="field-value">{{ v.description || '—' }}</p>
+        </div>
+        <div class="field span-2">
+          <span class="field-label">Người lập</span>
+          <p class="field-value">{{ creator(v.createdBy) }}{{ v.createdAt ? ' · ' + time(v.createdAt) : '' }}</p>
+        </div>
+        @if (v.isCancelled) {
+          <div class="field span-2">
+            <span class="field-label">Huỷ lúc</span>
+            <p class="field-value text-danger">{{ time(v.cancelledAt) }}{{ v.cancelReason ? ' · ' + v.cancelReason : '' }}</p>
+          </div>
+        }
+      </div>
+
+      <aside class="head-summary">
+        <p class="summary-label">Số tiền</p>
+        <p class="summary-total num" [class.cvv-strike]="v.isCancelled" [class.amt-pos]="!v.isCancelled && isThu()" [class.amt-neg]="!v.isCancelled && !isThu()">{{ signed(isThu() ? v.amount : -v.amount) }}</p>
+        <p class="summary-sub cvv-words">{{ words(v.amount) }}</p>
+        @if (settlement(); as s) {
+          <dl class="cvv-settle">
+            <div><dt>Đối trừ công nợ</dt><dd class="num">{{ money(s.settled) }}</dd></div>
+            <div><dt>Ghi nhận trả trước</dt><dd class="num">{{ money(s.remaining) }}</dd></div>
+          </dl>
+        }
+      </aside>
+    </section>
+
+    @if (v.allocations?.length) {
+      <section class="card cvv-alloc">
+        <h3>Đối trừ chọn tay</h3>
+        <ul>
+          @for (a of v.allocations; track a.ref) { <li><span class="num">{{ a.ref }}</span> · <span class="num">{{ money(a.amount) }}</span></li> }
+        </ul>
+      </section>
+    }
+
+    <footer class="voucher-actions">
+      <p class="actions-hint">
+        {{ v.isCancelled ? 'Phiếu đã huỷ — không tính vào số dư quỹ, báo cáo và công nợ.' : 'Muốn sửa: huỷ phiếu rồi lập lại để giữ dấu vết.' }}
+      </p>
+      <div class="toolbar">
+        <button type="button" class="btn" (click)="print()"><app-nav-icon name="printer" />In phiếu</button>
+        @if (partner(); as p) {
+          <a class="btn" [routerLink]="p.ledger" [queryParams]="{ partnerId: p.id }">Sổ công nợ</a>
+        }
+        @if (!v.isCancelled) {
+          <button type="button" class="btn btn-danger-ghost" (click)="confirmCancel.set(true)">Huỷ phiếu</button>
+        }
+        <a class="btn btn-primary" [routerLink]="isThu() ? '/thu-chi/lap/thu' : '/thu-chi/lap/chi'"><app-nav-icon name="plus" />Lập {{ title().toLowerCase() }} mới</a>
+      </div>
+    </footer>
+  </div>
+
+  @if (confirmCancel()) {
+    <div class="confirm-strip" role="alertdialog" aria-labelledby="cvv-cancel-title">
+      <p id="cvv-cancel-title"><strong>Huỷ {{ v.code }}?</strong> Phiếu vẫn lưu để đối chiếu nhưng không tính vào số dư quỹ và công nợ nữa.</p>
+      <input type="text" placeholder="Lý do huỷ" aria-label="Lý do huỷ" [ngModel]="cancelReason()" (ngModelChange)="cancelReason.set($event)" />
+      <div class="toolbar">
+        <button type="button" class="btn" (click)="confirmCancel.set(false)">Không huỷ</button>
+        <button type="button" class="btn btn-danger" (click)="doCancel()">Huỷ phiếu</button>
+      </div>
+    </div>
+  }
+
+  <!-- Mẫu in phiếu thu / phiếu chi -->
+  <article class="print-only cvv-print">
+    <header class="cvv-print-head">
+      <div>
+        <strong>{{ company().name }}</strong>
+        @if (company().address) { <div>{{ company().address }}</div> }
+        @if (company().taxCode) { <div>MST: {{ company().taxCode }}</div> }
+      </div>
+      <div class="cvv-print-no">
+        <div>Số: <strong>{{ v.code }}</strong></div>
+        @if (v.isCancelled) { <div><strong>ĐÃ HUỶ</strong></div> }
+      </div>
+    </header>
+    <h2>{{ title().toUpperCase() }}</h2>
+    <p class="cvv-print-date">Ngày {{ v.date.slice(8, 10) }} tháng {{ v.date.slice(5, 7) }} năm {{ v.date.slice(0, 4) }}</p>
+    <dl class="cvv-print-body">
+      <div><dt>{{ isThu() ? 'Họ và tên người nộp tiền:' : 'Họ và tên người nhận tiền:' }}</dt><dd>{{ partner()?.contact || '' }}</dd></div>
+      <div><dt>Đơn vị:</dt><dd>{{ partner()?.name || '' }}</dd></div>
+      <div><dt>Địa chỉ:</dt><dd>{{ partner()?.address || '' }}</dd></div>
+      <div><dt>{{ isThu() ? 'Lý do nộp:' : 'Lý do chi:' }}</dt><dd>{{ v.description || v.category }}</dd></div>
+      <div><dt>Số tiền:</dt><dd><strong>{{ money(v.amount) }}</strong> ({{ method() }})</dd></div>
+      <div><dt>Viết bằng chữ:</dt><dd><em>{{ words(v.amount) }}</em></dd></div>
+    </dl>
+    <div class="cvv-sign">
+      <div><strong>Giám đốc</strong><span>(Ký, họ tên, đóng dấu)</span></div>
+      <div><strong>Kế toán trưởng</strong><span>(Ký, họ tên)</span></div>
+      <div><strong>{{ isThu() ? 'Người nộp tiền' : 'Người nhận tiền' }}</strong><span>(Ký, họ tên)</span></div>
+      <div><strong>Người lập phiếu</strong><span>(Ký, họ tên)</span><span class="cvv-signer">{{ creator(v.createdBy) }}</span></div>
+      <div><strong>Thủ quỹ</strong><span>(Ký, họ tên)</span></div>
+    </div>
+  </article>
+} @else {
+  <div class="card empty-state">
+    <h3>Không tìm thấy phiếu</h3>
+    <p>Đường dẫn có thể không đúng.</p>
+    <a class="btn" routerLink="/thu-chi">Về phiếu thu chi</a>
+  </div>
+}

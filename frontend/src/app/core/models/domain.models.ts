@@ -95,12 +95,21 @@ export interface WarehouseVoucher {
   purchaseOrderId?: string; // phiếu nhập lập từ "Nhận hàng" của đơn nhập
   salesOrderId?: string; // phiếu xuất lập từ "Giao hàng" của đơn bán
   productionOrderId?: string; // phiếu xuất vật tư / nhập thành phẩm của lệnh sản xuất
+  note?: string;
+  createdAt?: string;
+  cancelReason?: string;
+  cancelledAt?: string;
 }
 
 export interface WarehouseVoucherLine {
   productId: string;
-  quantity: number; // kiểm kê: the counted quantity
+  quantity: number; // ĐVT chính; kiểm kê: the counted quantity
   delta: number; // stock change magnitude; sign comes from the voucher type (kiểm kê: signed)
+  unitName?: string; // ĐVT nhập trên phiếu (đơn vị quy đổi), nếu khác ĐVT chính
+  unitQuantity?: number; // số lượng theo unitName
+  unitPrice?: number; // phiếu nhập: đơn giá nhập theo ĐVT chính
+  bookQuantity?: number; // kiểm kê: tồn sổ sách lúc lưu
+  note?: string;
 }
 
 export type ProductionOrderStatus = 'NHAP' | 'DANG_SAN_XUAT' | 'HOAN_TAT' | 'HUY';
@@ -116,6 +125,10 @@ export interface ProductionOrder {
   startDate?: string;
   completeDate?: string;
   cancelReason?: string;
+  bomSnapshot?: { componentId: string; quantityPerUnit: number }[]; // định mức chụp lúc lập lệnh
+  producedQuantity?: number; // số thực nhập kho khi hoàn tất (hàng hỏng làm số này < quantity)
+  note?: string;
+  createdBy?: string;
 }
 
 export interface Supplier {
@@ -261,24 +274,69 @@ export interface DeliveryTrip {
   code: string;
   date: string;
   driverName?: string;
+  driverPhone?: string;
   plateNumber?: string;
   status: DeliveryTripStatus;
   orderIds: string[];
-  totalValue: number;
-  vehicleId?: string;
-  confirmedCount: number;
-  receivedValue: number;
+  totalValue: number; // giá trị hàng trên chuyến (gồm thuế, sau chiết khấu)
+  vehicleId?: string; // trống = xe thuê ngoài
+  confirmedCount: number; // số đơn đã chốt giao
+  receivedValue: number; // khách thực nhận trên chuyến này
+  note?: string;
+  createdBy?: string;
+  createdAt?: string;
+  shippedAt?: string; // xuất kho lúc
+  returnedAt?: string; // về kho lúc
+  completedAt?: string;
+  cancelReason?: string;
+  costs?: TripCosts;
+  loads?: TripLoad[]; // hàng xếp lên xe lúc xuất kho, theo ĐVT của dòng đơn
+  confirmations?: TripConfirmation[];
 }
 
+/** Chi phí điều vận — không phải phiếu chi (tiền thật vẫn lập phiếu chi ở Thu chi). */
+export interface TripCosts {
+  fuel: number; // tiền dầu
+  toll: number; // cầu đường, bến bãi
+  other: number;
+  note?: string;
+}
+
+export interface TripLoad {
+  orderId: string;
+  lineIndex: number;
+  productId: string;
+  quantity: number;
+  warehouseId?: string; // trống = dịch vụ, không xuất kho
+}
+
+export interface TripConfirmation {
+  orderId: string;
+  confirmedAt: string;
+  lines: { lineIndex: number; received: number }[];
+  note?: string;
+}
+
+export type VehicleType = 'XE_TAI' | 'XE_VAN' | 'XE_BA_GAC' | 'XE_MAY' | 'KHAC';
+export type VehicleStatus = 'DANG_DUNG' | 'BAO_TRI' | 'NGUNG_DUNG';
+
+/** Xe của công ty (xe thuê ngoài không khai — lập chuyến gõ thẳng biển số). */
 export interface Vehicle {
   id: string;
   code: string;
   plateNumber: string;
-  type: string;
-  loadCapacity?: number;
-  usualDriver?: string;
-  status: 'DANG_DUNG' | 'RANH' | 'BAO_TRI';
-  currentTripCode?: string;
+  name?: string; // tên gọi
+  type: VehicleType;
+  loadCapacity?: number; // kg
+  status: VehicleStatus; // "đang ở chuyến nào" suy ra từ chuyến, không lưu ở đây
+  registrationExpiry?: string; // hạn đăng kiểm
+  insuranceExpiry?: string; // hạn bảo hiểm
+  driverUserId?: string; // tài xế thường chạy: nhân viên trong hệ thống…
+  usualDriver?: string; // …hoặc tên tài xế (thuê ngoài); khi gắn nhân viên thì là tên nhân viên
+  driverPhone?: string;
+  note?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export type CashAccountType = 'TIEN_MAT' | 'NGAN_HANG';
@@ -287,7 +345,28 @@ export interface CashAccount {
   id: string;
   name: string;
   type: CashAccountType;
-  balance: number;
+  balance: number; // số dư hiện tại = số dư đầu kỳ + thu − chi (phiếu chưa huỷ); CashVoucherService giữ đồng bộ
+  code?: string; // TM, TCB-9999…
+  bankName?: string;
+  accountNumber?: string;
+  accountHolder?: string;
+  branch?: string;
+  openingBalance?: number; // số dư trước khi dùng phần mềm
+  sortOrder?: number;
+  note?: string;
+  isDefault?: boolean; // chọn sẵn khi lập phiếu
+  isActive?: boolean; // false = ngừng dùng
+}
+
+/** Loại thu chi — quyết định phiếu gắn khách hàng, nhà cung cấp hay không gắn đối tác. */
+export interface CashCategory {
+  code: string;
+  name: string;
+  kind: VoucherKind;
+  partnerType: 'KHACH_HANG' | 'NHA_CUNG_CAP' | 'KHAC';
+  isDefault?: boolean;
+  isActive: boolean;
+  isSystem?: boolean; // loại mặc định của hệ thống: không đổi được cách gắn đối tác
 }
 
 export type VoucherKind = 'THU' | 'CHI'; // receipt | payment
@@ -307,6 +386,8 @@ export interface CashVoucher {
   /** Đối trừ "Chọn tay": số tiền trừ vào từng chứng từ (mã đơn). Phần còn lại đối trừ cũ nhất trước. */
   allocations?: CashAllocation[];
   isCancelled: boolean;
+  cancelReason?: string;
+  cancelledAt?: string;
   createdBy: string;
   createdAt?: string;
 }
@@ -325,12 +406,17 @@ export interface DebtAgingBucket {
   total: number;
 }
 
+export type TagColorKey =
+  | 'gray' | 'red' | 'orange' | 'amber' | 'lime' | 'emerald' | 'teal' | 'cyan' | 'blue' | 'indigo' | 'violet' | 'pink';
+
+/** Thẻ đánh dấu — một danh mục dùng chung cho đơn hàng bán và khách hàng. */
 export interface Tag {
   id: string;
   name: string;
+  color?: TagColorKey; // mặc định Xanh dương
   sortOrder: number;
-  orderCount: number;
-  customerCount: number;
+  orderCount?: number; // legacy; counts are derived from orders / customers
+  customerCount?: number;
   isActive: boolean;
 }
 
@@ -367,5 +453,13 @@ export interface AppUser {
   roleId: string;
   lastLoginAt?: string;
   openSessions: number;
-  status: 'ACTIVE' | 'DISABLED';
+  status: 'ACTIVE' | 'DISABLED'; // Đang hoạt động / Đã khoá
+  phone?: string;
+  note?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  passwordUpdatedAt?: string; // mật khẩu không bao giờ lưu ở frontend — chỉ ghi lúc đổi
+  mustChangePassword?: boolean; // bắt đổi mật khẩu ở lần đăng nhập tới
+  lockedAt?: string;
+  lockedReason?: string;
 }
