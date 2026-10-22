@@ -125,9 +125,10 @@ async function main() {
     await prisma.purchaseOrder.create({
       data: {
         id: o.id, code: o.code, supplierId: o.supplierId, date: new Date(o.date), status: o.status,
+        receivedDate: D(o.receivedDate),
         createdById: user[o.createdByKey],
-        lines: { create: o.lines.map((l: any) => ({
-          productId: l.productId, quantity: l.quantity, unitPrice: l.unitPrice, receivedQuantity: l.receivedQuantity,
+        lines: { create: o.lines.map((l: any, i: number) => ({
+          id: l.id, productId: l.productId, quantity: l.quantity, unitPrice: l.unitPrice, receivedQuantity: l.receivedQuantity, sortOrder: i,
         })) },
       },
     });

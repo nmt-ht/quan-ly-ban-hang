@@ -1350,6 +1350,7 @@
       "code": "DN0000001",
       "supplierId": "ncc-1",
       "date": "2026-08-02T02:00:00.000Z",
+      "receivedDate": "2026-08-06",
       "status": "HOAN_TAT",
       "createdByKey": "user-quanly",
       "lines": [
@@ -1381,6 +1382,7 @@
       "code": "DN0000002",
       "supplierId": "ncc-2",
       "date": "2026-08-04T02:00:00.000Z",
+      "receivedDate": "2026-08-09",
       "status": "HOAN_TAT",
       "createdByKey": "user-quanly",
       "lines": [
@@ -1405,6 +1407,7 @@
       "code": "DN0000003",
       "supplierId": "ncc-3",
       "date": "2026-08-10T02:00:00.000Z",
+      "receivedDate": "2026-08-15",
       "status": "DA_NHAN_DU",
       "createdByKey": "user-quanly",
       "lines": [
@@ -1436,6 +1439,7 @@
       "code": "DN0000004",
       "supplierId": "ncc-4",
       "date": "2026-08-20T02:00:00.000Z",
+      "receivedDate": "2026-08-23",
       "status": "HOAN_TAT",
       "createdByKey": "user-quanly",
       "lines": [
@@ -1481,6 +1485,7 @@
       "code": "DN0000005",
       "supplierId": "ncc-1",
       "date": "2026-09-15T02:00:00.000Z",
+      "receivedDate": "2026-09-22",
       "status": "NHAN_MOT_PHAN",
       "createdByKey": "user-quanly",
       "lines": [
@@ -1570,6 +1575,7 @@
       "code": "DN0000009",
       "supplierId": "ncc-4",
       "date": "2026-10-10T02:00:00.000Z",
+      "receivedDate": "2026-10-13",
       "status": "HOAN_TAT",
       "createdByKey": "user-quanly",
       "lines": [

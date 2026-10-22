@@ -657,7 +657,7 @@ const be = clean({
   suppliers: feSuppliers,
   supplierProducts: feSupplierProducts,
   customers: feCustomers.map(({ orderCount: _n, ...c }) => c),
-  purchaseOrders: purchaseOrders.map((p) => ({ id: p.id, code: p.code, supplierId: p.supplierId, date: iso(p.date), status: p.status, createdByKey: p.createdBy, lines: p.lines })),
+  purchaseOrders: purchaseOrders.map((p) => ({ id: p.id, code: p.code, supplierId: p.supplierId, date: iso(p.date), receivedDate: p.receivedDate, status: p.status, createdByKey: p.createdBy, lines: p.lines })),
   salesOrders: orders.map((o) => ({
     id: o.id, code: o.code, customerId: o.customerId, recipientName: o.recipientName, recipientPhone: o.recipientPhone, description: o.description, source: o.source,
     orderDate: iso(o.orderDate), neededByDate: o.neededByDate ? iso(o.neededByDate) : undefined, status: o.status, discountAmount: o.discountAmount,

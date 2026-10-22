@@ -7,6 +7,7 @@ import { isoDay } from '../../../shared/period';
 import { formatVnd } from '../../../shared/format.util';
 import { lineRemaining, round4 } from '../purchase-order.rules';
 import { PurchaseOrderService } from '../purchase-order.service';
+import { errorText } from '../../../core/api/api.service';
 
 interface ReceiveRow {
   lineIndex: number;
@@ -38,6 +39,9 @@ export class ReceiveGoodsDialogComponent {
 
   readonly rows = signal<ReceiveRow[]>([]);
   readonly date = signal(isoDay(new Date()));
+  /** Why the server refused the receipt (shown in the footer). */
+  readonly error = signal('');
+  readonly busy = signal(false);
   readonly note = signal('');
   readonly attempted = signal(false);
   readonly money = formatVnd;
@@ -115,15 +119,25 @@ export class ReceiveGoodsDialogComponent {
     return out;
   });
 
-  confirm(): void {
+  async confirm(): Promise<void> {
     this.attempted.set(true);
-    if (this.issues().length) return;
-    const vouchers = this.orders.receive(
-      this.order().id,
-      this.receiving().map((r) => ({ lineIndex: r.lineIndex, quantity: r.quantity ?? 0, warehouseId: r.warehouseId })),
-      this.date(),
-      this.note().trim(),
-    );
+    if (this.issues().length || this.busy()) return;
+    this.busy.set(true);
+    this.error.set('');
+    let vouchers;
+    try {
+      vouchers = await this.orders.receive(
+        this.order().id,
+        this.receiving().map((r) => ({ lineIndex: r.lineIndex, quantity: r.quantity ?? 0, warehouseId: r.warehouseId })),
+        this.date(),
+        this.note().trim(),
+      );
+    } catch (e) {
+      this.error.set(errorText(e));
+      return;
+    } finally {
+      this.busy.set(false);
+    }
     this.close();
     this.received.emit(
       `Đã nhận hàng: lập ${vouchers.map((v) => v.code).join(', ')} — tồn kho và công nợ phải trả đã cập nhật (+${formatVnd(this.value())}).`,

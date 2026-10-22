@@ -1,12 +1,12 @@
 import { Injectable, inject, signal } from '@angular/core';
 import {
-  AppUser, BomLine, StockLevel, WarehouseVoucher, CashAccount, CashCategory, CompanyInfo, Customer, Product, ProductCategory, Role, Supplier, SupplierProduct, Tag, Vehicle,
+  AppUser, BomLine, PurchaseOrder, StockLevel, WarehouseVoucher, CashAccount, CashCategory, CompanyInfo, Customer, Product, ProductCategory, Role, Supplier, SupplierProduct, Tag, Vehicle,
   Warehouse,
 } from '../models/domain.models';
 import { MockDataService } from '../services/mock-data.service';
 import { AuthService } from '../services/auth.service';
 import { ApiService, errorText } from './api.service';
-import { CATALOG_FROM_API, INVENTORY_FROM_API } from './api.config';
+import { CATALOG_FROM_API, INVENTORY_FROM_API, PURCHASING_FROM_API } from './api.config';
 
 type DirectoryUser = Pick<AppUser, 'id' | 'name' | 'email' | 'roleId' | 'status'>;
 
@@ -59,6 +59,7 @@ export class CatalogLoader {
     const can = (c: string) => this.auth.can(c);
     try {
       if (INVENTORY_FROM_API) await this.loadInventory();
+      if (PURCHASING_FROM_API) this.data.purchaseOrders.set(await this.api.get<PurchaseOrder[]>('/purchase-orders'));
       if (!CATALOG_FROM_API) {
         this.status.set('ready');
         return;

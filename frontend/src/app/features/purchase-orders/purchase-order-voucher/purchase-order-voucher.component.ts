@@ -24,6 +24,7 @@ import {
 import { PurchaseOrderService } from '../purchase-order.service';
 import { ReceiveGoodsDialogComponent } from '../receive-goods-dialog/receive-goods-dialog.component';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
+import { errorText } from '../../../core/api/api.service';
 
 type Mode = 'create' | 'edit' | 'view';
 
@@ -94,6 +95,9 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
   readonly attempted = signal(false);
   readonly tab = signal<'hang' | 'phieu'>('hang');
   readonly notice = signal('');
+  /** A save or status change the server refused (or that could not reach it). */
+  readonly failure = signal('');
+  readonly busy = signal(false);
   readonly confirmCancel = signal(false);
   readonly cancelReason = signal('');
 
@@ -326,9 +330,9 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
   }
 
   // ---------- save ----------
-  save(): void {
+  async save(): Promise<void> {
     this.attempted.set(true);
-    if (this.issues().length) return;
+    if (this.issues().length || this.busy()) return;
     const draft = {
       supplierId: this.supplierId(),
       date: this.date(),
@@ -336,9 +340,24 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
       lines: this.validLines().map((l) => this.toLine(l)),
     };
     const id = this.id();
-    const o = this.mode() === 'edit' && id ? this.orders.update(id, draft) : this.orders.create(draft);
+    const o = await this.attempt(() => (this.mode() === 'edit' && id ? this.orders.update(id, draft) : this.orders.create(draft)));
+    if (!o) return;
     this.baseline = this.snapshot();
     this.router.navigate(['/mua-hang', o.id], { state: { notice: this.mode() === 'edit' ? 'Đã lưu thay đổi.' : `Đã tạo đơn ${o.code}.` } });
+  }
+
+  /** Runs a save; on failure shows why and answers null. */
+  private async attempt<T>(save: () => Promise<T>): Promise<T | null> {
+    this.busy.set(true);
+    this.failure.set('');
+    try {
+      return await save();
+    } catch (e) {
+      this.failure.set(errorText(e));
+      return null;
+    } finally {
+      this.busy.set(false);
+    }
   }
 
   cancelEditing(): void {
@@ -356,20 +375,20 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
   readonly canCancel = computed(() => !!this.order() && canCancel(this.order()!));
   readonly percent = computed(() => (this.order() ? receivedPercent(this.order()!) : 0));
 
-  send(): void {
-    this.orders.send(this.id()!);
+  async send(): Promise<void> {
+    if ((await this.attempt(() => this.orders.send(this.id()!).then(() => true))) === null) return;
     this.notice.set('Đã chuyển đơn sang "Đã gửi NCC".');
   }
 
-  complete(): void {
-    this.orders.complete(this.id()!);
+  async complete(): Promise<void> {
+    if ((await this.attempt(() => this.orders.complete(this.id()!).then(() => true))) === null) return;
     this.notice.set('Đơn đã hoàn tất.');
   }
 
-  doCancel(): void {
-    this.orders.cancel(this.id()!, this.cancelReason().trim());
+  async doCancel(): Promise<void> {
+    const ok = await this.attempt(() => this.orders.cancel(this.id()!, this.cancelReason().trim()).then(() => true));
     this.confirmCancel.set(false);
-    this.notice.set('Đã huỷ đơn.');
+    if (ok) this.notice.set('Đã huỷ đơn.');
   }
 
   openReceive(): void {

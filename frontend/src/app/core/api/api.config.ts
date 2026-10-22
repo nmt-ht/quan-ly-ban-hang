@@ -14,6 +14,10 @@ export const USE_API = {
   // Tồn kho and phiếu kho (lập, huỷ). Phiếu that other documents create (nhận hàng, giao hàng, sản xuất)
   // stay in the browser until those modules move (Đợt 3–5). Needs `auth`.
   inventory: true,
+  // Đơn nhập hàng (lập, sửa, gửi NCC, nhận hàng, hoàn tất, huỷ). Nhận hàng writes its phiếu nhập kho on
+  // the server. Công nợ phải trả is still computed on screen from these orders and the phiếu chi (Đợt 6).
+  // Needs `auth` and `inventory`.
+  purchasing: true,
 } as const;
 
 /** Danh mục come from the API only when sign-in does too (the calls need the token). */
@@ -21,3 +25,6 @@ export const CATALOG_FROM_API: boolean = USE_API.auth && USE_API.catalog;
 
 /** Tồn kho and phiếu kho come from the API (Đợt 2). */
 export const INVENTORY_FROM_API: boolean = USE_API.auth && USE_API.inventory;
+
+/** Đơn nhập hàng come from the API (Đợt 3). */
+export const PURCHASING_FROM_API: boolean = INVENTORY_FROM_API && USE_API.purchasing;

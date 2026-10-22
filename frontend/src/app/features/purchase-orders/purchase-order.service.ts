@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { MockDataService } from '../../core/services/mock-data.service';
 import { AuthService } from '../../core/services/auth.service';
 import { PurchaseOrder, PurchaseOrderLine, StockLevel, WarehouseVoucher } from '../../core/models/domain.models';
@@ -7,6 +7,9 @@ import {
   canCancel, canComplete, canEdit, canReceive, canSend, lineRatio, nextCode, orderTotals, receivedValueOf, round4,
   statusAfterReceipt,
 } from './purchase-order.rules';
+import { ApiService, upsertById } from '../../core/api/api.service';
+import { CatalogLoader } from '../../core/api/catalog-loader.service';
+import { PURCHASING_FROM_API } from '../../core/api/api.config';
 
 export interface OrderDraft {
   supplierId: string;
@@ -21,10 +24,19 @@ export interface ReceiptItem {
   warehouseId: string;
 }
 
-// All writes for Đơn nhập hàng. Against the mock store today; the same methods map 1:1 to
-// the backend endpoints later (create/update/send/cancel/complete/receive).
+// All writes for Đơn nhập hàng: the API (PURCHASING_FROM_API) — the server checks the status rules,
+// numbers the order and, on nhận hàng, writes the phiếu nhập kho — or, in demo mode, the in-browser store.
 @Injectable({ providedIn: 'root' })
 export class PurchaseOrderService {
+  private readonly api = inject(ApiService);
+  private readonly loader = inject(CatalogLoader);
+
+  /** The order as the server returned it replaces the local copy. */
+  private keep(o: PurchaseOrder): PurchaseOrder {
+    this.data.purchaseOrders.update((list) => upsertById(list, o));
+    return o;
+  }
+
   constructor(
     private readonly data: MockDataService,
     private readonly auth: AuthService,
@@ -46,7 +58,8 @@ export class PurchaseOrderService {
     this.data.purchaseOrders.set(list.some((x) => x.id === o.id) ? list.map((x) => (x.id === o.id ? next : x)) : [next, ...list]);
   }
 
-  create(d: OrderDraft): PurchaseOrder {
+  async create(d: OrderDraft): Promise<PurchaseOrder> {
+    if (PURCHASING_FROM_API) return this.keep(await this.api.post<PurchaseOrder>('/purchase-orders', d));
     const o: PurchaseOrder = {
       id: crypto.randomUUID(),
       code: nextCode(this.data.purchaseOrders().map((x) => x.code), 'DN'),
@@ -63,29 +76,43 @@ export class PurchaseOrderService {
     return o;
   }
 
-  update(id: string, d: OrderDraft): PurchaseOrder {
+  async update(id: string, d: OrderDraft): Promise<PurchaseOrder> {
     const o = this.find(id);
     if (!canEdit(o.status)) throw new Error('Chỉ sửa được đơn ở trạng thái Nháp.');
+    // updatedAt: the server refuses the save if someone else changed the order since it was loaded.
+    if (PURCHASING_FROM_API) return this.keep(await this.api.put<PurchaseOrder>(`/purchase-orders/${id}`, { ...d, updatedAt: o.updatedAt }));
     const next = { ...o, supplierId: d.supplierId, date: d.date, note: d.note || undefined, lines: d.lines, totalValue: orderTotals(d.lines).total };
     this.save(next);
     return next;
   }
 
-  send(id: string): void {
+  async send(id: string): Promise<void> {
     const o = this.find(id);
     if (!canSend(o.status)) return;
+    if (PURCHASING_FROM_API) {
+      this.keep(await this.api.post<PurchaseOrder>(`/purchase-orders/${id}/send`));
+      return;
+    }
     this.save({ ...o, status: 'DA_GUI_NCC', sentDate: isoDay(new Date()) });
   }
 
-  cancel(id: string, reason: string): void {
+  async cancel(id: string, reason: string): Promise<void> {
     const o = this.find(id);
     if (!canCancel(o)) return;
+    if (PURCHASING_FROM_API) {
+      this.keep(await this.api.post<PurchaseOrder>(`/purchase-orders/${id}/cancel`, { reason }));
+      return;
+    }
     this.save({ ...o, status: 'HUY', cancelReason: reason || undefined });
   }
 
-  complete(id: string): void {
+  async complete(id: string): Promise<void> {
     const o = this.find(id);
     if (!canComplete(o.status)) return;
+    if (PURCHASING_FROM_API) {
+      this.keep(await this.api.post<PurchaseOrder>(`/purchase-orders/${id}/complete`));
+      return;
+    }
     this.save({ ...o, status: 'HOAN_TAT' });
   }
 
@@ -93,11 +120,18 @@ export class PurchaseOrderService {
    * Nhận hàng: one phiếu nhập kho per warehouse, stock up in base units, received quantities
    * and receivedValue (= công nợ phải trả, incl. VAT) updated, status recomputed.
    */
-  receive(id: string, items: ReceiptItem[], date: string, note: string): WarehouseVoucher[] {
+  async receive(id: string, items: ReceiptItem[], date: string, note: string): Promise<WarehouseVoucher[]> {
     const o = this.find(id);
     if (!canReceive(o.status)) throw new Error('Đơn này không ở trạng thái nhận hàng được.');
     const valid = items.filter((i) => i.quantity > 0);
     if (!valid.length) return [];
+    if (PURCHASING_FROM_API) {
+      const before = new Set(this.data.warehouseVouchers().map((v) => v.id));
+      this.keep(await this.api.post<PurchaseOrder>(`/purchase-orders/${id}/receive`, { items: valid, date, note: note || undefined }));
+      // The server wrote the phiếu nhập kho and moved stock: read both again.
+      await this.loader.loadInventory();
+      return this.data.warehouseVouchers().filter((v) => v.purchaseOrderId === id && !before.has(v.id));
+    }
 
     const lines = o.lines.map((l) => ({ ...l }));
     const byWarehouse = new Map<string, { productId: string; base: number }[]>();
