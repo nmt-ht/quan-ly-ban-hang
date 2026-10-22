@@ -1,12 +1,12 @@
 import { Injectable, inject, signal } from '@angular/core';
 import {
-  AppUser, BomLine, PurchaseOrder, StockLevel, WarehouseVoucher, CashAccount, CashCategory, CompanyInfo, Customer, Product, ProductCategory, Role, Supplier, SupplierProduct, Tag, Vehicle,
+  AppUser, BomLine, ProductionOrder, PurchaseOrder, SalesOrder, StockLevel, WarehouseVoucher, CashAccount, CashCategory, CompanyInfo, Customer, Product, ProductCategory, Role, Supplier, SupplierProduct, Tag, Vehicle,
   Warehouse,
 } from '../models/domain.models';
 import { MockDataService } from '../services/mock-data.service';
 import { AuthService } from '../services/auth.service';
 import { ApiService, errorText } from './api.service';
-import { CATALOG_FROM_API, INVENTORY_FROM_API, PURCHASING_FROM_API } from './api.config';
+import { CATALOG_FROM_API, INVENTORY_FROM_API, PURCHASING_FROM_API, SALES_FROM_API } from './api.config';
 
 type DirectoryUser = Pick<AppUser, 'id' | 'name' | 'email' | 'roleId' | 'status'>;
 
@@ -60,6 +60,14 @@ export class CatalogLoader {
     try {
       if (INVENTORY_FROM_API) await this.loadInventory();
       if (PURCHASING_FROM_API) this.data.purchaseOrders.set(await this.api.get<PurchaseOrder[]>('/purchase-orders'));
+      if (SALES_FROM_API) {
+        const [orders, lsx] = await Promise.all([
+          this.api.get<SalesOrder[]>('/sales-orders'),
+          this.api.get<ProductionOrder[]>('/production-orders'),
+        ]);
+        this.data.salesOrders.set(orders);
+        this.data.productionOrders.set(lsx);
+      }
       if (!CATALOG_FROM_API) {
         this.status.set('ready');
         return;

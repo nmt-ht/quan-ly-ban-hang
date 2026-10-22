@@ -13,13 +13,14 @@ import { DEFAULT_CASH_CATEGORIES } from '../../features/cash-vouchers/cash-vouch
 import { loadCompany } from './company.storage';
 import { PERMISSION_MODULES } from '../data/permission-catalog';
 import { grantsFor } from '../../features/settings/roles-permissions/role.rules';
-import { CATALOG_FROM_API, INVENTORY_FROM_API, PURCHASING_FROM_API } from '../api/api.config';
+import { CATALOG_FROM_API, INVENTORY_FROM_API, PURCHASING_FROM_API, SALES_FROM_API } from '../api/api.config';
 
 // Danh mục start empty when they come from the API (CatalogLoader fills them after sign-in);
 // the demo lists stay for demo mode and for the modules not yet on the API.
 const demo = <T>(rows: T[]): T[] => (CATALOG_FROM_API ? [] : rows);
 const demoStock = <T>(rows: T[]): T[] => (INVENTORY_FROM_API ? [] : rows);
 const demoPurchasing = <T>(rows: T[]): T[] => (PURCHASING_FROM_API ? [] : rows);
+const demoSales = <T>(rows: T[]): T[] => (SALES_FROM_API ? [] : rows);
 
 // Dữ liệu GIẢ (xem core/data/demo-data.ts, sinh bởi tools/gen-demo-data.mjs) — chỉ để thử giao diện.
 @Injectable({ providedIn: 'root' })
@@ -46,7 +47,7 @@ export class MockDataService {
   readonly bomLines = signal<BomLine[]>(demo(DEMO_BOM_LINES));
   readonly stockLevels = signal<StockLevel[]>(demoStock(DEMO_STOCK_LEVELS));
   readonly warehouseVouchers = signal<WarehouseVoucher[]>(demoStock(DEMO_WAREHOUSE_VOUCHERS));
-  readonly productionOrders = signal<ProductionOrder[]>(DEMO_PRODUCTION_ORDERS);
+  readonly productionOrders = signal<ProductionOrder[]>(demoSales(DEMO_PRODUCTION_ORDERS));
 
   readonly suppliers = signal<Supplier[]>(demo(DEMO_SUPPLIERS));
   readonly supplierProducts = signal<SupplierProduct[]>(demo(DEMO_SUPPLIER_PRODUCTS));
@@ -55,7 +56,7 @@ export class MockDataService {
 
   readonly customers = signal<Customer[]>(demo(DEMO_CUSTOMERS));
 
-  readonly salesOrders = signal<SalesOrder[]>(DEMO_SALES_ORDERS);
+  readonly salesOrders = signal<SalesOrder[]>(demoSales(DEMO_SALES_ORDERS));
 
   readonly deliveryTrips = signal<DeliveryTrip[]>(DEMO_DELIVERY_TRIPS);
 

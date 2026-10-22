@@ -75,8 +75,10 @@
   </div>
 
   <footer class="rg-foot">
-    <p class="rg-summary" [class.text-danger]="attempted() && issues().length" role="status">
-      @if (attempted() && issues().length) {
+    <p class="rg-summary" [class.text-danger]="error() || (attempted() && issues().length)" role="status">
+      @if (error()) {
+        {{ error() }}
+      } @else if (attempted() && issues().length) {
         {{ issues()[0] }}
       } @else {
         {{ delivering().length }} dòng · ghi công nợ phải thu (sau chiết khấu, gồm thuế): <strong class="num">{{ money(value()) }}</strong>

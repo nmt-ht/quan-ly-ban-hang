@@ -661,10 +661,13 @@ const be = clean({
   salesOrders: orders.map((o) => ({
     id: o.id, code: o.code, customerId: o.customerId, recipientName: o.recipientName, recipientPhone: o.recipientPhone, description: o.description, source: o.source,
     orderDate: iso(o.orderDate), neededByDate: o.neededByDate ? iso(o.neededByDate) : undefined, status: o.status, discountAmount: o.discountAmount,
-    salesRepKey: o.salesRep, createdByKey: o.createdBy, tagIds: o.tagIds,
+    salesRepKey: o.salesRep, createdByKey: o.createdBy, tagIds: o.tagIds, deliveredDate: o.deliveredDate, dueDate: o.dueDate,
     lines: o.lines.map((l) => ({ id: l.id, productId: l.productId, unit: l.unit, quantity: l.quantity, unitPrice: l.unitPrice, length: l.length, width: l.width, note: l.note, receivedQuantity: l.receivedQuantity })),
   })),
-  productionOrders: lsx.map((l) => ({ id: l.id, code: l.code, sourceOrderId: l.sourceOrderId, productId: l.productId, quantity: l.quantity, status: l.status, bomSnapshot: l.bomSnapshot, createdAt: iso(l.createdDate) })),
+  productionOrders: lsx.map((l) => ({
+    id: l.id, code: l.code, sourceOrderId: l.sourceOrderId, productId: l.productId, quantity: l.quantity, status: l.status, bomSnapshot: l.bomSnapshot,
+    createdAt: iso(l.createdDate), startDate: l.startDate, completeDate: l.completeDate, producedQuantity: l.status === 'HOAN_TAT' ? l.quantity : undefined,
+  })),
   vehicles: feVehicles,
   deliveryTrips: trips.map((t) => ({ id: t.id, code: t.code, date: iso(t.date), driverName: hiredNote(t), vehicleId: t.vehicleId, status: t.status, orderIds: t.orderIds })),
   // Lines carry the stock change (delta) like the frontend's, plus the purchase price of phiếu nhập.

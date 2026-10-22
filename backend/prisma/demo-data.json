@@ -1612,6 +1612,8 @@
       "tagIds": [
         "tag-quen"
       ],
+      "deliveredDate": "2026-08-20",
+      "dueDate": "2026-08-20",
       "lines": [
         {
           "id": "dh-01-l1",
@@ -1646,6 +1648,8 @@
         "tag-vip",
         "tag-si"
       ],
+      "deliveredDate": "2026-08-20",
+      "dueDate": "2026-09-04",
       "lines": [
         {
           "id": "dh-02-l1",
@@ -1681,6 +1685,8 @@
       "tagIds": [
         "tag-shopee"
       ],
+      "deliveredDate": "2026-08-20",
+      "dueDate": "2026-08-20",
       "lines": [
         {
           "id": "dh-03-l1",
@@ -1715,6 +1721,8 @@
         "tag-vip",
         "tag-si"
       ],
+      "deliveredDate": "2026-08-28",
+      "dueDate": "2026-09-27",
       "lines": [
         {
           "id": "dh-04-l1",
@@ -1759,6 +1767,8 @@
       "tagIds": [
         "tag-si"
       ],
+      "deliveredDate": "2026-08-28",
+      "dueDate": "2026-09-27",
       "lines": [
         {
           "id": "dh-05-l1",
@@ -1792,6 +1802,8 @@
       "tagIds": [
         "tag-quen"
       ],
+      "deliveredDate": "2026-09-05",
+      "dueDate": "2026-09-05",
       "lines": [
         {
           "id": "dh-06-l1",
@@ -1818,6 +1830,8 @@
       "tagIds": [
         "tag-si"
       ],
+      "deliveredDate": "2026-09-05",
+      "dueDate": "2026-09-20",
       "lines": [
         {
           "id": "dh-07-l1",
@@ -1850,6 +1864,7 @@
       "salesRepKey": "user-sale1",
       "createdByKey": "user-sale1",
       "tagIds": [],
+      "deliveredDate": "2026-09-05",
       "lines": [
         {
           "id": "dh-08-l1",
@@ -1875,6 +1890,8 @@
       "tagIds": [
         "tag-si"
       ],
+      "deliveredDate": "2026-09-18",
+      "dueDate": "2026-10-03",
       "lines": [
         {
           "id": "dh-09-l1",
@@ -1912,6 +1929,8 @@
       "tagIds": [
         "tag-shopee"
       ],
+      "deliveredDate": "2026-09-18",
+      "dueDate": "2026-09-25",
       "lines": [
         {
           "id": "dh-10-l1",
@@ -1943,6 +1962,8 @@
       "salesRepKey": "user-sale1",
       "createdByKey": "user-sale1",
       "tagIds": [],
+      "deliveredDate": "2026-09-30",
+      "dueDate": "2026-10-30",
       "lines": [
         {
           "id": "dh-11-l1",
@@ -1985,6 +2006,8 @@
         "tag-vip",
         "tag-si"
       ],
+      "deliveredDate": "2026-09-30",
+      "dueDate": "2026-10-15",
       "lines": [
         {
           "id": "dh-12-l1",
@@ -2018,6 +2041,8 @@
       "tagIds": [
         "tag-quen"
       ],
+      "deliveredDate": "2026-09-30",
+      "dueDate": "2026-09-30",
       "lines": [
         {
           "id": "dh-13-l1",
@@ -2068,6 +2093,8 @@
         "tag-vip",
         "tag-si"
       ],
+      "deliveredDate": "2026-10-12",
+      "dueDate": "2026-11-11",
       "lines": [
         {
           "id": "dh-14-l1",
@@ -2499,7 +2526,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-08-13T02:00:00.000Z"
+      "createdAt": "2026-08-13T02:00:00.000Z",
+      "startDate": "2026-08-13",
+      "completeDate": "2026-08-16",
+      "producedQuantity": 2
     },
     {
       "id": "lsx-02",
@@ -2530,7 +2560,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-08-13T02:00:00.000Z"
+      "createdAt": "2026-08-13T02:00:00.000Z",
+      "startDate": "2026-08-13",
+      "completeDate": "2026-08-16",
+      "producedQuantity": 1
     },
     {
       "id": "lsx-03",
@@ -2561,7 +2594,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-08-14T02:00:00.000Z"
+      "createdAt": "2026-08-14T02:00:00.000Z",
+      "startDate": "2026-08-14",
+      "completeDate": "2026-08-17",
+      "producedQuantity": 20
     },
     {
       "id": "lsx-04",
@@ -2592,7 +2628,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-08-14T02:00:00.000Z"
+      "createdAt": "2026-08-14T02:00:00.000Z",
+      "startDate": "2026-08-14",
+      "completeDate": "2026-08-17",
+      "producedQuantity": 10
     },
     {
       "id": "lsx-05",
@@ -2627,7 +2666,10 @@
           "quantityPerUnit": 1
         }
       ],
-      "createdAt": "2026-08-15T02:00:00.000Z"
+      "createdAt": "2026-08-15T02:00:00.000Z",
+      "startDate": "2026-08-15",
+      "completeDate": "2026-08-18",
+      "producedQuantity": 6
     },
     {
       "id": "lsx-06",
@@ -2658,7 +2700,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-08-21T02:00:00.000Z"
+      "createdAt": "2026-08-21T02:00:00.000Z",
+      "startDate": "2026-08-21",
+      "completeDate": "2026-08-24",
+      "producedQuantity": 12
     },
     {
       "id": "lsx-07",
@@ -2689,7 +2734,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-08-21T02:00:00.000Z"
+      "createdAt": "2026-08-21T02:00:00.000Z",
+      "startDate": "2026-08-21",
+      "completeDate": "2026-08-24",
+      "producedQuantity": 8
     },
     {
       "id": "lsx-08",
@@ -2704,7 +2752,10 @@
           "quantityPerUnit": 0.25
         }
       ],
-      "createdAt": "2026-08-21T02:00:00.000Z"
+      "createdAt": "2026-08-21T02:00:00.000Z",
+      "startDate": "2026-08-21",
+      "completeDate": "2026-08-24",
+      "producedQuantity": 5
     },
     {
       "id": "lsx-09",
@@ -2735,7 +2786,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-08-19T02:00:00.000Z"
+      "createdAt": "2026-08-19T02:00:00.000Z",
+      "startDate": "2026-08-19",
+      "completeDate": "2026-08-22",
+      "producedQuantity": 30
     },
     {
       "id": "lsx-10",
@@ -2770,7 +2824,10 @@
           "quantityPerUnit": 1
         }
       ],
-      "createdAt": "2026-08-19T02:00:00.000Z"
+      "createdAt": "2026-08-19T02:00:00.000Z",
+      "startDate": "2026-08-19",
+      "completeDate": "2026-08-22",
+      "producedQuantity": 30
     },
     {
       "id": "lsx-11",
@@ -2801,7 +2858,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-08-31T02:00:00.000Z"
+      "createdAt": "2026-08-31T02:00:00.000Z",
+      "startDate": "2026-08-31",
+      "completeDate": "2026-09-03",
+      "producedQuantity": 4
     },
     {
       "id": "lsx-12",
@@ -2832,7 +2892,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-09-01T02:00:00.000Z"
+      "createdAt": "2026-09-01T02:00:00.000Z",
+      "startDate": "2026-09-01",
+      "completeDate": "2026-09-04",
+      "producedQuantity": 10
     },
     {
       "id": "lsx-13",
@@ -2863,7 +2926,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-09-01T02:00:00.000Z"
+      "createdAt": "2026-09-01T02:00:00.000Z",
+      "startDate": "2026-09-01",
+      "completeDate": "2026-09-04",
+      "producedQuantity": 10
     },
     {
       "id": "lsx-14",
@@ -2898,7 +2964,10 @@
           "quantityPerUnit": 1
         }
       ],
-      "createdAt": "2026-09-02T02:00:00.000Z"
+      "createdAt": "2026-09-02T02:00:00.000Z",
+      "startDate": "2026-09-02",
+      "completeDate": "2026-09-04",
+      "producedQuantity": 3
     },
     {
       "id": "lsx-15",
@@ -2929,7 +2998,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-09-11T02:00:00.000Z"
+      "createdAt": "2026-09-11T02:00:00.000Z",
+      "startDate": "2026-09-11",
+      "completeDate": "2026-09-14",
+      "producedQuantity": 15
     },
     {
       "id": "lsx-16",
@@ -2944,7 +3016,10 @@
           "quantityPerUnit": 0.15
         }
       ],
-      "createdAt": "2026-09-11T02:00:00.000Z"
+      "createdAt": "2026-09-11T02:00:00.000Z",
+      "startDate": "2026-09-11",
+      "completeDate": "2026-09-14",
+      "producedQuantity": 6
     },
     {
       "id": "lsx-17",
@@ -2975,7 +3050,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-09-13T02:00:00.000Z"
+      "createdAt": "2026-09-13T02:00:00.000Z",
+      "startDate": "2026-09-13",
+      "completeDate": "2026-09-16",
+      "producedQuantity": 10
     },
     {
       "id": "lsx-18",
@@ -3006,7 +3084,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-09-13T02:00:00.000Z"
+      "createdAt": "2026-09-13T02:00:00.000Z",
+      "startDate": "2026-09-13",
+      "completeDate": "2026-09-16",
+      "producedQuantity": 10
     },
     {
       "id": "lsx-19",
@@ -3037,7 +3118,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-09-23T02:00:00.000Z"
+      "createdAt": "2026-09-23T02:00:00.000Z",
+      "startDate": "2026-09-23",
+      "completeDate": "2026-09-26",
+      "producedQuantity": 24
     },
     {
       "id": "lsx-20",
@@ -3068,7 +3152,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-09-23T02:00:00.000Z"
+      "createdAt": "2026-09-23T02:00:00.000Z",
+      "startDate": "2026-09-23",
+      "completeDate": "2026-09-26",
+      "producedQuantity": 12
     },
     {
       "id": "lsx-21",
@@ -3099,7 +3186,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-09-25T02:00:00.000Z"
+      "createdAt": "2026-09-25T02:00:00.000Z",
+      "startDate": "2026-09-25",
+      "completeDate": "2026-09-28",
+      "producedQuantity": 10
     },
     {
       "id": "lsx-22",
@@ -3134,7 +3224,10 @@
           "quantityPerUnit": 1
         }
       ],
-      "createdAt": "2026-09-25T02:00:00.000Z"
+      "createdAt": "2026-09-25T02:00:00.000Z",
+      "startDate": "2026-09-25",
+      "completeDate": "2026-09-28",
+      "producedQuantity": 10
     },
     {
       "id": "lsx-23",
@@ -3165,7 +3258,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-09-26T02:00:00.000Z"
+      "createdAt": "2026-09-26T02:00:00.000Z",
+      "startDate": "2026-09-26",
+      "completeDate": "2026-09-29",
+      "producedQuantity": 1
     },
     {
       "id": "lsx-24",
@@ -3196,7 +3292,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-09-26T02:00:00.000Z"
+      "createdAt": "2026-09-26T02:00:00.000Z",
+      "startDate": "2026-09-26",
+      "completeDate": "2026-09-29",
+      "producedQuantity": 1
     },
     {
       "id": "lsx-25",
@@ -3227,7 +3326,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-10-06T02:00:00.000Z"
+      "createdAt": "2026-10-06T02:00:00.000Z",
+      "startDate": "2026-10-06",
+      "completeDate": "2026-10-09",
+      "producedQuantity": 16
     },
     {
       "id": "lsx-26",
@@ -3258,7 +3360,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-10-06T02:00:00.000Z"
+      "createdAt": "2026-10-06T02:00:00.000Z",
+      "startDate": "2026-10-06",
+      "completeDate": "2026-10-09",
+      "producedQuantity": 10
     },
     {
       "id": "lsx-27",
@@ -3293,7 +3398,10 @@
           "quantityPerUnit": 1
         }
       ],
-      "createdAt": "2026-10-08T02:00:00.000Z"
+      "createdAt": "2026-10-08T02:00:00.000Z",
+      "startDate": "2026-10-08",
+      "completeDate": "2026-10-11",
+      "producedQuantity": 2
     },
     {
       "id": "lsx-28",
@@ -3324,7 +3432,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-10-08T02:00:00.000Z"
+      "createdAt": "2026-10-08T02:00:00.000Z",
+      "startDate": "2026-10-08",
+      "completeDate": "2026-10-11",
+      "producedQuantity": 3
     },
     {
       "id": "lsx-29",
@@ -3359,7 +3470,10 @@
           "quantityPerUnit": 1
         }
       ],
-      "createdAt": "2026-10-13T02:00:00.000Z"
+      "createdAt": "2026-10-13T02:00:00.000Z",
+      "startDate": "2026-10-13",
+      "completeDate": "2026-10-16",
+      "producedQuantity": 8
     },
     {
       "id": "lsx-30",
@@ -3390,7 +3504,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-10-13T02:00:00.000Z"
+      "createdAt": "2026-10-13T02:00:00.000Z",
+      "startDate": "2026-10-13",
+      "completeDate": "2026-10-16",
+      "producedQuantity": 8
     },
     {
       "id": "lsx-31",
@@ -3421,7 +3538,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-10-14T02:00:00.000Z"
+      "createdAt": "2026-10-14T02:00:00.000Z",
+      "startDate": "2026-10-14",
+      "completeDate": "2026-10-16",
+      "producedQuantity": 12
     },
     {
       "id": "lsx-32",
@@ -3452,7 +3572,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-10-15T02:00:00.000Z"
+      "createdAt": "2026-10-15T02:00:00.000Z",
+      "startDate": "2026-10-15",
+      "completeDate": "2026-10-18",
+      "producedQuantity": 20
     },
     {
       "id": "lsx-33",
@@ -3487,7 +3610,10 @@
           "quantityPerUnit": 1
         }
       ],
-      "createdAt": "2026-10-16T02:00:00.000Z"
+      "createdAt": "2026-10-16T02:00:00.000Z",
+      "startDate": "2026-10-16",
+      "completeDate": "2026-10-19",
+      "producedQuantity": 24
     },
     {
       "id": "lsx-34",
@@ -3518,7 +3644,8 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-10-15T02:00:00.000Z"
+      "createdAt": "2026-10-15T02:00:00.000Z",
+      "startDate": "2026-10-15"
     },
     {
       "id": "lsx-35",
@@ -3549,7 +3676,8 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-10-15T02:00:00.000Z"
+      "createdAt": "2026-10-15T02:00:00.000Z",
+      "startDate": "2026-10-15"
     },
     {
       "id": "lsx-36",
@@ -3580,7 +3708,8 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-10-17T02:00:00.000Z"
+      "createdAt": "2026-10-17T02:00:00.000Z",
+      "startDate": "2026-10-17"
     },
     {
       "id": "lsx-37",
@@ -3595,7 +3724,8 @@
           "quantityPerUnit": 0.25
         }
       ],
-      "createdAt": "2026-10-17T02:00:00.000Z"
+      "createdAt": "2026-10-17T02:00:00.000Z",
+      "startDate": "2026-10-17"
     },
     {
       "id": "lsx-38",

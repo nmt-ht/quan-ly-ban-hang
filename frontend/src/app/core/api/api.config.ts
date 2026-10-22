@@ -18,6 +18,10 @@ export const USE_API = {
   // the server. Công nợ phải trả is still computed on screen from these orders and the phiếu chi (Đợt 6).
   // Needs `auth` and `inventory`.
   purchasing: true,
+  // Đơn hàng bán (lập, sửa, huỷ, kết thúc, giao hàng + thu tiền ngay) and lệnh sản xuất (lập, bắt đầu,
+  // nghiệm thu, huỷ); their phiếu kho are written on the server. Chuyến giao hàng still changes orders
+  // in the browser until Đợt 5. Needs `auth` and `inventory`.
+  sales: true,
 } as const;
 
 /** Danh mục come from the API only when sign-in does too (the calls need the token). */
@@ -28,3 +32,6 @@ export const INVENTORY_FROM_API: boolean = USE_API.auth && USE_API.inventory;
 
 /** Đơn nhập hàng come from the API (Đợt 3). */
 export const PURCHASING_FROM_API: boolean = INVENTORY_FROM_API && USE_API.purchasing;
+
+/** Đơn hàng bán and lệnh sản xuất come from the API (Đợt 4). */
+export const SALES_FROM_API: boolean = INVENTORY_FROM_API && USE_API.sales;

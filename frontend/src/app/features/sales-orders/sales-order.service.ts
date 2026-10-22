@@ -1,9 +1,12 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { MockDataService } from '../../core/services/mock-data.service';
 import { AuthService } from '../../core/services/auth.service';
 import {
-  ProductionOrder, SalesOrder, SalesOrderLine, WarehouseVoucher, WarehouseVoucherType,
+  CashVoucher, ProductionOrder, SalesOrder, SalesOrderLine, WarehouseVoucher, WarehouseVoucherType,
 } from '../../core/models/domain.models';
+import { ApiService, upsertById } from '../../core/api/api.service';
+import { CatalogLoader } from '../../core/api/catalog-loader.service';
+import { SALES_FROM_API } from '../../core/api/api.config';
 import { isoDay } from '../../shared/period';
 import { WarehouseVoucherService } from '../warehouse-vouchers/warehouse-voucher.service';
 import { CashVoucherService } from '../cash-vouchers/cash-voucher.service';
@@ -37,10 +40,35 @@ export interface DeliveryItem {
 
 const FINISHED_GOODS_WAREHOUSE = 'wh-thanhpham';
 
-// All writes for Đơn hàng bán. Against the mock store today; the same methods map 1:1 to the
-// backend endpoints later (create/update/cancel/close/production/deliver).
+// All writes for Đơn hàng bán and lệnh sản xuất: the API (SALES_FROM_API) — the server checks the rules,
+// numbers the documents, writes their phiếu kho and the phiếu thu of "Thu tiền ngay" — or, in demo mode,
+// the in-browser store. The chuyến methods (setTrip, markShipping, recordTripReceipt) stay in the browser
+// until Chuyến giao hàng moves (Đợt 5).
 @Injectable({ providedIn: 'root' })
 export class SalesOrderService {
+  private readonly api = inject(ApiService);
+  private readonly loader = inject(CatalogLoader);
+
+  private keepOrder(o: SalesOrder): SalesOrder {
+    this.data.salesOrders.update((list) => upsertById(list, o));
+    return o;
+  }
+
+  private keepLsx(x: ProductionOrder): ProductionOrder {
+    this.data.productionOrders.update((list) => upsertById(list, x));
+    return x;
+  }
+
+  /** After a step that wrote phiếu kho on the server: read stock and vouchers again, return the new ones. */
+  private async newVouchers(before: Set<string>, mine: (v: WarehouseVoucher) => boolean): Promise<WarehouseVoucher[]> {
+    await this.loader.loadInventory();
+    return this.data.warehouseVouchers().filter((v) => mine(v) && !before.has(v.id));
+  }
+
+  private voucherIds(): Set<string> {
+    return new Set(this.data.warehouseVouchers().map((v) => v.id));
+  }
+
   constructor(
     private readonly data: MockDataService,
     private readonly auth: AuthService,
@@ -112,7 +140,8 @@ export class SalesOrderService {
     }
   }
 
-  create(d: SalesOrderDraft): SalesOrder {
+  async create(d: SalesOrderDraft): Promise<SalesOrder> {
+    if (SALES_FROM_API) return this.keepOrder(await this.api.post<SalesOrder>('/sales-orders', d));
     const o: SalesOrder = {
       ...d,
       id: crypto.randomUUID(),
@@ -126,9 +155,15 @@ export class SalesOrderService {
     return this.save(o);
   }
 
-  update(id: string, d: SalesOrderDraft): SalesOrder {
+  async update(id: string, d: SalesOrderDraft): Promise<SalesOrder> {
     const o = this.find(id);
     if (!canEdit(o, this.lsxOf(id))) throw new Error('Đơn đã sản xuất hoặc đã giao, không sửa được.');
+    if (SALES_FROM_API) {
+      // updatedAt: the server refuses the save if someone else changed the order since it was loaded.
+      const saved = this.keepOrder(await this.api.put<SalesOrder>(`/sales-orders/${id}`, { ...d, updatedAt: o.updatedAt }));
+      this.data.productionOrders.set(await this.api.get<ProductionOrder[]>('/production-orders')); // draft lệnh follow the lines
+      return saved;
+    }
     // Lệnh SX còn nháp đi theo dòng thành phẩm: dòng bị bỏ thì huỷ lệnh, đổi số lượng thì cập nhật lệnh.
     const baseQty = new Map<string, number>();
     for (const l of d.lines) if (this.isTp(l.productId)) baseQty.set(l.productId, (baseQty.get(l.productId) ?? 0) + round4(l.quantity * lineRatio(l)));
@@ -142,9 +177,14 @@ export class SalesOrderService {
     return this.save({ ...o, ...d });
   }
 
-  cancel(id: string, reason: string): void {
+  async cancel(id: string, reason: string): Promise<void> {
     const o = this.find(id);
     if (!canCancel(o)) return;
+    if (SALES_FROM_API) {
+      this.keepOrder(await this.api.post<SalesOrder>(`/sales-orders/${id}/cancel`, { reason }));
+      this.data.productionOrders.set(await this.api.get<ProductionOrder[]>('/production-orders')); // its open lệnh are cancelled too
+      return;
+    }
     this.data.productionOrders.update((list) =>
       list.map((x) => (x.sourceOrderId === id && (x.status === 'NHAP' || x.status === 'DANG_SAN_XUAT')
         ? { ...x, status: 'HUY', cancelReason: `Huỷ theo đơn ${o.code}` } : x)),
@@ -153,16 +193,26 @@ export class SalesOrderService {
   }
 
   /** Kết thúc đơn: khách không lấy phần còn lại — đơn giữ trạng thái Giao một phần, không giao thêm. */
-  close(id: string): void {
+  async close(id: string): Promise<void> {
     const o = this.find(id);
     if (!canClose(o)) return;
+    if (SALES_FROM_API) {
+      this.keepOrder(await this.api.post<SalesOrder>(`/sales-orders/${id}/close`));
+      return;
+    }
     this.save({ ...o, closedDate: isoDay(new Date()) });
   }
 
   // ---------- sản xuất ----------
 
   /** One lệnh sản xuất (Nháp) per thành phẩm line that has none yet. */
-  createProductionOrders(id: string): ProductionOrder[] {
+  async createProductionOrders(id: string): Promise<ProductionOrder[]> {
+    if (SALES_FROM_API) {
+      const res = await this.api.post<{ created: ProductionOrder[]; order: SalesOrder }>(`/sales-orders/${id}/production-orders`);
+      res.created.forEach((x) => this.keepLsx(x));
+      this.keepOrder(res.order);
+      return res.created;
+    }
     const o = this.find(id);
     const idx = linesNeedingLsx(o, this.lsxOf(id), this.isTp);
     const codes = this.data.productionOrders().map((x) => x.code);
@@ -187,9 +237,10 @@ export class SalesOrderService {
   }
 
   /** Bắt đầu sản xuất: xuất vật tư theo định mức từ kho ngầm định của từng vật tư. */
-  startProduction(lsxId: string): WarehouseVoucher[] {
+  async startProduction(lsxId: string): Promise<WarehouseVoucher[]> {
     const x = this.data.productionOrders().find((p) => p.id === lsxId);
     if (!x || x.status !== 'NHAP') return [];
+    if (SALES_FROM_API) return this.lsxStep(`/production-orders/${lsxId}/start`, lsxId, {});
     const date = isoDay(new Date());
     const byWh = new Map<string, Map<string, number>>();
     for (const b of this.bomOf(x)) {
@@ -211,9 +262,10 @@ export class SalesOrderService {
   }
 
   /** Hoàn tất sản xuất: nhập số thực làm được vào Kho thành phẩm (hàng hỏng làm số này nhỏ hơn số lệnh). */
-  completeProduction(lsxId: string, produced?: number): WarehouseVoucher[] {
+  async completeProduction(lsxId: string, produced?: number): Promise<WarehouseVoucher[]> {
     const x = this.data.productionOrders().find((p) => p.id === lsxId);
     if (!x || x.status !== 'DANG_SAN_XUAT') return [];
+    if (SALES_FROM_API) return this.lsxStep(`/production-orders/${lsxId}/complete`, lsxId, { producedQuantity: produced });
     const qty = round4(Math.max(0, produced ?? x.quantity));
     const date = isoDay(new Date());
     const vouchers = qty > 0
@@ -225,10 +277,25 @@ export class SalesOrderService {
   }
 
   /** Huỷ lệnh (Nháp hoặc Đang sản xuất). Vật tư đã xuất không tự nhập lại — lập phiếu nhập nếu còn dùng được. */
-  cancelProduction(lsxId: string, reason: string): void {
+  async cancelProduction(lsxId: string, reason: string): Promise<void> {
     const x = this.data.productionOrders().find((p) => p.id === lsxId);
     if (!x || (x.status !== 'NHAP' && x.status !== 'DANG_SAN_XUAT')) return;
+    if (SALES_FROM_API) {
+      const res = await this.api.post<{ productionOrder: ProductionOrder; order: SalesOrder }>(`/production-orders/${lsxId}/cancel`, { reason: reason.trim() || undefined });
+      this.keepLsx(res.productionOrder);
+      this.keepOrder(res.order);
+      return;
+    }
     this.setLsx(x.id, { status: 'HUY', cancelReason: reason.trim() || undefined });
+  }
+
+  /** Bắt đầu / nghiệm thu on the server: the lệnh, its order and the phiếu kho it wrote. */
+  private async lsxStep(path: string, lsxId: string, body: object): Promise<WarehouseVoucher[]> {
+    const before = this.voucherIds();
+    const res = await this.api.post<{ productionOrder: ProductionOrder; order: SalesOrder }>(path, body);
+    this.keepLsx(res.productionOrder);
+    this.keepOrder(res.order);
+    return this.newVouchers(before, (v) => v.productionOrderId === lsxId);
   }
 
   private setLsx(id: string, change: Partial<ProductionOrder>): void {
@@ -244,9 +311,22 @@ export class SalesOrderService {
    * vụ không xuất kho); stock down in base units; công nợ phải thu = receivedValue (gồm thuế, đã
    * trừ chiết khấu theo tỷ lệ); hạn thanh toán = ngày nhận + số ngày được nợ (DebtService).
    */
-  deliver(id: string, items: DeliveryItem[], date: string, note: string): WarehouseVoucher[] {
+  async deliver(id: string, items: DeliveryItem[], date: string, note: string): Promise<WarehouseVoucher[]> {
     const o = this.find(id);
     if (!canDeliver(o)) throw new Error('Đơn này không ở trạng thái giao hàng được.');
+    if (SALES_FROM_API) {
+      const before = this.voucherIds();
+      const res = await this.api.post<{ order: SalesOrder; receipts: CashVoucher[] }>(`/sales-orders/${id}/deliver`, {
+        items: items.filter((i) => i.quantity > 0), date, note: note || undefined,
+      });
+      this.keepOrder(res.order);
+      if (res.receipts.length) {
+        // Phiếu thu chi are still in the browser (Đợt 6): show the server's "Thu tiền ngay" receipt there too.
+        this.data.cashVouchers.update((list) => [...res.receipts, ...list]);
+        this.cash.recomputeBalances();
+      }
+      return this.newVouchers(before, (v) => v.salesOrderId === id);
+    }
     const lines = o.lines.map((l) => ({ ...l }));
     const byWh = new Map<string, { productId: string; q: number }[]>();
     for (const it of items.filter((i) => i.quantity > 0)) {

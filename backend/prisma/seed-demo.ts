@@ -143,11 +143,12 @@ async function main() {
         description: o.description, source: o.source,
         orderDate: new Date(o.orderDate), neededByDate: D(o.neededByDate),
         status: o.status, discountAmount: o.discountAmount,
+        deliveredDate: D(o.deliveredDate), dueDate: D(o.dueDate),
         salesRepId: o.salesRepKey ? user[o.salesRepKey] : undefined,
         createdById: user[o.createdByKey],
         tags: { create: (o.tagIds ?? []).map((t: string) => ({ tagId: tagMap[t] })) },
-        lines: { create: o.lines.map((l: any) => ({
-          productId: l.productId, unit: l.unit, quantity: l.quantity, unitPrice: l.unitPrice,
+        lines: { create: o.lines.map((l: any, i: number) => ({
+          id: l.id, productId: l.productId, unit: l.unit, quantity: l.quantity, unitPrice: l.unitPrice, sortOrder: i,
           length: l.length, width: l.width, note: l.note, receivedQuantity: l.receivedQuantity ?? 0,
         })) },
       },
@@ -160,6 +161,7 @@ async function main() {
       data: {
         id: p.id, code: p.code, sourceOrderId: p.sourceOrderId, productId: p.productId,
         quantity: p.quantity, status: p.status, bomSnapshot: p.bomSnapshot, createdAt: D(p.createdAt),
+        startDate: D(p.startDate), completeDate: D(p.completeDate), producedQuantity: p.producedQuantity,
       },
     });
   }

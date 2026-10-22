@@ -8,6 +8,7 @@ import { formatVnd } from '../../../shared/format.util';
 import { round4 } from '../../purchase-orders/purchase-order.rules';
 import { defaultWarehouse, lineRatio, lineRemaining, movesStock, orderTotals } from '../sales-order.rules';
 import { SalesOrderService } from '../sales-order.service';
+import { errorText } from '../../../core/api/api.service';
 
 interface DeliverRow {
   lineIndex: number;
@@ -40,6 +41,9 @@ export class DeliverDialogComponent {
 
   readonly rows = signal<DeliverRow[]>([]);
   readonly date = signal(isoDay(new Date()));
+  /** Why the server refused the delivery (shown in the footer). */
+  readonly error = signal('');
+  readonly busy = signal(false);
   readonly note = signal('');
   readonly attempted = signal(false);
   readonly money = formatVnd;
@@ -135,15 +139,25 @@ export class DeliverDialogComponent {
     return out;
   });
 
-  confirm(): void {
+  async confirm(): Promise<void> {
     this.attempted.set(true);
-    if (this.issues().length) return;
-    const vouchers = this.orders.deliver(
-      this.order().id,
-      this.delivering().map((r) => ({ lineIndex: r.lineIndex, quantity: r.quantity ?? 0, warehouseId: r.warehouseId })),
-      this.date(),
-      this.note().trim(),
-    );
+    if (this.issues().length || this.busy()) return;
+    this.busy.set(true);
+    this.error.set('');
+    let vouchers;
+    try {
+      vouchers = await this.orders.deliver(
+        this.order().id,
+        this.delivering().map((r) => ({ lineIndex: r.lineIndex, quantity: r.quantity ?? 0, warehouseId: r.warehouseId })),
+        this.date(),
+        this.note().trim(),
+      );
+    } catch (e) {
+      this.error.set(errorText(e));
+      return;
+    } finally {
+      this.busy.set(false);
+    }
     this.close();
     const pxk = vouchers.length ? `lập ${vouchers.map((v) => v.code).join(', ')} — ` : '';
     this.delivered.emit(`Đã giao hàng: ${pxk}tồn kho và công nợ phải thu đã cập nhật (+${formatVnd(this.value())}).`);

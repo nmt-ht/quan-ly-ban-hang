@@ -16,6 +16,7 @@ import { TagsModule } from './modules/tags/tags.module.js';
 import { VehiclesModule } from './modules/vehicles/vehicles.module.js';
 import { InventoryModule } from './modules/inventory/inventory.module.js';
 import { PurchasingModule } from './modules/purchasing/purchasing.module.js';
+import { SalesModule } from './modules/sales/sales.module.js';
 import { DecimalInterceptor } from './common/decimal.interceptor.js';
 import { PrismaExceptionFilter } from './common/prisma-exception.filter.js';
 
@@ -38,6 +39,8 @@ import { PrismaExceptionFilter } from './common/prisma-exception.filter.js';
     InventoryModule,
     // Đợt 3 — mua hàng, công nợ phải trả
     PurchasingModule,
+    // Đợt 4 — bán hàng, sản xuất, công nợ phải thu
+    SalesModule,
   ],
   controllers: [AppController],
   providers: [
