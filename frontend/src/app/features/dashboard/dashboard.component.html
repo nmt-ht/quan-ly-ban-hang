@@ -69,7 +69,7 @@
     <span class="db-kpi-value num" [class.amt-neg]="k.profit < 0">{{ money(k.profit) }}</span>
     <span class="db-kpi-sub">
       Tỷ suất <span class="num">{{ percent(k.margin) }}</span>
-      @if (p.revenue > 0) { <span class="db-delta" [class.is-good]="k.margin > p.margin" [class.is-bad]="k.margin < p.margin">{{ k.margin >= p.margin ? '▲' : '▼' }} kỳ trước {{ percent(p.margin) }}</span> }
+      @if (p.revenue > 0) { <span class="db-delta" [class.is-good]="k.margin > p.margin" [class.is-bad]="k.margin < p.margin">{{ k.margin >= p.margin ? 'Tăng' : 'Giảm' }} · kỳ trước {{ percent(p.margin) }}</span> }
     </span>
     <span class="db-kpi-note">Doanh thu trừ giá vốn hàng đã giao</span>
   </a>

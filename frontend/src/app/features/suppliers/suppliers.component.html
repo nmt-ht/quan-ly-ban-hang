@@ -30,7 +30,7 @@
     <option value="credit">Được nợ</option>
     <option value="cash">Trả ngay</option>
   </select>
-  <select aria-label="Sắp xếp" [value]="sort()" (change)="sort.set($any($event.target).value)">
+  <select aria-label="Sắp xếp" [value]="sort()" (change)="sort.set($any($event.target).value); headerSort.set(null)">
     @for (s of sorts; track s.value) {
       <option [value]="s.value">{{ s.label }}</option>
     }
@@ -66,6 +66,10 @@
   [filterable]="true"
   [filters]="columnFilters()"
   (filtersChange)="columnFilters.set($event)"
+  [sortableColumns]="true"
+  [sortBy]="headerSort()?.key ?? null"
+  [sortDir]="headerSort()?.dir ?? 'asc'"
+  (sortChange)="headerSort.set($event)"
   [optionRows]="data.suppliers()"
   [emptyAction]="chips().length || search() ? null : createCta"
   [emptyTitle]="chips().length || search() ? 'Không có nhà cung cấp phù hợp' : 'Chưa có nhà cung cấp nào'"

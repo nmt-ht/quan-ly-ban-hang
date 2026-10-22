@@ -10,7 +10,8 @@
  *   DEMO_USER_PASSWORD='mat-khau-tu-dat' npm run prisma:seed:demo
  */
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
@@ -29,7 +30,7 @@ async function main() {
     throw new Error('Từ chối chạy seed dữ liệu giả khi NODE_ENV=production.');
   }
 
-  const data: any = JSON.parse(readFileSync(join(__dirname, 'demo-data.json'), 'utf8'));
+  const data: any = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'demo-data.json'), 'utf8'));
 
   if (await prisma.customer.findUnique({ where: { code: 'KH0000001' } })) {
     console.log('Đã có dữ liệu demo (KH0000001) — bỏ qua.');
@@ -50,7 +51,10 @@ async function main() {
   const acc: Record<string, string> = {};
   for (const a of data.accounts) {
     const ex = await prisma.cashAccount.findFirst({ where: { name: a.name } });
-    acc[a.id] = ex ? ex.id : (await prisma.cashAccount.create({ data: { id: a.id, name: a.name, type: a.type } })).id;
+    // Existing (base seed) accounts take the demo's bank details too.
+    acc[a.id] = ex
+      ? (await prisma.cashAccount.update({ where: { id: ex.id }, data: { ...a, id: undefined } })).id
+      : (await prisma.cashAccount.create({ data: a })).id;
   }
 
   // ---- Thẻ ----
@@ -59,7 +63,7 @@ async function main() {
     const ex = await prisma.tag.findFirst({ where: { name: t.name } });
     tagMap[t.id] = ex
       ? ex.id
-      : (await prisma.tag.create({ data: { id: t.id, name: t.name, sortOrder: t.sortOrder, isActive: t.isActive } })).id;
+      : (await prisma.tag.create({ data: { id: t.id, name: t.name, color: t.color, sortOrder: t.sortOrder, isActive: t.isActive } })).id;
   }
 
   // ---- Người dùng ----
@@ -72,6 +76,7 @@ async function main() {
       where: { email: u.email },
       update: {},
       create: {
+        id: u.key, // same id as the frontend demo (vehicles point at user-taixe…)
         name: u.name, email: u.email, passwordHash, roleId: role.id,
         status: u.status, lastLoginAt: D(u.lastLoginAt),
       },
@@ -102,13 +107,15 @@ async function main() {
   })) });
 
   // ---- Đối tác ----
-  await prisma.supplier.createMany({ data: data.suppliers });
+  await prisma.supplier.createMany({ data: data.suppliers.map((s: any) => ({ ...s, createdAt: D(s.createdAt) })) });
+  await prisma.supplierProduct.createMany({ data: data.supplierProducts });
   for (const c of data.customers) {
-    const { tagIds: tIds, createdAt, ...rest } = c;
+    const { tagIds: tIds, addresses, createdAt, ...rest } = c;
     await prisma.customer.create({
       data: {
         ...rest, createdAt: D(createdAt),
         tags: { create: (tIds ?? []).map((t: string) => ({ tagId: tagMap[t] })) },
+        addresses: { create: (addresses ?? []).map((a: any, i: number) => ({ ...a, sortOrder: i })) },
       },
     });
   }
@@ -157,7 +164,9 @@ async function main() {
   }
 
   // ---- Xe & chuyến giao ----
-  await prisma.vehicle.createMany({ data: data.vehicles });
+  await prisma.vehicle.createMany({ data: data.vehicles.map((v: any) => ({
+    ...v, createdAt: D(v.createdAt), registrationExpiry: D(v.registrationExpiry), insuranceExpiry: D(v.insuranceExpiry),
+  })) });
   for (const t of data.deliveryTrips) {
     await prisma.deliveryTrip.create({
       data: {

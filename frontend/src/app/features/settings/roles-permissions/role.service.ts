@@ -3,6 +3,8 @@ import { ALL_PERMISSION_CODES } from '../../../core/data/permission-catalog';
 import { Role } from '../../../core/models/domain.models';
 import { MockDataService } from '../../../core/services/mock-data.service';
 import { foldVi } from '../../../shared/format.util';
+import { ApiService, upsertById } from '../../../core/api/api.service';
+import { CATALOG_FROM_API } from '../../../core/api/api.config';
 import { roleNameTaken } from './role.rules';
 
 export interface RoleDraft {
@@ -10,12 +12,18 @@ export interface RoleDraft {
   description: string;
 }
 
-// All writes for Thiết lập › Chức vụ & phân quyền. Against the mock store today; maps to the
-// backend position endpoints later. Chức vụ hệ thống (CEO) is read-only; roles are switched off
-// (Ngừng dùng), never deleted, so accounts and history keep their meaning.
+// All writes for Thiết lập › Chức vụ & phân quyền: the API (CATALOG_FROM_API) or, in demo mode, the
+// in-browser store. Chức vụ hệ thống (CEO) is read-only; roles are switched off (Ngừng dùng), never
+// deleted, so accounts and history keep their meaning.
 @Injectable({ providedIn: 'root' })
 export class RoleService {
   private readonly data = inject(MockDataService);
+  private readonly api = inject(ApiService);
+
+  private keep(r: Role): Role {
+    this.data.roles.update((list) => upsertById(list, r, true));
+    return r;
+  }
 
   find(id: string): Role {
     const r = this.data.roles().find((x) => x.id === id);
@@ -35,8 +43,9 @@ export class RoleService {
     this.data.roles.update((list) => list.map((r) => (r.id === id ? change(r) : r)));
   }
 
-  create(d: RoleDraft, copyFromId?: string): Role {
+  async create(d: RoleDraft, copyFromId?: string): Promise<Role> {
     const clean = this.check(d, null);
+    if (CATALOG_FROM_API) return this.keep(await this.api.post<Role>('/roles', { ...clean, copyFromId }));
     const permissions = copyFromId ? [...this.find(copyFromId).permissions] : [];
     const role: Role = {
       id: 'role-' + crypto.randomUUID().slice(0, 8), ...clean, isSystem: false, userCount: 0,
@@ -46,21 +55,33 @@ export class RoleService {
     return role;
   }
 
-  update(id: string, d: RoleDraft): void {
+  async update(id: string, d: RoleDraft): Promise<void> {
     if (this.find(id).isSystem) throw new Error('Chức vụ hệ thống không sửa được.');
     const clean = this.check(d, id);
+    if (CATALOG_FROM_API) {
+      this.keep(await this.api.put<Role>(`/roles/${id}`, clean));
+      return;
+    }
     this.patch(id, (r) => ({ ...r, ...clean }));
   }
 
-  setPermissions(id: string, codes: Iterable<string>): void {
+  async setPermissions(id: string, codes: Iterable<string>): Promise<void> {
     if (this.find(id).isSystem) throw new Error('Chức vụ hệ thống không sửa được quyền.');
     const known = new Set(ALL_PERMISSION_CODES);
     const permissions = [...new Set(codes)].filter((c) => known.has(c));
+    if (CATALOG_FROM_API) {
+      this.keep(await this.api.put<Role>(`/roles/${id}/permissions`, { codes: permissions }));
+      return;
+    }
     this.patch(id, (r) => ({ ...r, permissions, permissionCount: permissions.length }));
   }
 
-  setActive(id: string, isActive: boolean): void {
+  async setActive(id: string, isActive: boolean): Promise<void> {
     if (this.find(id).isSystem) throw new Error('Chức vụ hệ thống luôn đang dùng.');
+    if (CATALOG_FROM_API) {
+      this.keep(await this.api.patch<Role>(`/roles/${id}/active`, { isActive }));
+      return;
+    }
     this.patch(id, (r) => ({ ...r, isActive }));
   }
 }

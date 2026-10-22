@@ -7,6 +7,7 @@ import { FilterMultiSelectComponent, FilterOption } from '../../shared/filter-mu
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
 import { CopyButtonComponent } from '../../shared/copy-button/copy-button.component';
 import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
+import { ColumnSort, sortByColumn } from '../../shared/column-sort';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { Product, ProductType } from '../../core/models/domain.models';
 import { PRODUCT_TYPE_CLASS, PRODUCT_TYPE_LABEL, businessStatusClass } from '../../shared/status-labels';
@@ -14,6 +15,7 @@ import { foldVi, formatVnd } from '../../shared/format.util';
 import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { productExportSheet } from './product-excel';
 import { ProductImportDialogComponent } from './product-import-dialog/product-import-dialog.component';
+import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 
 type ViewMode = 'grid' | 'table';
 const VIEW_KEY = 'nt.products.view';
@@ -45,7 +47,7 @@ const ALL = 'all';
   selector: 'app-products',
   standalone: true,
   imports: [
-    CommonModule, RouterLink, DataTableComponent, FilterMultiSelectComponent, PaginationComponent,
+    CommonModule, RouterLink, AllowedLinkDirective, DataTableComponent, FilterMultiSelectComponent, PaginationComponent,
     NavIconComponent, ProductImportDialogComponent, CopyButtonComponent,
   ],
   templateUrl: './products.component.html',
@@ -68,6 +70,8 @@ export class ProductsComponent {
   readonly belowMinOnly = signal(false);
   readonly sort = signal<SortKey>('name-asc');
   readonly columnFilters = signal<ColumnFilters>({});
+  // Clicking a column header overrides the "Sắp xếp" select; picking from the select clears it.
+  readonly headerSort = signal<ColumnSort | null>(null);
 
   readonly typeOptions: FilterOption[] = (Object.keys(PRODUCT_TYPE_LABEL) as ProductType[]).map((t) => ({
     value: t,
@@ -141,7 +145,7 @@ export class ProductsComponent {
   readonly products = computed(() => {
     const cats = this.categoryIds();
     const rows = this.matchedExceptCategory().filter((p) => !cats.length || (p.categoryId && cats.includes(p.categoryId)));
-    return this.sorted(applyColumnFilters(rows, this.columns, this.columnFilters()));
+    return sortByColumn(this.sorted(applyColumnFilters(rows, this.columns, this.columnFilters())), this.columns, this.headerSort());
   });
 
   readonly chips = computed<ActiveChip[]>(() => {
@@ -180,7 +184,7 @@ export class ProductsComponent {
     { key: 'image', label: 'Ảnh', filter: false, image: (r) => r.images?.[0]?.url },
     { key: 'code', label: 'Mã', copy: true, link: (r) => ['/hang-hoa', r.id] },
     { key: 'name', label: 'Tên hàng hoá' },
-    { key: 'type', label: 'Tính chất', format: (r) => PRODUCT_TYPE_LABEL[r.type], badge: (r) => PRODUCT_TYPE_CLASS[r.type] },
+    { key: 'type', sortByText: true, label: 'Tính chất', format: (r) => PRODUCT_TYPE_LABEL[r.type], badge: (r) => PRODUCT_TYPE_CLASS[r.type] },
     { key: 'baseUnit', label: 'ĐVT' },
     {
       key: 'stock',

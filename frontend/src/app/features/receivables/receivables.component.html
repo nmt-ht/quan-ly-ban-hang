@@ -32,7 +32,7 @@
       (input)="search.set($any($event.target).value)"
     />
     <app-filter-multi-select label="Loại khách" [options]="typeOptions()" [(selected)]="types" />
-    <select aria-label="Sắp xếp" [value]="sort()" (change)="sort.set($any($event.target).value)">
+    <select aria-label="Sắp xếp" [value]="sort()" (change)="sort.set($any($event.target).value); headerSort.set(null)">
       @for (s of sorts; track s.value) {
         <option [value]="s.value">{{ s.label }}</option>
       }
@@ -77,6 +77,10 @@
     [filterable]="true"
     [filters]="columnFilters()"
     (filtersChange)="columnFilters.set($event)"
+    [sortableColumns]="true"
+    [sortBy]="headerSort()?.key ?? null"
+    [sortDir]="headerSort()?.dir ?? 'asc'"
+    (sortChange)="headerSort.set($event)"
     [emptyTitle]="hasFilters() ? 'Không có khách hàng phù hợp' : 'Không có công nợ phải thu'"
     [emptyHint]="hasFilters() ? 'Thử bỏ bớt bộ lọc hoặc đổi từ khoá tìm kiếm.' : 'Công nợ phải thu chỉ ghi khi khách thực nhận hàng.'"
   />

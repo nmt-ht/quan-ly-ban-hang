@@ -644,7 +644,9 @@ export const DEMO_ROLE_USER_COUNT: Record<string, number> = ${J(roleUserCount)};
 const hiredNote = (t) => (t.vehicleId ? t.driverName : t.driverName ? `${t.driverName} (xe thuê ${t.plateNumber ?? ''})`.replace(' )', ')') : undefined);
 const be = clean({
   meta: { generatedFor: TODAY, note: 'Dữ liệu GIẢ do tools/gen-demo-data.mjs sinh ra. Đừng sửa tay.' },
-  warehouses: WAREHOUSES, categories: CATEGORIES, accounts: ACCOUNTS, tags: TAGS,
+  // Danh mục: same objects (and ids) as the frontend demo, so both sides show the same catalog.
+  warehouses: WAREHOUSES, categories: CATEGORIES, tags: TAGS,
+  accounts: feCashAccounts.map(({ balance: _b, ...a }) => a),
   users: USERS.map((u) => ({ key: u.id, name: u.name, email: u.email, roleName: u.role, status: u.status, lastLoginAt: `${u.lastLogin}+07:00` })),
   products: PRODUCTS.map((p) => ({
     id: p.id, code: p.code, name: p.name, type: p.type, baseUnit: p.baseUnit, categoryKey: p.categoryId, warehouseKey: p.defaultWarehouseId, minStock: p.minStock,
@@ -652,8 +654,9 @@ const be = clean({
     purchaseNote: p.purchaseNote, saleNote: p.saleNote, description: p.description, isSellable: p.isSellable, isActive: p.isActive, unitConversions: p.unitConversions,
   })),
   bomLines: Object.entries(BOM).flatMap(([finishedProductId, ls]) => ls.map((l) => ({ finishedProductId, componentId: l.componentId, quantityPerUnit: l.quantityPerUnit }))),
-  suppliers: SUPPLIERS.map((s) => ({ id: s.id, code: s.code, name: s.name, contactPhone: s.phone, taxCode: s.tax, address: s.addr, creditAllowed: s.credit, isActive: s.active })),
-  customers: CUSTOMERS.map((c) => ({ id: c.id, code: c.code, name: c.name, companyName: c.company, type: c.type, creditDays: c.credit, phone: c.phone, email: c.email, companyTaxCode: c.ctax, note: c.note, isActive: c.active, tagIds: c.tags, createdAt: iso(START) })),
+  suppliers: feSuppliers,
+  supplierProducts: feSupplierProducts,
+  customers: feCustomers.map(({ orderCount: _n, ...c }) => c),
   purchaseOrders: purchaseOrders.map((p) => ({ id: p.id, code: p.code, supplierId: p.supplierId, date: iso(p.date), status: p.status, createdByKey: p.createdBy, lines: p.lines })),
   salesOrders: orders.map((o) => ({
     id: o.id, code: o.code, customerId: o.customerId, recipientName: o.recipientName, recipientPhone: o.recipientPhone, description: o.description, source: o.source,
@@ -662,7 +665,7 @@ const be = clean({
     lines: o.lines.map((l) => ({ id: l.id, productId: l.productId, unit: l.unit, quantity: l.quantity, unitPrice: l.unitPrice, length: l.length, width: l.width, note: l.note, receivedQuantity: l.receivedQuantity })),
   })),
   productionOrders: lsx.map((l) => ({ id: l.id, code: l.code, sourceOrderId: l.sourceOrderId, productId: l.productId, quantity: l.quantity, status: l.status, bomSnapshot: l.bomSnapshot, createdAt: iso(l.createdDate) })),
-  vehicles: VEHICLES.map((v) => ({ id: v.id, code: v.code, plateNumber: v.plate, type: v.type, loadCapacity: v.cap, usualDriver: v.usual })),
+  vehicles: feVehicles,
   deliveryTrips: trips.map((t) => ({ id: t.id, code: t.code, date: iso(t.date), driverName: hiredNote(t), vehicleId: t.vehicleId, status: t.status, orderIds: t.orderIds })),
   warehouseVouchers: warehouseVouchers.map((v) => ({ id: v.id, code: v.code, type: v.type, date: iso(v.date), warehouseKey: v.warehouseId, targetWarehouseKey: v.targetWarehouseId, reason: v.reason, isCancelled: v.isCancelled, createdByKey: v.createdBy, lines: v.lines })),
   stockLevels: stockLevels.map((s) => ({ productId: s.productId, warehouseKey: s.warehouseId, quantity: s.quantity })),

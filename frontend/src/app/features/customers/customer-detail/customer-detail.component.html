@@ -32,6 +32,12 @@
       <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
     </div>
   }
+  @if (failure()) {
+    <div class="notice is-error" role="alert">
+      <span>{{ failure() }}</span>
+      <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="failure.set('')"><app-nav-icon name="x" /></button>
+    </div>
+  }
 
   <div class="detail-tabs" role="tablist" aria-label="Thông tin khách hàng" (keydown)="onTabKey($event)">
     @for (t of tabs(); track t.id) {

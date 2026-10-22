@@ -7,12 +7,14 @@ import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { foldVi } from '../../../shared/format.util';
 import { PARTNER_LABEL, PartnerType, categoryHint } from '../cash-voucher.rules';
 import { CashVoucherService } from '../cash-voucher.service';
+import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
+import { errorText } from '../../../core/api/api.service';
 
 // /thu-chi/loai — loại thu chi quyết định phiếu gắn khách hàng, nhà cung cấp hay không gắn đối tác.
 @Component({
   selector: 'app-cash-categories',
   standalone: true,
-  imports: [FormsModule, RouterLink, NavIconComponent],
+  imports: [FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent],
   templateUrl: './cash-categories.component.html',
   styleUrls: [
     '../../purchase-orders/receive-goods-dialog/receive-goods-dialog.component.scss',
@@ -29,6 +31,10 @@ export class CashCategoriesComponent {
   readonly hint = categoryHint;
   readonly partnerTypes: PartnerType[] = ['KHACH_HANG', 'NHA_CUNG_CAP', 'KHAC'];
   readonly notice = signal('');
+  readonly dialogError = signal('');
+  readonly saving = signal(false);
+  /** A save the server refused (or that could not reach it). */
+  readonly failure = signal('');
 
   readonly editing = signal<CashCategory | null>(null);
   readonly name = signal('');
@@ -81,12 +87,15 @@ export class CashCategoriesComponent {
     return out;
   });
 
-  save(): void {
+  async save(): Promise<void> {
     this.attempted.set(true);
-    if (this.issues().length) return;
+    if (this.issues().length || this.saving()) return;
     const c = this.editing();
     const code = c?.code ?? `${this.kind()}_${Date.now().toString(36).toUpperCase()}`;
-    this.svc.saveCategory({
+    this.saving.set(true);
+    this.dialogError.set('');
+    try {
+    await this.svc.saveCategory({
       code,
       name: this.name().trim(),
       kind: this.kind(),
@@ -97,10 +106,21 @@ export class CashCategoriesComponent {
     });
     this.close();
     this.notice.set(c ? `Đã lưu loại "${this.name().trim()}".` : `Đã thêm loại "${this.name().trim()}".`);
+    } catch (e) {
+      this.dialogError.set(errorText(e));
+    } finally {
+      this.saving.set(false);
+    }
   }
 
-  toggle(c: CashCategory): void {
-    this.svc.setCategoryActive(c.code, !c.isActive);
+  async toggle(c: CashCategory): Promise<void> {
+    this.failure.set('');
+    try {
+      await this.svc.setCategoryActive(c.code, !c.isActive);
+    } catch (e) {
+      this.failure.set(errorText(e));
+      return;
+    }
     this.notice.set(c.isActive ? `"${c.name}" ngừng dùng — phiếu cũ giữ nguyên.` : `"${c.name}" dùng lại.`);
   }
 }

@@ -1,6 +1,10 @@
 // Ninh Trang ERP — data model
-// Mirrors the entities discovered by crawling the production app and the
-// Angular frontend models in frontend/src/app/core/models/domain.models.ts.
+// Mirrors the Angular frontend models in frontend/src/app/core/models/domain.models.ts.
+// Conventions:
+// - Money and quantities are Decimal; the API turns them into JSON numbers (DecimalInterceptor).
+// - Date-only fields (ngày đặt, hạn giao…) are @db.Date and travel as "YYYY-MM-DD".
+// - Totals (tổng đơn, đã nhận, công nợ, số dư) are derived from lines and vouchers, not stored.
+// - `updatedAt` on documents is the optimistic-concurrency token: an edit sends the value it read.
 
 generator client {
   provider = "prisma-client-js"
@@ -15,21 +19,33 @@ datasource db {
 // ---------- Auth / RBAC ----------
 
 model User {
-  id             String    @id @default(uuid())
-  name           String
-  email          String    @unique
-  passwordHash   String
-  roleId         String
-  role           Role      @relation(fields: [roleId], references: [id])
-  status         UserStatus @default(ACTIVE)
-  lastLoginAt    DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id                 String     @id @default(uuid())
+  name               String
+  email              String     @unique
+  passwordHash       String
+  roleId             String
+  role               Role       @relation(fields: [roleId], references: [id])
+  status             UserStatus @default(ACTIVE)
+  phone              String?
+  note               String?
+  mustChangePassword Boolean    @default(false) // bắt đổi mật khẩu ở lần đăng nhập tới
+  passwordUpdatedAt  DateTime?
+  lockedAt           DateTime?
+  lockedReason       String?
+  // Tokens issued before this moment are refused: Đăng xuất mọi phiên, khoá, đặt lại mật khẩu.
+  sessionsRevokedAt  DateTime?
+  lastLoginAt        DateTime?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
 
-  salesOrders       SalesOrder[]      @relation("SalesOrderCreatedBy")
-  purchaseOrders    PurchaseOrder[]   @relation("PurchaseOrderCreatedBy")
-  warehouseVouchers WarehouseVoucher[] @relation("WarehouseVoucherCreatedBy")
-  cashVouchers      CashVoucher[]     @relation("CashVoucherCreatedBy")
+  salesOrders          SalesOrder[]       @relation("SalesOrderCreatedBy")
+  salesOrdersAsRep     SalesOrder[]       @relation("SalesOrderRep")
+  purchaseOrders       PurchaseOrder[]    @relation("PurchaseOrderCreatedBy")
+  warehouseVouchers    WarehouseVoucher[] @relation("WarehouseVoucherCreatedBy")
+  cashVouchers         CashVoucher[]      @relation("CashVoucherCreatedBy")
+  productionOrders     ProductionOrder[]  @relation("ProductionOrderCreatedBy")
+  deliveryTrips        DeliveryTrip[]     @relation("DeliveryTripCreatedBy")
+  vehiclesAsDriver     Vehicle[]          @relation("VehicleDriver")
 }
 
 enum UserStatus {
@@ -50,11 +66,11 @@ model Role {
 }
 
 // Permission catalog is seeded from a fixed list (see prisma/seed.ts) —
-// matches PermissionModule[] in the frontend mock-data.service.ts.
+// matches frontend core/data/permission-catalog.ts.
 model Permission {
-  code        String @id // e.g. "product.view"
-  module      String // e.g. "product"
-  label       String
+  code   String @id // e.g. "product.view"
+  module String // e.g. "product"
+  label  String
 
   roles RolePermission[]
 }
@@ -76,16 +92,26 @@ model CompanyInfo {
   phone   String?
   email   String?
   website String?
+  logo    String? // URL of the uploaded logo
 }
 
 model Tag {
-  id       String  @id @default(uuid())
-  name     String
-  sortOrder Int    @default(0)
-  isActive Boolean @default(true)
+  id        String  @id @default(uuid())
+  name      String
+  color     String? // TagColorKey: gray, red, amber… (frontend shared/tag-colors.ts)
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
 
   customers CustomerTag[]
   orders    SalesOrderTag[]
+}
+
+// Mã chứng từ: one row per prefix (DH, DN, PNK, KH…), incremented atomically by
+// SequenceService so two users saving at once never get the same code.
+model DocumentSequence {
+  key       String   @id
+  value     Int      @default(0) // last number handed out
+  updatedAt DateTime @updatedAt
 }
 
 // ---------- Catalog ----------
@@ -102,9 +128,12 @@ model Warehouse {
   name String
 
   stockLevels        StockLevel[]
-  vouchersFrom        WarehouseVoucher[] @relation("VoucherWarehouse")
-  vouchersTo          WarehouseVoucher[] @relation("VoucherTargetWarehouse")
-  defaultForProducts  Product[]
+  vouchersFrom       WarehouseVoucher[]     @relation("VoucherWarehouse")
+  vouchersTo         WarehouseVoucher[]     @relation("VoucherTargetWarehouse")
+  defaultForProducts Product[]
+  purchaseLines      PurchaseOrderLine[]
+  salesLines         SalesOrderLine[]
+  tripLoads          DeliveryTripLoad[]
 }
 
 enum ProductType {
@@ -113,48 +142,84 @@ enum ProductType {
   DICH_VU    // Dịch vụ (không tồn kho)
 }
 
-model Product {
-  id                String       @id @default(uuid())
-  code              String       @unique // VT/SP/DV + seq
-  name              String
-  type              ProductType
-  baseUnit          String
-  crossRefCode      String?
-  categoryId        String?
-  category          ProductCategory? @relation(fields: [categoryId], references: [id])
-  defaultWarehouseId String?
-  defaultWarehouse  Warehouse?   @relation(fields: [defaultWarehouseId], references: [id])
-  minStock          Decimal      @default(0)
-  vatRate           Decimal      @default(0)
-  warrantyMonths    Int          @default(0)
-  origin            String?
-  retailPrice       Decimal      @default(0)
-  wholesalePrice    Decimal      @default(0)
-  dropshipPrice     Decimal      @default(0)
-  purchaseNote      String?
-  saleNote          String?
-  description       String?
-  isSellable        Boolean      @default(true)
-  isActive          Boolean      @default(true)
-  createdAt         DateTime     @default(now())
+// Cách tính of a Thành phẩm: per m² (dài × rộng) or per metre.
+enum MeasureMode {
+  AREA
+  LENGTH
+}
 
-  unitConversions   UnitConversion[]
-  stockLevels       StockLevel[]
-  bomLines          BomLine[]        @relation("BomFinishedProduct")
-  bomComponentOf    BomLine[]        @relation("BomComponent")
-  salesOrderLines   SalesOrderLine[]
-  purchaseOrderLines PurchaseOrderLine[]
+model Product {
+  id                 String           @id @default(uuid())
+  code               String           @unique // VT/SP/DV + seq
+  name               String
+  type               ProductType
+  baseUnit           String
+  measureMode        MeasureMode?
+  crossRefCode       String?
+  categoryId         String?
+  category           ProductCategory? @relation(fields: [categoryId], references: [id])
+  defaultWarehouseId String?
+  defaultWarehouse   Warehouse?       @relation(fields: [defaultWarehouseId], references: [id])
+  minStock           Decimal          @default(0)
+  vatRate            Decimal          @default(0)
+  warrantyMonths     Int              @default(0)
+  origin             String?
+  retailPrice        Decimal          @default(0)
+  wholesalePrice     Decimal          @default(0)
+  dropshipPrice      Decimal          @default(0)
+  purchaseNote       String?
+  saleNote           String?
+  description        String?
+  isSellable         Boolean          @default(true)
+  isActive           Boolean          @default(true)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @default(now()) @updatedAt
+
+  unitConversions       UnitConversion[]
+  images                ProductImage[]
+  stockLevels           StockLevel[]
+  bomLines              BomLine[]              @relation("BomFinishedProduct")
+  bomComponentOf        BomLine[]              @relation("BomComponent")
+  supplierProducts      SupplierProduct[]
+  salesOrderLines       SalesOrderLine[]
+  purchaseOrderLines    PurchaseOrderLine[]
   warehouseVoucherLines WarehouseVoucherLine[]
-  productionOrders  ProductionOrder[]
+  productionOrders      ProductionOrder[]
+  tripLoads             DeliveryTripLoad[]
+}
+
+// × / ÷ change quantity (1 bó = 12 cái); + / − keep 1:1 quantity and shift the price.
+enum UnitOperation {
+  MUL
+  DIV
+  ADD
+  SUB
 }
 
 model UnitConversion {
-  id             String  @id @default(uuid())
-  productId      String
-  product        Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  unitName       String
-  ratioToBaseUnit Decimal
-  price          Decimal
+  id              String        @id @default(uuid())
+  productId       String
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  unitName        String
+  operation       UnitOperation @default(MUL)
+  factor          Decimal? // the number typed in "Tỷ lệ" / "Số tiền"
+  ratioToBaseUnit Decimal // base units in 1 of this unit (derived from operation + factor)
+  price           Decimal // giá lẻ
+  wholesalePrice  Decimal?
+  dropshipPrice   Decimal?
+  sortOrder       Int           @default(0)
+}
+
+// Ảnh hàng hoá: the first by sortOrder is Ảnh chính. `url` points at file storage.
+model ProductImage {
+  id        String  @id @default(uuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  name      String
+  width     Int     @default(0)
+  height    Int     @default(0)
+  sortOrder Int     @default(0)
 }
 
 // Snapshot-free BOM definition; ProductionOrder stores its own frozen copy.
@@ -165,6 +230,8 @@ model BomLine {
   componentId       String
   component         Product @relation("BomComponent", fields: [componentId], references: [id])
   quantityPerUnit   Decimal
+
+  @@unique([finishedProductId, componentId])
 }
 
 model StockLevel {
@@ -187,31 +254,49 @@ enum WarehouseVoucherType {
 }
 
 model WarehouseVoucher {
-  id                String   @id @default(uuid())
-  code              String   @unique
+  id                String               @id @default(uuid())
+  code              String               @unique
   type              WarehouseVoucherType
   date              DateTime
   warehouseId       String
-  warehouse         Warehouse @relation("VoucherWarehouse", fields: [warehouseId], references: [id])
+  warehouse         Warehouse            @relation("VoucherWarehouse", fields: [warehouseId], references: [id])
   targetWarehouseId String?
-  targetWarehouse   Warehouse? @relation("VoucherTargetWarehouse", fields: [targetWarehouseId], references: [id])
+  targetWarehouse   Warehouse?           @relation("VoucherTargetWarehouse", fields: [targetWarehouseId], references: [id])
   reason            String?
-  isCancelled       Boolean  @default(false)
+  note              String?
+  // Chứng từ gốc — at most one is set.
+  purchaseOrderId   String?
+  purchaseOrder     PurchaseOrder?       @relation(fields: [purchaseOrderId], references: [id])
+  salesOrderId      String?
+  salesOrder        SalesOrder?          @relation(fields: [salesOrderId], references: [id])
+  productionOrderId String?
+  productionOrder   ProductionOrder?     @relation(fields: [productionOrderId], references: [id])
+  deliveryTripId    String?
+  deliveryTrip      DeliveryTrip?        @relation(fields: [deliveryTripId], references: [id])
+  isCancelled       Boolean              @default(false)
+  cancelReason      String?
+  cancelledAt       DateTime?
   createdById       String
-  createdBy         User     @relation("WarehouseVoucherCreatedBy", fields: [createdById], references: [id])
-  createdAt         DateTime @default(now())
+  createdBy         User                 @relation("WarehouseVoucherCreatedBy", fields: [createdById], references: [id])
+  createdAt         DateTime             @default(now())
 
   lines WarehouseVoucherLine[]
 }
 
 model WarehouseVoucherLine {
-  id        String @id @default(uuid())
-  voucherId String
-  voucher   WarehouseVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
-  productId String
-  product   Product @relation(fields: [productId], references: [id])
-  quantity  Decimal
-  unitPrice Decimal @default(0)
+  id           String           @id @default(uuid())
+  voucherId    String
+  voucher      WarehouseVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  productId    String
+  product      Product          @relation(fields: [productId], references: [id])
+  quantity     Decimal // ĐVT chính; kiểm kê: số đếm được
+  delta        Decimal          @default(0) // stock change; sign comes from the voucher type (kiểm kê: signed)
+  unitName     String? // ĐVT trên phiếu, if a conversion unit
+  unitQuantity Decimal?
+  unitPrice    Decimal          @default(0) // phiếu nhập: per base unit
+  bookQuantity Decimal? // kiểm kê: tồn sổ sách lúc lưu
+  note         String?
+  sortOrder    Int              @default(0)
 }
 
 // ---------- Production ----------
@@ -224,32 +309,59 @@ enum ProductionOrderStatus {
 }
 
 model ProductionOrder {
-  id             String   @id @default(uuid())
-  code           String   @unique
-  sourceOrderId  String
-  sourceOrder    SalesOrder @relation(fields: [sourceOrderId], references: [id])
-  productId      String
-  product        Product  @relation(fields: [productId], references: [id])
-  quantity       Decimal
-  status         ProductionOrderStatus @default(NHAP)
-  bomSnapshot    Json     // frozen copy of BomLine[] at creation time
-  createdAt      DateTime @default(now())
+  id               String                @id @default(uuid())
+  code             String                @unique
+  sourceOrderId    String
+  sourceOrder      SalesOrder            @relation(fields: [sourceOrderId], references: [id])
+  productId        String
+  product          Product               @relation(fields: [productId], references: [id])
+  quantity         Decimal
+  producedQuantity Decimal? // thực nhập kho khi hoàn tất (hàng hỏng làm số này < quantity)
+  status           ProductionOrderStatus @default(NHAP)
+  bomSnapshot      Json // frozen copy of BomLine[] at creation time
+  startDate        DateTime?             @db.Date
+  completeDate     DateTime?             @db.Date
+  cancelReason     String?
+  note             String?
+  createdById      String?
+  createdBy        User?                 @relation("ProductionOrderCreatedBy", fields: [createdById], references: [id])
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @default(now()) @updatedAt
+
+  warehouseVouchers WarehouseVoucher[]
 }
 
 // ---------- Purchasing ----------
 
 model Supplier {
-  id            String   @id @default(uuid())
-  code          String   @unique
-  name          String
-  contactPhone  String?
-  taxCode       String?
-  address       String?
-  creditAllowed Boolean  @default(false)
-  isActive      Boolean  @default(true)
+  id           String   @id @default(uuid())
+  code         String   @unique
+  name         String
+  contactPhone String?
+  email        String?
+  taxCode      String?
+  address      String?
+  creditDays   Int      @default(0) // hạn thanh toán = ngày nhập kho + số ngày này (0 = trả ngay)
+  note         String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
 
+  products       SupplierProduct[]
   purchaseOrders PurchaseOrder[]
   cashVouchers   CashVoucher[]
+}
+
+// Danh mục hàng theo NCC — one product can come from several suppliers at different prices.
+model SupplierProduct {
+  supplierId    String
+  productId     String
+  supplier      Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  supplierCode  String?
+  purchasePrice Decimal  @default(0) // per base unit
+
+  @@id([supplierId, productId])
 }
 
 enum PurchaseOrderStatus {
@@ -262,28 +374,40 @@ enum PurchaseOrderStatus {
 }
 
 model PurchaseOrder {
-  id          String   @id @default(uuid())
-  code        String   @unique
-  supplierId  String
-  supplier    Supplier @relation(fields: [supplierId], references: [id])
-  date        DateTime
-  status      PurchaseOrderStatus @default(NHAP)
-  createdById String
-  createdBy   User     @relation("PurchaseOrderCreatedBy", fields: [createdById], references: [id])
-  createdAt   DateTime @default(now())
+  id           String              @id @default(uuid())
+  code         String              @unique
+  supplierId   String
+  supplier     Supplier            @relation(fields: [supplierId], references: [id])
+  date         DateTime            @db.Date
+  status       PurchaseOrderStatus @default(NHAP)
+  note         String?
+  sentDate     DateTime?           @db.Date
+  receivedDate DateTime?           @db.Date
+  cancelReason String?
+  createdById  String
+  createdBy    User                @relation("PurchaseOrderCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @default(now()) @updatedAt
 
-  lines PurchaseOrderLine[]
+  lines             PurchaseOrderLine[]
+  warehouseVouchers WarehouseVoucher[]
 }
 
 model PurchaseOrderLine {
-  id        String        @id @default(uuid())
-  orderId   String
-  order     PurchaseOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId String
-  product   Product       @relation(fields: [productId], references: [id])
-  quantity  Decimal
-  unitPrice Decimal
-  receivedQuantity Decimal @default(0)
+  id               String        @id @default(uuid())
+  orderId          String
+  order            PurchaseOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId        String
+  product          Product       @relation(fields: [productId], references: [id])
+  quantity         Decimal // in unitName
+  unitPrice        Decimal // per unitName
+  receivedQuantity Decimal       @default(0) // in unitName
+  unitName         String? // null = base unit
+  ratioToBase      Decimal       @default(1)
+  vatRate          Decimal       @default(0)
+  warehouseId      String? // kho nhập dự kiến
+  warehouse        Warehouse?    @relation(fields: [warehouseId], references: [id])
+  sortOrder        Int           @default(0)
 }
 
 // ---------- Sales ----------
@@ -295,24 +419,39 @@ enum CustomerType {
 }
 
 model Customer {
-  id               String   @id @default(uuid())
-  code             String   @unique
-  name             String
-  companyName      String?
-  type             CustomerType @default(LE)
-  creditDays       Int      @default(0)
-  phone            String?
-  email            String?
-  idNumber         String?
-  personalTaxCode  String?
-  companyTaxCode   String?
-  note             String?
-  isActive         Boolean  @default(true)
-  createdAt        DateTime @default(now())
+  id              String       @id @default(uuid())
+  code            String       @unique
+  name            String
+  companyName     String?
+  type            CustomerType @default(LE)
+  creditDays      Int          @default(0)
+  phone           String?
+  email           String?
+  idNumber        String?
+  personalTaxCode String?
+  companyTaxCode  String?
+  note            String?
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @default(now()) @updatedAt
 
+  addresses    CustomerAddress[]
   tags         CustomerTag[]
   salesOrders  SalesOrder[]
   cashVouchers CashVoucher[]
+}
+
+// Địa chỉ giao hàng của khách.
+model CustomerAddress {
+  id            String   @id @default(uuid())
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  label         String? // Nhà riêng, Cửa hàng, Kho…
+  recipientName String?
+  phone         String?
+  address       String
+  isDefault     Boolean  @default(false)
+  sortOrder     Int      @default(0)
 }
 
 model CustomerTag {
@@ -336,27 +475,38 @@ enum SalesOrderStatus {
 }
 
 model SalesOrder {
-  id             String   @id @default(uuid())
-  code           String   @unique
-  customerId     String
-  customer       Customer @relation(fields: [customerId], references: [id])
-  recipientName  String?
-  recipientPhone String?
-  description    String?
-  source         String?
-  orderDate      DateTime
-  neededByDate   DateTime?
-  status         SalesOrderStatus @default(CHO_SAN_XUAT)
-  discountAmount Decimal  @default(0)
-  salesRepId     String?
-  createdById    String
-  createdBy      User     @relation("SalesOrderCreatedBy", fields: [createdById], references: [id])
-  createdAt      DateTime @default(now())
+  id              String           @id @default(uuid())
+  code            String           @unique
+  customerId      String
+  customer        Customer         @relation(fields: [customerId], references: [id])
+  recipientName   String?
+  recipientPhone  String?
+  deliveryAddress String?
+  description     String?
+  source          String?
+  orderDate       DateTime         @db.Date
+  neededByDate    DateTime?        @db.Date
+  dueDate         DateTime?        @db.Date
+  deliveredDate   DateTime?        @db.Date
+  closedDate      DateTime?        @db.Date // "Kết thúc đơn": khách không lấy phần còn lại
+  status          SalesOrderStatus @default(CHO_SAN_XUAT)
+  discountAmount  Decimal          @default(0)
+  cancelReason    String?
+  // "Thu tiền ngay": each receipt by the customer auto-creates a phiếu thu into this account.
+  payNowAccountId String?
+  payNowAccount   CashAccount?     @relation(fields: [payNowAccountId], references: [id])
+  salesRepId      String?
+  salesRep        User?            @relation("SalesOrderRep", fields: [salesRepId], references: [id])
+  createdById     String
+  createdBy       User             @relation("SalesOrderCreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @default(now()) @updatedAt
 
-  lines           SalesOrderLine[]
-  tags            SalesOrderTag[]
-  productionOrders ProductionOrder[]
+  lines              SalesOrderLine[]
+  tags               SalesOrderTag[]
+  productionOrders   ProductionOrder[]
   deliveryTripOrders DeliveryTripOrder[]
+  warehouseVouchers  WarehouseVoucher[]
 }
 
 model SalesOrderTag {
@@ -369,20 +519,29 @@ model SalesOrderTag {
 }
 
 model SalesOrderLine {
-  id             String     @id @default(uuid())
-  orderId        String
-  order          SalesOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId      String
-  product        Product    @relation(fields: [productId], references: [id])
-  unit           String
-  quantity       Decimal
-  unitPrice      Decimal
-  length         Decimal?
-  width          Decimal?
-  note           String?
-  // Delivered/receivable quantity is tracked separately so AR is only
-  // recognized on actual customer receipt (see docs/backend-plan.md).
-  receivedQuantity Decimal @default(0)
+  id               String             @id @default(uuid())
+  orderId          String
+  order            SalesOrder         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId        String
+  product          Product            @relation(fields: [productId], references: [id])
+  unit             String // ĐVT bán
+  unitName         String? // set when selling in a conversion unit
+  ratioToBase      Decimal            @default(1)
+  quantity         Decimal // in the line's unit
+  unitPrice        Decimal // in the line's unit, fixed on save
+  discountRate     Decimal? // % chiết khấu dòng (display)
+  discountAmount   Decimal            @default(0)
+  vatRate          Decimal            @default(0)
+  warehouseId      String? // kho xuất
+  warehouse        Warehouse?         @relation(fields: [warehouseId], references: [id])
+  length           Decimal? // cm
+  width            Decimal?
+  note             String?
+  sortOrder        Int                @default(0)
+  // Phải thu is recognised only on actual customer receipt.
+  receivedQuantity Decimal            @default(0)
+
+  tripLoads DeliveryTripLoad[]
 }
 
 // ---------- Delivery ----------
@@ -395,38 +554,97 @@ enum DeliveryTripStatus {
   HUY
 }
 
+enum VehicleType {
+  XE_TAI
+  XE_VAN
+  XE_BA_GAC
+  XE_MAY
+  KHAC
+}
+
+enum VehicleStatus {
+  DANG_DUNG
+  BAO_TRI
+  NGUNG_DUNG
+}
+
 model Vehicle {
-  id            String  @id @default(uuid())
-  code          String  @unique
-  plateNumber   String
-  type          String
-  loadCapacity  Decimal?
-  usualDriver   String?
-  isActive      Boolean @default(true)
+  id                 String        @id @default(uuid())
+  code               String        @unique
+  plateNumber        String
+  name               String?
+  type               VehicleType   @default(XE_TAI)
+  loadCapacity       Decimal? // kg
+  status             VehicleStatus @default(DANG_DUNG)
+  registrationExpiry DateTime?     @db.Date
+  insuranceExpiry    DateTime?     @db.Date
+  driverUserId       String?
+  driverUser         User?         @relation("VehicleDriver", fields: [driverUserId], references: [id])
+  usualDriver        String? // tài xế thuê ngoài, or the employee's name
+  driverPhone        String?
+  note               String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @default(now()) @updatedAt
 
   trips DeliveryTrip[]
 }
 
 model DeliveryTrip {
-  id          String   @id @default(uuid())
-  code        String   @unique
-  date        DateTime
-  driverName  String?
-  vehicleId   String?
-  vehicle     Vehicle? @relation(fields: [vehicleId], references: [id])
-  status      DeliveryTripStatus @default(GOM_DON)
-  createdAt   DateTime @default(now())
+  id           String             @id @default(uuid())
+  code         String             @unique
+  date         DateTime           @db.Date
+  driverName   String?
+  driverPhone  String?
+  plateNumber  String? // xe thuê ngoài: typed in; own vehicle: copied from Vehicle
+  vehicleId    String?
+  vehicle      Vehicle?           @relation(fields: [vehicleId], references: [id])
+  status       DeliveryTripStatus @default(GOM_DON)
+  note         String?
+  shippedAt    DateTime?
+  returnedAt   DateTime?
+  completedAt  DateTime?
+  cancelReason String?
+  // Chi phí điều vận — not a phiếu chi (real money still goes through Thu chi).
+  fuelCost     Decimal            @default(0)
+  tollCost     Decimal            @default(0)
+  otherCost    Decimal            @default(0)
+  costNote     String?
+  createdById  String?
+  createdBy    User?              @relation("DeliveryTripCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @default(now()) @updatedAt
 
-  orders DeliveryTripOrder[]
+  orders            DeliveryTripOrder[]
+  loads             DeliveryTripLoad[]
+  warehouseVouchers WarehouseVoucher[]
 }
 
 model DeliveryTripOrder {
-  tripId  String
-  orderId String
-  trip    DeliveryTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  order   SalesOrder   @relation(fields: [orderId], references: [id])
+  tripId      String
+  orderId     String
+  trip        DeliveryTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  order       SalesOrder   @relation(fields: [orderId], references: [id])
+  sortOrder   Int          @default(0)
+  // Chốt giao: set when the customer confirms what they received (per line in DeliveryTripLoad).
+  confirmedAt DateTime?
+  confirmNote String?
 
   @@id([tripId, orderId])
+}
+
+// Hàng xếp lên xe lúc xuất kho, per sales-order line, in the line's unit.
+model DeliveryTripLoad {
+  id               String         @id @default(uuid())
+  tripId           String
+  trip             DeliveryTrip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  orderLineId      String
+  orderLine        SalesOrderLine @relation(fields: [orderLineId], references: [id])
+  productId        String
+  product          Product        @relation(fields: [productId], references: [id])
+  warehouseId      String? // null = dịch vụ, không xuất kho
+  warehouse        Warehouse?     @relation(fields: [warehouseId], references: [id])
+  quantity         Decimal
+  receivedQuantity Decimal? // khách thực nhận, set on chốt giao
 }
 
 // ---------- Cash flow ----------
@@ -437,12 +655,24 @@ enum CashAccountType {
 }
 
 model CashAccount {
-  id      String  @id @default(uuid())
-  name    String
-  type    CashAccountType
-  balance Decimal @default(0)
+  id             String          @id @default(uuid())
+  name           String
+  type           CashAccountType
+  code           String? // TM, TCB-9999…
+  bankName       String?
+  accountNumber  String?
+  accountHolder  String?
+  branch         String?
+  openingBalance Decimal         @default(0) // số dư trước khi dùng phần mềm
+  // Kept in step with vouchers until Đợt 6 derives it (opening + thu − chi, uncancelled).
+  balance        Decimal         @default(0)
+  sortOrder      Int             @default(0)
+  note           String?
+  isDefault      Boolean         @default(false)
+  isActive       Boolean         @default(true)
 
-  vouchers CashVoucher[]
+  vouchers         CashVoucher[]
+  payNowSalesOrders SalesOrder[]
 }
 
 enum VoucherKind {
@@ -456,24 +686,49 @@ enum PartnerType {
   KHAC
 }
 
+// Loại thu chi — decides whether a voucher is tied to a customer, a supplier or nobody.
+model CashCategory {
+  code        String      @id
+  name        String
+  kind        VoucherKind
+  partnerType PartnerType
+  isDefault   Boolean     @default(false)
+  isActive    Boolean     @default(true)
+  isSystem    Boolean     @default(false) // built-in: partner type cannot change
+  sortOrder   Int         @default(0)
+}
+
 model CashVoucher {
-  id             String      @id @default(uuid())
-  code           String      @unique
-  date           DateTime
-  kind           VoucherKind
-  category       String
-  partnerType    PartnerType
-  customerId     String?
-  customer       Customer?   @relation(fields: [customerId], references: [id])
-  supplierId     String?
-  supplier       Supplier?   @relation(fields: [supplierId], references: [id])
-  accountId      String
-  account        CashAccount @relation(fields: [accountId], references: [id])
-  amount         Decimal
-  settledAmount  Decimal     @default(0)
-  description    String?
-  isCancelled    Boolean     @default(false)
-  createdById    String
-  createdBy      User        @relation("CashVoucherCreatedBy", fields: [createdById], references: [id])
-  createdAt      DateTime    @default(now())
+  id            String           @id @default(uuid())
+  code          String           @unique
+  date          DateTime
+  kind          VoucherKind
+  category      String // name of the CashCategory at the time of saving
+  partnerType   PartnerType
+  customerId    String?
+  customer      Customer?        @relation(fields: [customerId], references: [id])
+  supplierId    String?
+  supplier      Supplier?        @relation(fields: [supplierId], references: [id])
+  accountId     String
+  account       CashAccount      @relation(fields: [accountId], references: [id])
+  amount        Decimal
+  settledAmount Decimal          @default(0)
+  description   String?
+  isCancelled   Boolean          @default(false)
+  cancelReason  String?
+  cancelledAt   DateTime?
+  createdById   String
+  createdBy     User             @relation("CashVoucherCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime         @default(now())
+
+  allocations CashAllocation[]
+}
+
+// Đối trừ "Chọn tay": amount taken off each debt document (mã đơn DN…/DH…).
+model CashAllocation {
+  id        String      @id @default(uuid())
+  voucherId String
+  voucher   CashVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  ref       String
+  amount    Decimal
 }

@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
+import { Component, HostListener, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { NgClass } from '@angular/common';
@@ -10,6 +10,7 @@ import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { CopyButtonComponent } from '../../../shared/copy-button/copy-button.component';
 import { MoneyInputDirective } from '../../../shared/money-input.directive';
 import { ProductPickerComponent } from '../../../shared/product-picker/product-picker.component';
+import { HasUnsavedChanges, isSaveShortcut, warnBeforeUnload } from '../../../core/guards/unsaved-changes.guard';
 import { PrintDocumentComponent } from '../../../shared/print/print-document.component';
 import { vndInWords } from '../../../shared/vnd-words';
 import { PaginationComponent } from '../../../shared/pagination/pagination.component';
@@ -22,6 +23,7 @@ import {
 } from '../purchase-order.rules';
 import { PurchaseOrderService } from '../purchase-order.service';
 import { ReceiveGoodsDialogComponent } from '../receive-goods-dialog/receive-goods-dialog.component';
+import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 
 type Mode = 'create' | 'edit' | 'view';
 
@@ -54,13 +56,13 @@ const emptyLine = (): DraftLine => ({
   selector: 'app-purchase-order-voucher',
   standalone: true,
   imports: [
-    NgClass, FormsModule, RouterLink, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
+    NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
     ReceiveGoodsDialogComponent, PaginationComponent, PrintDocumentComponent,
   ],
   templateUrl: './purchase-order-voucher.component.html',
   styleUrl: '../../../shared/voucher/voucher.scss',
 })
-export class PurchaseOrderVoucherComponent {
+export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   readonly data = inject(MockDataService);
@@ -120,6 +122,7 @@ export class PurchaseOrderVoucherComponent {
         this.page.set(1);
         this.confirmCancel.set(false);
         if (id) this.notice.set((history.state as { notice?: string } | null)?.notice ?? '');
+        this.baseline = this.snapshot();
       });
     });
   }
@@ -334,10 +337,12 @@ export class PurchaseOrderVoucherComponent {
     };
     const id = this.id();
     const o = this.mode() === 'edit' && id ? this.orders.update(id, draft) : this.orders.create(draft);
+    this.baseline = this.snapshot();
     this.router.navigate(['/mua-hang', o.id], { state: { notice: this.mode() === 'edit' ? 'Đã lưu thay đổi.' : `Đã tạo đơn ${o.code}.` } });
   }
 
   cancelEditing(): void {
+    this.baseline = this.snapshot();
     const id = this.id();
     if (id) this.router.navigate(['/mua-hang', id]);
     else this.router.navigateByUrl('/mua-hang');
@@ -393,4 +398,26 @@ export class PurchaseOrderVoucherComponent {
     return (v.lines ?? []).reduce((s, l) => s + l.delta, 0);
   }
 
+  // ---------- unsaved changes + Ctrl+S ----------
+  private baseline = '';
+
+  private snapshot(): string {
+    return JSON.stringify([this.supplierId(), this.date(), this.note(), this.lines().map(({ key, ...line }) => line)]);
+  }
+
+  hasUnsavedChanges(): boolean {
+    return this.editable() && this.snapshot() !== this.baseline;
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  onBeforeUnload(e: BeforeUnloadEvent): void {
+    warnBeforeUnload(e, this.hasUnsavedChanges());
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  onKeydown(e: KeyboardEvent): void {
+    if (!this.editable() || !isSaveShortcut(e)) return;
+    e.preventDefault();
+    this.save();
+  }
 }

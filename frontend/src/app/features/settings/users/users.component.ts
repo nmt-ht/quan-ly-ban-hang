@@ -9,12 +9,15 @@ import { FilterMultiSelectComponent, FilterOption } from '../../../shared/filter
 import { PaginationComponent } from '../../../shared/pagination/pagination.component';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { ColumnFilters, applyColumnFilters } from '../../../shared/column-filter';
+import { ColumnSort, sortByColumn } from '../../../shared/column-sort';
 import { foldVi } from '../../../shared/format.util';
 import { tagClass } from '../../../shared/tag-class';
 import { downloadWorkbook, exportFileName } from '../../../shared/excel.util';
 import { UserService } from './user.service';
 import { UserDialogComponent } from './user-dialog/user-dialog.component';
 import { PasswordDialogComponent } from './password-dialog/password-dialog.component';
+import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
+import { errorText } from '../../../core/api/api.service';
 
 export const USER_STATUS_LABEL = { ACTIVE: 'Đang hoạt động', DISABLED: 'Đã khoá' } as const;
 const IDLE_DAYS = 30;
@@ -31,7 +34,7 @@ export function formatDateTime(iso: string | undefined): string {
   selector: 'app-users',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, RouterLink, DataTableComponent, FilterMultiSelectComponent, PaginationComponent, NavIconComponent,
+    CommonModule, FormsModule, RouterLink, AllowedLinkDirective, DataTableComponent, FilterMultiSelectComponent, PaginationComponent, NavIconComponent,
     UserDialogComponent, PasswordDialogComponent,
   ],
   templateUrl: './users.component.html',
@@ -48,6 +51,8 @@ export class UsersComponent {
   readonly online = signal(false);
   readonly idle = signal(false);
   readonly columnFilters = signal<ColumnFilters>({});
+  // Clicking a column header sorts; again reverses; a third click goes back to the default order.
+  readonly headerSort = signal<ColumnSort | null>(null);
   readonly page = signal(1);
   readonly pageSize = signal(20);
   readonly notice = signal('');
@@ -87,7 +92,7 @@ export class UsersComponent {
     rows.sort((a, b) =>
       (a.status === b.status ? 0 : a.status === 'ACTIVE' ? -1 : 1) ||
       (order.get(a.roleId) ?? 99) - (order.get(b.roleId) ?? 99) || a.name.localeCompare(b.name, 'vi'));
-    return applyColumnFilters(rows, this.columns, this.columnFilters());
+    return sortByColumn(applyColumnFilters(rows, this.columns, this.columnFilters()), this.columns, this.headerSort());
   });
 
   readonly paged = computed(() => {
@@ -109,7 +114,7 @@ export class UsersComponent {
   readonly columns: DataTableColumn<AppUser>[] = [
     { key: 'name', label: 'Họ tên', link: (r) => ['/thiet-lap/nguoi-dung', r.id], format: (r) => r.name + (this.svc.isMe(r) ? ' (bạn)' : '') },
     { key: 'email', label: 'Email', copy: true, mono: true },
-    { key: 'roleId', label: 'Chức vụ', format: (r) => this.roleById().get(r.roleId)?.name ?? r.roleId },
+    { key: 'roleId', sortByText: true, label: 'Chức vụ', format: (r) => this.roleById().get(r.roleId)?.name ?? r.roleId },
     { key: 'phone', label: 'Điện thoại', format: (r) => r.phone || '—', mono: true },
     {
       key: 'lastLoginAt', label: 'Đăng nhập gần nhất',
@@ -157,19 +162,24 @@ export class UsersComponent {
     this.lockReason.set('');
   }
 
-  doLock(): void {
+  async doLock(): Promise<void> {
     const u = this.lockTarget()!;
     try {
-      this.svc.lock(u.id, this.lockReason());
+      await this.svc.lock(u.id, this.lockReason());
       this.notice.set(`Đã khoá ${u.name} — mọi phiên đã đăng xuất; chứng từ do người này lập vẫn giữ nguyên.`);
     } catch (e) {
-      this.error.set((e as Error).message);
+      this.error.set(errorText(e));
     }
     this.lockTarget.set(null);
   }
 
-  unlock(u: AppUser): void {
-    this.svc.unlock(u.id);
+  async unlock(u: AppUser): Promise<void> {
+    try {
+      await this.svc.unlock(u.id);
+    } catch (e) {
+      this.error.set(errorText(e));
+      return;
+    }
     this.notice.set(`Đã mở khoá ${u.name}.`);
   }
 

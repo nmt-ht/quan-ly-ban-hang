@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, HostListener, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -6,14 +6,17 @@ import { MockDataService } from '../../../core/services/mock-data.service';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { PHONE_PATTERN, TAX_CODE_PATTERN, duplicateOf } from '../supplier.rules';
 import { SupplierDraft, SupplierService } from '../supplier.service';
+import { HasUnsavedChanges, isSaveShortcut, warnBeforeUnload } from '../../../core/guards/unsaved-changes.guard';
+import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
+import { errorText } from '../../../core/api/api.service';
 
 @Component({
   selector: 'app-supplier-form',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, NavIconComponent],
+  imports: [ReactiveFormsModule, RouterLink, AllowedLinkDirective, NavIconComponent],
   templateUrl: './supplier-form.component.html',
 })
-export class SupplierFormComponent {
+export class SupplierFormComponent implements HasUnsavedChanges {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly data = inject(MockDataService);
@@ -51,7 +54,7 @@ export class SupplierFormComponent {
     return c.invalid && (c.touched || c.dirty);
   }
 
-  save(): void {
+  async save(): Promise<void> {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       document.querySelector<HTMLElement>('.ng-invalid:not(form)')?.focus();
@@ -68,12 +71,44 @@ export class SupplierFormComponent {
       note: v.note.trim() || undefined,
       isActive: v.isActive,
     };
-    if (this.editing) {
-      this.svc.update(this.editing.id, draft);
-      this.router.navigate(['/nha-cung-cap', this.editing.id], { state: { notice: 'Đã lưu thay đổi.' } });
-    } else {
-      const s = this.svc.create(draft);
-      this.router.navigate(['/nha-cung-cap', s.id], { state: { notice: `Đã tạo nhà cung cấp ${s.code}.` } });
+    if (this.saving()) return;
+    this.saving.set(true);
+    this.saveError.set('');
+    try {
+      if (this.editing) {
+        await this.svc.update(this.editing.id, draft);
+        this.form.markAsPristine();
+        this.router.navigate(['/nha-cung-cap', this.editing.id], { state: { notice: 'Đã lưu thay đổi.' } });
+      } else {
+        const s = await this.svc.create(draft);
+        this.form.markAsPristine();
+        this.router.navigate(['/nha-cung-cap', s.id], { state: { notice: `Đã tạo nhà cung cấp ${s.code}.` } });
+      }
+    } catch (e) {
+      this.saveError.set(errorText(e));
+    } finally {
+      this.saving.set(false);
     }
+  }
+
+  /** Why the last save failed (shown in the action bar). */
+  readonly saveError = signal('');
+  readonly saving = signal(false);
+
+  // ---------- unsaved changes + Ctrl+S ----------
+  hasUnsavedChanges(): boolean {
+    return this.form.dirty;
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  onBeforeUnload(e: BeforeUnloadEvent): void {
+    warnBeforeUnload(e, this.hasUnsavedChanges());
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  onKeydown(e: KeyboardEvent): void {
+    if (!isSaveShortcut(e)) return;
+    e.preventDefault();
+    this.save();
   }
 }

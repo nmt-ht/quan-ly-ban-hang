@@ -1,75 +1,150 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import { CreateProductDto } from './dto/create-product.dto.js';
-import { UpdateProductDto } from './dto/update-product.dto.js';
+import { SequenceService } from '../../prisma/sequence.service.js';
+import type { AuthUser } from '../../auth/auth.service.js';
+import { BomReplacementDto, CreateProductDto, ProductImageDto, ProductUpdateRowDto, UnitConversionDto } from './dto/create-product.dto.js';
+
+type Tx = Prisma.TransactionClient;
 
 const PREFIX: Record<string, string> = { VAT_TU: 'VT', THANH_PHAM: 'SP', DICH_VU: 'DV' };
+const INCLUDE = {
+  unitConversions: { orderBy: { sortOrder: 'asc' } },
+  images: { orderBy: { sortOrder: 'asc' } },
+} as const satisfies Prisma.ProductInclude;
+
+type Row = Prisma.ProductGetPayload<{ include: typeof INCLUDE }>;
+
+/** The frontend's Product: conversions and images without their bookkeeping columns. */
+const toApi = ({ unitConversions, images, ...p }: Row) => ({
+  ...p,
+  unitConversions: unitConversions.map(({ id: _i, productId: _p, sortOrder: _s, ...u }) => u),
+  images: images.map(({ productId: _p, sortOrder: _s, ...img }) => img),
+});
+
+const conversionRows = (list: UnitConversionDto[]) =>
+  list.map((u, i) => ({
+    unitName: u.unitName, operation: u.operation ?? 'MUL', factor: u.factor ?? null, ratioToBaseUnit: u.ratioToBaseUnit,
+    price: u.price, wholesalePrice: u.wholesalePrice ?? null, dropshipPrice: u.dropshipPrice ?? null, sortOrder: i,
+  }));
+
+const imageRows = (list: ProductImageDto[]) =>
+  list.map((img, i) => ({ id: img.id ?? randomUUID(), url: img.url, name: img.name, width: img.width, height: img.height, sortOrder: i }));
+
+/** Every column of the form; an empty optional field clears the stored value. */
+function fields(dto: CreateProductDto) {
+  return {
+    name: dto.name, baseUnit: dto.baseUnit, measureMode: dto.type === 'THANH_PHAM' ? (dto.measureMode ?? null) : null,
+    crossRefCode: dto.crossRefCode ?? null, categoryId: dto.categoryId ?? null, defaultWarehouseId: dto.defaultWarehouseId ?? null,
+    minStock: dto.minStock ?? 0, vatRate: dto.vatRate ?? 0, warrantyMonths: dto.warrantyMonths ?? 0, origin: dto.origin ?? null,
+    retailPrice: dto.retailPrice ?? 0, wholesalePrice: dto.wholesalePrice ?? 0, dropshipPrice: dto.dropshipPrice ?? 0,
+    purchaseNote: dto.purchaseNote ?? null, saleNote: dto.saleNote ?? null, description: dto.description ?? null,
+    isSellable: dto.isSellable ?? true, isActive: dto.isActive ?? true,
+  };
+}
+
+// Giá bán of a product and of its units, as one comparable string.
+const priceKey = (p: { retailPrice: unknown; wholesalePrice: unknown; dropshipPrice: unknown }, units: { unitName: string; price: unknown; wholesalePrice?: unknown; dropshipPrice?: unknown }[]) =>
+  JSON.stringify([
+    Number(p.retailPrice), Number(p.wholesalePrice), Number(p.dropshipPrice),
+    ...units.map((u) => [u.unitName, Number(u.price), Number(u.wholesalePrice ?? 0), Number(u.dropshipPrice ?? 0)]),
+  ]);
 
 @Injectable()
 export class ProductsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly sequences: SequenceService,
+  ) {}
 
-  findAll(search?: string) {
-    return this.prisma.product.findMany({
-      where: search
-        ? { OR: [{ name: { contains: search, mode: 'insensitive' } }, { code: { contains: search, mode: 'insensitive' } }] }
-        : undefined,
-      include: { category: true, unitConversions: true },
-      orderBy: { name: 'asc' },
-    });
+  async findAll() {
+    return (await this.prisma.product.findMany({ include: INCLUDE, orderBy: { name: 'asc' } })).map(toApi);
   }
 
   async findOne(id: string) {
-    const product = await this.prisma.product.findUnique({
-      where: { id },
-      include: { category: true, unitConversions: true },
-    });
+    const product = await this.prisma.product.findUnique({ where: { id }, include: INCLUDE });
     if (!product) throw new NotFoundException('Không tìm thấy hàng hoá');
-    return product;
+    return toApi(product);
   }
 
-  async create(dto: CreateProductDto) {
-    const count = await this.prisma.product.count();
-    const code = `${PREFIX[dto.type]}${String(count + 1).padStart(7, '0')}`;
+  create(dto: CreateProductDto) {
+    return this.prisma.$transaction(async (tx) => toApi(await this.insert(tx, dto)));
+  }
 
-    return this.prisma.product.create({
-      data: {
-        code,
-        name: dto.name,
-        type: dto.type,
-        baseUnit: dto.baseUnit,
-        crossRefCode: dto.crossRefCode,
-        categoryId: dto.categoryId,
-        defaultWarehouseId: dto.defaultWarehouseId,
-        minStock: dto.minStock ?? 0,
-        vatRate: dto.vatRate ?? 0,
-        warrantyMonths: dto.warrantyMonths ?? 0,
-        origin: dto.origin,
-        retailPrice: dto.retailPrice ?? 0,
-        wholesalePrice: dto.wholesalePrice ?? 0,
-        dropshipPrice: dto.dropshipPrice ?? 0,
-        purchaseNote: dto.purchaseNote,
-        saleNote: dto.saleNote,
-        description: dto.description,
-        isSellable: dto.isSellable ?? true,
-        isActive: dto.isActive ?? true,
-        unitConversions: dto.unitConversions
-          ? { create: dto.unitConversions.map((u) => ({ unitName: u.unitName, ratioToBaseUnit: u.ratioToBaseUnit, price: u.price })) }
-          : undefined,
+  // The code prefix (VT/SP/DV) is fixed at creation, so the type cannot change.
+  async update(id: string, dto: CreateProductDto, user: AuthUser) {
+    return this.prisma.$transaction(async (tx) => toApi(await this.replace(tx, id, dto, user, true)));
+  }
+
+  /** Ngừng kinh doanh / kinh doanh lại: products are never hard-deleted. */
+  async setActive(id: string, isActive: boolean) {
+    await this.findOne(id);
+    return toApi(await this.prisma.product.update({ where: { id }, data: { isActive }, include: INCLUDE }));
+  }
+
+  /** Nhập hàng hoá từ Excel, all or nothing. Images are not part of the sheet and stay as they are. */
+  async import(creates: CreateProductDto[], updates: ProductUpdateRowDto[], user: AuthUser) {
+    return this.prisma.$transaction(
+      async (tx) => {
+        const created = [];
+        for (const dto of creates) created.push(toApi(await this.insert(tx, dto)));
+        const updated = [];
+        for (const { id, ...dto } of updates) updated.push(toApi(await this.replace(tx, id, dto, user, false)));
+        return { created, updated };
       },
-      include: { unitConversions: true },
+      { timeout: 60_000 },
+    );
+  }
+
+  private async insert(tx: Tx, dto: CreateProductDto) {
+    return tx.product.create({
+      data: {
+        ...fields(dto),
+        type: dto.type,
+        code: await this.sequences.nextCode(PREFIX[dto.type], tx),
+        unitConversions: { create: conversionRows(dto.unitConversions ?? []) },
+        images: { create: imageRows(dto.images ?? []) },
+      },
+      include: INCLUDE,
     });
   }
 
-  async update(id: string, dto: UpdateProductDto) {
-    await this.findOne(id);
-    return this.prisma.product.update({ where: { id }, data: dto as any });
+  private async replace(tx: Tx, id: string, dto: CreateProductDto, user: AuthUser, withImages: boolean) {
+    const old = await tx.product.findUnique({ where: { id }, include: { unitConversions: true } });
+    if (!old) throw new NotFoundException(`Không tìm thấy hàng hoá ${id}`);
+    if (old.type !== dto.type) throw new BadRequestException(`${old.code}: không đổi được tính chất hàng hoá (mã ${PREFIX[old.type]}… gắn với tính chất).`);
+    const units = dto.unitConversions ?? old.unitConversions.map((u) => ({ ...u, price: u.price.toNumber() }));
+    const next = fields(dto);
+    if (!user.permissions.includes('product.update_price') && priceKey(old, old.unitConversions) !== priceKey(next, units)) {
+      throw new ForbiddenException(`${old.code}: chức vụ của bạn chưa có quyền sửa giá bán.`);
+    }
+    if (dto.unitConversions) {
+      await tx.unitConversion.deleteMany({ where: { productId: id } });
+      await tx.unitConversion.createMany({ data: conversionRows(dto.unitConversions).map((r) => ({ ...r, productId: id })) });
+    }
+    if (withImages && dto.images) {
+      await tx.productImage.deleteMany({ where: { productId: id } });
+      await tx.productImage.createMany({ data: imageRows(dto.images).map((r) => ({ ...r, productId: id })) });
+    }
+    return tx.product.update({ where: { id }, data: next, include: INCLUDE });
   }
 
-  // Products are never hard-deleted — matches product.delete meaning
-  // "ngừng kinh doanh" (deactivate), not row removal.
-  async deactivate(id: string) {
-    await this.findOne(id);
-    return this.prisma.product.update({ where: { id }, data: { isActive: false } });
+  // ---------- Định mức ----------
+
+  async bomLines() {
+    return this.prisma.bomLine.findMany({ select: { finishedProductId: true, componentId: true, quantityPerUnit: true } });
+  }
+
+  async replaceBoms(replacements: BomReplacementDto[]) {
+    await this.prisma.$transaction(async (tx) => {
+      for (const r of replacements) {
+        await tx.bomLine.deleteMany({ where: { finishedProductId: r.finishedProductId } });
+        await tx.bomLine.createMany({
+          data: r.lines.map((l) => ({ finishedProductId: r.finishedProductId, componentId: l.componentId, quantityPerUnit: l.quantityPerUnit })),
+        });
+      }
+    });
+    return this.bomLines();
   }
 }

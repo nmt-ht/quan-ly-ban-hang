@@ -30,6 +30,12 @@ export interface DataTableColumn<T> {
   // Render coloured chips (e.g. thẻ đánh dấu) instead of text; filtering still uses `format`.
   chips?: (row: T) => { label: string; style: Record<string, string> }[];
   toneFlow?: boolean;
+  // Header click sorts by this column (the page applies it; see shared/column-sort.ts).
+  sortable?: boolean;
+  // Value to sort by when it differs from the raw field or filterValue (e.g. a name instead of an id).
+  sortValue?: (row: T) => number | string | null | undefined;
+  // Sort by the text the cell shows (a name or label) rather than the raw id / enum code.
+  sortByText?: boolean;
 }
 
 @Component({
@@ -41,7 +47,12 @@ export interface DataTableColumn<T> {
       <table>
         <thead>
           <tr>
-            <th *ngFor="let col of columns" scope="col" [style.textAlign]="col.align || 'left'">{{ col.label }}</th>
+            <th *ngFor="let col of columns" scope="col" [style.textAlign]="col.align || 'left'" [attr.aria-sort]="isSortable(col) ? ariaSort(col) : null">
+              <button *ngIf="isSortable(col); else plainLabel" type="button" class="th-sort" (click)="toggleSort(col)">
+                {{ col.label }}<span class="sort-ind" [attr.data-dir]="dirOf(col)" aria-hidden="true"></span>
+              </button>
+              <ng-template #plainLabel>{{ col.label }}</ng-template>
+            </th>
             <th *ngIf="actions" scope="col" class="actions-cell">
               <span class="visually-hidden">{{ actionsLabel }}</span>
             </th>
@@ -201,6 +212,29 @@ export interface DataTableColumn<T> {
       white-space: nowrap;
       cursor: pointer;
     }
+    /* Sortable header: a real button, triangle drawn in CSS (no glyphs). */
+    .th-sort {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-3xs);
+      padding: 0;
+      border: none;
+      background: none;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+    }
+    .sort-ind {
+      width: 0;
+      height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 5px solid currentColor;
+      opacity: 0.3;
+    }
+    .sort-ind[data-dir='asc'] { border-top: 0; border-bottom: 5px solid currentColor; opacity: 1; }
+    .sort-ind[data-dir='desc'] { opacity: 1; }
+    @media (hover: hover) { .th-sort:hover .sort-ind { opacity: 0.7; } .th-sort:hover .sort-ind[data-dir] { opacity: 1; } }
     .thumb {
       display: block;
       width: 2rem;
@@ -235,6 +269,34 @@ export class DataTableComponent<T extends Record<string, any> = any> {
   @Output() filtersChange = new EventEmitter<ColumnFilters>();
   // Rows used to build select-filter options (all rows, not just the current page).
   @Input() optionRows?: T[];
+
+  // Header sorting (optional): the page owns the state and sorts before paginating.
+  @Input() sortBy: string | null = null;
+  @Input() sortDir: 'asc' | 'desc' = 'asc';
+  // Every column is sortable unless it says `sortable: false` or is chips / image / filter: false.
+  @Input() sortableColumns = false;
+  @Output() sortChange = new EventEmitter<{ key: string; dir: 'asc' | 'desc' } | null>();
+
+  isSortable(col: DataTableColumn<T>): boolean {
+    return col.sortable ?? (this.sortableColumns && !col.chips && !col.image && col.filter !== false);
+  }
+
+  dirOf(col: DataTableColumn<T>): 'asc' | 'desc' | 'none' {
+    return this.sortBy === col.key ? this.sortDir : 'none';
+  }
+
+  ariaSort(col: DataTableColumn<T>): 'ascending' | 'descending' | 'none' {
+    const d = this.dirOf(col);
+    return d === 'asc' ? 'ascending' : d === 'desc' ? 'descending' : 'none';
+  }
+
+  // Click cycle: first direction (numbers: high → low, text: A → Z) → reverse → off.
+  toggleSort(col: DataTableColumn<T>): void {
+    const first = col.align === 'right' ? 'desc' : 'asc';
+    if (this.sortBy !== col.key) this.sortChange.emit({ key: col.key, dir: first });
+    else if (this.sortDir === first) this.sortChange.emit({ key: col.key, dir: first === 'asc' ? 'desc' : 'asc' });
+    else this.sortChange.emit(null);
+  }
 
   cellText(col: DataTableColumn<T>, row: T): string {
     return col.format ? col.format(row) : (row[col.key] ?? '—');

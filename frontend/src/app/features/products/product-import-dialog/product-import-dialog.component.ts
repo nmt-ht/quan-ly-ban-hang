@@ -1,11 +1,13 @@
-import { Component, ElementRef, computed, input, output, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, computed, inject, input, output, signal, viewChild } from '@angular/core';
 import { MockDataService } from '../../../core/services/mock-data.service';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { downloadWorkbook } from '../../../shared/excel.util';
 import {
-  BomImportPlan, ImportIssue, ProductImportPlan, applyBomImport, applyProductImport,
+  BomImportPlan, ImportIssue, ProductImportPlan,
   bomTemplateSheet, planBomImport, planProductImport, productTemplateSheet,
 } from '../product-excel';
+import { ProductService } from '../product.service';
+import { errorText } from '../../../core/api/api.service';
 
 export type ImportMode = 'products' | 'bom';
 
@@ -26,6 +28,7 @@ export class ProductImportDialogComponent {
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
   private readonly fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
 
+  private readonly products = inject(ProductService);
   readonly fileName = signal('');
   readonly busy = signal(false);
   readonly error = signal('');
@@ -100,16 +103,25 @@ export class ProductImportDialogComponent {
     }
   }
 
-  confirm(): void {
+  async confirm(): Promise<void> {
     const pp = this.productPlan();
     const bp = this.bomPlan();
     let summary = '';
+    this.busy.set(true);
+    this.error.set('');
+    try {
+      if (pp) await this.products.importProducts(pp);
+      else if (bp) await this.products.importBoms(bp);
+    } catch (e) {
+      this.error.set(errorText(e));
+      return;
+    } finally {
+      this.busy.set(false);
+    }
     if (pp) {
-      this.data.products.set(applyProductImport(this.data.products(), pp));
       summary = `Đã nhập hàng hoá: ${pp.creates.length} thêm mới, ${pp.updates.length} cập nhật`;
       if (pp.issues.length) summary += `, bỏ qua ${pp.issues.length} dòng lỗi`;
     } else if (bp) {
-      this.data.bomLines.set(applyBomImport(this.data.bomLines(), bp));
       summary = `Đã nhập định mức cho ${bp.replacements.size} thành phẩm (${bp.lineCount} dòng vật tư)`;
       const skipped = bp.issues.filter((i) => i.row > 0).length;
       if (skipped) summary += `, bỏ qua ${skipped} dòng lỗi`;

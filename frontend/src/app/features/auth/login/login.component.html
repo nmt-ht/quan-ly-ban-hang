@@ -5,18 +5,23 @@
       <span>Ninh Trang</span>
     </div>
     <p class="subtitle">Đăng nhập để tiếp tục</p>
+    @if (expired && !error()) {
+      <p class="session-note" role="status">Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.</p>
+    }
 
     <div class="field">
       <label for="login-email">Email <span class="required-mark">*</span></label>
-      <input id="login-email" type="email" name="email" [(ngModel)]="email" required autocomplete="username" [attr.aria-invalid]="error() ? 'true' : null" />
+      <input id="login-email" type="email" name="email" [(ngModel)]="email" required autocomplete="username" autofocus [attr.aria-invalid]="error() ? 'true' : null" />
     </div>
     <div class="field">
       <label for="login-password">Mật khẩu <span class="required-mark">*</span></label>
       <input id="login-password" type="password" name="password" [(ngModel)]="password" required autocomplete="current-password" [attr.aria-invalid]="error() ? 'true' : null" aria-describedby="login-error" />
     </div>
 
-    <p class="error" id="login-error" role="alert" *ngIf="error()">{{ error() }}</p>
+    @if (error()) {
+      <p class="error" id="login-error" role="alert">{{ error() }}</p>
+    }
 
-    <button class="btn btn-primary" type="submit">Đăng nhập</button>
+    <button class="btn btn-primary" type="submit" [disabled]="busy()" [attr.aria-busy]="busy()">{{ busy() ? 'Đang đăng nhập…' : 'Đăng nhập' }}</button>
   </form>
 </div>

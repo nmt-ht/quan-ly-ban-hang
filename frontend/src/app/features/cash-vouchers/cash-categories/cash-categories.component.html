@@ -16,6 +16,12 @@
     <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
   </div>
 }
+@if (failure()) {
+  <div class="notice is-error" role="alert">
+    <span>{{ failure() }}</span>
+    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="failure.set('')"><app-nav-icon name="x" /></button>
+  </div>
+}
 
 @for (g of groups(); track g.kind) {
   <section class="card section-block ca-group">
@@ -77,8 +83,8 @@
     </label>
   </div>
   <footer class="rg-foot">
-    <p class="rg-summary" [class.text-danger]="attempted() && issues().length" role="status">
-      {{ attempted() && issues().length ? issues()[0] : 'Đổi tên thì các phiếu cũ đổi theo.' }}
+    <p class="rg-summary" [class.text-danger]="dialogError() || (attempted() && issues().length)" role="status">
+      {{ dialogError() || (attempted() && issues().length ? issues()[0] : 'Đổi tên thì các phiếu cũ đổi theo.') }}
     </p>
     <div class="toolbar">
       <button type="button" class="btn" (click)="close()">Huỷ</button>

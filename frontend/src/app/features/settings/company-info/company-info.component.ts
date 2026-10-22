@@ -7,6 +7,7 @@ import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { CompanyLetterheadComponent } from '../../../shared/company-letterhead/company-letterhead.component';
 import { readLogo } from '../../../shared/company-letterhead/logo-image';
 import { PHONE_PATTERN, TAX_CODE_PATTERN, WEBSITE_PATTERN } from './company.rules';
+import { errorText } from '../../../core/api/api.service';
 
 const clean = (s: string) => s.trim();
 
@@ -25,6 +26,8 @@ export class CompanyInfoComponent {
 
   readonly today = new Date();
   readonly notice = signal('');
+  /** A save the server refused (or that could not reach it). */
+  readonly failure = signal('');
   readonly logo = signal<string | undefined>(undefined);
   readonly logoError = signal('');
 
@@ -93,14 +96,20 @@ export class CompanyInfoComponent {
     return c.invalid && (c.touched || c.dirty);
   }
 
-  save(): void {
+  async save(): Promise<void> {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       document.querySelector<HTMLElement>('.ng-invalid:not(form)')?.focus();
       return;
     }
     const d = this.draft();
-    this.svc.save(d);
+    this.failure.set('');
+    try {
+      await this.svc.save(d);
+    } catch (e) {
+      this.failure.set(errorText(e));
+      return;
+    }
     this.saved.set(d);
     this.logoError.set('');
     this.form.reset({ name: d.name, address: d.address ?? '', taxCode: d.taxCode ?? '', phone: d.phone ?? '', email: d.email ?? '', website: d.website ?? '' });

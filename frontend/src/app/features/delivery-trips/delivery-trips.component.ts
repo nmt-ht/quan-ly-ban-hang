@@ -9,6 +9,7 @@ import { PaginationComponent } from '../../shared/pagination/pagination.componen
 import { PeriodFilterComponent, PeriodValue, NO_PERIOD } from '../../shared/period-filter/period-filter.component';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
+import { ColumnSort, sortByColumn } from '../../shared/column-sort';
 import { foldVi, formatVnd } from '../../shared/format.util';
 import { PERIOD_PRESETS, formatDay, inRange, rangeLabel } from '../../shared/period';
 import { DELIVERY_TRIP_STATUS_LABEL, deliveryTripStatusClass } from '../../shared/status-labels';
@@ -16,6 +17,7 @@ import { tagClass } from '../../shared/tag-class';
 import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { costTotal } from './delivery-trip.rules';
 import { TripHeaderDialogComponent } from './trip-header-dialog/trip-header-dialog.component';
+import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 
 interface ActiveChip {
   label: string;
@@ -28,7 +30,7 @@ const HIRED = 'hired';
   selector: 'app-delivery-trips',
   standalone: true,
   imports: [
-    CommonModule, RouterLink, DataTableComponent, FilterMultiSelectComponent, PaginationComponent, PeriodFilterComponent,
+    CommonModule, RouterLink, AllowedLinkDirective, DataTableComponent, FilterMultiSelectComponent, PaginationComponent, PeriodFilterComponent,
     NavIconComponent, TripHeaderDialogComponent,
   ],
   templateUrl: './delivery-trips.component.html',
@@ -44,6 +46,8 @@ export class DeliveryTripsComponent {
   readonly drivers = signal<string[]>([]);
   readonly vehicle = signal('all');
   readonly columnFilters = signal<ColumnFilters>({});
+  // Clicking a column header sorts; again reverses; a third click goes back to the default order.
+  readonly headerSort = signal<ColumnSort | null>(null);
   readonly page = signal(1);
   readonly pageSize = signal(20);
   readonly exporting = signal(false);
@@ -88,7 +92,7 @@ export class DeliveryTripsComponent {
     const rows = this.matchedExceptStatus()
       .filter((t) => !st.length || st.includes(t.status))
       .sort((a, b) => b.date.localeCompare(a.date) || b.code.localeCompare(a.code));
-    return applyColumnFilters(rows, this.columns, this.columnFilters());
+    return sortByColumn(applyColumnFilters(rows, this.columns, this.columnFilters()), this.columns, this.headerSort());
   });
 
   readonly pagedTrips = computed(() => {
@@ -133,7 +137,7 @@ export class DeliveryTripsComponent {
     { key: 'date', label: 'Ngày', format: (r) => formatDay(r.date), mono: true },
     { key: 'driverName', label: 'Tài xế', format: (r) => r.driverName || '—' },
     { key: 'plateNumber', label: 'Biển số', format: (r) => (r.plateNumber ? r.plateNumber + (r.vehicleId ? '' : ' · thuê') : '—'), mono: true },
-    { key: 'status', label: 'Trạng thái', format: (r) => DELIVERY_TRIP_STATUS_LABEL[r.status], badge: (r) => deliveryTripStatusClass(r.status) },
+    { key: 'status', sortByText: true, label: 'Trạng thái', format: (r) => DELIVERY_TRIP_STATUS_LABEL[r.status], badge: (r) => deliveryTripStatusClass(r.status) },
     { key: 'orderIds', label: 'Đơn', align: 'right', format: (r) => `${r.confirmedCount}/${r.orderIds.length}`, filterValue: (r) => r.orderIds.length },
     { key: 'totalValue', label: 'Giá trị', align: 'right', format: (r) => formatVnd(r.totalValue), filterValue: (r) => r.totalValue },
     { key: 'receivedValue', label: 'Khách nhận', align: 'right', format: (r) => (r.receivedValue ? formatVnd(r.receivedValue) : '—'), filterValue: (r) => r.receivedValue },

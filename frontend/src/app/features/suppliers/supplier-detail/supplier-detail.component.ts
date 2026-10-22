@@ -20,6 +20,8 @@ import {
 import { canReceive, receivedPercent } from '../../purchase-orders/purchase-order.rules';
 import { creditLabel } from '../supplier.rules';
 import { SupplierService } from '../supplier.service';
+import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
+import { errorText } from '../../../core/api/api.service';
 
 export type SupplierTab = 'chung' | 'hang' | 'don-nhap' | 'cong-no';
 
@@ -34,7 +36,7 @@ interface CatalogRow {
 @Component({
   selector: 'app-supplier-detail',
   standalone: true,
-  imports: [NgClass, FormsModule, RouterLink, NavIconComponent, CopyButtonComponent, ProductPickerComponent, MoneyInputDirective],
+  imports: [NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, ProductPickerComponent, MoneyInputDirective],
   templateUrl: './supplier-detail.component.html',
   styleUrl: './supplier-detail.component.scss',
 })
@@ -63,6 +65,8 @@ export class SupplierDetailComponent {
   readonly receivedPercent = receivedPercent;
 
   readonly notice = signal('');
+  /** A save the server refused (or that could not reach it). */
+  readonly failure = signal('');
 
   constructor() {
     // Reset per-record UI when navigating between suppliers (the component is reused).
@@ -108,10 +112,10 @@ export class SupplierDetailComponent {
   // ---------- trạng thái hợp tác ----------
   readonly openOrders = computed(() => this.orders().filter((o) => canReceive(o.status)));
 
-  toggleActive(): void {
+  async toggleActive(): Promise<void> {
     const s = this.supplier();
     if (!s) return;
-    this.svc.setActive(s.id, !s.isActive);
+    if (!(await this.attempt(() => this.svc.setActive(s.id, !s.isActive)))) return;
     if (s.isActive) {
       const open = this.openOrders().length;
       this.notice.set(
@@ -201,26 +205,42 @@ export class SupplierDetailComponent {
     setTimeout(() => document.getElementById('cat-price')?.focus());
   }
 
-  addItem(): void {
+  async addItem(): Promise<void> {
     this.catalogAttempted.set(true);
     const productId = this.newProductId();
     const price = this.newPrice();
     if (!productId || price === null || price < 0) return;
     const code = this.newProduct()?.code ?? productId;
-    const result = this.svc.upsertCatalogItem({
-      supplierId: this.id(),
-      productId,
-      supplierCode: this.newSupplierCode().trim() || undefined,
-      purchasePrice: price,
+    let result: 'added' | 'updated' = 'added';
+    const ok = await this.attempt(async () => {
+      result = await this.svc.upsertCatalogItem({
+        supplierId: this.id(),
+        productId,
+        supplierCode: this.newSupplierCode().trim() || undefined,
+        purchasePrice: price,
+      });
     });
+    if (!ok) return;
     this.notice.set(result === 'added' ? `Đã thêm ${code} vào danh mục hàng.` : `Đã cập nhật giá mua của ${code}.`);
     this.resetCatalogForm();
   }
 
-  removeItem(row: CatalogRow): void {
-    this.svc.removeCatalogItem(this.id(), row.productId);
+  async removeItem(row: CatalogRow): Promise<void> {
+    if (!(await this.attempt(() => this.svc.removeCatalogItem(this.id(), row.productId)))) return;
     this.notice.set(`Đã bỏ ${row.product?.code ?? row.productId} khỏi danh mục hàng của nhà cung cấp.`);
     if (this.newProductId() === row.productId) this.resetCatalogForm();
+  }
+
+  /** Runs a save; on failure shows why and answers false. */
+  private async attempt(save: () => Promise<unknown>): Promise<boolean> {
+    this.failure.set('');
+    try {
+      await save();
+      return true;
+    } catch (e) {
+      this.failure.set(errorText(e));
+      return false;
+    }
   }
 
   resetCatalogForm(): void {

@@ -7,11 +7,13 @@ import { DataTableColumn, DataTableComponent } from '../../shared/data-table/dat
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
+import { ColumnSort, sortByColumn } from '../../shared/column-sort';
 import { foldVi, formatVnd } from '../../shared/format.util';
 import { formatDay } from '../../shared/period';
 import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { DebtLedgerComponent } from '../debts/debt-ledger/debt-ledger.component';
 import { AGING_COLUMNS } from '../debts/aging';
+import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 
 type PayableSort = 'balance' | 'overdue' | 'due' | 'name';
 
@@ -26,7 +28,7 @@ const SORTS: { value: PayableSort; label: string }[] = [
 @Component({
   selector: 'app-payables',
   standalone: true,
-  imports: [RouterLink, DataTableComponent, PaginationComponent, NavIconComponent, DebtLedgerComponent],
+  imports: [RouterLink, AllowedLinkDirective, DataTableComponent, PaginationComponent, NavIconComponent, DebtLedgerComponent],
   templateUrl: './payables.component.html',
 })
 export class PayablesComponent {
@@ -38,6 +40,8 @@ export class PayablesComponent {
   readonly overdueOnly = signal(false);
   readonly sort = signal<PayableSort>('balance');
   readonly columnFilters = signal<ColumnFilters>({});
+  // Clicking a column header overrides the "Sắp xếp" select; picking from the select clears it.
+  readonly headerSort = signal<ColumnSort | null>(null);
   readonly page = signal(1);
   readonly pageSize = signal(20);
   readonly exporting = signal(false);
@@ -72,7 +76,7 @@ export class PayablesComponent {
           : s === 'due' ? (a.nextDue ?? '9999').localeCompare(b.nextDue ?? '9999')
             : a.name.localeCompare(b.name, 'vi'),
     );
-    return applyColumnFilters(rows, this.columns, this.columnFilters());
+    return sortByColumn(applyColumnFilters(rows, this.columns, this.columnFilters()), this.columns, this.headerSort());
   });
 
   readonly pagedRows = computed(() => {

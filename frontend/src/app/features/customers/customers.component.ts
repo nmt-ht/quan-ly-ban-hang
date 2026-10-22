@@ -8,6 +8,7 @@ import { FilterMultiSelectComponent, FilterOption } from '../../shared/filter-mu
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
+import { ColumnSort, sortByColumn } from '../../shared/column-sort';
 import { foldVi, formatVnd } from '../../shared/format.util';
 import { formatDay } from '../../shared/period';
 import { CUSTOMER_TYPE_SHORT, customerStatusClass, customerStatusLabel, customerTypeClass } from '../../shared/status-labels';
@@ -15,6 +16,7 @@ import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { tagStyle } from '../../shared/tag-colors';
 import { CUSTOMER_SORTS, CUSTOMER_TYPES, CustomerSort, creditLabel, taxCodeOf } from './customer.rules';
 import { CustomerService } from './customer.service';
+import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 
 interface ActiveChip {
   label: string;
@@ -26,7 +28,7 @@ type StatusFilter = 'all' | 'active' | 'inactive';
 @Component({
   selector: 'app-customers',
   standalone: true,
-  imports: [CommonModule, RouterLink, DataTableComponent, FilterMultiSelectComponent, PaginationComponent, NavIconComponent],
+  imports: [CommonModule, RouterLink, AllowedLinkDirective, DataTableComponent, FilterMultiSelectComponent, PaginationComponent, NavIconComponent],
   templateUrl: './customers.component.html',
 })
 export class CustomersComponent {
@@ -40,6 +42,8 @@ export class CustomersComponent {
   readonly owing = signal(false);
   readonly sort = signal<CustomerSort>('name-asc');
   readonly columnFilters = signal<ColumnFilters>({});
+  // Clicking a column header overrides the "Sắp xếp" select; picking from the select clears it.
+  readonly headerSort = signal<ColumnSort | null>(null);
   readonly page = signal(1);
   readonly pageSize = signal(20);
   readonly exporting = signal(false);
@@ -93,7 +97,7 @@ export class CustomersComponent {
               : s === 'debt' ? stat(b).receivable - stat(a).receivable
                 : byName(a, b),
     );
-    return applyColumnFilters(rows, this.columns, this.columnFilters());
+    return sortByColumn(applyColumnFilters(rows, this.columns, this.columnFilters()), this.columns, this.headerSort());
   });
 
   readonly pagedCustomers = computed(() => {
@@ -136,13 +140,13 @@ export class CustomersComponent {
   readonly columns: DataTableColumn<Customer>[] = [
     { key: 'code', label: 'Mã KH', copy: true, link: (r) => ['/khach-hang', r.id] },
     { key: 'name', label: 'Tên khách hàng', format: (r) => (r.companyName ? `${r.name} · ${r.companyName}` : r.name) },
-    { key: 'type', label: 'Loại', format: (r) => CUSTOMER_TYPE_SHORT[r.type], badge: (r) => customerTypeClass(r.type) },
+    { key: 'type', sortByText: true, label: 'Loại', format: (r) => CUSTOMER_TYPE_SHORT[r.type], badge: (r) => customerTypeClass(r.type) },
     {
       key: 'tagIds', label: 'Thẻ', format: (r) => r.tagIds.map((t) => this.tagById().get(t) ?? t).join(', ') || '—',
       chips: (r) => this.tagChips(r.tagIds),
     },
     { key: 'phone', label: 'Liên hệ', format: (r) => r.phone || '—', mono: true },
-    { key: 'taxCode', label: 'Mã số thuế', format: (r) => taxCodeOf(r) || '—', mono: true },
+    { key: 'taxCode', sortByText: true, label: 'Mã số thuế', format: (r) => taxCodeOf(r) || '—', mono: true },
     { key: 'creditDays', label: 'Được nợ', align: 'right', format: (r) => (r.creditDays > 0 ? creditLabel(r.creditDays) : '—'), filterValue: (r) => r.creditDays },
     {
       key: 'orderCount', label: 'Đơn hàng', align: 'right',

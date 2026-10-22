@@ -1,16 +1,20 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { MockDataService } from '../../core/services/mock-data.service';
 import { Vehicle, VehicleStatus } from '../../core/models/domain.models';
 import { nextCode } from '../purchase-orders/purchase-order.rules';
+import { ApiService, upsertById } from '../../core/api/api.service';
+import { CATALOG_FROM_API } from '../../core/api/api.config';
 
 export type VehicleDraft = Omit<Vehicle, 'id' | 'code' | 'createdAt' | 'updatedAt'>;
 
 /** Biển số so khớp không phân biệt dấu chấm, gạch, khoảng trắng, hoa thường. */
 export const plateKey = (p: string) => p.replace(/[\s.\-]/g, '').toUpperCase();
 
-// All writes for Danh mục xe. Against the mock store today; maps 1:1 to backend endpoints later.
+// All writes for Danh mục xe: the API (CATALOG_FROM_API) or, in demo mode, the in-browser store.
 @Injectable({ providedIn: 'root' })
 export class VehicleService {
+  private readonly api = inject(ApiService);
+
   constructor(private readonly data: MockDataService) {}
 
   duplicatePlate(plate: string, selfId: string | null): Vehicle | undefined {
@@ -18,7 +22,8 @@ export class VehicleService {
     return k ? this.data.vehicles().find((v) => v.id !== selfId && plateKey(v.plateNumber) === k) : undefined;
   }
 
-  create(d: VehicleDraft): Vehicle {
+  async create(d: VehicleDraft): Promise<Vehicle> {
+    if (CATALOG_FROM_API) return this.keep(await this.api.post<Vehicle>('/vehicles', this.clean(d)));
     const now = new Date().toISOString();
     const v: Vehicle = {
       ...this.clean(d),
@@ -31,13 +36,26 @@ export class VehicleService {
     return v;
   }
 
-  update(id: string, d: VehicleDraft): void {
+  async update(id: string, d: VehicleDraft): Promise<void> {
+    if (CATALOG_FROM_API) {
+      this.keep(await this.api.put<Vehicle>(`/vehicles/${id}`, this.clean(d)));
+      return;
+    }
     this.patch(id, this.clean(d));
   }
 
   /** Bảo trì / Ngừng dùng là đổi tình trạng, không xoá: lịch sử chuyến và chi phí vẫn giữ. */
-  setStatus(id: string, status: VehicleStatus): void {
+  async setStatus(id: string, status: VehicleStatus): Promise<void> {
+    if (CATALOG_FROM_API) {
+      this.keep(await this.api.patch<Vehicle>(`/vehicles/${id}/status`, { status }));
+      return;
+    }
     this.patch(id, { status });
+  }
+
+  private keep(v: Vehicle): Vehicle {
+    this.data.vehicles.update((list) => upsertById(list, v, true));
+    return v;
   }
 
   private clean(d: VehicleDraft): VehicleDraft {

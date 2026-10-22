@@ -7,6 +7,8 @@ import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { MoneyInputDirective } from '../../../shared/money-input.directive';
 import { formatVnd } from '../../../shared/format.util';
 import { CashVoucherService } from '../cash-voucher.service';
+import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
+import { errorText } from '../../../core/api/api.service';
 
 interface Draft {
   id?: string;
@@ -33,7 +35,7 @@ const EMPTY: Draft = {
 @Component({
   selector: 'app-cash-accounts',
   standalone: true,
-  imports: [FormsModule, RouterLink, NavIconComponent, MoneyInputDirective],
+  imports: [FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, MoneyInputDirective],
   templateUrl: './cash-accounts.component.html',
   styleUrls: [
     '../../purchase-orders/receive-goods-dialog/receive-goods-dialog.component.scss',
@@ -48,6 +50,10 @@ export class CashAccountsComponent {
 
   readonly money = formatVnd;
   readonly notice = signal('');
+  readonly dialogError = signal('');
+  readonly saving = signal(false);
+  /** A save the server refused (or that could not reach it). */
+  readonly failure = signal('');
   readonly draft = signal<Draft>({ ...EMPTY });
   readonly attempted = signal(false);
 
@@ -104,12 +110,15 @@ export class CashAccountsComponent {
     return out;
   });
 
-  save(): void {
+  async save(): Promise<void> {
     this.attempted.set(true);
-    if (this.issues().length) return;
+    if (this.issues().length || this.saving()) return;
     const d = this.draft();
     const bank = d.type === 'NGAN_HANG';
-    const a = this.svc.saveAccount({
+    this.saving.set(true);
+    this.dialogError.set('');
+    try {
+    const a = await this.svc.saveAccount({
       id: d.id,
       code: d.code.trim() || undefined,
       type: d.type,
@@ -126,11 +135,22 @@ export class CashAccountsComponent {
     });
     this.close();
     this.notice.set(d.id ? `Đã lưu ${a.name}.` : `Đã thêm ${a.name}.`);
+    } catch (e) {
+      this.dialogError.set(errorText(e));
+    } finally {
+      this.saving.set(false);
+    }
   }
 
-  toggleActive(a: CashAccount): void {
+  async toggleActive(a: CashAccount): Promise<void> {
     const on = a.isActive === false;
-    this.svc.setAccountActive(a.id, on);
+    this.failure.set('');
+    try {
+      await this.svc.setAccountActive(a.id, on);
+    } catch (e) {
+      this.failure.set(errorText(e));
+      return;
+    }
     this.notice.set(on ? `${a.name} dùng lại.` : `${a.name} ngừng dùng — phiếu cũ giữ nguyên, không chọn được khi lập phiếu mới.`);
   }
 }

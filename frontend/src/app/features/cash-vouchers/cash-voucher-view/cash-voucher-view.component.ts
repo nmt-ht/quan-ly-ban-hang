@@ -13,12 +13,13 @@ import { vndInWords } from '../../../shared/vnd-words';
 import { ACCOUNT_TYPE_LABEL } from '../cash-voucher.rules';
 import { CashVoucherService } from '../cash-voucher.service';
 import { PrintDocumentComponent } from '../../../shared/print/print-document.component';
+import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 
 // One phiếu thu / phiếu chi: xem, in (mẫu phiếu thu / phiếu chi), huỷ. Sửa = huỷ rồi lập lại (giữ dấu vết).
 @Component({
   selector: 'app-cash-voucher-view',
   standalone: true,
-  imports: [FormsModule, RouterLink, NavIconComponent, CopyButtonComponent, PrintDocumentComponent],
+  imports: [FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, PrintDocumentComponent],
   templateUrl: './cash-voucher-view.component.html',
   styleUrls: ['../../../shared/voucher/voucher.scss', './cash-voucher-view.component.scss'],
 })

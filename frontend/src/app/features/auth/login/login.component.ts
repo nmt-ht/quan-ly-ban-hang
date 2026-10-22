@@ -1,29 +1,44 @@
-import { Component, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
-import { AuthService } from '../../../core/services/auth.service';
+import { ActivatedRoute, Router } from '@angular/router';
+import { AuthService, LoginResult } from '../../../core/services/auth.service';
+
+const MESSAGE: Record<Exclude<LoginResult, 'ok'>, string> = {
+  invalid: 'Sai email hoặc mật khẩu, hoặc tài khoản đã bị khoá.',
+  offline: 'Không kết nối được máy chủ. Kiểm tra mạng hoặc báo quản trị kiểm tra backend.',
+  error: 'Máy chủ gặp lỗi, chưa đăng nhập được. Thử lại sau ít phút.',
+};
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
 })
 export class LoginComponent {
-  email = 'demo@ninhtrang.local';
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+
+  email = '';
   password = '';
-  error = signal('');
+  readonly error = signal('');
+  readonly busy = signal(false);
+  /** Sent here by the interceptor after a 401: the session ran out or the account was locked. */
+  readonly expired = this.route.snapshot.queryParamMap.has('expired');
 
-  constructor(private readonly auth: AuthService, private readonly router: Router) {}
-
-  submit(): void {
-    if (this.auth.login(this.email, this.password)) {
-      this.error.set('');
-      this.router.navigateByUrl('/tong-quan');
-    } else {
-      this.error.set('Sai email hoặc mật khẩu. Dùng demo@ninhtrang.local / demo1234 cho bản demo này.');
+  async submit(): Promise<void> {
+    if (this.busy()) return;
+    this.busy.set(true);
+    this.error.set('');
+    const result = await this.auth.login(this.email, this.password);
+    this.busy.set(false);
+    if (result !== 'ok') {
+      this.error.set(MESSAGE[result]);
+      return;
     }
+    const back = this.route.snapshot.queryParamMap.get('returnUrl');
+    this.router.navigateByUrl(back && back.startsWith('/') && this.auth.canVisit(back) ? back : this.auth.homeUrl());
   }
 }

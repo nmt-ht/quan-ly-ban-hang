@@ -158,17 +158,56 @@ const PERMISSION_MODULES: { key: string; permissions: { code: string; label: str
 
 const ALL_PERMISSION_CODES = PERMISSION_MODULES.flatMap((m) => m.permissions.map((p) => p.code));
 
-// Coarse role -> permission-prefix mapping. Tune per module boundaries once
-// real business rules are confirmed; counts here are illustrative, not exact
-// matches to the source app's per-role totals.
-const ROLE_PERMISSION_PREFIXES: Record<string, string[]> = {
-  'Quản lý': ['*'].concat(['product.view_cost_price']), // everything except user/position admin — refined below
-  'Kế toán': ['debt.', 'voucher.', 'report.', 'customer.view', 'supplier.view', 'product.view', 'product.view_cost_price', 'order.view', 'purchase.view'],
-  Sale: ['customer.', 'order.', 'product.view', 'report.dashboard'],
-  'Thủ kho': ['stock.', 'product.view', 'warehouse.', 'category.view', 'report.stock'],
-  'Nhân viên giao hàng': ['trip.view', 'trip.deliver', 'trip.ship', 'vehicle.view', 'order.view'],
-  'Nhân viên xưởng': ['production.view', 'production.update_progress'],
-};
+// Default grants of the 7 built-in roles. Keep identical to the frontend's
+// features/settings/roles-permissions/role.rules.ts (same ids, same codes):
+// CEO 98 · Quản lý 89 · Kế toán 47 · Sale 16 · Thủ kho 19 · NV giao hàng 6 · NV xưởng 5.
+const WITHOUT_ADMIN = [
+  'user.create', 'user.update', 'user.delete', 'user.reset_password',
+  'position.create', 'position.update', 'position.delete', 'position.assign_permission',
+  'company.update',
+];
+const ACCOUNTANT = [
+  'company.view', 'category.view', 'warehouse.view', 'tag.view',
+  'product.view', 'product.export', 'product.view_cost_price', 'bom.view',
+  'customer.view', 'customer.create', 'customer.update', 'customer.delete',
+  'supplier.view', 'supplier.create', 'supplier.update', 'supplier.manage_product',
+  'stock.view', 'stock.view_value',
+  'purchase.view', 'purchase.create', 'purchase.update', 'purchase.approve', 'purchase.cancel',
+  'order.view', 'order.view_all', 'vehicle.view', 'vehicle.manage_cost', 'trip.view', 'production.view',
+  'debt.view', 'debt.settle', 'debt.adjust',
+  'voucher.view', 'voucher.create_receipt', 'voucher.create_payment', 'voucher.cancel', 'voucher.manage_category', 'voucher.manage_account',
+  'report.dashboard', 'report.sales', 'report.stock', 'report.purchase', 'report.debt', 'report.cashflow', 'report.production', 'report.delivery',
+  'report.view_profit',
+];
+const SALE = [
+  'customer.view', 'customer.create', 'customer.update', 'customer.delete',
+  'order.view', 'order.create', 'order.update', 'order.cancel', 'order.update_price',
+  'product.view', 'stock.view', 'tag.view', 'production.view', 'trip.view', 'report.dashboard', 'report.sales',
+];
+const STOREKEEPER = [
+  'warehouse.view', 'category.view', 'product.view', 'bom.view', 'supplier.view', 'order.view',
+  'stock.view', 'stock.import', 'stock.export', 'stock.transfer', 'stock.adjust', 'stock.cancel', 'stock.stocktake',
+  'purchase.view', 'purchase.receive', 'production.view', 'trip.view', 'trip.ship', 'trip.return',
+];
+const DELIVERY = ['order.view', 'customer.view', 'product.view', 'vehicle.view', 'trip.view', 'trip.deliver'];
+const WORKSHOP = ['production.view', 'production.update_progress', 'bom.view', 'product.view', 'stock.view'];
+
+const ROLES: { id: string; name: string; description: string; isSystem?: boolean; codes: string[] }[] = [
+  { id: 'role-ceo', name: 'CEO', description: 'Toàn quyền hệ thống. Chức vụ hệ thống — không xoá, không gỡ quyền được.', isSystem: true, codes: ALL_PERMISSION_CODES },
+  { id: 'role-manager', name: 'Quản lý', description: 'Duyệt đơn, duyệt lệnh sản xuất, xem toàn bộ báo cáo. Xem được giá vốn.', codes: ALL_PERMISSION_CODES.filter((c) => !WITHOUT_ADMIN.includes(c)) },
+  { id: 'role-accountant', name: 'Kế toán', description: 'Phiếu thu/chi, công nợ, đối trừ, báo cáo tài chính. Xem được giá vốn.', codes: ACCOUNTANT },
+  { id: 'role-sale', name: 'Sale', description: 'Chăm sóc khách, chốt đơn — người đứng tên Người bán trên đơn. KHÔNG xem được giá vốn.', codes: SALE },
+  { id: 'role-thukho', name: 'Thủ kho', description: 'Phiếu nhập/xuất kho, kiểm kê, chuyển kho. KHÔNG thấy giá nhập và giá vốn.', codes: STOREKEEPER },
+  { id: 'role-giaohang', name: 'Nhân viên giao hàng', description: 'Xem đơn được giao, chốt giao nhận, nhập số lượng khách thực nhận.', codes: DELIVERY },
+  { id: 'role-xuong', name: 'Nhân viên xưởng', description: 'Cập nhật tiến độ lệnh sản xuất được giao.', codes: WORKSHOP },
+];
+
+const CASH_CATEGORIES = [
+  { code: 'THU_KH', name: 'Thu tiền khách hàng', kind: 'THU', partnerType: 'KHACH_HANG', isDefault: true, sortOrder: 0 },
+  { code: 'THU_KHAC', name: 'Thu khác', kind: 'THU', partnerType: 'KHAC', isDefault: false, sortOrder: 1 },
+  { code: 'CHI_NCC', name: 'Chi trả nhà cung cấp', kind: 'CHI', partnerType: 'NHA_CUNG_CAP', isDefault: true, sortOrder: 2 },
+  { code: 'CHI_KHAC', name: 'Chi khác', kind: 'CHI', partnerType: 'KHAC', isDefault: false, sortOrder: 3 },
+] as const;
 
 async function main() {
   for (const module of PERMISSION_MODULES) {
@@ -181,37 +220,21 @@ async function main() {
     }
   }
 
-  const ceo = await prisma.role.upsert({
-    where: { id: 'role-ceo' },
-    update: {},
-    create: { id: 'role-ceo', name: 'CEO', description: 'Toàn quyền hệ thống. Chức vụ hệ thống — không xoá, không gỡ quyền được.', isSystem: true },
-  });
-  await prisma.rolePermission.deleteMany({ where: { roleId: ceo.id } });
-  await prisma.rolePermission.createMany({
-    data: ALL_PERMISSION_CODES.map((code) => ({ roleId: ceo.id, permissionCode: code })),
-  });
+  // Built-in roles get their default grants only when first created; later edits made in
+  // Chức vụ & phân quyền survive a re-seed. CEO is always reset to every permission.
+  for (const r of ROLES) {
+    const existing = await prisma.role.findUnique({ where: { id: r.id } });
+    if (!existing) {
+      await prisma.role.create({ data: { id: r.id, name: r.name, description: r.description, isSystem: !!r.isSystem } });
+    }
+    if (!existing || r.isSystem) {
+      await prisma.rolePermission.deleteMany({ where: { roleId: r.id } });
+      await prisma.rolePermission.createMany({ data: r.codes.map((code) => ({ roleId: r.id, permissionCode: code })) });
+    }
+  }
 
-  const otherRoles: { name: string; description: string }[] = [
-    { name: 'Quản lý', description: 'Duyệt đơn, duyệt lệnh sản xuất, xem toàn bộ báo cáo. Xem được giá vốn.' },
-    { name: 'Kế toán', description: 'Phiếu thu/chi, công nợ, đối trừ, báo cáo tài chính. Xem được giá vốn.' },
-    { name: 'Sale', description: 'Chăm sóc khách, chốt đơn — người đứng tên Người bán trên đơn. KHÔNG xem được giá vốn.' },
-    { name: 'Thủ kho', description: 'Phiếu nhập/xuất kho, kiểm kê, chuyển kho. KHÔNG thấy giá nhập và giá vốn.' },
-    { name: 'Nhân viên giao hàng', description: 'Xem đơn được giao, chốt giao nhận, nhập số lượng khách thực nhận.' },
-    { name: 'Nhân viên xưởng', description: 'Cập nhật tiến độ lệnh sản xuất được giao.' },
-  ];
-
-  for (const r of otherRoles) {
-    const role = await prisma.role.upsert({
-      where: { id: `role-${r.name}` },
-      update: {},
-      create: { id: `role-${r.name}`, name: r.name, description: r.description, isSystem: false },
-    });
-    const prefixes = ROLE_PERMISSION_PREFIXES[r.name] ?? [];
-    const codes = prefixes.includes('*')
-      ? ALL_PERMISSION_CODES.filter((c) => !c.startsWith('user.') && !c.startsWith('position.'))
-      : ALL_PERMISSION_CODES.filter((c) => prefixes.some((p) => c.startsWith(p) || c === p));
-    await prisma.rolePermission.deleteMany({ where: { roleId: role.id } });
-    await prisma.rolePermission.createMany({ data: codes.map((code) => ({ roleId: role.id, permissionCode: code })) });
+  for (const c of CASH_CATEGORIES) {
+    await prisma.cashCategory.upsert({ where: { code: c.code }, update: {}, create: { ...c, isActive: true, isSystem: true } });
   }
 
   await prisma.companyInfo.upsert({
@@ -220,26 +243,27 @@ async function main() {
     create: { id: 1, name: 'Công ty Ninh Trang' },
   });
 
-  const warehouseNames = ['Kho Ninh Trang', 'Kho phụ kiện', 'Kho thành phẩm', 'Kho vật tư hàng hoá'];
-  for (const name of warehouseNames) {
-    const existing = await prisma.warehouse.findFirst({ where: { name } });
-    if (!existing) await prisma.warehouse.create({ data: { name } });
-  }
+  // Stable ids, the same as the frontend demo (wh-…, cat-…, acc-…), so data that refers to them lines up.
+  const warehouses = [
+    { id: 'wh-ninhtrang', name: 'Kho Ninh Trang' },
+    { id: 'wh-phukien', name: 'Kho phụ kiện' },
+    { id: 'wh-thanhpham', name: 'Kho thành phẩm' },
+    { id: 'wh-vattu', name: 'Kho vật tư hàng hoá' },
+  ];
+  for (const w of warehouses) await prisma.warehouse.upsert({ where: { id: w.id }, update: {}, create: w });
 
-  const categoryNames = ['HH', 'Khung tranh', 'Kính - Mica - Hậu', 'Nẹp trang trí', 'Nhôm', 'NVL', 'Phụ kiện', 'TP'];
-  for (const name of categoryNames) {
-    const existing = await prisma.productCategory.findFirst({ where: { name } });
-    if (!existing) await prisma.productCategory.create({ data: { name } });
-  }
+  const categories = [
+    { id: 'cat-hh', name: 'HH' }, { id: 'cat-khung', name: 'Khung tranh' }, { id: 'cat-kinh', name: 'Kính - Mica - Hậu' },
+    { id: 'cat-nep', name: 'Nẹp trang trí' }, { id: 'cat-nhom', name: 'Nhôm' }, { id: 'cat-nvl', name: 'NVL' },
+    { id: 'cat-pk', name: 'Phụ kiện' }, { id: 'cat-tp', name: 'TP' },
+  ];
+  for (const c of categories) await prisma.productCategory.upsert({ where: { id: c.id }, update: {}, create: c });
 
   const cashAccounts = [
-    { name: 'Quỹ tiền mặt', type: 'TIEN_MAT' as const },
-    { name: 'Tài khoản ngân hàng', type: 'NGAN_HANG' as const },
+    { id: 'acc-cash', name: 'Quỹ tiền mặt', type: 'TIEN_MAT' as const, code: 'TM', isDefault: true, sortOrder: 0 },
+    { id: 'acc-bank', name: 'Tài khoản ngân hàng', type: 'NGAN_HANG' as const, sortOrder: 1 },
   ];
-  for (const acc of cashAccounts) {
-    const existing = await prisma.cashAccount.findFirst({ where: { name: acc.name } });
-    if (!existing) await prisma.cashAccount.create({ data: acc });
-  }
+  for (const a of cashAccounts) await prisma.cashAccount.upsert({ where: { id: a.id }, update: {}, create: a });
 
   const adminPasswordPlaceholder = process.env.SEED_ADMIN_PASSWORD ?? 'ChangeMe123!';
   const passwordHash = await bcrypt.hash(adminPasswordPlaceholder, 10);
@@ -247,10 +271,11 @@ async function main() {
     where: { email: 'admin@ninhtrang.local' },
     update: {},
     create: {
+      id: 'user-admin', // same id as the frontend demo
       name: 'Quản trị hệ thống',
       email: 'admin@ninhtrang.local',
       passwordHash,
-      roleId: ceo.id,
+      roleId: 'role-ceo',
       status: 'ACTIVE',
     },
   });

@@ -1,42 +1,83 @@
 import { Type } from 'class-transformer';
-import { IsBoolean, IsEnum, IsNumber, IsOptional, IsString, Min, MinLength, ValidateNested } from 'class-validator';
-import { ProductType } from '@prisma/client';
+import { IsArray, IsBoolean, IsEnum, IsInt, IsNumber, IsOptional, IsPositive, IsString, Matches, Min, ValidateNested } from 'class-validator';
+import { MeasureMode, ProductType, UnitOperation } from '@prisma/client';
+import { OptionalText, Text } from '../../../common/dto.js';
 
-class UnitConversionDto {
-  @IsString() unitName!: string;
-  @IsNumber() ratioToBaseUnit!: number;
-  @IsNumber() price!: number;
+export class UnitConversionDto {
+  @Text(30) unitName!: string;
+  @IsOptional() @IsEnum(UnitOperation) operation?: UnitOperation;
+  @IsOptional() @IsNumber() factor?: number;
+  @IsNumber() @IsPositive() ratioToBaseUnit!: number;
+  @IsNumber() @Min(0) price!: number;
+  @IsOptional() @IsNumber() @Min(0) wholesalePrice?: number;
+  @IsOptional() @IsNumber() @Min(0) dropshipPrice?: number;
 }
 
+export class ProductImageDto {
+  @OptionalText(60) id?: string;
+  // data: URL (resized by the frontend) until file uploads exist, or a storage URL.
+  @IsString() @Matches(/^(data:image\/(png|jpeg|webp);base64,|https?:\/\/)/, { message: 'Ảnh phải là PNG/JPEG/WebP hoặc đường dẫn' }) url!: string;
+  @Text(200) name!: string;
+  @IsInt() @Min(0) width!: number;
+  @IsInt() @Min(0) height!: number;
+}
+
+/** The whole product as the form saves it; PUT replaces every field, unit list and image list. */
 export class CreateProductDto {
-  @IsString() @MinLength(1) name!: string;
-
+  @Text(200) name!: string;
   @IsEnum(ProductType) type!: ProductType;
+  @Text(30) baseUnit!: string;
+  @IsOptional() @IsEnum(MeasureMode) measureMode?: MeasureMode;
 
-  @IsString() @MinLength(1) baseUnit!: string;
-
-  @IsOptional() @IsString() crossRefCode?: string;
-  @IsOptional() @IsString() categoryId?: string;
-  @IsOptional() @IsString() defaultWarehouseId?: string;
+  @OptionalText(60) crossRefCode?: string;
+  @OptionalText(60) categoryId?: string;
+  @OptionalText(60) defaultWarehouseId?: string;
 
   @IsOptional() @IsNumber() @Min(0) minStock?: number;
   @IsOptional() @IsNumber() @Min(0) vatRate?: number;
-  @IsOptional() @IsNumber() @Min(0) warrantyMonths?: number;
-  @IsOptional() @IsString() origin?: string;
+  @IsOptional() @IsInt() @Min(0) warrantyMonths?: number;
+  @OptionalText(100) origin?: string;
 
   @IsOptional() @IsNumber() @Min(0) retailPrice?: number;
   @IsOptional() @IsNumber() @Min(0) wholesalePrice?: number;
   @IsOptional() @IsNumber() @Min(0) dropshipPrice?: number;
 
-  @IsOptional() @IsString() purchaseNote?: string;
-  @IsOptional() @IsString() saleNote?: string;
-  @IsOptional() @IsString() description?: string;
+  @OptionalText(1000) purchaseNote?: string;
+  @OptionalText(1000) saleNote?: string;
+  @OptionalText(5000) description?: string;
 
   @IsOptional() @IsBoolean() isSellable?: boolean;
   @IsOptional() @IsBoolean() isActive?: boolean;
 
-  @IsOptional()
-  @ValidateNested({ each: true })
-  @Type(() => UnitConversionDto)
-  unitConversions?: UnitConversionDto[];
+  @IsOptional() @ValidateNested({ each: true }) @Type(() => UnitConversionDto) unitConversions?: UnitConversionDto[];
+  @IsOptional() @ValidateNested({ each: true }) @Type(() => ProductImageDto) images?: ProductImageDto[];
+}
+
+export class ProductUpdateRowDto extends CreateProductDto {
+  @Text(60) id!: string;
+}
+
+/** Nhập hàng hoá từ Excel: rows already checked by the frontend preview. Codes of new rows come from the server. */
+export class ProductImportDto {
+  @IsArray() @ValidateNested({ each: true }) @Type(() => CreateProductDto) creates!: CreateProductDto[];
+  @IsArray() @ValidateNested({ each: true }) @Type(() => ProductUpdateRowDto) updates!: ProductUpdateRowDto[];
+}
+
+export class ActiveDto {
+  @IsBoolean() isActive!: boolean;
+}
+
+export class BomLineDto {
+  @Text(60) componentId!: string;
+  @IsNumber() @IsPositive() quantityPerUnit!: number;
+}
+
+export class BomReplacementDto {
+  @Text(60) finishedProductId!: string;
+  @IsArray() @ValidateNested({ each: true }) @Type(() => BomLineDto) lines!: BomLineDto[];
+}
+
+/** Định mức: each listed finished product gets exactly these lines (others are untouched). */
+export class BomImportDto {
+  @IsArray() @ValidateNested({ each: true }) @Type(() => BomReplacementDto) replacements!: BomReplacementDto[];
 }

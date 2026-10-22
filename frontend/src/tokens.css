@@ -49,6 +49,7 @@
   --tag-bg-c: var(--tag-bg-c-light);
 
   --color-shadow:       oklch(22% 0.015 160 / 0.12);
+  --shadow-pop:         0 8px 24px var(--color-shadow); /* the one shadow: floating menus + panels */
 
   /* ---------- type ---------- */
   --font-display: "Be Vietnam Pro", "Segoe UI", sans-serif;

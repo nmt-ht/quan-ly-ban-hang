@@ -1,15 +1,15 @@
 import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-stat-card',
   standalone: true,
-  imports: [CommonModule],
   template: `
     <div class="stat-card">
       <div class="stat-label">{{ label }}</div>
       <div class="stat-value" [class.negative]="negative">{{ value }}</div>
-      <div class="stat-sub" *ngIf="sub">{{ sub }}</div>
+      @if (sub) {
+        <div class="stat-sub">{{ sub }}</div>
+      }
     </div>
   `,
   styles: [`

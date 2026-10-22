@@ -157,10 +157,10 @@
     </div>
 
     <div class="form-actions-bar">
-      <span class="hint">{{ attempted() && (form.invalid || addressIssues()) ? 'Còn thông tin chưa hợp lệ' : 'Điền thông tin rồi bấm Lưu' }}</span>
+      <span class="hint" [class.text-danger]="saveError()" role="status">{{ saveError() || (attempted() && (form.invalid || addressIssues()) ? 'Còn thông tin chưa hợp lệ' : 'Điền thông tin rồi bấm Lưu') }}</span>
       <div class="form-actions">
         <a class="btn" [routerLink]="editing ? ['/khach-hang', editing.id] : '/khach-hang'">Huỷ</a>
-        <button class="btn btn-primary" type="submit"><app-nav-icon name="check" />{{ editing ? 'Lưu thay đổi' : 'Tạo khách hàng' }}</button>
+        <button class="btn btn-primary" type="submit" [disabled]="saving()"><app-nav-icon name="check" />{{ editing ? 'Lưu thay đổi' : 'Tạo khách hàng' }}</button>
       </div>
     </div>
   </form>

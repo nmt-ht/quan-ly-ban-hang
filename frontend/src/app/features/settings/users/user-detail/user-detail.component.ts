@@ -14,6 +14,8 @@ import { USER_STATUS_LABEL, formatDateTime } from '../users.component';
 import { UserService } from '../user.service';
 import { UserDialogComponent } from '../user-dialog/user-dialog.component';
 import { PasswordDialogComponent } from '../password-dialog/password-dialog.component';
+import { AllowedLinkDirective } from '../../../../shared/allowed-link.directive';
+import { errorText } from '../../../../core/api/api.service';
 
 interface Activity {
   date: string;
@@ -28,7 +30,7 @@ interface Activity {
 @Component({
   selector: 'app-user-detail',
   standalone: true,
-  imports: [NgClass, FormsModule, RouterLink, NavIconComponent, CopyButtonComponent, UserDialogComponent, PasswordDialogComponent],
+  imports: [NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, UserDialogComponent, PasswordDialogComponent],
   templateUrl: './user-detail.component.html',
   styleUrl: '../../../suppliers/supplier-detail/supplier-detail.component.scss',
 })
@@ -93,24 +95,36 @@ export class UserDetailComponent {
     this.passwordDialog().open(this.user()!);
   }
 
-  endSessions(): void {
-    this.svc.endSessions(this.user()!.id);
+  async endSessions(): Promise<void> {
+    if (!(await this.attempt(() => this.svc.endSessions(this.user()!.id)))) return;
     this.notice.set(`Đã đăng xuất mọi phiên của ${this.user()!.name}.`);
   }
 
-  doLock(): void {
+  async doLock(): Promise<void> {
     try {
-      this.svc.lock(this.user()!.id, this.lockReason());
+      await this.svc.lock(this.user()!.id, this.lockReason());
       this.notice.set(`Đã khoá ${this.user()!.name}.`);
       this.error.set('');
     } catch (e) {
-      this.error.set((e as Error).message);
+      this.error.set(errorText(e));
     }
     this.confirmLock.set(false);
   }
 
-  unlock(): void {
-    this.svc.unlock(this.user()!.id);
+  async unlock(): Promise<void> {
+    if (!(await this.attempt(() => this.svc.unlock(this.user()!.id)))) return;
     this.notice.set(`Đã mở khoá ${this.user()!.name}.`);
+  }
+
+  /** Runs a save; on failure shows why and answers false. */
+  private async attempt(save: () => Promise<unknown>): Promise<boolean> {
+    this.error.set('');
+    try {
+      await save();
+      return true;
+    } catch (e) {
+      this.error.set(errorText(e));
+      return false;
+    }
   }
 }

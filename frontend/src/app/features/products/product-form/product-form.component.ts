@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, DestroyRef, HostListener, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
@@ -17,6 +17,10 @@ import {
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { MoneyInputDirective } from '../../../shared/money-input.directive';
 import { UNIT_OPERATIONS, describe, isPriceShift, normalize, priceFor, ratioFor } from '../unit-conversion';
+import { HasUnsavedChanges, isSaveShortcut, warnBeforeUnload } from '../../../core/guards/unsaved-changes.guard';
+import { errorText } from '../../../core/api/api.service';
+import { ProductDraft, ProductService } from '../product.service';
+import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 
 // × / ÷ need a positive ratio; + / − accept 0 (same price as the base unit).
 function factorValidator(group: AbstractControl): ValidationErrors | null {
@@ -30,10 +34,10 @@ function factorValidator(group: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-product-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, NavIconComponent, MoneyInputDirective, ProductImagesComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, MoneyInputDirective, ProductImagesComponent],
   templateUrl: './product-form.component.html',
 })
-export class ProductFormComponent {
+export class ProductFormComponent implements HasUnsavedChanges {
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
   readonly operations = UNIT_OPERATIONS;
@@ -63,6 +67,9 @@ export class ProductFormComponent {
 
   readonly measureModes = MEASURE_MODES;
   readonly images = signal<ProductImage[]>([]);
+  private readonly productService = inject(ProductService);
+  readonly saving = signal(false);
+  readonly saveError = signal('');
   // Thành phẩm saved before Cách tính existed, with a unit that isn't m2 / m.
   legacyUnit = '';
   measureMissing = false;
@@ -130,6 +137,7 @@ export class ProductFormComponent {
       this.form.controls.type.disable();
       for (const u of p.unitConversions) this.addUnit(normalize(u, p));
       this.images.set(p.images ?? []);
+      this.savedImages = JSON.stringify(this.images());
       if (p.type === 'THANH_PHAM') {
         const mode = p.measureMode ?? inferMeasureMode(p.baseUnit);
         this.form.controls.measureMode.setValue(mode);
@@ -224,7 +232,8 @@ export class ProductFormComponent {
     });
   }
 
-  save(): void {
+  async save(): Promise<void> {
+    if (this.saving()) return;
     const type = this.type;
     // Hidden sections must not block saving (or be saved).
     if (!allowsUnitConversions(type)) this.units.clear();
@@ -237,11 +246,10 @@ export class ProductFormComponent {
       return;
     }
     const v = this.form.getRawValue();
-    const products = this.data.products();
-    const now = new Date().toISOString();
     const stock = tracksStock(type);
 
-    const fields = {
+    const draft: ProductDraft = {
+      type,
       name: v.name!,
       baseUnit: v.baseUnit!,
       measureMode: type === 'THANH_PHAM' ? (v.measureMode ?? undefined) : undefined,
@@ -262,26 +270,44 @@ export class ProductFormComponent {
       description: v.description || undefined,
       isSellable: !!v.isSellable,
       isActive: !!v.isActive,
-      updatedAt: now,
     };
 
-    if (this.editing) {
-      const updated: Product = { ...this.editing, ...fields };
-      this.data.products.set(products.map((p) => (p.id === updated.id ? updated : p)));
-      this.router.navigate(['/hang-hoa', updated.id]);
-      return;
+    this.saving.set(true);
+    this.saveError.set('');
+    try {
+      const saved = this.editing ? await this.productService.update(this.editing.id, draft) : await this.productService.create(draft);
+      this.markSaved();
+      if (this.editing) this.router.navigate(['/hang-hoa', saved.id]);
+      else this.router.navigateByUrl('/hang-hoa');
+    } catch (e) {
+      this.saveError.set(errorText(e));
+    } finally {
+      this.saving.set(false);
     }
+  }
 
-    const seq = (products.length + 1).toString().padStart(7, '0');
-    const prefix = type === 'VAT_TU' ? 'VT' : type === 'THANH_PHAM' ? 'SP' : 'DV';
-    const product: Product = {
-      ...fields,
-      id: crypto.randomUUID(),
-      code: `${prefix}${seq}`,
-      type,
-      createdAt: now,
-    };
-    this.data.products.set([product, ...products]);
-    this.router.navigateByUrl('/hang-hoa');
+  // ---------- unsaved changes + Ctrl+S ----------
+  // Ảnh live outside the reactive form, so they are compared against a snapshot.
+  private savedImages = '[]';
+
+  private markSaved(): void {
+    this.form.markAsPristine();
+    this.savedImages = JSON.stringify(this.images());
+  }
+
+  hasUnsavedChanges(): boolean {
+    return this.form.dirty || JSON.stringify(this.images()) !== this.savedImages;
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  onBeforeUnload(e: BeforeUnloadEvent): void {
+    warnBeforeUnload(e, this.hasUnsavedChanges());
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  onKeydown(e: KeyboardEvent): void {
+    if (!isSaveShortcut(e)) return;
+    e.preventDefault();
+    this.save();
   }
 }

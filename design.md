@@ -46,7 +46,7 @@ Axes: light / geometric-sans / chromatic-moss.
 
 ## Typography
 - Display: Be Vietnam Pro 600, tracking -0.01em, roman only (no italic headings)
-- Body: Be Vietnam Pro 400 (350 in dark mode)
+- Body: Be Vietnam Pro 400 (same weight in dark mode — the font is static, 350 is not available)
 - Mono: JetBrains Mono 400/500 — order/tax/plate codes, amounts, stat values,
   dates in charts. Falls back to Be Vietnam Pro for `₫`.
 - Scale: 11 · 12 · 13 (tables, controls) · 14 (body) · 16 (card heading) ·
@@ -70,7 +70,7 @@ widths); table text 13 px.
 ## Shape
 - `--radius-control` 6 px (buttons, inputs, badges)
 - `--radius-card` 8 px
-- Hairline 1 px borders define surfaces. One shadow only: dropdown menus.
+- Hairline 1 px borders define surfaces. One shadow only (`--shadow-pop`): floating menus and panels.
 
 ## Motion
 - Easings: `--ease-out` cubic-bezier(0.16, 1, 0.3, 1), `--ease-in`, `--ease-in-out`.

@@ -9,11 +9,13 @@ import { PaginationComponent } from '../../shared/pagination/pagination.componen
 import { PeriodFilterComponent, PeriodValue, NO_PERIOD } from '../../shared/period-filter/period-filter.component';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
+import { ColumnSort, sortByColumn } from '../../shared/column-sort';
 import { foldVi, formatQty, formatQtySigned, formatVnd } from '../../shared/format.util';
 import { PERIOD_PRESETS, formatDay, inRange, rangeLabel } from '../../shared/period';
 import { tagClass } from '../../shared/tag-class';
 import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { KIND_SLUG, VOUCHER_KIND_LABEL, VoucherKindKey, kindOf, sourceOf } from './warehouse-voucher.rules';
+import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 
 interface ActiveChip {
   label: string;
@@ -23,7 +25,7 @@ interface ActiveChip {
 @Component({
   selector: 'app-warehouse-vouchers',
   standalone: true,
-  imports: [CommonModule, RouterLink, DataTableComponent, FilterMultiSelectComponent, PaginationComponent, PeriodFilterComponent, NavIconComponent],
+  imports: [CommonModule, RouterLink, AllowedLinkDirective, DataTableComponent, FilterMultiSelectComponent, PaginationComponent, PeriodFilterComponent, NavIconComponent],
   templateUrl: './warehouse-vouchers.component.html',
 })
 export class WarehouseVouchersComponent {
@@ -45,6 +47,8 @@ export class WarehouseVouchersComponent {
   readonly createdBy = signal<string[]>([]);
   readonly showCancelled = signal(false);
   readonly columnFilters = signal<ColumnFilters>({});
+  // Clicking a column header sorts; again reverses; a third click goes back to the default order.
+  readonly headerSort = signal<ColumnSort | null>(null);
   readonly page = signal(1);
   readonly pageSize = signal(20);
   readonly exporting = signal(false);
@@ -90,7 +94,7 @@ export class WarehouseVouchersComponent {
     const rows = this.matchedExceptKind()
       .filter((v) => !ks.length || ks.includes(kindOf(v)))
       .sort((a, b) => b.date.localeCompare(a.date) || b.code.localeCompare(a.code));
-    return applyColumnFilters(rows, this.columns, this.columnFilters());
+    return sortByColumn(applyColumnFilters(rows, this.columns, this.columnFilters()), this.columns, this.headerSort());
   });
 
   readonly paged = computed(() => {
@@ -143,8 +147,8 @@ export class WarehouseVouchersComponent {
   readonly columns: DataTableColumn<WarehouseVoucher>[] = [
     { key: 'code', label: 'Số phiếu', copy: true, link: (r) => ['/kho/phieu', r.id] },
     { key: 'date', label: 'Ngày', format: (r) => formatDay(r.date), mono: true },
-    { key: 'type', label: 'Loại', format: (r) => VOUCHER_KIND_LABEL[kindOf(r)], badge: (r) => tagClass('warehouse-voucher', kindOf(r)) },
-    { key: 'warehouseId', label: 'Kho', format: (r) => this.warehouseText(r) },
+    { key: 'type', sortByText: true, label: 'Loại', format: (r) => VOUCHER_KIND_LABEL[kindOf(r)], badge: (r) => tagClass('warehouse-voucher', kindOf(r)) },
+    { key: 'warehouseId', sortByText: true, label: 'Kho', format: (r) => this.warehouseText(r) },
     { key: 'source', label: 'Chứng từ gốc', format: (r) => this.sourceText(r), link: (r) => sourceOf(r, this.data)?.link ?? null },
     { key: 'reason', label: 'Lý do', format: (r) => (r.isCancelled ? '[Đã huỷ] ' : '') + (r.reason || '—') },
     { key: 'lines', label: 'Số dòng', align: 'right', format: (r) => String(r.lines?.length ?? 0), filterValue: (r) => r.lines?.length ?? 0 },
@@ -153,7 +157,7 @@ export class WarehouseVouchersComponent {
       filterValue: (r) => this.qty(r), tone: (r) => (r.type === 'KIEM_KE' ? this.qty(r) : 0),
     },
     { key: 'value', label: 'Giá trị nhập', align: 'right', format: (r) => (this.value(r) ? formatVnd(this.value(r)) : '—'), filterValue: (r) => this.value(r) },
-    { key: 'createdBy', label: 'Người lập', format: (r) => this.userName().get(r.createdBy) ?? r.createdBy },
+    { key: 'createdBy', sortByText: true, label: 'Người lập', format: (r) => this.userName().get(r.createdBy) ?? r.createdBy },
   ];
 
   constructor() {

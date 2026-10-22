@@ -9,11 +9,13 @@ import { FilterMultiSelectComponent, FilterOption } from '../../shared/filter-mu
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
+import { ColumnSort, sortByColumn } from '../../shared/column-sort';
 import { foldVi, formatVnd } from '../../shared/format.util';
 import { PRODUCT_TYPE_CLASS, PRODUCT_TYPE_LABEL } from '../../shared/status-labels';
 import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { lineRemaining } from '../sales-orders/sales-order.rules';
 import { lineRemaining as poLineRemaining } from '../purchase-orders/purchase-order.rules';
+import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 
 type Sort = 'name' | 'code' | 'qty-desc' | 'qty-asc' | 'value';
 type StockState = 'AM' | 'DUOI_MIN' | 'HET' | 'ZERO' | 'DU';
@@ -40,7 +42,7 @@ const r4 = (n: number) => Math.round(n * 10000) / 10000;
 @Component({
   selector: 'app-inventory',
   standalone: true,
-  imports: [CommonModule, RouterLink, DataTableComponent, FilterMultiSelectComponent, PaginationComponent, NavIconComponent],
+  imports: [CommonModule, RouterLink, AllowedLinkDirective, DataTableComponent, FilterMultiSelectComponent, PaginationComponent, NavIconComponent],
   templateUrl: './inventory.component.html',
 })
 export class InventoryComponent {
@@ -56,6 +58,8 @@ export class InventoryComponent {
   readonly showZero = signal(false);
   readonly sort = signal<Sort>('name');
   readonly columnFilters = signal<ColumnFilters>({});
+  // Clicking a column header overrides the "Sắp xếp" select; picking from the select clears it.
+  readonly headerSort = signal<ColumnSort | null>(null);
   readonly page = signal(1);
   readonly pageSize = signal(20);
   readonly exporting = signal(false);
@@ -154,7 +158,7 @@ export class InventoryComponent {
             : s === 'value' ? b.value - a.value
               : a.product.name.localeCompare(b.product.name, 'vi'),
     );
-    return applyColumnFilters(rows, this.columns(), this.columnFilters());
+    return sortByColumn(applyColumnFilters(rows, this.columns(), this.columnFilters()), this.columns(), this.headerSort());
   });
 
   readonly paged = computed(() => {
@@ -190,7 +194,7 @@ export class InventoryComponent {
     return [
       { key: 'code', label: 'Mã hàng', copy: true, link: (r) => ['/hang-hoa', r.product.id], format: (r) => r.product.code },
       { key: 'name', label: 'Tên hàng', format: (r) => r.product.name },
-      { key: 'type', label: 'Tính chất', format: (r) => PRODUCT_TYPE_LABEL[r.product.type], badge: (r) => PRODUCT_TYPE_CLASS[r.product.type] },
+      { key: 'type', sortByText: true, label: 'Tính chất', format: (r) => PRODUCT_TYPE_LABEL[r.product.type], badge: (r) => PRODUCT_TYPE_CLASS[r.product.type] },
       { key: 'unit', label: 'ĐVT', format: (r) => r.product.baseUnit },
       ...whCols,
       {
@@ -208,7 +212,7 @@ export class InventoryComponent {
       { key: 'min', label: 'Tối thiểu', align: 'right', format: (r) => this.qtyText(r.min), filterValue: (r) => r.min },
       { key: 'value', label: 'Giá trị tồn', align: 'right', format: (r) => (r.value ? formatVnd(r.value) : '—'), filterValue: (r) => r.value },
       {
-        key: 'state', label: 'Tình trạng', format: (r) => STATE_LABEL[r.state],
+        key: 'state', sortByText: true, label: 'Tình trạng', format: (r) => STATE_LABEL[r.state],
         badge: (r) => (r.state === 'AM' ? 'stock-am' : r.state === 'HET' ? 'stock-het' : r.state === 'DUOI_MIN' ? 'stock-low' : r.state === 'ZERO' ? 'stock-zero' : 'stock-ok'),
       },
     ];

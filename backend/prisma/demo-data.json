@@ -55,18 +55,6 @@
       "name": "TP"
     }
   ],
-  "accounts": [
-    {
-      "id": "acc-cash",
-      "name": "Quỹ tiền mặt",
-      "type": "TIEN_MAT"
-    },
-    {
-      "id": "acc-bank",
-      "name": "Tài khoản ngân hàng",
-      "type": "NGAN_HANG"
-    }
-  ],
   "tags": [
     {
       "id": "tag-vip",
@@ -101,6 +89,32 @@
       "name": "Dropship Shopee",
       "color": "orange",
       "sortOrder": 5,
+      "isActive": true
+    }
+  ],
+  "accounts": [
+    {
+      "id": "acc-cash",
+      "name": "Quỹ tiền mặt",
+      "type": "TIEN_MAT",
+      "code": "TM",
+      "note": "Tiền mặt tại quỹ",
+      "isDefault": true,
+      "sortOrder": 0,
+      "openingBalance": 0,
+      "isActive": true
+    },
+    {
+      "id": "acc-bank",
+      "name": "Tài khoản ngân hàng",
+      "type": "NGAN_HANG",
+      "code": "NH-9999",
+      "bankName": "Ngân hàng TMCP (demo)",
+      "accountNumber": "0000 9999 0000",
+      "accountHolder": "CONG TY NINH TRANG",
+      "branch": "Chi nhánh TP.HCM",
+      "sortOrder": 1,
+      "openingBalance": 0,
       "isActive": true
     }
   ],
@@ -939,20 +953,25 @@
       "code": "NCC0000001",
       "name": "Công ty TNHH Gỗ Phú Thịnh",
       "contactPhone": "0901000101",
+      "email": "kinhdoanh@gophuthinh.demo",
       "taxCode": "0300000011",
       "address": "45 Đường số 7, KCN Vĩnh Lộc, TP.HCM",
-      "creditAllowed": true,
-      "isActive": true
+      "creditDays": 30,
+      "note": "Giao hàng thứ 3 và thứ 6 hằng tuần.",
+      "isActive": true,
+      "createdAt": "2026-08-01T02:00:00.000Z"
     },
     {
       "id": "ncc-2",
       "code": "NCC0000002",
       "name": "Nhôm Việt Phát",
       "contactPhone": "0901000102",
+      "email": "banhang@nhomvietphat.demo",
       "taxCode": "0300000012",
       "address": "18 Quốc lộ 1A, Bình Tân, TP.HCM",
-      "creditAllowed": true,
-      "isActive": true
+      "creditDays": 30,
+      "isActive": true,
+      "createdAt": "2026-08-01T02:00:00.000Z"
     },
     {
       "id": "ncc-3",
@@ -961,8 +980,10 @@
       "contactPhone": "0901000103",
       "taxCode": "0300000013",
       "address": "112 Nguyễn Văn Linh, Quận 7, TP.HCM",
-      "creditAllowed": true,
-      "isActive": true
+      "creditDays": 15,
+      "note": "Kính cắt theo khổ yêu cầu, báo trước 2 ngày.",
+      "isActive": true,
+      "createdAt": "2026-08-01T02:00:00.000Z"
     },
     {
       "id": "ncc-4",
@@ -971,8 +992,9 @@
       "contactPhone": "0901000104",
       "taxCode": "0300000014",
       "address": "9 Lý Chiêu Hoàng, Quận 6, TP.HCM",
-      "creditAllowed": false,
-      "isActive": true
+      "creditDays": 0,
+      "isActive": true,
+      "createdAt": "2026-08-01T02:00:00.000Z"
     },
     {
       "id": "ncc-5",
@@ -980,8 +1002,99 @@
       "name": "Xưởng gỗ Tư Hiển",
       "contactPhone": "0901000105",
       "address": "Ấp 3, Bình Chánh, TP.HCM",
-      "creditAllowed": false,
-      "isActive": false
+      "creditDays": 0,
+      "note": "Ngừng hợp tác từ 08/2026 do giao hàng trễ.",
+      "isActive": false,
+      "createdAt": "2026-08-01T02:00:00.000Z"
+    }
+  ],
+  "supplierProducts": [
+    {
+      "supplierId": "ncc-1",
+      "productId": "vt-nep-soi",
+      "purchasePrice": 39000
+    },
+    {
+      "supplierId": "ncc-1",
+      "productId": "vt-nep-oc-cho",
+      "purchasePrice": 73000
+    },
+    {
+      "supplierId": "ncc-1",
+      "productId": "vt-go-tho",
+      "purchasePrice": 30000
+    },
+    {
+      "supplierId": "ncc-2",
+      "productId": "vt-nhom-vang",
+      "purchasePrice": 47000
+    },
+    {
+      "supplierId": "ncc-2",
+      "productId": "vt-nhom-den",
+      "purchasePrice": 52000
+    },
+    {
+      "supplierId": "ncc-3",
+      "productId": "vt-kinh-3ly",
+      "purchasePrice": 168000
+    },
+    {
+      "supplierId": "ncc-3",
+      "productId": "vt-mica-2ly",
+      "purchasePrice": 425000
+    },
+    {
+      "supplierId": "ncc-3",
+      "productId": "vt-hau-mdf",
+      "purchasePrice": 96000
+    },
+    {
+      "supplierId": "ncc-4",
+      "productId": "vt-moc-treo",
+      "supplierCode": "MT-001",
+      "purchasePrice": 600
+    },
+    {
+      "supplierId": "ncc-4",
+      "productId": "vt-dinh-ghim",
+      "supplierCode": "MT-002",
+      "purchasePrice": 28000
+    },
+    {
+      "supplierId": "ncc-4",
+      "productId": "vt-day-thep",
+      "supplierCode": "MT-003",
+      "purchasePrice": 22000
+    },
+    {
+      "supplierId": "ncc-4",
+      "productId": "vt-kep-kinh",
+      "supplierCode": "MT-004",
+      "purchasePrice": 3500
+    },
+    {
+      "supplierId": "ncc-4",
+      "productId": "vt-keo-dan",
+      "supplierCode": "MT-005",
+      "purchasePrice": 42000
+    },
+    {
+      "supplierId": "ncc-4",
+      "productId": "vt-den-led",
+      "supplierCode": "MT-006",
+      "purchasePrice": 95000
+    },
+    {
+      "supplierId": "ncc-4",
+      "productId": "vt-ve-sinh-kinh",
+      "supplierCode": "MT-007",
+      "purchasePrice": 18000
+    },
+    {
+      "supplierId": "ncc-5",
+      "productId": "vt-go-tho",
+      "purchasePrice": 31000
     }
   ],
   "customers": [
@@ -993,11 +1106,19 @@
       "creditDays": 0,
       "phone": "0912000001",
       "email": "maianh.demo@example.com",
-      "isActive": true,
       "tagIds": [
         "tag-quen"
       ],
-      "createdAt": "2026-08-01T02:00:00.000Z"
+      "isActive": true,
+      "createdAt": "2026-08-01T02:00:00.000Z",
+      "addresses": [
+        {
+          "id": "kh-01-dc1",
+          "label": "Nhà riêng",
+          "address": "25 Trần Hưng Đạo, Phường 1, Quận 5, TP.HCM",
+          "isDefault": true
+        }
+      ]
     },
     {
       "id": "kh-02",
@@ -1006,9 +1127,10 @@
       "type": "LE",
       "creditDays": 0,
       "phone": "0912000002",
-      "isActive": true,
       "tagIds": [],
-      "createdAt": "2026-08-01T02:00:00.000Z"
+      "isActive": true,
+      "createdAt": "2026-08-01T02:00:00.000Z",
+      "addresses": []
     },
     {
       "id": "kh-03",
@@ -1020,12 +1142,30 @@
       "phone": "0912000003",
       "companyTaxCode": "8000000003",
       "note": "Khách sỉ lớn, thanh toán 15 ngày.",
-      "isActive": true,
       "tagIds": [
         "tag-vip",
         "tag-si"
       ],
-      "createdAt": "2026-08-01T02:00:00.000Z"
+      "isActive": true,
+      "createdAt": "2026-08-01T02:00:00.000Z",
+      "addresses": [
+        {
+          "id": "kh-03-dc1",
+          "label": "Cửa hàng",
+          "address": "88 Lê Văn Sỹ, Phường 13, Quận 3, TP.HCM",
+          "recipientName": "Lê Ánh Dương",
+          "phone": "0912000003",
+          "isDefault": true
+        },
+        {
+          "id": "kh-03-dc2",
+          "label": "Kho",
+          "address": "12/4 Bùi Quang Là, Phường 12, Gò Vấp, TP.HCM",
+          "recipientName": "Anh Tài (thủ kho)",
+          "phone": "0912100003",
+          "isDefault": false
+        }
+      ]
     },
     {
       "id": "kh-04",
@@ -1037,12 +1177,21 @@
       "phone": "0912000004",
       "email": "studio.demo@example.com",
       "companyTaxCode": "0310000004",
-      "isActive": true,
       "tagIds": [
         "tag-vip",
         "tag-si"
       ],
-      "createdAt": "2026-08-01T02:00:00.000Z"
+      "isActive": true,
+      "createdAt": "2026-08-01T02:00:00.000Z",
+      "addresses": [
+        {
+          "id": "kh-04-dc1",
+          "label": "Studio",
+          "address": "41 Nguyễn Thị Minh Khai, Phường Bến Nghé, Quận 1, TP.HCM",
+          "recipientName": "Phạm Hồng Phúc",
+          "isDefault": true
+        }
+      ]
     },
     {
       "id": "kh-05",
@@ -1051,11 +1200,12 @@
       "type": "DROPSHIP",
       "creditDays": 0,
       "phone": "0912000005",
-      "isActive": true,
       "tagIds": [
         "tag-shopee"
       ],
-      "createdAt": "2026-08-01T02:00:00.000Z"
+      "isActive": true,
+      "createdAt": "2026-08-01T02:00:00.000Z",
+      "addresses": []
     },
     {
       "id": "kh-06",
@@ -1065,11 +1215,12 @@
       "type": "DROPSHIP",
       "creditDays": 7,
       "phone": "0912000006",
-      "isActive": true,
       "tagIds": [
         "tag-shopee"
       ],
-      "createdAt": "2026-08-01T02:00:00.000Z"
+      "isActive": true,
+      "createdAt": "2026-08-01T02:00:00.000Z",
+      "addresses": []
     },
     {
       "id": "kh-07",
@@ -1081,11 +1232,21 @@
       "phone": "0912000007",
       "companyTaxCode": "0311000007",
       "note": "Cần xuất hoá đơn VAT.",
-      "isActive": true,
       "tagIds": [
         "tag-si"
       ],
-      "createdAt": "2026-08-01T02:00:00.000Z"
+      "isActive": true,
+      "createdAt": "2026-08-01T02:00:00.000Z",
+      "addresses": [
+        {
+          "id": "kh-07-dc1",
+          "label": "Khách sạn",
+          "address": "9 Hoàng Diệu, Phường 12, Quận 4, TP.HCM",
+          "recipientName": "Lễ tân Hoa Sen",
+          "phone": "0283900007",
+          "isDefault": true
+        }
+      ]
     },
     {
       "id": "kh-08",
@@ -1095,9 +1256,18 @@
       "type": "SI",
       "creditDays": 30,
       "phone": "0912000008",
-      "isActive": true,
       "tagIds": [],
-      "createdAt": "2026-08-01T02:00:00.000Z"
+      "isActive": true,
+      "createdAt": "2026-08-01T02:00:00.000Z",
+      "addresses": [
+        {
+          "id": "kh-08-dc1",
+          "label": "Trường",
+          "address": "150 Phan Văn Trị, Phường 5, Gò Vấp, TP.HCM",
+          "recipientName": "Cô Cúc",
+          "isDefault": true
+        }
+      ]
     },
     {
       "id": "kh-09",
@@ -1106,11 +1276,12 @@
       "type": "LE",
       "creditDays": 0,
       "phone": "0912000009",
-      "isActive": true,
       "tagIds": [
         "tag-quen"
       ],
-      "createdAt": "2026-08-01T02:00:00.000Z"
+      "isActive": true,
+      "createdAt": "2026-08-01T02:00:00.000Z",
+      "addresses": []
     },
     {
       "id": "kh-10",
@@ -1121,11 +1292,19 @@
       "creditDays": 15,
       "phone": "0912000010",
       "companyTaxCode": "0312000010",
-      "isActive": true,
       "tagIds": [
         "tag-si"
       ],
-      "createdAt": "2026-08-01T02:00:00.000Z"
+      "isActive": true,
+      "createdAt": "2026-08-01T02:00:00.000Z",
+      "addresses": [
+        {
+          "id": "kh-10-dc1",
+          "label": "Phòng tranh",
+          "address": "7 Đồng Khởi, Phường Bến Nghé, Quận 1, TP.HCM",
+          "isDefault": true
+        }
+      ]
     },
     {
       "id": "kh-11",
@@ -1135,9 +1314,10 @@
       "creditDays": 0,
       "phone": "0912000011",
       "note": "Không còn liên lạc được.",
-      "isActive": false,
       "tagIds": [],
-      "createdAt": "2026-08-01T02:00:00.000Z"
+      "isActive": false,
+      "createdAt": "2026-08-01T02:00:00.000Z",
+      "addresses": []
     },
     {
       "id": "kh-12",
@@ -1147,11 +1327,21 @@
       "type": "SI",
       "creditDays": 15,
       "phone": "0912000012",
-      "isActive": true,
       "tagIds": [
         "tag-si"
       ],
-      "createdAt": "2026-08-01T02:00:00.000Z"
+      "isActive": true,
+      "createdAt": "2026-08-01T02:00:00.000Z",
+      "addresses": [
+        {
+          "id": "kh-12-dc1",
+          "label": "Nhà hàng",
+          "address": "2 Tôn Đức Thắng, Phường Bến Nghé, Quận 1, TP.HCM",
+          "recipientName": "Quản lý ca",
+          "phone": "0912100012",
+          "isDefault": true
+        }
+      ]
     }
   ],
   "purchaseOrders": [
@@ -3500,24 +3690,43 @@
       "id": "xe-1",
       "code": "XE0000001",
       "plateNumber": "51C-123.45",
-      "type": "Xe tải 1,5 tấn",
+      "name": "Xe tải 1,5 tấn",
+      "type": "XE_TAI",
       "loadCapacity": 1500,
-      "usualDriver": "Đặng Văn Tài"
+      "usualDriver": "Đặng Văn Tài",
+      "driverUserId": "user-taixe",
+      "driverPhone": "0903111222",
+      "registrationExpiry": "2027-03-15",
+      "insuranceExpiry": "2026-11-05",
+      "status": "DANG_DUNG",
+      "createdAt": "2026-08-01T02:00:00.000Z"
     },
     {
       "id": "xe-2",
       "code": "XE0000002",
       "plateNumber": "51D-678.90",
-      "type": "Xe tải 750kg",
+      "name": "Xe tải 750kg",
+      "type": "XE_TAI",
       "loadCapacity": 750,
-      "usualDriver": "Lý Văn Sáu"
+      "usualDriver": "Lý Văn Sáu",
+      "driverPhone": "0903333444",
+      "registrationExpiry": "2026-10-30",
+      "insuranceExpiry": "2027-06-01",
+      "note": "Thùng kín, chở được kính khổ lớn.",
+      "status": "DANG_DUNG",
+      "createdAt": "2026-08-01T02:00:00.000Z"
     },
     {
       "id": "xe-3",
       "code": "XE0000003",
       "plateNumber": "59C-246.81",
-      "type": "Xe ba gác máy",
-      "loadCapacity": 400
+      "name": "Ba gác máy",
+      "type": "XE_BA_GAC",
+      "loadCapacity": 400,
+      "registrationExpiry": "2026-09-30",
+      "note": "Đang sửa hộp số.",
+      "status": "BAO_TRI",
+      "createdAt": "2026-08-01T02:00:00.000Z"
     }
   ],
   "deliveryTrips": [

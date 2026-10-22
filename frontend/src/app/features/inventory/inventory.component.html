@@ -44,7 +44,7 @@
   </select>
   <app-filter-multi-select label="Tính chất" [options]="typeOptions()" [(selected)]="types" />
   <app-filter-multi-select label="Nhóm hàng" [options]="categoryOptions()" [(selected)]="categories" />
-  <select aria-label="Sắp xếp" [value]="sort()" (change)="sort.set($any($event.target).value)">
+  <select aria-label="Sắp xếp" [value]="sort()" (change)="sort.set($any($event.target).value); headerSort.set(null)">
     <option value="name">Tên A → Z</option>
     <option value="code">Mã tăng dần</option>
     <option value="qty-desc">Tồn nhiều → ít</option>
@@ -66,6 +66,10 @@
   [filterable]="true"
   [filters]="columnFilters()"
   (filtersChange)="columnFilters.set($event)"
+  [sortableColumns]="true"
+  [sortBy]="headerSort()?.key ?? null"
+  [sortDir]="headerSort()?.dir ?? 'asc'"
+  (sortChange)="headerSort.set($event)"
   [emptyTitle]="hasFilters() ? 'Không có mặt hàng phù hợp' : 'Chưa có tồn kho'"
   [emptyHint]="hasFilters() ? 'Thử bỏ bớt bộ lọc.' : 'Tồn kho phát sinh từ phiếu nhập, phiếu kiểm kê. Lập phiếu để bắt đầu.'"
 />

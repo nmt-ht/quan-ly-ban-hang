@@ -1,9 +1,11 @@
-import { Injectable, computed } from '@angular/core';
+import { Injectable, computed, inject } from '@angular/core';
 import { MockDataService } from '../../core/services/mock-data.service';
 import { DebtService } from '../../core/services/debt.service';
 import { Supplier, SupplierProduct } from '../../core/models/domain.models';
 import { nextCode } from '../purchase-orders/purchase-order.rules';
 import { SUPPLIER_CODE_PREFIX } from './supplier.rules';
+import { ApiService, upsertById } from '../../core/api/api.service';
+import { CATALOG_FROM_API } from '../../core/api/api.config';
 
 export type SupplierDraft = Omit<Supplier, 'id' | 'code' | 'createdAt' | 'updatedAt'>;
 
@@ -16,9 +18,11 @@ export interface SupplierStats {
 
 const EMPTY_STATS: SupplierStats = { productCount: 0, orderCount: 0, payable: 0, overdue: 0 };
 
-// All writes for Nhà cung cấp. Against the mock store today; maps 1:1 to backend endpoints later.
+// All writes for Nhà cung cấp: the API (CATALOG_FROM_API) or, in demo mode, the in-browser store.
 @Injectable({ providedIn: 'root' })
 export class SupplierService {
+  private readonly api = inject(ApiService);
+
   constructor(
     private readonly data: MockDataService,
     private readonly debt: DebtService,
@@ -42,7 +46,8 @@ export class SupplierService {
     return this.stats().get(id) ?? EMPTY_STATS;
   }
 
-  create(draft: SupplierDraft): Supplier {
+  async create(draft: SupplierDraft): Promise<Supplier> {
+    if (CATALOG_FROM_API) return this.keep(await this.api.post<Supplier>('/suppliers', draft));
     const now = new Date().toISOString();
     const supplier: Supplier = {
       ...draft,
@@ -55,17 +60,33 @@ export class SupplierService {
     return supplier;
   }
 
-  update(id: string, draft: SupplierDraft): void {
+  async update(id: string, draft: SupplierDraft): Promise<void> {
+    if (CATALOG_FROM_API) {
+      this.keep(await this.api.put<Supplier>(`/suppliers/${id}`, draft));
+      return;
+    }
     this.patch(id, { ...draft });
   }
 
   /** Ngừng hợp tác is a status change, not a delete: history and payables stay. */
-  setActive(id: string, isActive: boolean): void {
+  async setActive(id: string, isActive: boolean): Promise<void> {
+    if (CATALOG_FROM_API) {
+      this.keep(await this.api.patch<Supplier>(`/suppliers/${id}/active`, { isActive }));
+      return;
+    }
     this.patch(id, { isActive });
   }
 
   /** Thêm lại mặt hàng đã có sẽ cập nhật mã theo NCC và giá mua. */
-  upsertCatalogItem(item: SupplierProduct): 'added' | 'updated' {
+  async upsertCatalogItem(item: SupplierProduct): Promise<'added' | 'updated'> {
+    if (CATALOG_FROM_API) {
+      const { supplierId, productId, ...body } = item;
+      const res = await this.api.put<{ result: 'added' | 'updated'; item: SupplierProduct }>(`/suppliers/${supplierId}/products/${productId}`, body);
+      this.data.supplierProducts.update((list) =>
+        res.result === 'updated' ? list.map((c) => (c.supplierId === supplierId && c.productId === productId ? res.item : c)) : [...list, res.item],
+      );
+      return res.result;
+    }
     const exists = this.data.supplierProducts().some((c) => c.supplierId === item.supplierId && c.productId === item.productId);
     this.data.supplierProducts.update((list) =>
       exists
@@ -75,8 +96,14 @@ export class SupplierService {
     return exists ? 'updated' : 'added';
   }
 
-  removeCatalogItem(supplierId: string, productId: string): void {
+  async removeCatalogItem(supplierId: string, productId: string): Promise<void> {
+    if (CATALOG_FROM_API) await this.api.delete(`/suppliers/${supplierId}/products/${productId}`);
     this.data.supplierProducts.update((list) => list.filter((c) => !(c.supplierId === supplierId && c.productId === productId)));
+  }
+
+  private keep(s: Supplier): Supplier {
+    this.data.suppliers.update((list) => upsertById(list, s));
+    return s;
   }
 
   private patch(id: string, changes: Partial<Supplier>): void {

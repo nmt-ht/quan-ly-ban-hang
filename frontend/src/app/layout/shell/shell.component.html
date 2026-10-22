@@ -1,40 +1,45 @@
+<a class="skip-link" href="#main-content" (click)="$event.preventDefault(); mainEl.focus()">Bỏ qua đến nội dung chính</a>
 <div class="shell" [class.collapsed]="collapsed()" [class.menu-open]="menuOpen()">
   <aside class="sidebar" id="app-sidebar">
-    <a class="brand" routerLink="/tong-quan" aria-label="Ninh Trang — về trang Tổng quan" title="Về trang Tổng quan" (click)="closeMenu()">
+    <a class="brand" [routerLink]="homeUrl()" aria-label="Ninh Trang — về trang đầu" title="Về trang đầu" (click)="closeMenu()">
       <span class="brand-mark" aria-hidden="true">NT</span>
-      <span class="brand-name" *ngIf="!collapsed()">Ninh Trang</span>
+      @if (!collapsed()) {
+        <span class="brand-name">Ninh Trang</span>
+      }
     </a>
 
     <nav class="nav" aria-label="Điều hướng chính">
-      <ng-container *ngFor="let group of navGroups; let i = index">
-        <button
-          *ngIf="group.label && !collapsed()"
-          type="button"
-          class="nav-group-toggle"
-          [attr.aria-expanded]="isOpen(group)"
-          [attr.aria-controls]="'nav-group-' + i"
-          (click)="toggleGroup(group)"
-        >
-          <app-nav-icon class="nav-group-chevron" name="chevron-down" />
-          <span class="nav-group-name">{{ group.label }}</span>
-        </button>
+      @for (group of navGroups(); track group.label; let i = $index) {
+        @if (group.label && !collapsed()) {
+          <button
+            type="button"
+            class="nav-group-toggle"
+            [attr.aria-expanded]="isOpen(group)"
+            [attr.aria-controls]="'nav-group-' + i"
+            (click)="toggleGroup(group)"
+          >
+            <app-nav-icon class="nav-group-chevron" name="chevron-down" />
+            <span class="nav-group-name">{{ group.label }}</span>
+          </button>
+        }
         <div class="nav-items" [id]="'nav-group-' + i" [class.is-closed]="!isOpen(group)" [attr.inert]="isOpen(group) ? null : ''">
           <div class="nav-items-inner">
-            <a
-              *ngFor="let link of group.links"
-              class="nav-link"
-              [routerLink]="link.path"
-              routerLinkActive="active"
-              ariaCurrentWhenActive="page"
-              [title]="collapsed() ? link.label : ''"
-              (click)="closeMenu()"
-            >
-              <app-nav-icon class="nav-link-icon" [name]="link.icon" />
-              <span class="nav-link-label">{{ link.label }}</span>
-            </a>
+            @for (link of group.links; track link.path) {
+              <a
+                class="nav-link"
+                [routerLink]="link.path"
+                routerLinkActive="active"
+                ariaCurrentWhenActive="page"
+                [title]="collapsed() ? link.label : ''"
+                (click)="closeMenu()"
+              >
+                <app-nav-icon class="nav-link-icon" [name]="link.icon" />
+                <span class="nav-link-label">{{ link.label }}</span>
+              </a>
+            }
           </div>
         </div>
-      </ng-container>
+      }
     </nav>
 
     <button
@@ -77,7 +82,13 @@
       <app-account-menu />
     </header>
 
-    <main class="content">
+    <main class="content" id="main-content" tabindex="-1" #mainEl>
+      @if (catalog.status() === 'error') {
+        <div class="notice is-error" role="alert">
+          <span>Không tải được danh mục từ máy chủ: {{ catalog.error() }}</span>
+          <button type="button" class="btn" (click)="catalog.reload()">Thử lại</button>
+        </div>
+      }
       <router-outlet />
     </main>
   </div>

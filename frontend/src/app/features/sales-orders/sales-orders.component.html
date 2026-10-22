@@ -26,7 +26,7 @@
   <app-filter-multi-select label="Nhân viên bán" [options]="userOptions()" [(selected)]="reps" />
   <app-filter-multi-select label="Người lập" [options]="userOptions()" [(selected)]="createdBy" />
   <app-range-filter label="Giá trị đơn" [(value)]="value" />
-  <select aria-label="Sắp xếp" [value]="sort()" (change)="sort.set($any($event.target).value)">
+  <select aria-label="Sắp xếp" [value]="sort()" (change)="sort.set($any($event.target).value); headerSort.set(null)">
     @for (s of sorts; track s.value) {
       <option [value]="s.value">{{ s.label }}</option>
     }
@@ -66,6 +66,9 @@
   [filterable]="true"
   [filters]="columnFilters()"
   (filtersChange)="columnFilters.set($event)"
+  [sortBy]="headerSort()?.key ?? null"
+  [sortDir]="headerSort()?.dir ?? 'asc'"
+  (sortChange)="headerSort.set($event)"
   [optionRows]="data.salesOrders()"
   [emptyAction]="chips().length || search() ? clearCta : createCta"
   [emptyTitle]="chips().length || search() ? 'Không tìm thấy đơn nào' : 'Chưa có đơn hàng nào'"

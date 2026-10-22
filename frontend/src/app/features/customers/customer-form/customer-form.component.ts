@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -8,6 +8,9 @@ import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { FilterMultiSelectComponent, FilterOption } from '../../../shared/filter-multi-select/filter-multi-select.component';
 import { CUSTOMER_TYPES, ID_NUMBER_PATTERN, PHONE_PATTERN, TAX_CODE_PATTERN, duplicateOf } from '../customer.rules';
 import { CustomerDraft, CustomerService } from '../customer.service';
+import { HasUnsavedChanges, isSaveShortcut, warnBeforeUnload } from '../../../core/guards/unsaved-changes.guard';
+import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
+import { errorText } from '../../../core/api/api.service';
 
 interface AddressDraft extends CustomerAddress {
   key: string;
@@ -18,11 +21,11 @@ interface AddressDraft extends CustomerAddress {
 @Component({
   selector: 'app-customer-form',
   standalone: true,
-  imports: [ReactiveFormsModule, FormsModule, RouterLink, NavIconComponent, FilterMultiSelectComponent],
+  imports: [ReactiveFormsModule, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, FilterMultiSelectComponent],
   templateUrl: './customer-form.component.html',
   styleUrl: './customer-form.component.scss',
 })
-export class CustomerFormComponent {
+export class CustomerFormComponent implements HasUnsavedChanges {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
   readonly data = inject(MockDataService);
@@ -99,7 +102,7 @@ export class CustomerFormComponent {
 
   readonly addressIssues = computed(() => this.addresses().some((a) => this.addressError(a)));
 
-  save(): void {
+  async save(): Promise<void> {
     this.attempted.set(true);
     if (this.form.invalid || this.addressIssues()) {
       this.form.markAllAsTouched();
@@ -132,12 +135,56 @@ export class CustomerFormComponent {
       isActive: v.isActive,
       addresses,
     };
-    if (this.editing) {
-      this.svc.update(this.editing.id, draft);
-      this.router.navigate(['/khach-hang', this.editing.id], { state: { notice: 'Đã lưu thay đổi.' } });
-    } else {
-      const c = this.svc.create(draft);
-      this.router.navigate(['/khach-hang', c.id], { state: { notice: `Đã tạo khách hàng ${c.code}.` } });
+    if (this.saving()) return;
+    this.saving.set(true);
+    this.saveError.set('');
+    try {
+      if (this.editing) {
+        await this.svc.update(this.editing.id, draft);
+        this.markSaved();
+        this.router.navigate(['/khach-hang', this.editing.id], { state: { notice: 'Đã lưu thay đổi.' } });
+      } else {
+        const c = await this.svc.create(draft);
+        this.markSaved();
+        this.router.navigate(['/khach-hang', c.id], { state: { notice: `Đã tạo khách hàng ${c.code}.` } });
+      }
+    } catch (e) {
+      this.saveError.set(errorText(e));
+    } finally {
+      this.saving.set(false);
     }
+  }
+
+  /** Why the last save failed (shown in the action bar). */
+  readonly saveError = signal('');
+  readonly saving = signal(false);
+
+  // ---------- unsaved changes + Ctrl+S ----------
+  // Thẻ and địa chỉ live outside the reactive form, so they are compared against a snapshot.
+  private savedExtras = this.extrasSnapshot();
+
+  private extrasSnapshot(): string {
+    return JSON.stringify([this.tagIds(), this.addresses().map(({ key, ...a }) => a)]);
+  }
+
+  private markSaved(): void {
+    this.form.markAsPristine();
+    this.savedExtras = this.extrasSnapshot();
+  }
+
+  hasUnsavedChanges(): boolean {
+    return this.form.dirty || this.extrasSnapshot() !== this.savedExtras;
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  onBeforeUnload(e: BeforeUnloadEvent): void {
+    warnBeforeUnload(e, this.hasUnsavedChanges());
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  onKeydown(e: KeyboardEvent): void {
+    if (!isSaveShortcut(e)) return;
+    e.preventDefault();
+    this.save();
   }
 }

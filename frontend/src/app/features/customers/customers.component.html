@@ -27,7 +27,7 @@
     <option value="active">Đang theo dõi ({{ statusCounts().active }})</option>
     <option value="inactive">Ngừng theo dõi ({{ statusCounts().inactive }})</option>
   </select>
-  <select aria-label="Sắp xếp" [value]="sort()" (change)="sort.set($any($event.target).value)">
+  <select aria-label="Sắp xếp" [value]="sort()" (change)="sort.set($any($event.target).value); headerSort.set(null)">
     @for (s of sorts; track s.value) {
       <option [value]="s.value">{{ s.label }}</option>
     }
@@ -64,6 +64,10 @@
   [filterable]="true"
   [filters]="columnFilters()"
   (filtersChange)="columnFilters.set($event)"
+  [sortableColumns]="true"
+  [sortBy]="headerSort()?.key ?? null"
+  [sortDir]="headerSort()?.dir ?? 'asc'"
+  (sortChange)="headerSort.set($event)"
   [optionRows]="data.customers()"
   [emptyAction]="chips().length || search() ? null : createCta"
   [emptyTitle]="chips().length || search() ? 'Không có khách hàng phù hợp' : 'Chưa có khách hàng nào'"

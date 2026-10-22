@@ -267,9 +267,12 @@
     </label>
   </div>
 
+  @if (saveError()) {
+    <div class="notice is-error" role="alert">{{ saveError() }}</div>
+  }
   <div class="form-actions">
     <a class="btn" [routerLink]="editing ? ['/hang-hoa', editing.id] : '/hang-hoa'">Huỷ</a>
-    <button class="btn btn-primary" type="submit">{{ editing ? 'Lưu thay đổi' : 'Thêm hàng hoá' }}</button>
+    <button class="btn btn-primary" type="submit" [disabled]="saving()">{{ saving() ? 'Đang lưu…' : editing ? 'Lưu thay đổi' : 'Thêm hàng hoá' }}</button>
   </div>
 </form>
 }

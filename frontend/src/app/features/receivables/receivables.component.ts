@@ -10,6 +10,7 @@ import { FilterMultiSelectComponent, FilterOption } from '../../shared/filter-mu
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
+import { ColumnSort, sortByColumn } from '../../shared/column-sort';
 import { foldVi, formatVnd } from '../../shared/format.util';
 import { formatDay } from '../../shared/period';
 import { CUSTOMER_TYPE_SHORT, customerTypeClass } from '../../shared/status-labels';
@@ -17,6 +18,7 @@ import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { DebtLedgerComponent } from '../debts/debt-ledger/debt-ledger.component';
 import { AGING_COLUMNS } from '../debts/aging';
 import { CUSTOMER_TYPES } from '../customers/customer.rules';
+import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 
 type ReceivableSort = 'balance' | 'overdue' | 'due' | 'name';
 
@@ -31,7 +33,7 @@ const SORTS: { value: ReceivableSort; label: string }[] = [
 @Component({
   selector: 'app-receivables',
   standalone: true,
-  imports: [RouterLink, DataTableComponent, FilterMultiSelectComponent, PaginationComponent, NavIconComponent, DebtLedgerComponent],
+  imports: [RouterLink, AllowedLinkDirective, DataTableComponent, FilterMultiSelectComponent, PaginationComponent, NavIconComponent, DebtLedgerComponent],
   templateUrl: './receivables.component.html',
 })
 export class ReceivablesComponent {
@@ -45,6 +47,8 @@ export class ReceivablesComponent {
   readonly overdueOnly = signal(false);
   readonly sort = signal<ReceivableSort>('balance');
   readonly columnFilters = signal<ColumnFilters>({});
+  // Clicking a column header overrides the "Sắp xếp" select; picking from the select clears it.
+  readonly headerSort = signal<ColumnSort | null>(null);
   readonly page = signal(1);
   readonly pageSize = signal(20);
   readonly exporting = signal(false);
@@ -101,7 +105,7 @@ export class ReceivablesComponent {
           : s === 'due' ? (a.nextDue ?? '9999').localeCompare(b.nextDue ?? '9999')
             : a.name.localeCompare(b.name, 'vi'),
     );
-    return applyColumnFilters(rows, this.columns, this.columnFilters());
+    return sortByColumn(applyColumnFilters(rows, this.columns, this.columnFilters()), this.columns, this.headerSort());
   });
 
   readonly pagedRows = computed(() => {

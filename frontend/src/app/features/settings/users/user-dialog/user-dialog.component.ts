@@ -6,6 +6,7 @@ import { NavIconComponent } from '../../../../layout/nav-icon/nav-icon.component
 import { CopyButtonComponent } from '../../../../shared/copy-button/copy-button.component';
 import { PHONE_PATTERN } from '../../../customers/customer.rules';
 import { EMAIL_PATTERN, UserService, generatePassword, passwordIssue } from '../user.service';
+import { errorText } from '../../../../core/api/api.service';
 
 // "Thêm người dùng" / "Sửa người dùng" — họ tên, email đăng nhập, mật khẩu (chỉ khi thêm), chức vụ.
 @Component({
@@ -83,23 +84,23 @@ export class UserDialogComponent {
     return out;
   });
 
-  confirm(): void {
+  async confirm(): Promise<void> {
     this.attempted.set(true);
     if (this.issues().length) return;
     const draft = { name: this.name(), email: this.email(), roleId: this.roleId(), phone: this.phone(), note: this.note() };
     try {
       const u = this.editing();
       if (u) {
-        this.svc.update(u.id, draft);
+        await this.svc.update(u.id, draft);
         this.close();
         this.saved.emit({ message: `Đã lưu ${draft.name.trim()}.` });
       } else {
-        const created = this.svc.create(draft, this.password());
+        const created = await this.svc.create(draft, this.password());
         this.close();
         this.saved.emit({ user: created, message: `Đã tạo tài khoản ${created.email}. Nhắn riêng mật khẩu cho nhân viên và bảo họ đổi lại.` });
       }
     } catch (e) {
-      this.error.set((e as Error).message);
+      this.error.set(errorText(e));
     }
   }
 }

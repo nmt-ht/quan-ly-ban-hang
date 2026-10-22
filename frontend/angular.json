@@ -30,6 +30,12 @@
               }
             ],
             "styles": [
+              "@fontsource/be-vietnam-pro/400.css",
+              "@fontsource/be-vietnam-pro/500.css",
+              "@fontsource/be-vietnam-pro/600.css",
+              "@fontsource/be-vietnam-pro/700.css",
+              "@fontsource/jetbrains-mono/400.css",
+              "@fontsource/jetbrains-mono/500.css",
               "src/styles.scss"
             ]
           },
@@ -44,7 +50,7 @@
                 {
                   "type": "anyComponentStyle",
                   "maximumWarning": "4kB",
-                  "maximumError": "8kB"
+                  "maximumError": "16kB"
                 }
               ],
               "outputHashing": "all"
@@ -59,6 +65,9 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "proxyConfig": "proxy.conf.json"
+          },
           "configurations": {
             "production": {
               "buildTarget": "frontend:build:production"

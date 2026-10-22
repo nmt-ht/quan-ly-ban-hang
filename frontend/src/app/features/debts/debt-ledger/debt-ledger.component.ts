@@ -9,6 +9,7 @@ import { amountTone, formatVnd, formatVndSigned } from '../../../shared/format.u
 import { formatDay, inRange, rangeLabel } from '../../../shared/period';
 import { downloadWorkbook, exportFileName } from '../../../shared/excel.util';
 import { PrintDocumentComponent } from '../../../shared/print/print-document.component';
+import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 
 export type DebtSide = 'PHAI_TRA' | 'PHAI_THU';
 
@@ -45,7 +46,7 @@ const SIDE = {
 @Component({
   selector: 'app-debt-ledger',
   standalone: true,
-  imports: [RouterLink, NavIconComponent, CopyButtonComponent, PeriodFilterComponent, PrintDocumentComponent],
+  imports: [RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, PeriodFilterComponent, PrintDocumentComponent],
   templateUrl: './debt-ledger.component.html',
   styleUrl: './debt-ledger.component.scss',
 })

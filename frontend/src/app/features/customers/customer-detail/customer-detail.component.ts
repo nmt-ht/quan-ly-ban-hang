@@ -18,13 +18,15 @@ import { deliveredPercent } from '../../sales-orders/sales-order.rules';
 import { tagStyle } from '../../../shared/tag-colors';
 import { PHONE_PATTERN, creditLabel } from '../customer.rules';
 import { CustomerService } from '../customer.service';
+import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
+import { errorText } from '../../../core/api/api.service';
 
 export type CustomerTab = 'chung' | 'dia-chi' | 'don-hang' | 'cong-no';
 
 @Component({
   selector: 'app-customer-detail',
   standalone: true,
-  imports: [NgClass, FormsModule, RouterLink, NavIconComponent, CopyButtonComponent],
+  imports: [NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent],
   templateUrl: './customer-detail.component.html',
   styleUrls: ['../../suppliers/supplier-detail/supplier-detail.component.scss', './customer-detail.component.scss'],
 })
@@ -53,6 +55,8 @@ export class CustomerDetailComponent {
   readonly deliveredPercent = deliveredPercent;
 
   readonly notice = signal('');
+  /** A save the server refused (or that could not reach it). */
+  readonly failure = signal('');
 
   constructor() {
     effect(() => {
@@ -104,10 +108,10 @@ export class CustomerDetailComponent {
   }
 
   // ---------- trạng thái ----------
-  toggleActive(): void {
+  async toggleActive(): Promise<void> {
     const c = this.customer();
     if (!c) return;
-    this.svc.setActive(c.id, !c.isActive);
+    if (!(await this.attempt(() => this.svc.setActive(c.id, !c.isActive)))) return;
     this.notice.set(
       c.isActive
         ? `Đã chuyển ${c.code} sang Ngừng theo dõi — không chọn được khi lên đơn mới. Đơn cũ và công nợ vẫn giữ nguyên.`
@@ -165,32 +169,45 @@ export class CustomerDetailComponent {
     return '';
   });
 
-  saveAddress(): void {
+  async saveAddress(): Promise<void> {
     this.addrAttempted.set(true);
     const c = this.customer();
     if (!c || this.addrError()) return;
     const d = this.addrDraft();
     const isNew = this.addrEditing() === 'new';
-    this.svc.saveAddress(c.id, {
+    const ok = await this.attempt(() => this.svc.saveAddress(c.id, {
       id: isNew ? crypto.randomUUID() : this.addrEditing()!,
       label: d.label?.trim() || undefined,
       recipientName: d.recipientName?.trim() || undefined,
       phone: d.phone?.trim() || undefined,
       address: d.address!.trim(),
       isDefault: !!d.isDefault,
-    });
+    }));
+    if (!ok) return;
     this.notice.set(isNew ? 'Đã thêm địa chỉ giao hàng.' : 'Đã lưu địa chỉ giao hàng.');
     this.cancelAddress();
   }
 
-  removeAddress(a: CustomerAddress): void {
-    this.svc.removeAddress(this.id(), a.id);
+  async removeAddress(a: CustomerAddress): Promise<void> {
+    if (!(await this.attempt(() => this.svc.removeAddress(this.id(), a.id)))) return;
     this.notice.set(`Đã xoá địa chỉ "${a.label || a.address}".`);
     if (this.addrEditing() === a.id) this.cancelAddress();
   }
 
-  makeDefault(a: CustomerAddress): void {
-    this.svc.setDefaultAddress(this.id(), a.id);
+  async makeDefault(a: CustomerAddress): Promise<void> {
+    if (!(await this.attempt(() => this.svc.setDefaultAddress(this.id(), a.id)))) return;
     this.notice.set(`"${a.label || a.address}" là địa chỉ giao mặc định.`);
+  }
+
+  /** Runs a save; on failure shows why and answers false. */
+  private async attempt(save: () => Promise<unknown>): Promise<boolean> {
+    this.failure.set('');
+    try {
+      await save();
+      return true;
+    } catch (e) {
+      this.failure.set(errorText(e));
+      return false;
+    }
   }
 }

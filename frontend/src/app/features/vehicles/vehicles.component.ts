@@ -7,6 +7,7 @@ import { DataTableColumn, DataTableComponent } from '../../shared/data-table/dat
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
+import { ColumnSort, sortByColumn } from '../../shared/column-sort';
 import { foldVi, formatVnd } from '../../shared/format.util';
 import { formatDay, isoDay } from '../../shared/period';
 import { tagClass } from '../../shared/tag-class';
@@ -14,11 +15,12 @@ import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { costTotal } from '../delivery-trips/delivery-trip.rules';
 import { VEHICLE_STATUSES, VEHICLE_STATUS_LABEL, VEHICLE_TYPES, VEHICLE_TYPE_LABEL, currentTripOf, expiryState } from './vehicle.rules';
 import { VehicleDialogComponent } from './vehicle-dialog/vehicle-dialog.component';
+import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 
 @Component({
   selector: 'app-vehicles',
   standalone: true,
-  imports: [CommonModule, RouterLink, DataTableComponent, PaginationComponent, NavIconComponent, VehicleDialogComponent],
+  imports: [CommonModule, RouterLink, AllowedLinkDirective, DataTableComponent, PaginationComponent, NavIconComponent, VehicleDialogComponent],
   templateUrl: './vehicles.component.html',
 })
 export class VehiclesComponent {
@@ -31,6 +33,8 @@ export class VehiclesComponent {
   readonly type = signal('all');
   readonly papersDue = signal(false);
   readonly columnFilters = signal<ColumnFilters>({});
+  // Clicking a column header sorts; again reverses; a third click goes back to the default order.
+  readonly headerSort = signal<ColumnSort | null>(null);
   readonly page = signal(1);
   readonly pageSize = signal(20);
   readonly notice = signal('');
@@ -78,7 +82,7 @@ export class VehiclesComponent {
       return true;
     });
     rows.sort((a, b) => a.code.localeCompare(b.code));
-    return applyColumnFilters(rows, this.columns, this.columnFilters());
+    return sortByColumn(applyColumnFilters(rows, this.columns, this.columnFilters()), this.columns, this.headerSort());
   });
 
   readonly paged = computed(() => {
@@ -96,7 +100,7 @@ export class VehiclesComponent {
     { key: 'plateNumber', label: 'Biển số', copy: true, link: (r) => ['/xe', r.id] },
     { key: 'code', label: 'Mã xe', mono: true },
     { key: 'name', label: 'Tên gọi', format: (r) => r.name || '—' },
-    { key: 'type', label: 'Loại', format: (r) => VEHICLE_TYPE_LABEL[r.type] },
+    { key: 'type', sortByText: true, label: 'Loại', format: (r) => VEHICLE_TYPE_LABEL[r.type] },
     { key: 'loadCapacity', label: 'Tải trọng', align: 'right', format: (r) => (r.loadCapacity ? `${r.loadCapacity.toLocaleString('vi-VN')} kg` : '—'), filterValue: (r) => r.loadCapacity ?? 0 },
     { key: 'usualDriver', label: 'Tài xế thường chạy', format: (r) => r.usualDriver || '—' },
     { key: 'registrationExpiry', label: 'Hạn đăng kiểm', format: (r) => this.expiryText(r.registrationExpiry), mono: true },

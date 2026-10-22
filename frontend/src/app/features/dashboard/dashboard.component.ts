@@ -9,6 +9,7 @@ import { PeriodFilterComponent, PeriodValue } from '../../shared/period-filter/p
 import { amountTone, formatVnd, formatVndSigned } from '../../shared/format.util';
 import { DateRange, PERIOD_PRESETS, formatDay, inRange, isoDay, presetRange, rangeLabel } from '../../shared/period';
 import { lineRemaining, orderTotals } from '../sales-orders/sales-order.rules';
+import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 
 const DAY = 86_400_000;
 const INACTIVE_DAYS = 60; // khách ngừng mua: không mua trong 60 ngày gần nhất
@@ -41,7 +42,7 @@ interface Sale {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [RouterLink, PeriodFilterComponent, NavIconComponent],
+  imports: [RouterLink, AllowedLinkDirective, PeriodFilterComponent, NavIconComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })

@@ -61,7 +61,7 @@
     }
   </select>
 
-  <select aria-label="Sắp xếp" [value]="sort()" (change)="sort.set($any($event.target).value)">
+  <select aria-label="Sắp xếp" [value]="sort()" (change)="sort.set($any($event.target).value); headerSort.set(null)">
     @for (o of sortOptions; track o.value) {
       <option [value]="o.value">{{ o.label }}</option>
     }
@@ -110,6 +110,10 @@
     [filterable]="true"
     [filters]="columnFilters()"
     (filtersChange)="columnFilters.set($event)"
+    [sortableColumns]="true"
+    [sortBy]="headerSort()?.key ?? null"
+    [sortDir]="headerSort()?.dir ?? 'asc'"
+    (sortChange)="headerSort.set($event)"
     [optionRows]="data.products()"
     [emptyTitle]="chips().length || search() ? 'Không có mặt hàng phù hợp bộ lọc' : 'Chưa có mặt hàng nào'"
     [emptyHint]="chips().length || search() ? 'Thử bỏ bớt bộ lọc hoặc đổi từ khoá tìm kiếm.' : 'Thêm mặt hàng đầu tiên hoặc nhập danh mục từ file Excel.'"

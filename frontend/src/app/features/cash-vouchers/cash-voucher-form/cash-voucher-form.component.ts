@@ -12,6 +12,7 @@ import { formatVnd } from '../../../shared/format.util';
 import { formatDay, isoDay } from '../../../shared/period';
 import { ACCOUNT_TYPE_LABEL, KIND_TEXT, autoAllocate, categoryHint } from '../cash-voucher.rules';
 import { CashVoucherService } from '../cash-voucher.service';
+import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 
 interface Partner {
   id: string;
@@ -27,7 +28,7 @@ interface Partner {
 @Component({
   selector: 'app-cash-voucher-form',
   standalone: true,
-  imports: [FormsModule, RouterLink, NavIconComponent, MoneyInputDirective],
+  imports: [FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, MoneyInputDirective],
   templateUrl: './cash-voucher-form.component.html',
   styleUrl: './cash-voucher-form.component.scss',
 })

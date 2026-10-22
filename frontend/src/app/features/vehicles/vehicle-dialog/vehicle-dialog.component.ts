@@ -6,6 +6,7 @@ import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { PHONE_PATTERN } from '../../customers/customer.rules';
 import { VEHICLE_STATUSES, VEHICLE_TYPES } from '../vehicle.rules';
 import { VehicleService } from '../vehicle.service';
+import { errorText } from '../../../core/api/api.service';
 
 // "Thêm xe" / "Sửa xe <biển số>" — same fields as production.
 @Component({
@@ -85,7 +86,7 @@ export class VehicleDialogComponent {
     return out;
   });
 
-  confirm(): void {
+  async confirm(): Promise<void> {
     this.attempted.set(true);
     if (this.issues().length) return;
     const draft = {
@@ -102,14 +103,22 @@ export class VehicleDialogComponent {
       note: this.note(),
     };
     const v = this.editing();
-    if (v) {
-      this.svc.update(v.id, draft);
-      this.close();
-      this.saved.emit({ message: `Đã lưu xe ${draft.plateNumber.trim().toUpperCase()}.` });
-    } else {
-      const created = this.svc.create(draft);
-      this.close();
-      this.saved.emit({ vehicle: created, message: `Đã thêm xe ${created.plateNumber} (${created.code}).` });
+    this.error.set('');
+    try {
+      if (v) {
+        await this.svc.update(v.id, draft);
+        this.close();
+        this.saved.emit({ message: `Đã lưu xe ${draft.plateNumber.trim().toUpperCase()}.` });
+      } else {
+        const created = await this.svc.create(draft);
+        this.close();
+        this.saved.emit({ vehicle: created, message: `Đã thêm xe ${created.plateNumber} (${created.code}).` });
+      }
+    } catch (e) {
+      this.error.set(errorText(e));
     }
   }
+
+  /** Why the server refused the save (shown in the footer). */
+  readonly error = signal('');
 }

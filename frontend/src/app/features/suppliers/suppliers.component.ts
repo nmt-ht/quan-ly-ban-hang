@@ -7,12 +7,14 @@ import { DataTableColumn, DataTableComponent } from '../../shared/data-table/dat
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
+import { ColumnSort, sortByColumn } from '../../shared/column-sort';
 import { foldVi, formatVnd } from '../../shared/format.util';
 import { formatDay } from '../../shared/period';
 import { supplierStatusClass, supplierStatusLabel } from '../../shared/status-labels';
 import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { SUPPLIER_SORTS, SupplierSort, creditLabel, sortSuppliers } from './supplier.rules';
 import { SupplierService } from './supplier.service';
+import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 
 interface ActiveChip {
   label: string;
@@ -25,7 +27,7 @@ type CreditFilter = 'all' | 'credit' | 'cash';
 @Component({
   selector: 'app-suppliers',
   standalone: true,
-  imports: [CommonModule, RouterLink, DataTableComponent, PaginationComponent, NavIconComponent],
+  imports: [CommonModule, RouterLink, AllowedLinkDirective, DataTableComponent, PaginationComponent, NavIconComponent],
   templateUrl: './suppliers.component.html',
 })
 export class SuppliersComponent {
@@ -35,6 +37,8 @@ export class SuppliersComponent {
   readonly owing = signal(false);
   readonly sort = signal<SupplierSort>('name-asc');
   readonly columnFilters = signal<ColumnFilters>({});
+  // Clicking a column header overrides the "Sắp xếp" select; picking from the select clears it.
+  readonly headerSort = signal<ColumnSort | null>(null);
   readonly page = signal(1);
   readonly pageSize = signal(20);
   readonly exporting = signal(false);
@@ -63,7 +67,7 @@ export class SuppliersComponent {
   readonly suppliers = computed(() => {
     const st = this.status();
     const rows = this.matchedExceptStatus().filter((s) => st === 'all' || s.isActive === (st === 'active'));
-    return applyColumnFilters(sortSuppliers(rows, this.sort()), this.columns, this.columnFilters());
+    return sortByColumn(applyColumnFilters(sortSuppliers(rows, this.sort()), this.columns, this.columnFilters()), this.columns, this.headerSort());
   });
 
   readonly pagedSuppliers = computed(() => {

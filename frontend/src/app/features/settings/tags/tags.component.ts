@@ -7,6 +7,7 @@ import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { foldVi } from '../../../shared/format.util';
 import { DEFAULT_TAG_COLOR, TAG_COLORS, tagStyle } from '../../../shared/tag-colors';
 import { TagService } from './tag.service';
+import { errorText } from '../../../core/api/api.service';
 
 // /thiet-lap/the — thẻ đánh dấu dùng chung cho đơn hàng bán và khách hàng.
 @Component({
@@ -76,31 +77,42 @@ export class TagsComponent {
     return '';
   });
 
-  save(): void {
+  async save(): Promise<void> {
     this.attempted.set(true);
     if (this.issue()) return;
     const draft = { name: this.name(), color: this.color(), sortOrder: this.sortOrder() ?? 0, isActive: this.isActive() };
     const t = this.editing();
-    if (t) this.svc.update(t.id, draft);
-    else this.svc.create(draft);
+    try {
+      if (t) await this.svc.update(t.id, draft);
+      else await this.svc.create(draft);
+    } catch (e) {
+      this.close();
+      this.error.set(errorText(e));
+      return;
+    }
     this.close();
     this.error.set('');
     this.notice.set(t ? `Đã lưu thẻ "${draft.name.trim()}".` : `Đã thêm thẻ "${draft.name.trim()}".`);
   }
 
-  toggle(t: Tag): void {
-    this.svc.setActive(t.id, !t.isActive);
+  async toggle(t: Tag): Promise<void> {
+    try {
+      await this.svc.setActive(t.id, !t.isActive);
+    } catch (e) {
+      this.error.set(errorText(e));
+      return;
+    }
     this.notice.set(t.isActive ? `"${t.name}" ngừng dùng — vẫn hiện trên đơn / khách cũ, không chọn được nữa.` : `"${t.name}" dùng lại.`);
   }
 
-  doDelete(): void {
+  async doDelete(): Promise<void> {
     const t = this.confirmDelete()!;
     try {
-      this.svc.remove(t.id);
+      await this.svc.remove(t.id);
       this.notice.set(`Đã xoá thẻ "${t.name}".`);
       this.error.set('');
     } catch (e) {
-      this.error.set((e as Error).message);
+      this.error.set(errorText(e));
     }
     this.confirmDelete.set(null);
   }

@@ -31,7 +31,7 @@
       [value]="search()"
       (input)="search.set($any($event.target).value)"
     />
-    <select aria-label="Sắp xếp" [value]="sort()" (change)="sort.set($any($event.target).value)">
+    <select aria-label="Sắp xếp" [value]="sort()" (change)="sort.set($any($event.target).value); headerSort.set(null)">
       @for (s of sorts; track s.value) {
         <option [value]="s.value">{{ s.label }}</option>
       }
@@ -75,6 +75,10 @@
     [filterable]="true"
     [filters]="columnFilters()"
     (filtersChange)="columnFilters.set($event)"
+    [sortableColumns]="true"
+    [sortBy]="headerSort()?.key ?? null"
+    [sortDir]="headerSort()?.dir ?? 'asc'"
+    (sortChange)="headerSort.set($event)"
     [emptyTitle]="hasFilters() ? 'Không có nhà cung cấp phù hợp' : 'Không có công nợ phải trả'"
     [emptyHint]="hasFilters() ? 'Thử bỏ bớt bộ lọc hoặc đổi từ khoá tìm kiếm.' : 'Công nợ phải trả phát sinh khi nhập kho hàng từ nhà cung cấp.'"
   />

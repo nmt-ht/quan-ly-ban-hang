@@ -9,12 +9,14 @@ import { PaginationComponent } from '../../shared/pagination/pagination.componen
 import { PeriodFilterComponent, PeriodValue, NO_PERIOD } from '../../shared/period-filter/period-filter.component';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
+import { ColumnSort, sortByColumn } from '../../shared/column-sort';
 import { foldVi } from '../../shared/format.util';
 import { PERIOD_PRESETS, formatDay, inRange, isoDay, rangeLabel } from '../../shared/period';
 import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { PRODUCTION_ORDER_STATUS_LABEL, productionOrderStatusClass } from '../../shared/status-labels';
 import { SalesOrderService } from '../sales-orders/sales-order.service';
 import { canStart, isLate } from './production-order.rules';
+import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 
 interface ActiveChip {
   label: string;
@@ -24,7 +26,7 @@ interface ActiveChip {
 @Component({
   selector: 'app-production-orders',
   standalone: true,
-  imports: [CommonModule, RouterLink, DataTableComponent, FilterMultiSelectComponent, PaginationComponent, PeriodFilterComponent, NavIconComponent],
+  imports: [CommonModule, RouterLink, AllowedLinkDirective, DataTableComponent, FilterMultiSelectComponent, PaginationComponent, PeriodFilterComponent, NavIconComponent],
   templateUrl: './production-orders.component.html',
 })
 export class ProductionOrdersComponent {
@@ -37,6 +39,8 @@ export class ProductionOrdersComponent {
   readonly period = signal<PeriodValue>(NO_PERIOD);
   readonly lateOnly = signal(false);
   readonly columnFilters = signal<ColumnFilters>({});
+  // Clicking a column header sorts; again reverses; a third click goes back to the default order.
+  readonly headerSort = signal<ColumnSort | null>(null);
   readonly page = signal(1);
   readonly pageSize = signal(20);
   readonly exporting = signal(false);
@@ -74,7 +78,7 @@ export class ProductionOrdersComponent {
     const rows = this.matchedExceptStatus()
       .filter((x) => !st.length || st.includes(x.status))
       .sort((a, b) => b.createdDate.localeCompare(a.createdDate) || b.code.localeCompare(a.code));
-    return applyColumnFilters(rows, this.columns, this.columnFilters());
+    return sortByColumn(applyColumnFilters(rows, this.columns, this.columnFilters()), this.columns, this.headerSort());
   });
 
   readonly paged = computed(() => {
@@ -123,21 +127,21 @@ export class ProductionOrdersComponent {
   readonly columns: DataTableColumn<ProductionOrder>[] = [
     { key: 'code', label: 'Mã lệnh', copy: true, link: (r) => ['/san-xuat', r.id] },
     { key: 'createdDate', label: 'Ngày lập', format: (r) => formatDay(r.createdDate), mono: true },
-    { key: 'productId', label: 'Thành phẩm', format: (r) => this.productText(r) },
+    { key: 'productId', sortByText: true, label: 'Thành phẩm', format: (r) => this.productText(r) },
     { key: 'quantity', label: 'Số lượng', align: 'right', format: (r) => this.qtyText(r), filterValue: (r) => r.quantity },
     {
-      key: 'sourceOrderId', label: 'Đơn bán', format: (r) => this.orderById().get(r.sourceOrderId)?.code ?? '—',
+      key: 'sourceOrderId', sortByText: true, label: 'Đơn bán', format: (r) => this.orderById().get(r.sourceOrderId)?.code ?? '—',
       link: (r) => ['/don-hang', r.sourceOrderId],
     },
     { key: 'customer', label: 'Khách hàng', format: (r) => this.customerName().get(this.orderById().get(r.sourceOrderId)?.customerId ?? '') ?? '—' },
     {
-      key: 'needed', label: 'Cần giao', mono: true,
+      key: 'needed', sortValue: (r) => this.orderById().get(r.sourceOrderId)?.neededByDate, label: 'Cần giao', mono: true,
       format: (r) => { const d = this.orderById().get(r.sourceOrderId)?.neededByDate; return d ? formatDay(d) + (this.late(r) ? ' · trễ' : '') : '—'; },
       tone: (r) => (this.late(r) ? -1 : 0),
     },
     { key: 'startDate', label: 'Bắt đầu', format: (r) => (r.startDate ? formatDay(r.startDate) : '—'), mono: true },
     { key: 'completeDate', label: 'Hoàn tất', format: (r) => (r.completeDate ? formatDay(r.completeDate) : '—'), mono: true },
-    { key: 'status', label: 'Trạng thái', format: (r) => PRODUCTION_ORDER_STATUS_LABEL[r.status], badge: (r) => productionOrderStatusClass(r.status) },
+    { key: 'status', sortByText: true, label: 'Trạng thái', format: (r) => PRODUCTION_ORDER_STATUS_LABEL[r.status], badge: (r) => productionOrderStatusClass(r.status) },
   ];
 
   constructor() {

@@ -7,13 +7,14 @@ import { foldVi } from '../../shared/format.util';
 import { REPORT_GROUPS, REPORTS, ReportGroup, groupOf, reportBySlug } from './report.registry';
 import { RevenueReportComponent } from './revenue/revenue-report.component';
 import { TableReportComponent } from './table-report/table-report.component';
+import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 
 // /bao-cao is the hub (every report, by group). /bao-cao?name=<slug> is one report inside a frame with
 // the same list beside it. Slugs are production's (docs/crawl/02-bao-cao.md), so old links keep working.
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [RouterLink, NavIconComponent, RevenueReportComponent, TableReportComponent],
+  imports: [RouterLink, AllowedLinkDirective, NavIconComponent, RevenueReportComponent, TableReportComponent],
   templateUrl: './reports.component.html',
   styleUrl: './reports.component.scss',
 })

@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
+import { Component, HostListener, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { NgClass } from '@angular/common';
@@ -28,7 +28,9 @@ import {
   lineRemaining, linesNeedingLsx, needsProduction, orderTotals, priceFor,
 } from '../sales-order.rules';
 import { SalesOrderDraft, SalesOrderService } from '../sales-order.service';
+import { HasUnsavedChanges, isSaveShortcut, warnBeforeUnload } from '../../../core/guards/unsaved-changes.guard';
 import { DeliverDialogComponent } from '../deliver-dialog/deliver-dialog.component';
+import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 
 type Mode = 'create' | 'edit' | 'view';
 type Tab = 'hang' | 'gia-von' | 'lsx' | 'pxk' | 'cong-no';
@@ -70,13 +72,13 @@ const emptyLine = (): DraftLine => ({
   selector: 'app-sales-order-voucher',
   standalone: true,
   imports: [
-    NgClass, FormsModule, RouterLink, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
+    NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
     PaginationComponent, FilterMultiSelectComponent, DeliverDialogComponent, PrintDocumentComponent,
   ],
   templateUrl: './sales-order-voucher.component.html',
   styleUrls: ['../../../shared/voucher/voucher.scss', './sales-order-voucher.component.scss'],
 })
-export class SalesOrderVoucherComponent {
+export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   readonly data = inject(MockDataService);
@@ -166,6 +168,7 @@ export class SalesOrderVoucherComponent {
         this.confirmCancel.set(false);
         this.confirmClose.set(false);
         if (id) this.notice.set((history.state as { notice?: string } | null)?.notice ?? '');
+        this.baseline = this.snapshot();
       });
     });
   }
@@ -467,10 +470,12 @@ export class SalesOrderVoucherComponent {
     };
     const id = this.id();
     const o = this.mode() === 'edit' && id ? this.orders.update(id, draft) : this.orders.create(draft);
+    this.baseline = this.snapshot(); // saved: leaving the page must not ask again
     this.router.navigate(['/don-hang', o.id], { state: { notice: this.mode() === 'edit' ? 'Đã lưu thay đổi.' : `Đã tạo đơn ${o.code}.` } });
   }
 
   cancelEditing(): void {
+    this.baseline = this.snapshot(); // Huỷ = bỏ thay đổi có chủ ý
     const id = this.id();
     if (id) this.router.navigate(['/don-hang', id]);
     else this.router.navigateByUrl('/don-hang');
@@ -613,5 +618,32 @@ export class SalesOrderVoucherComponent {
 
   lsxStock(productId: string): number {
     return this.stock().get(productId) ?? 0;
+  }
+
+  // ---------- unsaved changes + Ctrl+S ----------
+  private baseline = '';
+
+  private snapshot(): string {
+    return JSON.stringify([
+      this.customerId(), this.recipientName(), this.recipientPhone(), this.deliveryAddress(), this.description(), this.source(),
+      this.tagIds(), this.orderDate(), this.neededByDate(), this.salesRep(), this.orderDiscount(), this.payNow(), this.payAccountId(),
+      this.lines().map(({ key, ...line }) => line),
+    ]);
+  }
+
+  hasUnsavedChanges(): boolean {
+    return this.editable() && this.snapshot() !== this.baseline;
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  onBeforeUnload(e: BeforeUnloadEvent): void {
+    warnBeforeUnload(e, this.hasUnsavedChanges());
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  onKeydown(e: KeyboardEvent): void {
+    if (!this.editable() || !isSaveShortcut(e)) return;
+    e.preventDefault();
+    this.save();
   }
 }

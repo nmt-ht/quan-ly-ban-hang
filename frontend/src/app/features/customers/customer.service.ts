@@ -1,9 +1,11 @@
-import { Injectable, computed } from '@angular/core';
+import { Injectable, computed, inject } from '@angular/core';
 import { MockDataService } from '../../core/services/mock-data.service';
 import { DebtService } from '../../core/services/debt.service';
 import { Customer, CustomerAddress } from '../../core/models/domain.models';
 import { nextCode } from '../purchase-orders/purchase-order.rules';
 import { CUSTOMER_CODE_PREFIX } from './customer.rules';
+import { ApiService, upsertById } from '../../core/api/api.service';
+import { CATALOG_FROM_API } from '../../core/api/api.config';
 
 export type CustomerDraft = Omit<Customer, 'id' | 'code' | 'createdAt' | 'updatedAt' | 'orderCount'>;
 
@@ -21,9 +23,11 @@ export interface CustomerStats {
 
 const EMPTY: CustomerStats = { orderCount: 0, receivedOrders: 0, revenue: 0, openOrders: 0, receivable: 0, overdue: 0, prepaid: 0, openItems: 0 };
 
-// All writes for Khách hàng. Against the mock store today; maps 1:1 to backend endpoints later.
+// All writes for Khách hàng: the API (CATALOG_FROM_API) or, in demo mode, the in-browser store.
 @Injectable({ providedIn: 'root' })
 export class CustomerService {
+  private readonly api = inject(ApiService);
+
   constructor(
     private readonly data: MockDataService,
     private readonly debt: DebtService,
@@ -60,7 +64,8 @@ export class CustomerService {
     return this.stats().get(id) ?? EMPTY;
   }
 
-  create(draft: CustomerDraft): Customer {
+  async create(draft: CustomerDraft): Promise<Customer> {
+    if (CATALOG_FROM_API) return this.keep(await this.api.post<Customer>('/customers', draft));
     const now = new Date().toISOString();
     const c: Customer = {
       ...draft,
@@ -74,30 +79,51 @@ export class CustomerService {
     return c;
   }
 
-  update(id: string, draft: CustomerDraft): void {
+  async update(id: string, draft: CustomerDraft): Promise<void> {
+    if (CATALOG_FROM_API) {
+      this.keep(await this.api.put<Customer>(`/customers/${id}`, draft));
+      return;
+    }
     this.patch(id, { ...draft, addresses: normalizeDefault(draft.addresses ?? []) });
   }
 
   /** Ngừng theo dõi is a status change, not a delete: orders and công nợ stay. */
-  setActive(id: string, isActive: boolean): void {
+  async setActive(id: string, isActive: boolean): Promise<void> {
+    if (CATALOG_FROM_API) {
+      this.keep(await this.api.patch<Customer>(`/customers/${id}/active`, { isActive }));
+      return;
+    }
     this.patch(id, { isActive });
   }
 
-  saveAddress(customerId: string, a: CustomerAddress): void {
-    const c = this.find(customerId);
-    const list = c.addresses ?? [];
+  saveAddress(customerId: string, a: CustomerAddress): Promise<void> {
+    const list = this.find(customerId).addresses ?? [];
     const next = list.some((x) => x.id === a.id) ? list.map((x) => (x.id === a.id ? a : x)) : [...list, a];
-    this.patch(customerId, { addresses: normalizeDefault(next, a.isDefault ? a.id : undefined) });
+    return this.setAddresses(customerId, normalizeDefault(next, a.isDefault ? a.id : undefined));
   }
 
-  removeAddress(customerId: string, addressId: string): void {
+  removeAddress(customerId: string, addressId: string): Promise<void> {
     const c = this.find(customerId);
-    this.patch(customerId, { addresses: normalizeDefault((c.addresses ?? []).filter((x) => x.id !== addressId)) });
+    return this.setAddresses(customerId, normalizeDefault((c.addresses ?? []).filter((x) => x.id !== addressId)));
   }
 
-  setDefaultAddress(customerId: string, addressId: string): void {
+  setDefaultAddress(customerId: string, addressId: string): Promise<void> {
     const c = this.find(customerId);
-    this.patch(customerId, { addresses: normalizeDefault(c.addresses ?? [], addressId) });
+    return this.setAddresses(customerId, normalizeDefault(c.addresses ?? [], addressId));
+  }
+
+  private async setAddresses(customerId: string, addresses: CustomerAddress[]): Promise<void> {
+    if (CATALOG_FROM_API) {
+      this.keep(await this.api.put<Customer>(`/customers/${customerId}/addresses`, { addresses }));
+      return;
+    }
+    this.patch(customerId, { addresses });
+  }
+
+  /** The saved customer as the server returned it replaces the local copy. */
+  private keep(c: Customer): Customer {
+    this.data.customers.update((list) => upsertById(list, c));
+    return c;
   }
 
   private find(id: string): Customer {

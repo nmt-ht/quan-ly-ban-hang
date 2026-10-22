@@ -11,11 +11,13 @@ import { PeriodFilterComponent, PeriodValue, NO_PERIOD } from '../../shared/peri
 import { NumberRange, RangeFilterComponent } from '../../shared/range-filter/range-filter.component';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
+import { ColumnSort, sortByColumn } from '../../shared/column-sort';
 import { amountTone, foldVi, formatVnd, formatVndSigned } from '../../shared/format.util';
 import { PERIOD_PRESETS, formatDay, inRange, rangeLabel } from '../../shared/period';
 import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { ACCOUNT_TYPE_LABEL } from './cash-voucher.rules';
 import { CashVoucherService } from './cash-voucher.service';
+import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 
 interface ActiveChip {
   label: string;
@@ -28,7 +30,7 @@ const KIND_LABEL = { THU: 'Phiếu thu', CHI: 'Phiếu chi' } as const;
   selector: 'app-cash-vouchers',
   standalone: true,
   imports: [
-    CommonModule, RouterLink, DataTableComponent, FilterMultiSelectComponent, PaginationComponent, PeriodFilterComponent,
+    CommonModule, RouterLink, AllowedLinkDirective, DataTableComponent, FilterMultiSelectComponent, PaginationComponent, PeriodFilterComponent,
     RangeFilterComponent, NavIconComponent,
   ],
   templateUrl: './cash-vouchers.component.html',
@@ -50,6 +52,8 @@ export class CashVouchersComponent {
   readonly amount = signal<NumberRange>({ min: null, max: null });
   readonly showCancelled = signal(false);
   readonly columnFilters = signal<ColumnFilters>({});
+  // Clicking a column header sorts; again reverses; a third click goes back to the default order.
+  readonly headerSort = signal<ColumnSort | null>(null);
   readonly page = signal(1);
   readonly pageSize = signal(20);
   readonly exporting = signal(false);
@@ -151,7 +155,7 @@ export class CashVouchersComponent {
     const rows = this.matched()
       .filter((v) => (k === 'all' || v.kind === k) && (this.showCancelled() || !v.isCancelled))
       .sort((a, b) => b.date.localeCompare(a.date) || b.code.localeCompare(a.code));
-    return applyColumnFilters(rows, this.columns, this.columnFilters());
+    return sortByColumn(applyColumnFilters(rows, this.columns, this.columnFilters()), this.columns, this.headerSort());
   });
 
   readonly paged = computed(() => {
@@ -203,13 +207,13 @@ export class CashVouchersComponent {
     { key: 'code', label: 'Số phiếu', copy: true, link: (r) => ['/thu-chi', r.id] },
     { key: 'date', label: 'Ngày', format: (r) => formatDay(r.date), mono: true },
     { key: 'category', label: 'Loại', format: (r) => `${KIND_LABEL[r.kind]} · ${r.category}` },
-    { key: 'partnerId', label: 'Đối tượng', format: (r) => this.partnerName(r) },
-    { key: 'accountId', label: 'Tài khoản', format: (r) => this.accountText(r) },
+    { key: 'partnerId', sortByText: true, label: 'Đối tượng', format: (r) => this.partnerName(r) },
+    { key: 'accountId', sortByText: true, label: 'Tài khoản', format: (r) => this.accountText(r) },
     { key: 'amount', label: 'Số tiền', align: 'right', format: (r) => formatVndSigned(r.kind === 'THU' ? r.amount : -r.amount), filterValue: (r) => r.amount,
       tone: (r) => (r.isCancelled ? 0 : r.kind === 'THU' ? r.amount : -r.amount) },
     { key: 'settled', label: 'Đã đối trừ', align: 'right', format: (r) => this.settledText(r), filter: false },
     { key: 'description', label: 'Diễn giải', format: (r) => (r.isCancelled ? `[Đã huỷ] ` : '') + (r.description || '—') },
-    { key: 'createdBy', label: 'Người lập', format: (r) => this.userName(r.createdBy) },
+    { key: 'createdBy', sortByText: true, label: 'Người lập', format: (r) => this.userName(r.createdBy) },
   ];
 
   clearAll(): void {

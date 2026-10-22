@@ -4,6 +4,7 @@ import { AppUser } from '../../../../core/models/domain.models';
 import { NavIconComponent } from '../../../../layout/nav-icon/nav-icon.component';
 import { CopyButtonComponent } from '../../../../shared/copy-button/copy-button.component';
 import { UserService, generatePassword, passwordIssue } from '../user.service';
+import { errorText } from '../../../../core/api/api.service';
 
 // "Đặt lại mật khẩu": admin sets a temporary password, shown once, then every session is ended.
 @Component({
@@ -61,15 +62,15 @@ export class PasswordDialogComponent {
 
   readonly issue = computed(() => passwordIssue(this.password()) || (this.password() !== this.confirmPw() ? 'Nhập lại mật khẩu chưa khớp' : ''));
 
-  confirm(): void {
+  async confirm(): Promise<void> {
     this.attempted.set(true);
     if (this.issue()) return;
     try {
-      this.svc.resetPassword(this.user()!.id, this.password(), this.mustChange());
+      await this.svc.resetPassword(this.user()!.id, this.password(), this.mustChange());
       this.saved.set(true);
       this.done.emit(`Đã đặt lại mật khẩu cho ${this.user()!.name} — mọi phiên đăng nhập đã kết thúc.`);
     } catch (e) {
-      this.error.set((e as Error).message);
+      this.error.set(errorText(e));
     }
   }
 }

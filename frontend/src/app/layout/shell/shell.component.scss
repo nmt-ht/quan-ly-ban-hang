@@ -405,3 +405,27 @@
     padding: var(--space-sm);
   }
 }
+
+// Skip link: hidden until keyboard focus, then sits top-left above everything.
+.skip-link {
+  position: fixed;
+  top: var(--space-2xs);
+  left: var(--space-2xs);
+  z-index: 100;
+  padding: var(--space-2xs) var(--space-sm);
+  border-radius: var(--radius-control);
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  transform: translateY(-200%);
+}
+
+.skip-link:focus-visible {
+  transform: none;
+}
+
+// The skip target takes programmatic focus only; no ring on the whole page area.
+.content:focus {
+  outline: none;
+}

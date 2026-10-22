@@ -1,9 +1,11 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { MockDataService } from '../../core/services/mock-data.service';
 import { AuthService } from '../../core/services/auth.service';
 import { CashAccount, CashAllocation, CashCategory, CashVoucher, VoucherKind } from '../../core/models/domain.models';
 import { nextCode } from '../purchase-orders/purchase-order.rules';
 import { VOUCHER_PREFIX, PartnerType } from './cash-voucher.rules';
+import { ApiService, upsertById } from '../../core/api/api.service';
+import { CATALOG_FROM_API } from '../../core/api/api.config';
 
 export interface CashVoucherDraft {
   kind: VoucherKind;
@@ -20,9 +22,12 @@ export interface CashVoucherDraft {
   settledAmount: number;
 }
 
-// Writes for Phiếu thu chi. Against the mock store today; maps 1:1 to backend endpoints later.
+// Writes for Phiếu thu chi. Vouchers are still in the mock store (Đợt 6); tài khoản tiền and loại thu
+// chi already go to the API (CATALOG_FROM_API).
 @Injectable({ providedIn: 'root' })
 export class CashVoucherService {
+  private readonly api = inject(ApiService);
+
   constructor(
     private readonly data: MockDataService,
     private readonly auth: AuthService,
@@ -84,7 +89,14 @@ export class CashVoucherService {
 
   // ---------- tài khoản tiền ----------
 
-  saveAccount(a: Omit<CashAccount, 'balance' | 'id'> & { id?: string }): CashAccount {
+  async saveAccount(a: Omit<CashAccount, 'balance' | 'id'> & { id?: string }): Promise<CashAccount> {
+    if (CATALOG_FROM_API) {
+      const { id, ...body } = a;
+      const saved = id ? await this.api.put<CashAccount>(`/cash-accounts/${id}`, body) : await this.api.post<CashAccount>('/cash-accounts', body);
+      // Only one default: the server cleared the others, so the whole list is read again.
+      this.data.cashAccounts.set(await this.api.get<CashAccount[]>('/cash-accounts'));
+      return saved;
+    }
     const exists = !!a.id && this.data.cashAccounts().some((x) => x.id === a.id);
     const next: CashAccount = { ...a, id: a.id || crypto.randomUUID(), balance: 0 };
     this.data.cashAccounts.update((list) => {
@@ -97,25 +109,45 @@ export class CashVoucherService {
   }
 
   /** Ngừng dùng (không xoá): phiếu cũ giữ nguyên, tài khoản không chọn được khi lập phiếu mới. */
-  setAccountActive(id: string, isActive: boolean): void {
+  async setAccountActive(id: string, isActive: boolean): Promise<void> {
+    if (CATALOG_FROM_API) {
+      const saved = await this.api.patch<CashAccount>(`/cash-accounts/${id}/active`, { isActive });
+      this.data.cashAccounts.update((list) => upsertById(list, saved, true));
+      return;
+    }
     this.data.cashAccounts.update((list) => list.map((a) => (a.id === id ? { ...a, isActive, isDefault: isActive ? a.isDefault : false } : a)));
   }
 
   // ---------- loại thu chi ----------
 
-  saveCategory(c: CashCategory): void {
+  async saveCategory(c: CashCategory): Promise<void> {
     const list = this.data.cashCategories();
     const old = list.find((x) => x.code === c.code);
     const exists = !!old;
+    if (CATALOG_FROM_API) {
+      const { code, isSystem: _s, ...body } = c;
+      await this.api.put<CashCategory>(`/cash-categories/${code}`, body);
+    }
     // Phiếu lưu tên loại: đổi tên thì phiếu cũ đổi theo để thống kê không bị tách đôi.
+    // (The server renames its vouchers; the screens still read the mock ones until Đợt 6.)
     if (old && old.name !== c.name) {
       this.data.cashVouchers.update((vs) => vs.map((v) => (v.kind === old.kind && v.category === old.name ? { ...v, category: c.name } : v)));
+    }
+    if (CATALOG_FROM_API) {
+      // The default flag moves between rows on the server: read the list again.
+      this.data.cashCategories.set(await this.api.get<CashCategory[]>('/cash-categories'));
+      return;
     }
     const base = c.isDefault ? list.map((x) => (x.kind === c.kind ? { ...x, isDefault: false } : x)) : list;
     this.data.cashCategories.set(exists ? base.map((x) => (x.code === c.code ? c : x)) : [...base, c]);
   }
 
-  setCategoryActive(code: string, isActive: boolean): void {
+  async setCategoryActive(code: string, isActive: boolean): Promise<void> {
+    if (CATALOG_FROM_API) {
+      const saved = await this.api.patch<CashCategory>(`/cash-categories/${code}/active`, { isActive });
+      this.data.cashCategories.update((list) => list.map((c) => (c.code === code ? saved : c)));
+      return;
+    }
     this.data.cashCategories.update((list) =>
       list.map((c) => (c.code === code ? { ...c, isActive, isDefault: isActive ? c.isDefault : false } : c)),
     );

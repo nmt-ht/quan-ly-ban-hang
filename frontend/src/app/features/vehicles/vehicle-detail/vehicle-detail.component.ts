@@ -15,11 +15,13 @@ import { costTotal } from '../../delivery-trips/delivery-trip.rules';
 import { VEHICLE_STATUS_LABEL, VEHICLE_TYPE_LABEL, currentTripOf, expiryState } from '../vehicle.rules';
 import { VehicleService } from '../vehicle.service';
 import { VehicleDialogComponent } from '../vehicle-dialog/vehicle-dialog.component';
+import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
+import { errorText } from '../../../core/api/api.service';
 
 @Component({
   selector: 'app-vehicle-detail',
   standalone: true,
-  imports: [NgClass, RouterLink, NavIconComponent, CopyButtonComponent, VehicleDialogComponent],
+  imports: [NgClass, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, VehicleDialogComponent],
   templateUrl: './vehicle-detail.component.html',
   styleUrl: '../../suppliers/supplier-detail/supplier-detail.component.scss',
 })
@@ -32,6 +34,8 @@ export class VehicleDetailComponent {
   readonly vehicle = computed(() => this.data.vehicles().find((v) => v.id === this.id()));
   readonly today = isoDay(new Date());
   readonly notice = signal('');
+  /** A save the server refused (or that could not reach it). */
+  readonly failure = signal('');
 
   readonly money = formatVnd;
   readonly day = formatDay;
@@ -75,9 +79,15 @@ export class VehicleDetailComponent {
     this.notice.set(e.message);
   }
 
-  setStatus(status: VehicleStatus): void {
+  async setStatus(status: VehicleStatus): Promise<void> {
     const v = this.vehicle() as Vehicle;
-    this.svc.setStatus(v.id, status);
+    this.failure.set('');
+    try {
+      await this.svc.setStatus(v.id, status);
+    } catch (e) {
+      this.failure.set(errorText(e));
+      return;
+    }
     this.notice.set(`Xe ${v.plateNumber}: ${VEHICLE_STATUS_LABEL[status].toLowerCase()}${status === 'DANG_DUNG' ? '' : ' — không chọn được khi tạo chuyến mới'}.`);
   }
 }

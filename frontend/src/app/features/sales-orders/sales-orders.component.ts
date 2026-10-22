@@ -10,6 +10,7 @@ import { PeriodFilterComponent, PeriodValue, NO_PERIOD } from '../../shared/peri
 import { NumberRange, RangeFilterComponent } from '../../shared/range-filter/range-filter.component';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
+import { ColumnSort, sortByColumn } from '../../shared/column-sort';
 import { foldVi, formatVnd } from '../../shared/format.util';
 import { PERIOD_PRESETS, formatDay, inRange, isoDay, rangeLabel } from '../../shared/period';
 import { SALES_ORDER_STATUS_LABEL, salesOrderStatusClass } from '../../shared/status-labels';
@@ -17,6 +18,7 @@ import { tagClass } from '../../shared/tag-class';
 import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { tagStyle } from '../../shared/tag-colors';
 import { canEdit, deliveredPercent, lineRemaining } from './sales-order.rules';
+import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 
 interface ActiveChip {
   label: string;
@@ -39,7 +41,7 @@ const STATUS_ALIASES: Record<string, SalesOrderStatus> = { PENDING: 'CHO_SAN_XUA
   selector: 'app-sales-orders',
   standalone: true,
   imports: [
-    CommonModule, RouterLink, DataTableComponent, FilterMultiSelectComponent, PaginationComponent, PeriodFilterComponent,
+    CommonModule, RouterLink, AllowedLinkDirective, DataTableComponent, FilterMultiSelectComponent, PaginationComponent, PeriodFilterComponent,
     RangeFilterComponent, NavIconComponent,
   ],
   templateUrl: './sales-orders.component.html',
@@ -56,6 +58,8 @@ export class SalesOrdersComponent {
   readonly value = signal<NumberRange>({ min: null, max: null });
   readonly lateOnly = signal(false);
   readonly sort = signal<SalesSort>('newest');
+  // Clicking a column header overrides the "Sắp xếp" select; picking from the select clears it.
+  readonly headerSort = signal<ColumnSort | null>(null);
   readonly columnFilters = signal<ColumnFilters>({});
   readonly page = signal(1);
   readonly pageSize = signal(20);
@@ -118,7 +122,8 @@ export class SalesOrdersComponent {
     const st = this.statuses();
     const rows = this.matchedExceptStatus().filter((o) => !st.length || st.includes(o.status));
     const s = this.sort();
-    const sorted = [...rows].sort((a, b) =>
+    const hs = this.headerSort();
+    const sorted = hs ? sortByColumn(rows, this.columns, hs) : [...rows].sort((a, b) =>
       s === 'oldest' ? a.orderDate.localeCompare(b.orderDate) || a.code.localeCompare(b.code)
         : s === 'value' ? b.totalOrder - a.totalOrder
           : s === 'code' ? a.code.localeCompare(b.code)
@@ -170,22 +175,22 @@ export class SalesOrdersComponent {
   });
 
   readonly columns: DataTableColumn<SalesOrder>[] = [
-    { key: 'code', label: 'Mã đơn', copy: true, link: (r) => ['/don-hang', r.id] },
-    { key: 'orderDate', label: 'Ngày đặt', format: (r) => formatDay(r.orderDate), mono: true },
-    { key: 'customerId', label: 'Khách hàng', format: (r) => this.customerName(r) },
-    { key: 'lines', label: 'Mặt hàng', align: 'right', format: (r) => String(r.lines.length), filterValue: (r) => r.lines.length },
-    { key: 'totalOrder', label: 'Giá trị đơn', align: 'right', format: (r) => formatVnd(r.totalOrder), filterValue: (r) => r.totalOrder },
+    { key: 'code', label: 'Mã đơn', sortable: true, copy: true, link: (r) => ['/don-hang', r.id] },
+    { key: 'orderDate', label: 'Ngày đặt', sortable: true, format: (r) => formatDay(r.orderDate), mono: true },
+    { key: 'customerId', label: 'Khách hàng', sortable: true, sortValue: (r) => this.customerName(r), format: (r) => this.customerName(r) },
+    { key: 'lines', label: 'Mặt hàng', sortable: true, align: 'right', format: (r) => String(r.lines.length), filterValue: (r) => r.lines.length },
+    { key: 'totalOrder', label: 'Giá trị đơn', sortable: true, align: 'right', format: (r) => formatVnd(r.totalOrder), filterValue: (r) => r.totalOrder },
     {
-      key: 'receivedValue', label: 'Khách đã nhận', align: 'right',
+      key: 'receivedValue', label: 'Khách đã nhận', sortable: true, align: 'right',
       format: (r) => (r.receivedValue ? `${formatVnd(r.receivedValue)} · ${deliveredPercent(r)}%` : '—'),
       filterValue: (r) => r.receivedValue,
     },
     {
-      key: 'neededByDate', label: 'Cần giao',
+      key: 'neededByDate', label: 'Cần giao', sortable: true, sortValue: (r) => r.neededByDate,
       format: (r) => (r.neededByDate ? formatDay(r.neededByDate) + (this.isLate(r) ? ' · trễ' : '') : '—'), mono: true,
     },
-    { key: 'status', label: 'Trạng thái', format: (r) => SALES_ORDER_STATUS_LABEL[r.status], badge: (r) => salesOrderStatusClass(r.status) },
-    { key: 'salesRep', label: 'Nhân viên bán', format: (r) => this.userName(r.salesRep) },
+    { key: 'status', label: 'Trạng thái', sortable: true, sortValue: (r) => SALES_ORDER_STATUS_LABEL[r.status], format: (r) => SALES_ORDER_STATUS_LABEL[r.status], badge: (r) => salesOrderStatusClass(r.status) },
+    { key: 'salesRep', label: 'Nhân viên bán', sortable: true, sortValue: (r) => this.userName(r.salesRep), format: (r) => this.userName(r.salesRep) },
     {
       key: 'tagIds', label: 'Thẻ', format: (r) => r.tagIds.map((t) => this.tagById().get(t) ?? t).join(', ') || '—',
       chips: (r) => r.tagIds.flatMap((id) => {

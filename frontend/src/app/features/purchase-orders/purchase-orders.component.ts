@@ -10,12 +10,14 @@ import { PeriodFilterComponent, PeriodValue, NO_PERIOD } from '../../shared/peri
 import { NumberRange, RangeFilterComponent } from '../../shared/range-filter/range-filter.component';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
+import { ColumnSort, sortByColumn } from '../../shared/column-sort';
 import { foldVi, formatVnd } from '../../shared/format.util';
 import { PERIOD_PRESETS, formatDay, inRange, rangeLabel } from '../../shared/period';
 import { PURCHASE_ORDER_STATUS_LABEL, purchaseOrderStatusClass } from '../../shared/status-labels';
 import { tagClass } from '../../shared/tag-class';
 import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { canEdit, receivedPercent } from './purchase-order.rules';
+import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 
 interface ActiveChip {
   label: string;
@@ -28,7 +30,7 @@ const ALL = 'all';
   selector: 'app-purchase-orders',
   standalone: true,
   imports: [
-    CommonModule, RouterLink, DataTableComponent, FilterMultiSelectComponent, PaginationComponent,
+    CommonModule, RouterLink, AllowedLinkDirective, DataTableComponent, FilterMultiSelectComponent, PaginationComponent,
     PeriodFilterComponent, RangeFilterComponent, NavIconComponent,
   ],
   templateUrl: './purchase-orders.component.html',
@@ -41,6 +43,8 @@ export class PurchaseOrdersComponent {
   readonly createdBy = signal<string[]>([]);
   readonly value = signal<NumberRange>({ min: null, max: null });
   readonly columnFilters = signal<ColumnFilters>({});
+  // Clicking a column header sorts; again reverses; a third click goes back to the default order.
+  readonly headerSort = signal<ColumnSort | null>(null);
   readonly page = signal(1);
   readonly pageSize = signal(20);
   readonly exporting = signal(false);
@@ -89,7 +93,7 @@ export class PurchaseOrdersComponent {
     const rows = this.matchedExceptStatus().filter((o) => !st.length || st.includes(o.status));
     // Newest first, then by code.
     const sorted = [...rows].sort((a, b) => b.date.localeCompare(a.date) || b.code.localeCompare(a.code));
-    return applyColumnFilters(sorted, this.columns, this.columnFilters());
+    return sortByColumn(applyColumnFilters(sorted, this.columns, this.columnFilters()), this.columns, this.headerSort());
   });
 
   readonly pagedOrders = computed(() => {
@@ -139,7 +143,7 @@ export class PurchaseOrdersComponent {
   readonly columns: DataTableColumn<PurchaseOrder>[] = [
     { key: 'code', label: 'Mã đơn', copy: true, link: (r) => ['/mua-hang', r.id] },
     { key: 'date', label: 'Ngày đặt', format: (r) => formatDay(r.date), mono: true },
-    { key: 'supplierId', label: 'Nhà cung cấp', format: (r) => this.supplierById().get(r.supplierId)?.name ?? r.supplierId },
+    { key: 'supplierId', sortByText: true, label: 'Nhà cung cấp', format: (r) => this.supplierById().get(r.supplierId)?.name ?? r.supplierId },
     { key: 'lines', label: 'Mặt hàng', align: 'right', format: (r) => String(r.lines.length), filterValue: (r) => r.lines.length },
     { key: 'totalValue', label: 'Giá trị đơn', align: 'right', format: (r) => formatVnd(r.totalValue), filterValue: (r) => r.totalValue },
     {
@@ -150,12 +154,12 @@ export class PurchaseOrdersComponent {
       filterValue: (r) => r.receivedValue,
     },
     {
-      key: 'status',
+      key: 'status', sortByText: true,
       label: 'Trạng thái',
       format: (r) => PURCHASE_ORDER_STATUS_LABEL[r.status],
       badge: (r) => purchaseOrderStatusClass(r.status),
     },
-    { key: 'createdBy', label: 'Người lập', format: (r) => this.userName(r.createdBy) },
+    { key: 'createdBy', sortByText: true, label: 'Người lập', format: (r) => this.userName(r.createdBy) },
   ];
 
   readonly canEdit = canEdit;

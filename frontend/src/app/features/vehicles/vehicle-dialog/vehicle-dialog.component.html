@@ -73,8 +73,8 @@
   </div>
 
   <footer class="rg-foot">
-    <p class="rg-summary" [class.text-danger]="attempted() && issues().length" role="status">
-      {{ attempted() && issues().length ? issues()[0] : editing() ? editing()!.code : 'Mã xe tự sinh khi lưu (XE + 7 số).' }}
+    <p class="rg-summary" [class.text-danger]="error() || (attempted() && issues().length)" role="status">
+      {{ error() || (attempted() && issues().length ? issues()[0] : editing() ? editing()!.code : 'Mã xe tự sinh khi lưu (XE + 7 số).') }}
     </p>
     <div class="toolbar">
       <button type="button" class="btn" (click)="close()">Huỷ</button>

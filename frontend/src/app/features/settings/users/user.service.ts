@@ -1,7 +1,9 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { MockDataService } from '../../../core/services/mock-data.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { AppUser } from '../../../core/models/domain.models';
+import { AppUser, Role } from '../../../core/models/domain.models';
+import { ApiService, upsertById } from '../../../core/api/api.service';
+import { CATALOG_FROM_API } from '../../../core/api/api.config';
 
 export interface UserDraft {
   name: string;
@@ -33,10 +35,12 @@ export function generatePassword(length = 10): string {
   return chars.join('');
 }
 
-// All writes for Thiết lập › Người dùng. Against the mock store today; maps to the backend later,
-// where the password is sent once and stored hashed — never kept in the frontend store.
+// All writes for Thiết lập › Người dùng: the API (CATALOG_FROM_API), where the password is sent once
+// and stored hashed — never kept in the frontend store; or, in demo mode, the in-browser store.
 @Injectable({ providedIn: 'root' })
 export class UserService {
+  private readonly api = inject(ApiService);
+
   constructor(
     private readonly data: MockDataService,
     private readonly auth: AuthService,
@@ -61,10 +65,11 @@ export class UserService {
       !this.data.users().some((x) => x.id !== u.id && x.roleId === SYSTEM_ROLE && x.status === 'ACTIVE');
   }
 
-  create(d: UserDraft, password: string): AppUser {
+  async create(d: UserDraft, password: string): Promise<AppUser> {
     const issue = passwordIssue(password);
     if (issue) throw new Error(issue);
     if (this.duplicateEmail(d.email, null)) throw new Error('Email đã được dùng');
+    if (CATALOG_FROM_API) return this.keep(await this.api.post<AppUser>('/users', { ...this.clean(d), password }));
     const now = new Date().toISOString();
     const u: AppUser = {
       ...this.clean(d), id: crypto.randomUUID(), status: 'ACTIVE', openSessions: 0, createdAt: now, updatedAt: now,
@@ -75,34 +80,61 @@ export class UserService {
     return u;
   }
 
-  update(id: string, d: UserDraft): void {
+  async update(id: string, d: UserDraft): Promise<void> {
     const u = this.find(id);
     if (d.roleId !== u.roleId && this.isLastAdmin(u)) throw new Error('Đây là tài khoản CEO cuối cùng — không đổi chức vụ được.');
+    if (CATALOG_FROM_API) {
+      this.keep(await this.api.put<AppUser>(`/users/${id}`, this.clean(d)));
+      return;
+    }
     this.patch(id, this.clean(d));
     this.syncRoleCounts();
   }
 
   /** Khoá: không xoá tài khoản (chứng từ vẫn đứng tên), đăng xuất mọi phiên, không đăng nhập được nữa. */
-  lock(id: string, reason: string): void {
+  async lock(id: string, reason: string): Promise<void> {
     const u = this.find(id);
     if (this.isMe(u)) throw new Error('Không tự khoá tài khoản của mình.');
     if (this.isLastAdmin(u)) throw new Error('Đây là tài khoản CEO cuối cùng — không khoá được.');
+    if (CATALOG_FROM_API) {
+      this.keep(await this.api.post<AppUser>(`/users/${id}/lock`, { reason }));
+      return;
+    }
     this.patch(id, { status: 'DISABLED', openSessions: 0, lockedAt: new Date().toISOString(), lockedReason: reason.trim() || undefined });
   }
 
-  unlock(id: string): void {
+  async unlock(id: string): Promise<void> {
+    if (CATALOG_FROM_API) {
+      this.keep(await this.api.post<AppUser>(`/users/${id}/unlock`));
+      return;
+    }
     this.patch(id, { status: 'ACTIVE', lockedAt: undefined, lockedReason: undefined });
   }
 
   /** Đặt lại mật khẩu: mọi phiên bị đăng xuất; tuỳ chọn bắt đổi ở lần đăng nhập tới. */
-  resetPassword(id: string, password: string, mustChange: boolean): void {
+  async resetPassword(id: string, password: string, mustChange: boolean): Promise<void> {
     const issue = passwordIssue(password);
     if (issue) throw new Error(issue);
+    if (CATALOG_FROM_API) {
+      this.keep(await this.api.post<AppUser>(`/users/${id}/reset-password`, { password, mustChange }));
+      return;
+    }
     this.patch(id, { passwordUpdatedAt: new Date().toISOString(), mustChangePassword: mustChange, openSessions: 0 });
   }
 
-  endSessions(id: string): void {
+  async endSessions(id: string): Promise<void> {
+    if (CATALOG_FROM_API) {
+      this.keep(await this.api.post<AppUser>(`/users/${id}/end-sessions`));
+      return;
+    }
     this.patch(id, { openSessions: 0 });
+  }
+
+  /** The saved account replaces the local copy; role user counts come fresh from the server. */
+  private keep(u: AppUser): AppUser {
+    this.data.users.update((list) => upsertById(list, u, true));
+    if (this.data.roles().length) void this.api.get<Role[]>('/roles').then((roles) => this.data.roles.set(roles)).catch(() => undefined);
+    return u;
   }
 
   private clean(d: UserDraft): UserDraft {

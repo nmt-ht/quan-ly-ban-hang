@@ -18,6 +18,7 @@ import { round4 } from '../../purchase-orders/purchase-order.rules';
 import { KIND_SLUG, KIND_TEXT, SLUG_KIND, VOUCHER_KIND_LABEL, kindOf, sourceOf } from '../warehouse-voucher.rules';
 import { WarehouseVoucherService } from '../warehouse-voucher.service';
 import { PrintDocumentComponent, PrintSigner } from '../../../shared/print/print-document.component';
+import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 
 interface Line {
   key: string;
@@ -40,7 +41,7 @@ const emptyLine = (): Line => ({ key: crypto.randomUUID(), productId: '', unitNa
 @Component({
   selector: 'app-warehouse-voucher-form',
   standalone: true,
-  imports: [NgClass, FormsModule, RouterLink, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent, PrintDocumentComponent],
+  imports: [NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent, PrintDocumentComponent],
   templateUrl: './warehouse-voucher-form.component.html',
   styleUrls: ['../../../shared/voucher/voucher.scss', './warehouse-voucher-form.component.scss'],
 })

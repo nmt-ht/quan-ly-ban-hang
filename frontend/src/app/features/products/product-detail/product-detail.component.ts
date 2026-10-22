@@ -11,6 +11,7 @@ import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { CopyButtonComponent } from '../../../shared/copy-button/copy-button.component';
 import { PRODUCT_TYPE_CLASS, PRODUCT_TYPE_LABEL, businessStatusClass } from '../../../shared/status-labels';
 import { formatVnd } from '../../../shared/format.util';
+import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 
 interface BomRow {
   product: Product | undefined;
@@ -40,7 +41,7 @@ const VOUCHER_TYPE_LABEL: Record<WarehouseVoucherType, string> = {
 @Component({
   selector: 'app-product-detail',
   standalone: true,
-  imports: [NgClass, RouterLink, NavIconComponent, CopyButtonComponent],
+  imports: [NgClass, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent],
   templateUrl: './product-detail.component.html',
 })
 export class ProductDetailComponent {

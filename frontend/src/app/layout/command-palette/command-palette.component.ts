@@ -2,6 +2,7 @@ import { Component, ElementRef, HostListener, computed, effect, inject, signal, 
 import { Router } from '@angular/router';
 import { CommandPaletteService } from '../../core/services/command-palette.service';
 import { MockDataService } from '../../core/services/mock-data.service';
+import { AuthService } from '../../core/services/auth.service';
 import { foldVi } from '../../shared/format.util';
 import {
   DELIVERY_TRIP_STATUS_LABEL, PRODUCTION_ORDER_STATUS_LABEL, PURCHASE_ORDER_STATUS_LABEL, SALES_ORDER_STATUS_LABEL,
@@ -47,6 +48,7 @@ export class CommandPaletteComponent {
   private readonly palette = inject(CommandPaletteService);
   private readonly data = inject(MockDataService);
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
 
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
   private readonly input = viewChild<ElementRef<HTMLInputElement>>('input');
@@ -55,16 +57,21 @@ export class CommandPaletteComponent {
   readonly query = signal('');
   readonly active = signal(0);
 
-  private readonly creates: Item[] = CREATE.map((c) => ({
+  private readonly allCreates: Item[] = CREATE.map((c) => ({
     id: 'new:' + c.path, group: 'Tạo mới', label: c.label, icon: c.icon, path: [c.path], haystack: foldVi(`${c.label} ${c.words}`),
   }));
 
-  private readonly pages: Item[] = NAV_GROUPS.flatMap((g) =>
+  private readonly allPages: Item[] = NAV_GROUPS.flatMap((g) =>
     g.links.map((l) => ({
       id: 'page:' + l.path, group: 'Đi tới', label: l.label, hint: g.label ?? undefined, icon: l.icon, path: [l.path],
       haystack: foldVi(`${l.label} ${g.label ?? ''}`),
     })),
   );
+
+  // Only what the role may open (rules: core/auth/route-access.ts).
+  private readonly allowed = (i: Item) => this.auth.canVisit(i.path.join('/'));
+  private readonly creates = computed(() => this.allCreates.filter(this.allowed));
+  private readonly pages = computed(() => this.allPages.filter(this.allowed));
 
   // Records are only collected while the user is typing — the empty palette stays cheap.
   private readonly records = computed<Item[]>(() => {
@@ -96,7 +103,7 @@ export class CommandPaletteComponent {
   /** Flat, ordered list that keyboard navigation moves through. */
   readonly results = computed<Item[]>(() => {
     const q = foldVi(this.query().trim());
-    if (!q) return [...this.creates, ...this.pages];
+    if (!q) return [...this.creates(), ...this.pages()];
     const words = q.split(/\s+/);
     const score = (i: Item) => {
       const code = foldVi(i.code ?? '');
@@ -106,7 +113,7 @@ export class CommandPaletteComponent {
     const hit = (i: Item) => words.every((w) => i.haystack.includes(w));
     const take = (items: Item[]) => items.filter(hit).sort((a, b) => score(a) - score(b)).slice(0, MAX_PER_GROUP);
     const byGroup = new Map<string, Item[]>();
-    for (const i of [...this.creates, ...this.pages, ...this.records()]) byGroup.set(i.group, [...(byGroup.get(i.group) ?? []), i]);
+    for (const i of [...this.creates(), ...this.pages(), ...this.records().filter(this.allowed)]) byGroup.set(i.group, [...(byGroup.get(i.group) ?? []), i]);
     return [...byGroup.values()].flatMap(take);
   });
 

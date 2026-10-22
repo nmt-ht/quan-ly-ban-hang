@@ -1,20 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-
-export interface JwtPayload {
-  sub: string;
-  email: string;
-  name: string;
-  roleId: string;
-  roleName: string;
-  permissions: string[];
-}
+import { AuthService, AuthUser, JwtPayload } from './auth.service.js';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(config: ConfigService) {
+  constructor(
+    config: ConfigService,
+    private readonly auth: AuthService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -22,10 +17,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  // Whatever this returns becomes `req.user`. Permissions are baked into the
-  // token at login time (see auth.service.ts) so this guard never needs a
-  // DB round trip; a role/permission change requires the user to re-login.
-  validate(payload: JwtPayload): JwtPayload {
-    return payload;
+  // Whatever this returns becomes `req.user`. One small query per request keeps permissions
+  // current: a locked account, revoked sessions or a role edit take effect without waiting for the
+  // token to expire.
+  async validate(payload: JwtPayload): Promise<AuthUser> {
+    const user = await this.auth.loadUser(payload.sub, payload.iat);
+    if (!user) throw new UnauthorizedException('Phiên đăng nhập không còn hiệu lực');
+    return user;
   }
 }

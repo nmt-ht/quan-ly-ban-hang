@@ -8,6 +8,7 @@ import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { foldVi } from '../../../shared/format.util';
 import { AREAS, AccessLevel, hasViewLevel, initialsOf, levelOf, sameSet, setLevel, togglePermission } from './role.rules';
 import { RoleService } from './role.service';
+import { errorText } from '../../../core/api/api.service';
 
 const LEVEL_LABEL: Record<AccessLevel, string> = { none: 'Không có quyền', view: 'Chỉ xem', full: 'Đầy đủ', custom: 'Tuỳ chỉnh' };
 
@@ -41,6 +42,8 @@ export class RolesPermissionsComponent {
   readonly draft = signal<Set<string>>(new Set());
   readonly query = signal('');
   readonly notice = signal('');
+  /** A save the server refused (or that could not reach it). */
+  readonly failure = signal('');
   readonly pendingId = signal<string | null>(null);
   readonly tab = signal(AREAS[0].key);
   readonly open = signal<ReadonlySet<string>>(new Set());
@@ -175,11 +178,17 @@ export class RolesPermissionsComponent {
   }
 
   // ---------- save / revert ----------
-  save(): void {
+  async save(): Promise<void> {
     const r = this.role();
     if (!r || !this.dirty()) return;
     const { added, removed } = this.diff();
-    this.svc.setPermissions(r.id, this.draft());
+    this.failure.set('');
+    try {
+      await this.svc.setPermissions(r.id, this.draft());
+    } catch (e) {
+      this.failure.set(errorText(e));
+      return;
+    }
     this.notice.set(`Đã lưu phân quyền cho ${r.name}: thêm ${added}, bỏ ${removed} quyền.`);
   }
 
@@ -222,32 +231,32 @@ export class RolesPermissionsComponent {
     this.dialog().nativeElement.close();
   }
 
-  saveRole(): void {
+  async saveRole(): Promise<void> {
     try {
       const draft = { name: this.name(), description: this.description() };
       if (this.dlgMode() === 'edit') {
         const r = this.role()!;
-        this.svc.update(r.id, draft);
+        await this.svc.update(r.id, draft);
         this.notice.set(`Đã lưu chức vụ "${draft.name.trim()}".`);
       } else {
         const from = this.data.roles().find((x) => x.id === this.copyFrom());
-        const created = this.svc.create(draft, this.copyFrom() || undefined);
+        const created = await this.svc.create(draft, this.copyFrom() || undefined);
         this.go(created.id);
         this.notice.set(from ? `Đã thêm chức vụ "${created.name}" với quyền sao chép từ ${from.name}.` : `Đã thêm chức vụ "${created.name}". Chọn quyền cho chức vụ này.`);
       }
       this.error.set('');
       this.closeDialog();
     } catch (e) {
-      this.error.set((e as Error).message);
+      this.error.set(errorText(e));
     }
   }
 
-  toggleActive(): void {
+  async toggleActive(): Promise<void> {
     const r = this.role();
     if (!r || r.isSystem) return;
     const on = !r.isActive;
     try {
-      this.svc.setActive(r.id, on);
+      await this.svc.setActive(r.id, on);
       const holders = this.members().length;
       this.notice.set(
         on
@@ -255,7 +264,7 @@ export class RolesPermissionsComponent {
           : `Đã ngừng dùng "${r.name}". Chức vụ này không còn hiện khi thêm người dùng mới${holders ? `; ${holders} người đang giữ vẫn giữ nguyên quyền` : ''}.`,
       );
     } catch (e) {
-      this.notice.set((e as Error).message);
+      this.failure.set(errorText(e));
     }
   }
 }

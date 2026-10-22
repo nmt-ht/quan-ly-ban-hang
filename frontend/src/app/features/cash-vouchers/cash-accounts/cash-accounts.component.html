@@ -16,6 +16,12 @@
     <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
   </div>
 }
+@if (failure()) {
+  <div class="notice is-error" role="alert">
+    <span>{{ failure() }}</span>
+    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="failure.set('')"><app-nav-icon name="x" /></button>
+  </div>
+}
 
 <dl class="list-totals">
   <div><dt>Tổng số dư các tài khoản đang dùng</dt><dd class="num">{{ money(total()) }}</dd></div>
@@ -122,8 +128,8 @@
     </label>
   </div>
   <footer class="rg-foot">
-    <p class="rg-summary" [class.text-danger]="attempted() && issues().length" role="status">
-      {{ attempted() && issues().length ? issues()[0] : 'Số dư = đầu kỳ + thu − chi của các phiếu chưa huỷ.' }}
+    <p class="rg-summary" [class.text-danger]="dialogError() || (attempted() && issues().length)" role="status">
+      {{ dialogError() || (attempted() && issues().length ? issues()[0] : 'Số dư = đầu kỳ + thu − chi của các phiếu chưa huỷ.') }}
     </p>
     <div class="toolbar">
       <button type="button" class="btn" (click)="close()">Huỷ</button>
