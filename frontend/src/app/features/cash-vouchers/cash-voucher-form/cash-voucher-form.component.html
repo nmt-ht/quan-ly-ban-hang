@@ -171,12 +171,12 @@
   }
 
   <div class="form-actions-bar">
-    <span class="hint" [class.text-danger]="attempted() && issues().length">
-      {{ issues()[0] ?? 'Kiểm tra lại rồi bấm ' + text().create }}
+    <span class="hint" [class.text-danger]="failure() || (attempted() && issues().length)" [attr.role]="failure() ? 'alert' : null">
+      {{ failure() || (issues()[0] ?? 'Kiểm tra lại rồi bấm ' + text().create) }}
     </span>
     <div class="form-actions">
       <a class="btn" [routerLink]="cancelLink()" [queryParams]="cancelQuery()">Huỷ</a>
-      <button type="submit" class="btn btn-primary"><app-nav-icon name="check" />{{ text().create }}</button>
+      <button type="submit" class="btn btn-primary" [disabled]="saving()"><app-nav-icon name="check" />{{ saving() ? 'Đang lưu…' : text().create }}</button>
     </div>
   </div>
 </form>

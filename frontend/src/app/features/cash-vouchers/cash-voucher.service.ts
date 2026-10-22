@@ -5,7 +5,7 @@ import { CashAccount, CashAllocation, CashCategory, CashVoucher, VoucherKind } f
 import { nextCode } from '../purchase-orders/purchase-order.rules';
 import { VOUCHER_PREFIX, PartnerType } from './cash-voucher.rules';
 import { ApiService, upsertById } from '../../core/api/api.service';
-import { CATALOG_FROM_API } from '../../core/api/api.config';
+import { CASH_FROM_API, CATALOG_FROM_API } from '../../core/api/api.config';
 
 export interface CashVoucherDraft {
   kind: VoucherKind;
@@ -22,8 +22,9 @@ export interface CashVoucherDraft {
   settledAmount: number;
 }
 
-// Writes for Phiếu thu chi. Vouchers are still in the mock store (Đợt 6); tài khoản tiền and loại thu
-// chi already go to the API (CATALOG_FROM_API).
+// Writes for Phiếu thu chi: the API (CASH_FROM_API) — the server numbers the phiếu, checks the đối trừ
+// and derives số dư quỹ — or, in demo mode, the in-browser store. Tài khoản tiền and loại thu chi go to
+// the API with the danh mục (CATALOG_FROM_API).
 @Injectable({ providedIn: 'root' })
 export class CashVoucherService {
   private readonly api = inject(ApiService);
@@ -33,7 +34,17 @@ export class CashVoucherService {
     private readonly auth: AuthService,
   ) {}
 
-  create(d: CashVoucherDraft): CashVoucher {
+  async create(d: CashVoucherDraft): Promise<CashVoucher> {
+    if (CASH_FROM_API) {
+      const v = await this.api.post<CashVoucher>('/cash-vouchers', {
+        ...d,
+        partnerId: d.partnerType === 'KHAC' ? undefined : d.partnerId,
+        allocations: d.allocations?.length ? d.allocations : undefined,
+      });
+      this.data.cashVouchers.update((list) => [v, ...list]);
+      await this.refreshBalances();
+      return v;
+    }
     if (!(d.amount > 0)) throw new Error('Số tiền phải lớn hơn 0');
     if (d.partnerType !== 'KHAC' && !d.partnerId) throw new Error('Thiếu đối tác');
     if (!this.data.cashAccounts().some((a) => a.id === d.accountId)) throw new Error('Tài khoản tiền không tồn tại');
@@ -57,7 +68,7 @@ export class CashVoucherService {
       createdAt: new Date().toISOString(),
     };
     this.data.cashVouchers.update((list) => [voucher, ...list]);
-    this.recomputeBalances();
+    this.recomputeLocal();
     return voucher;
   }
 
@@ -65,17 +76,32 @@ export class CashVoucherService {
    * Huỷ phiếu: không xoá, phiếu vẫn hiện (lọc "Hiện phiếu đã huỷ"); không tính vào số dư quỹ, báo cáo
    * và đối trừ công nợ nữa — DebtService đã bỏ qua phiếu huỷ nên công nợ tự mở lại.
    */
-  cancel(id: string, reason: string): void {
+  async cancel(id: string, reason: string): Promise<void> {
+    if (CASH_FROM_API) {
+      const v = await this.api.post<CashVoucher>(`/cash-vouchers/${id}/cancel`, { reason: reason.trim() || undefined });
+      this.data.cashVouchers.update((list) => upsertById(list, v));
+      await this.refreshBalances();
+      return;
+    }
     this.data.cashVouchers.update((list) =>
       list.map((v) => (v.id === id && !v.isCancelled
         ? { ...v, isCancelled: true, cancelReason: reason.trim() || undefined, cancelledAt: new Date().toISOString() }
         : v)),
     );
-    this.recomputeBalances();
+    this.recomputeLocal();
+  }
+
+  /** Số dư quỹ as of now: read from the server (which sums the phiếu), or recomputed in demo mode. */
+  async refreshBalances(): Promise<void> {
+    if (CASH_FROM_API) {
+      this.data.cashAccounts.set(await this.api.get<CashAccount[]>('/cash-accounts'));
+      return;
+    }
+    this.recomputeLocal();
   }
 
   /** Số dư từng tài khoản = số dư đầu kỳ + thu − chi của phiếu chưa huỷ. */
-  recomputeBalances(): void {
+  private recomputeLocal(): void {
     const vouchers = this.data.cashVouchers().filter((v) => !v.isCancelled);
     this.data.cashAccounts.update((list) =>
       list.map((a) => ({
@@ -104,7 +130,7 @@ export class CashVoucherService {
       const base = next.isDefault ? list.map((x) => ({ ...x, isDefault: false })) : list;
       return exists ? base.map((x) => (x.id === next.id ? next : x)) : [...base, next];
     });
-    this.recomputeBalances();
+    this.recomputeLocal();
     return this.data.cashAccounts().find((x) => x.id === next.id)!;
   }
 
@@ -129,7 +155,7 @@ export class CashVoucherService {
       await this.api.put<CashCategory>(`/cash-categories/${code}`, body);
     }
     // Phiếu lưu tên loại: đổi tên thì phiếu cũ đổi theo để thống kê không bị tách đôi.
-    // (The server renames its vouchers; the screens still read the mock ones until Đợt 6.)
+    // (The server renames its own; this keeps the loaded list in step.)
     if (old && old.name !== c.name) {
       this.data.cashVouchers.update((vs) => vs.map((v) => (v.kind === old.kind && v.category === old.name ? { ...v, category: c.name } : v)));
     }

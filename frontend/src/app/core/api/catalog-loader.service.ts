@@ -1,18 +1,19 @@
 import { Injectable, inject, signal } from '@angular/core';
 import {
-  AppUser, BomLine, CashAccount, CashCategory, CompanyInfo, Customer, Product, ProductCategory, Role, Supplier, SupplierProduct, Tag, Vehicle,
+  AppUser, BomLine, CashVoucher, DeliveryTrip, ProductionOrder, PurchaseOrder, SalesOrder, StockLevel, WarehouseVoucher, CashAccount, CashCategory, CompanyInfo, Customer, Product, ProductCategory, Role, Supplier, SupplierProduct, Tag, Vehicle,
   Warehouse,
 } from '../models/domain.models';
 import { MockDataService } from '../services/mock-data.service';
 import { AuthService } from '../services/auth.service';
 import { ApiService, errorText } from './api.service';
-import { CATALOG_FROM_API } from './api.config';
+import { CASH_FROM_API, CATALOG_FROM_API, DELIVERY_FROM_API, INVENTORY_FROM_API, PURCHASING_FROM_API, SALES_FROM_API } from './api.config';
 
 type DirectoryUser = Pick<AppUser, 'id' | 'name' | 'email' | 'roleId' | 'status'>;
 
 /**
- * Loads every danh mục from the API into MockDataService's signals once per signed-in user, so the
- * screens keep reading `data.products()` etc. unchanged. Lists a role may not read come back empty.
+ * Loads every danh mục (and, from Đợt 2, tồn kho and phiếu kho) from the API into MockDataService's
+ * signals once per signed-in user, so the screens keep reading `data.products()` etc. unchanged.
+ * Lists a role may not read come back empty.
  */
 @Injectable({ providedIn: 'root' })
 export class CatalogLoader {
@@ -20,14 +21,14 @@ export class CatalogLoader {
   private readonly data = inject(MockDataService);
   private readonly auth = inject(AuthService);
 
-  readonly status = signal<'idle' | 'loading' | 'ready' | 'error'>(CATALOG_FROM_API ? 'idle' : 'ready');
+  readonly status = signal<'idle' | 'loading' | 'ready' | 'error'>(CATALOG_FROM_API || INVENTORY_FROM_API ? 'idle' : 'ready');
   readonly error = signal('');
   private pending: Promise<void> | null = null;
   private loadedFor: string | null = null;
 
   /** Resolves when the catalog of the current user is in place; never rejects (see `status`). */
   ensureLoaded(): Promise<void> {
-    if (!CATALOG_FROM_API) return Promise.resolve();
+    if (!CATALOG_FROM_API && !INVENTORY_FROM_API) return Promise.resolve();
     const userId = this.auth.user()?.userId ?? null;
     if (userId && userId === this.loadedFor && this.status() === 'ready') return Promise.resolve();
     if (this.pending && userId === this.loadedFor) return this.pending;
@@ -42,11 +43,41 @@ export class CatalogLoader {
     return this.ensureLoaded();
   }
 
+  /** Tồn kho and phiếu kho; also used to re-read stock after a save elsewhere. */
+  async loadInventory(): Promise<void> {
+    const [stockLevels, vouchers] = await Promise.all([
+      this.api.get<StockLevel[]>('/stock-levels'),
+      this.api.get<WarehouseVoucher[]>('/warehouse-vouchers'),
+    ]);
+    this.data.stockLevels.set(stockLevels);
+    this.data.warehouseVouchers.set(vouchers);
+  }
+
   private async load(): Promise<void> {
     this.status.set('loading');
     this.error.set('');
     const can = (c: string) => this.auth.can(c);
     try {
+      if (INVENTORY_FROM_API) await this.loadInventory();
+      if (PURCHASING_FROM_API) this.data.purchaseOrders.set(await this.api.get<PurchaseOrder[]>('/purchase-orders'));
+      if (SALES_FROM_API) {
+        const [orders, lsx] = await Promise.all([
+          this.api.get<SalesOrder[]>('/sales-orders'),
+          this.api.get<ProductionOrder[]>('/production-orders'),
+        ]);
+        this.data.salesOrders.set(orders);
+        this.data.productionOrders.set(lsx);
+      }
+      if (DELIVERY_FROM_API) this.data.deliveryTrips.set(await this.api.get<DeliveryTrip[]>('/delivery-trips'));
+      if (CASH_FROM_API) {
+        // Công nợ, the dashboard and the cash-flow report read them too (same rule as the server).
+        const canRead = ['voucher.view', 'debt.view', 'report.cashflow', 'report.dashboard'].some((c) => can(c));
+        this.data.cashVouchers.set(canRead ? await this.api.get<CashVoucher[]>('/cash-vouchers') : []);
+      }
+      if (!CATALOG_FROM_API) {
+        this.status.set('ready');
+        return;
+      }
       const [
         products, bomLines, categories, warehouses, customers, suppliers, supplierProducts, vehicles,
         cashAccounts, cashCategories, tags, company, users, roles,

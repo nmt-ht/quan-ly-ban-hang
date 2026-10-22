@@ -5,6 +5,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { MockDataService } from '../../../core/services/mock-data.service';
 import { DebtService } from '../../../core/services/debt.service';
+import { errorText } from '../../../core/api/api.service';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { CopyButtonComponent } from '../../../shared/copy-button/copy-button.component';
 import { formatVnd, formatVndSigned } from '../../../shared/format.util';
@@ -37,6 +38,9 @@ export class CashVoucherViewComponent {
   readonly words = vndInWords;
   readonly notice = signal('');
   readonly confirmCancel = signal(false);
+  readonly cancelling = signal(false);
+  /** A huỷ the server refused (or that could not reach it). */
+  readonly failure = signal('');
   readonly cancelReason = signal('');
 
   constructor() {
@@ -97,9 +101,19 @@ export class CashVoucherViewComponent {
     window.print();
   }
 
-  doCancel(): void {
+  async doCancel(): Promise<void> {
     const v = this.voucher()!;
-    this.svc.cancel(v.id, this.cancelReason());
+    if (this.cancelling()) return;
+    this.cancelling.set(true);
+    this.failure.set('');
+    try {
+      await this.svc.cancel(v.id, this.cancelReason());
+    } catch (e) {
+      this.failure.set(errorText(e));
+      return;
+    } finally {
+      this.cancelling.set(false);
+    }
     this.confirmCancel.set(false);
     this.notice.set(`Đã huỷ ${v.code} — không còn tính vào số dư quỹ${v.partnerType === 'KHAC' ? '' : ' và công nợ đã mở lại'}.`);
   }

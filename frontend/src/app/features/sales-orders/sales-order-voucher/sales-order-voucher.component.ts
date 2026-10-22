@@ -30,6 +30,7 @@ import {
 import { SalesOrderDraft, SalesOrderService } from '../sales-order.service';
 import { HasUnsavedChanges, isSaveShortcut, warnBeforeUnload } from '../../../core/guards/unsaved-changes.guard';
 import { DeliverDialogComponent } from '../deliver-dialog/deliver-dialog.component';
+import { errorText } from '../../../core/api/api.service';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 
 type Mode = 'create' | 'edit' | 'view';
@@ -125,6 +126,8 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   readonly attempted = signal(false);
   readonly tab = signal<Tab>('hang');
   readonly notice = signal('');
+  /** A save the server refused (or that could not reach it). */
+  readonly failure = signal('');
   readonly confirmCancel = signal(false);
   readonly cancelReason = signal('');
   readonly confirmClose = signal(false);
@@ -450,7 +453,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   }
 
   // ---------- save ----------
-  save(): void {
+  async save(): Promise<void> {
     this.attempted.set(true);
     if (this.issues().length) return;
     const draft: SalesOrderDraft = {
@@ -469,7 +472,8 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
       lines: this.validSaleLines(),
     };
     const id = this.id();
-    const o = this.mode() === 'edit' && id ? this.orders.update(id, draft) : this.orders.create(draft);
+    const o = await this.attempt(() => (this.mode() === 'edit' && id ? this.orders.update(id, draft) : this.orders.create(draft)));
+    if (!o) return;
     this.baseline = this.snapshot(); // saved: leaving the page must not ask again
     this.router.navigate(['/don-hang', o.id], { state: { notice: this.mode() === 'edit' ? 'Đã lưu thay đổi.' : `Đã tạo đơn ${o.code}.` } });
   }
@@ -507,32 +511,48 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
     return this.debt.receivables().find((r) => r.partnerId === o.customerId)?.entries.find((e) => e.ref === o.code && e.kind === 'PHAT_SINH');
   });
 
-  createLsx(): void {
-    const created = this.orders.createProductionOrders(this.id()!);
+  async createLsx(): Promise<void> {
+    const created = await this.attempt(() => this.orders.createProductionOrders(this.id()!));
+    if (!created) return;
     this.notice.set(`Đã lập ${created.map((x) => x.code).join(', ')} (Nháp). Bắt đầu sản xuất để xuất vật tư theo định mức.`);
     this.tab.set('lsx');
   }
 
-  startLsx(id: string, code: string): void {
-    const v = this.orders.startProduction(id);
+  async startLsx(id: string, code: string): Promise<void> {
+    const v = await this.attempt(() => this.orders.startProduction(id));
+    if (!v) return;
     this.notice.set(`${code} đang sản xuất${v.length ? ` — đã xuất vật tư (${v.map((x) => x.code).join(', ')})` : ' — mặt hàng chưa có định mức nên không xuất vật tư'}.`);
   }
 
-  completeLsx(id: string, code: string): void {
-    const v = this.orders.completeProduction(id);
+  async completeLsx(id: string, code: string): Promise<void> {
+    const v = await this.attempt(() => this.orders.completeProduction(id));
+    if (!v) return;
     this.notice.set(`${code} hoàn tất — đã nhập thành phẩm vào kho (${v.map((x) => x.code).join(', ')}).`);
   }
 
-  doCancel(): void {
-    this.orders.cancel(this.id()!, this.cancelReason().trim());
+  async doCancel(): Promise<void> {
+    const ok = await this.attempt(() => this.orders.cancel(this.id()!, this.cancelReason().trim()).then(() => true));
     this.confirmCancel.set(false);
+    if (!ok) return;
     this.notice.set('Đã huỷ đơn. Lệnh sản xuất chưa hoàn tất của đơn cũng đã huỷ.');
   }
 
-  doClose(): void {
-    this.orders.close(this.id()!);
+  async doClose(): Promise<void> {
+    const ok = await this.attempt(() => this.orders.close(this.id()!).then(() => true));
     this.confirmClose.set(false);
+    if (!ok) return;
     this.notice.set('Đã kết thúc đơn — phần còn lại không giao nữa. Công nợ chỉ tính trên số khách đã nhận.');
+  }
+
+/** Runs a save; on failure shows why and answers null. */
+  private async attempt<T>(save: () => Promise<T>): Promise<T | null> {
+    this.failure.set('');
+    try {
+      return await save();
+    } catch (e) {
+      this.failure.set(errorText(e));
+      return null;
+    }
   }
 
   openDeliver(): void {

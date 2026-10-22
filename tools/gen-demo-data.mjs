@@ -641,7 +641,6 @@ export const DEMO_ROLE_USER_COUNT: Record<string, number> = ${J(roleUserCount)};
 `;
 
 // ---- backend ----
-const hiredNote = (t) => (t.vehicleId ? t.driverName : t.driverName ? `${t.driverName} (xe thuê ${t.plateNumber ?? ''})`.replace(' )', ')') : undefined);
 const be = clean({
   meta: { generatedFor: TODAY, note: 'Dữ liệu GIẢ do tools/gen-demo-data.mjs sinh ra. Đừng sửa tay.' },
   // Danh mục: same objects (and ids) as the frontend demo, so both sides show the same catalog.
@@ -657,17 +656,26 @@ const be = clean({
   suppliers: feSuppliers,
   supplierProducts: feSupplierProducts,
   customers: feCustomers.map(({ orderCount: _n, ...c }) => c),
-  purchaseOrders: purchaseOrders.map((p) => ({ id: p.id, code: p.code, supplierId: p.supplierId, date: iso(p.date), status: p.status, createdByKey: p.createdBy, lines: p.lines })),
+  purchaseOrders: purchaseOrders.map((p) => ({ id: p.id, code: p.code, supplierId: p.supplierId, date: iso(p.date), receivedDate: p.receivedDate, status: p.status, createdByKey: p.createdBy, lines: p.lines })),
   salesOrders: orders.map((o) => ({
     id: o.id, code: o.code, customerId: o.customerId, recipientName: o.recipientName, recipientPhone: o.recipientPhone, description: o.description, source: o.source,
     orderDate: iso(o.orderDate), neededByDate: o.neededByDate ? iso(o.neededByDate) : undefined, status: o.status, discountAmount: o.discountAmount,
-    salesRepKey: o.salesRep, createdByKey: o.createdBy, tagIds: o.tagIds,
+    salesRepKey: o.salesRep, createdByKey: o.createdBy, tagIds: o.tagIds, deliveredDate: o.deliveredDate, dueDate: o.dueDate,
     lines: o.lines.map((l) => ({ id: l.id, productId: l.productId, unit: l.unit, quantity: l.quantity, unitPrice: l.unitPrice, length: l.length, width: l.width, note: l.note, receivedQuantity: l.receivedQuantity })),
   })),
-  productionOrders: lsx.map((l) => ({ id: l.id, code: l.code, sourceOrderId: l.sourceOrderId, productId: l.productId, quantity: l.quantity, status: l.status, bomSnapshot: l.bomSnapshot, createdAt: iso(l.createdDate) })),
+  productionOrders: lsx.map((l) => ({
+    id: l.id, code: l.code, sourceOrderId: l.sourceOrderId, productId: l.productId, quantity: l.quantity, status: l.status, bomSnapshot: l.bomSnapshot,
+    createdAt: iso(l.createdDate), startDate: l.startDate, completeDate: l.completeDate, producedQuantity: l.status === 'HOAN_TAT' ? l.quantity : undefined,
+  })),
   vehicles: feVehicles,
-  deliveryTrips: trips.map((t) => ({ id: t.id, code: t.code, date: iso(t.date), driverName: hiredNote(t), vehicleId: t.vehicleId, status: t.status, orderIds: t.orderIds })),
-  warehouseVouchers: warehouseVouchers.map((v) => ({ id: v.id, code: v.code, type: v.type, date: iso(v.date), warehouseKey: v.warehouseId, targetWarehouseKey: v.targetWarehouseId, reason: v.reason, isCancelled: v.isCancelled, createdByKey: v.createdBy, lines: v.lines })),
+  // Same chuyến as the frontend (xếp hàng, chốt giao, chi phí); totals are derived on the server.
+  deliveryTrips: feTrips.map(({ totalValue: _v, receivedValue: _r, confirmedCount: _c, createdBy: _b, ...t }) => ({ ...t, createdByKey: 'user-quanly' })),
+  // Lines carry the stock change (delta) like the frontend's, plus the purchase price of phiếu nhập.
+  warehouseVouchers: warehouseVouchers.map((v) => ({
+    id: v.id, code: v.code, type: v.type, date: iso(v.date), warehouseKey: v.warehouseId, targetWarehouseKey: v.targetWarehouseId, reason: v.reason,
+    isCancelled: v.isCancelled, createdByKey: v.createdBy,
+    lines: feVoucherLines.get(v.id).map((l, j) => ({ ...l, unitPrice: v.lines[j]?.unitPrice ?? 0 })),
+  })),
   stockLevels: stockLevels.map((s) => ({ productId: s.productId, warehouseKey: s.warehouseId, quantity: s.quantity })),
   cashVouchers: cashVouchers.map((c) => ({
     id: c.id, code: c.code, date: iso(c.date), kind: c.kind, category: c.category, partnerType: c.partnerType,

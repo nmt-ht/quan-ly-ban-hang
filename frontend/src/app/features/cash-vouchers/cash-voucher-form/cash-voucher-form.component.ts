@@ -12,6 +12,7 @@ import { formatVnd } from '../../../shared/format.util';
 import { formatDay, isoDay } from '../../../shared/period';
 import { ACCOUNT_TYPE_LABEL, KIND_TEXT, autoAllocate, categoryHint } from '../cash-voucher.rules';
 import { CashVoucherService } from '../cash-voucher.service';
+import { errorText } from '../../../core/api/api.service';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 
 interface Partner {
@@ -66,6 +67,9 @@ export class CashVoucherFormComponent {
   readonly manual = signal(false);
   readonly picks = signal<Record<string, number | null>>({});
   readonly attempted = signal(false);
+  readonly saving = signal(false);
+  /** A save the server refused (or that could not reach it). */
+  readonly failure = signal('');
 
   /** Where "Huỷ" and a successful save go back to. */
   private returnTo: { path: unknown[]; query?: Record<string, string> } = { path: ['/thu-chi'] };
@@ -242,13 +246,17 @@ export class CashVoucherFormComponent {
     return this.returnTo.query;
   }
 
-  save(): void {
+  async save(): Promise<void> {
     this.attempted.set(true);
-    if (this.issues().length) return;
+    if (this.issues().length || this.saving()) return;
     const allocations: CashAllocation[] | undefined = this.manual()
       ? [...this.manualPicks()].map(([ref, amount]) => ({ ref, amount }))
       : undefined;
-    const v = this.svc.create({
+    this.saving.set(true);
+    this.failure.set('');
+    let v;
+    try {
+      v = await this.svc.create({
       kind: this.kind(),
       date: this.date(),
       category: this.category().name,
@@ -259,7 +267,13 @@ export class CashVoucherFormComponent {
       description: this.description().trim() || undefined,
       allocations,
       settledAmount: this.allocated(),
-    });
+      });
+    } catch (e) {
+      this.failure.set(errorText(e));
+      return;
+    } finally {
+      this.saving.set(false);
+    }
     const notice = `Đã tạo ${this.kind() === 'CHI' ? 'phiếu chi' : 'phiếu thu'} ${v.code} — ${formatVnd(v.amount)}.`;
     this.router.navigate(this.returnTo.path, { queryParams: this.returnTo.query, state: { notice } });
   }

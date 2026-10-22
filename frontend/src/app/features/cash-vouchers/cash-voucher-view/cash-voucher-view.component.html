@@ -13,6 +13,12 @@
         <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
       </div>
     }
+    @if (failure()) {
+      <div class="notice is-error" role="alert">
+        <span>{{ failure() }}</span>
+        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="failure.set('')"><app-nav-icon name="x" /></button>
+      </div>
+    }
 
     <section class="card voucher-head">
       <div class="head-fields">
@@ -107,7 +113,7 @@
       <input type="text" placeholder="Lý do huỷ" aria-label="Lý do huỷ" [ngModel]="cancelReason()" (ngModelChange)="cancelReason.set($event)" />
       <div class="toolbar">
         <button type="button" class="btn" (click)="confirmCancel.set(false)">Không huỷ</button>
-        <button type="button" class="btn btn-danger" (click)="doCancel()">Huỷ phiếu</button>
+        <button type="button" class="btn btn-danger" [disabled]="cancelling()" (click)="doCancel()">{{ cancelling() ? 'Đang huỷ…' : 'Huỷ phiếu' }}</button>
       </div>
     </div>
   }

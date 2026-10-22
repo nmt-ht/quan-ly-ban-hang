@@ -13,6 +13,12 @@
         <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
       </div>
     }
+    @if (failure()) {
+      <div class="notice is-error" role="alert">
+        <span>{{ failure() }}</span>
+        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="failure.set('')"><app-nav-icon name="x" /></button>
+      </div>
+    }
 
     <section class="card voucher-head">
       <div class="head-fields">

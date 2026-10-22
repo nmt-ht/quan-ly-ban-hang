@@ -1350,6 +1350,7 @@
       "code": "DN0000001",
       "supplierId": "ncc-1",
       "date": "2026-08-02T02:00:00.000Z",
+      "receivedDate": "2026-08-06",
       "status": "HOAN_TAT",
       "createdByKey": "user-quanly",
       "lines": [
@@ -1381,6 +1382,7 @@
       "code": "DN0000002",
       "supplierId": "ncc-2",
       "date": "2026-08-04T02:00:00.000Z",
+      "receivedDate": "2026-08-09",
       "status": "HOAN_TAT",
       "createdByKey": "user-quanly",
       "lines": [
@@ -1405,6 +1407,7 @@
       "code": "DN0000003",
       "supplierId": "ncc-3",
       "date": "2026-08-10T02:00:00.000Z",
+      "receivedDate": "2026-08-15",
       "status": "DA_NHAN_DU",
       "createdByKey": "user-quanly",
       "lines": [
@@ -1436,6 +1439,7 @@
       "code": "DN0000004",
       "supplierId": "ncc-4",
       "date": "2026-08-20T02:00:00.000Z",
+      "receivedDate": "2026-08-23",
       "status": "HOAN_TAT",
       "createdByKey": "user-quanly",
       "lines": [
@@ -1481,6 +1485,7 @@
       "code": "DN0000005",
       "supplierId": "ncc-1",
       "date": "2026-09-15T02:00:00.000Z",
+      "receivedDate": "2026-09-22",
       "status": "NHAN_MOT_PHAN",
       "createdByKey": "user-quanly",
       "lines": [
@@ -1570,6 +1575,7 @@
       "code": "DN0000009",
       "supplierId": "ncc-4",
       "date": "2026-10-10T02:00:00.000Z",
+      "receivedDate": "2026-10-13",
       "status": "HOAN_TAT",
       "createdByKey": "user-quanly",
       "lines": [
@@ -1606,6 +1612,8 @@
       "tagIds": [
         "tag-quen"
       ],
+      "deliveredDate": "2026-08-20",
+      "dueDate": "2026-08-20",
       "lines": [
         {
           "id": "dh-01-l1",
@@ -1640,6 +1648,8 @@
         "tag-vip",
         "tag-si"
       ],
+      "deliveredDate": "2026-08-20",
+      "dueDate": "2026-09-04",
       "lines": [
         {
           "id": "dh-02-l1",
@@ -1675,6 +1685,8 @@
       "tagIds": [
         "tag-shopee"
       ],
+      "deliveredDate": "2026-08-20",
+      "dueDate": "2026-08-20",
       "lines": [
         {
           "id": "dh-03-l1",
@@ -1709,6 +1721,8 @@
         "tag-vip",
         "tag-si"
       ],
+      "deliveredDate": "2026-08-28",
+      "dueDate": "2026-09-27",
       "lines": [
         {
           "id": "dh-04-l1",
@@ -1753,6 +1767,8 @@
       "tagIds": [
         "tag-si"
       ],
+      "deliveredDate": "2026-08-28",
+      "dueDate": "2026-09-27",
       "lines": [
         {
           "id": "dh-05-l1",
@@ -1786,6 +1802,8 @@
       "tagIds": [
         "tag-quen"
       ],
+      "deliveredDate": "2026-09-05",
+      "dueDate": "2026-09-05",
       "lines": [
         {
           "id": "dh-06-l1",
@@ -1812,6 +1830,8 @@
       "tagIds": [
         "tag-si"
       ],
+      "deliveredDate": "2026-09-05",
+      "dueDate": "2026-09-20",
       "lines": [
         {
           "id": "dh-07-l1",
@@ -1844,6 +1864,7 @@
       "salesRepKey": "user-sale1",
       "createdByKey": "user-sale1",
       "tagIds": [],
+      "deliveredDate": "2026-09-05",
       "lines": [
         {
           "id": "dh-08-l1",
@@ -1869,6 +1890,8 @@
       "tagIds": [
         "tag-si"
       ],
+      "deliveredDate": "2026-09-18",
+      "dueDate": "2026-10-03",
       "lines": [
         {
           "id": "dh-09-l1",
@@ -1906,6 +1929,8 @@
       "tagIds": [
         "tag-shopee"
       ],
+      "deliveredDate": "2026-09-18",
+      "dueDate": "2026-09-25",
       "lines": [
         {
           "id": "dh-10-l1",
@@ -1937,6 +1962,8 @@
       "salesRepKey": "user-sale1",
       "createdByKey": "user-sale1",
       "tagIds": [],
+      "deliveredDate": "2026-09-30",
+      "dueDate": "2026-10-30",
       "lines": [
         {
           "id": "dh-11-l1",
@@ -1979,6 +2006,8 @@
         "tag-vip",
         "tag-si"
       ],
+      "deliveredDate": "2026-09-30",
+      "dueDate": "2026-10-15",
       "lines": [
         {
           "id": "dh-12-l1",
@@ -2012,6 +2041,8 @@
       "tagIds": [
         "tag-quen"
       ],
+      "deliveredDate": "2026-09-30",
+      "dueDate": "2026-09-30",
       "lines": [
         {
           "id": "dh-13-l1",
@@ -2062,6 +2093,8 @@
         "tag-vip",
         "tag-si"
       ],
+      "deliveredDate": "2026-10-12",
+      "dueDate": "2026-11-11",
       "lines": [
         {
           "id": "dh-14-l1",
@@ -2493,7 +2526,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-08-13T02:00:00.000Z"
+      "createdAt": "2026-08-13T02:00:00.000Z",
+      "startDate": "2026-08-13",
+      "completeDate": "2026-08-16",
+      "producedQuantity": 2
     },
     {
       "id": "lsx-02",
@@ -2524,7 +2560,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-08-13T02:00:00.000Z"
+      "createdAt": "2026-08-13T02:00:00.000Z",
+      "startDate": "2026-08-13",
+      "completeDate": "2026-08-16",
+      "producedQuantity": 1
     },
     {
       "id": "lsx-03",
@@ -2555,7 +2594,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-08-14T02:00:00.000Z"
+      "createdAt": "2026-08-14T02:00:00.000Z",
+      "startDate": "2026-08-14",
+      "completeDate": "2026-08-17",
+      "producedQuantity": 20
     },
     {
       "id": "lsx-04",
@@ -2586,7 +2628,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-08-14T02:00:00.000Z"
+      "createdAt": "2026-08-14T02:00:00.000Z",
+      "startDate": "2026-08-14",
+      "completeDate": "2026-08-17",
+      "producedQuantity": 10
     },
     {
       "id": "lsx-05",
@@ -2621,7 +2666,10 @@
           "quantityPerUnit": 1
         }
       ],
-      "createdAt": "2026-08-15T02:00:00.000Z"
+      "createdAt": "2026-08-15T02:00:00.000Z",
+      "startDate": "2026-08-15",
+      "completeDate": "2026-08-18",
+      "producedQuantity": 6
     },
     {
       "id": "lsx-06",
@@ -2652,7 +2700,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-08-21T02:00:00.000Z"
+      "createdAt": "2026-08-21T02:00:00.000Z",
+      "startDate": "2026-08-21",
+      "completeDate": "2026-08-24",
+      "producedQuantity": 12
     },
     {
       "id": "lsx-07",
@@ -2683,7 +2734,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-08-21T02:00:00.000Z"
+      "createdAt": "2026-08-21T02:00:00.000Z",
+      "startDate": "2026-08-21",
+      "completeDate": "2026-08-24",
+      "producedQuantity": 8
     },
     {
       "id": "lsx-08",
@@ -2698,7 +2752,10 @@
           "quantityPerUnit": 0.25
         }
       ],
-      "createdAt": "2026-08-21T02:00:00.000Z"
+      "createdAt": "2026-08-21T02:00:00.000Z",
+      "startDate": "2026-08-21",
+      "completeDate": "2026-08-24",
+      "producedQuantity": 5
     },
     {
       "id": "lsx-09",
@@ -2729,7 +2786,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-08-19T02:00:00.000Z"
+      "createdAt": "2026-08-19T02:00:00.000Z",
+      "startDate": "2026-08-19",
+      "completeDate": "2026-08-22",
+      "producedQuantity": 30
     },
     {
       "id": "lsx-10",
@@ -2764,7 +2824,10 @@
           "quantityPerUnit": 1
         }
       ],
-      "createdAt": "2026-08-19T02:00:00.000Z"
+      "createdAt": "2026-08-19T02:00:00.000Z",
+      "startDate": "2026-08-19",
+      "completeDate": "2026-08-22",
+      "producedQuantity": 30
     },
     {
       "id": "lsx-11",
@@ -2795,7 +2858,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-08-31T02:00:00.000Z"
+      "createdAt": "2026-08-31T02:00:00.000Z",
+      "startDate": "2026-08-31",
+      "completeDate": "2026-09-03",
+      "producedQuantity": 4
     },
     {
       "id": "lsx-12",
@@ -2826,7 +2892,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-09-01T02:00:00.000Z"
+      "createdAt": "2026-09-01T02:00:00.000Z",
+      "startDate": "2026-09-01",
+      "completeDate": "2026-09-04",
+      "producedQuantity": 10
     },
     {
       "id": "lsx-13",
@@ -2857,7 +2926,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-09-01T02:00:00.000Z"
+      "createdAt": "2026-09-01T02:00:00.000Z",
+      "startDate": "2026-09-01",
+      "completeDate": "2026-09-04",
+      "producedQuantity": 10
     },
     {
       "id": "lsx-14",
@@ -2892,7 +2964,10 @@
           "quantityPerUnit": 1
         }
       ],
-      "createdAt": "2026-09-02T02:00:00.000Z"
+      "createdAt": "2026-09-02T02:00:00.000Z",
+      "startDate": "2026-09-02",
+      "completeDate": "2026-09-04",
+      "producedQuantity": 3
     },
     {
       "id": "lsx-15",
@@ -2923,7 +2998,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-09-11T02:00:00.000Z"
+      "createdAt": "2026-09-11T02:00:00.000Z",
+      "startDate": "2026-09-11",
+      "completeDate": "2026-09-14",
+      "producedQuantity": 15
     },
     {
       "id": "lsx-16",
@@ -2938,7 +3016,10 @@
           "quantityPerUnit": 0.15
         }
       ],
-      "createdAt": "2026-09-11T02:00:00.000Z"
+      "createdAt": "2026-09-11T02:00:00.000Z",
+      "startDate": "2026-09-11",
+      "completeDate": "2026-09-14",
+      "producedQuantity": 6
     },
     {
       "id": "lsx-17",
@@ -2969,7 +3050,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-09-13T02:00:00.000Z"
+      "createdAt": "2026-09-13T02:00:00.000Z",
+      "startDate": "2026-09-13",
+      "completeDate": "2026-09-16",
+      "producedQuantity": 10
     },
     {
       "id": "lsx-18",
@@ -3000,7 +3084,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-09-13T02:00:00.000Z"
+      "createdAt": "2026-09-13T02:00:00.000Z",
+      "startDate": "2026-09-13",
+      "completeDate": "2026-09-16",
+      "producedQuantity": 10
     },
     {
       "id": "lsx-19",
@@ -3031,7 +3118,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-09-23T02:00:00.000Z"
+      "createdAt": "2026-09-23T02:00:00.000Z",
+      "startDate": "2026-09-23",
+      "completeDate": "2026-09-26",
+      "producedQuantity": 24
     },
     {
       "id": "lsx-20",
@@ -3062,7 +3152,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-09-23T02:00:00.000Z"
+      "createdAt": "2026-09-23T02:00:00.000Z",
+      "startDate": "2026-09-23",
+      "completeDate": "2026-09-26",
+      "producedQuantity": 12
     },
     {
       "id": "lsx-21",
@@ -3093,7 +3186,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-09-25T02:00:00.000Z"
+      "createdAt": "2026-09-25T02:00:00.000Z",
+      "startDate": "2026-09-25",
+      "completeDate": "2026-09-28",
+      "producedQuantity": 10
     },
     {
       "id": "lsx-22",
@@ -3128,7 +3224,10 @@
           "quantityPerUnit": 1
         }
       ],
-      "createdAt": "2026-09-25T02:00:00.000Z"
+      "createdAt": "2026-09-25T02:00:00.000Z",
+      "startDate": "2026-09-25",
+      "completeDate": "2026-09-28",
+      "producedQuantity": 10
     },
     {
       "id": "lsx-23",
@@ -3159,7 +3258,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-09-26T02:00:00.000Z"
+      "createdAt": "2026-09-26T02:00:00.000Z",
+      "startDate": "2026-09-26",
+      "completeDate": "2026-09-29",
+      "producedQuantity": 1
     },
     {
       "id": "lsx-24",
@@ -3190,7 +3292,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-09-26T02:00:00.000Z"
+      "createdAt": "2026-09-26T02:00:00.000Z",
+      "startDate": "2026-09-26",
+      "completeDate": "2026-09-29",
+      "producedQuantity": 1
     },
     {
       "id": "lsx-25",
@@ -3221,7 +3326,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-10-06T02:00:00.000Z"
+      "createdAt": "2026-10-06T02:00:00.000Z",
+      "startDate": "2026-10-06",
+      "completeDate": "2026-10-09",
+      "producedQuantity": 16
     },
     {
       "id": "lsx-26",
@@ -3252,7 +3360,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-10-06T02:00:00.000Z"
+      "createdAt": "2026-10-06T02:00:00.000Z",
+      "startDate": "2026-10-06",
+      "completeDate": "2026-10-09",
+      "producedQuantity": 10
     },
     {
       "id": "lsx-27",
@@ -3287,7 +3398,10 @@
           "quantityPerUnit": 1
         }
       ],
-      "createdAt": "2026-10-08T02:00:00.000Z"
+      "createdAt": "2026-10-08T02:00:00.000Z",
+      "startDate": "2026-10-08",
+      "completeDate": "2026-10-11",
+      "producedQuantity": 2
     },
     {
       "id": "lsx-28",
@@ -3318,7 +3432,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-10-08T02:00:00.000Z"
+      "createdAt": "2026-10-08T02:00:00.000Z",
+      "startDate": "2026-10-08",
+      "completeDate": "2026-10-11",
+      "producedQuantity": 3
     },
     {
       "id": "lsx-29",
@@ -3353,7 +3470,10 @@
           "quantityPerUnit": 1
         }
       ],
-      "createdAt": "2026-10-13T02:00:00.000Z"
+      "createdAt": "2026-10-13T02:00:00.000Z",
+      "startDate": "2026-10-13",
+      "completeDate": "2026-10-16",
+      "producedQuantity": 8
     },
     {
       "id": "lsx-30",
@@ -3384,7 +3504,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-10-13T02:00:00.000Z"
+      "createdAt": "2026-10-13T02:00:00.000Z",
+      "startDate": "2026-10-13",
+      "completeDate": "2026-10-16",
+      "producedQuantity": 8
     },
     {
       "id": "lsx-31",
@@ -3415,7 +3538,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-10-14T02:00:00.000Z"
+      "createdAt": "2026-10-14T02:00:00.000Z",
+      "startDate": "2026-10-14",
+      "completeDate": "2026-10-16",
+      "producedQuantity": 12
     },
     {
       "id": "lsx-32",
@@ -3446,7 +3572,10 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-10-15T02:00:00.000Z"
+      "createdAt": "2026-10-15T02:00:00.000Z",
+      "startDate": "2026-10-15",
+      "completeDate": "2026-10-18",
+      "producedQuantity": 20
     },
     {
       "id": "lsx-33",
@@ -3481,7 +3610,10 @@
           "quantityPerUnit": 1
         }
       ],
-      "createdAt": "2026-10-16T02:00:00.000Z"
+      "createdAt": "2026-10-16T02:00:00.000Z",
+      "startDate": "2026-10-16",
+      "completeDate": "2026-10-19",
+      "producedQuantity": 24
     },
     {
       "id": "lsx-34",
@@ -3512,7 +3644,8 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-10-15T02:00:00.000Z"
+      "createdAt": "2026-10-15T02:00:00.000Z",
+      "startDate": "2026-10-15"
     },
     {
       "id": "lsx-35",
@@ -3543,7 +3676,8 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-10-15T02:00:00.000Z"
+      "createdAt": "2026-10-15T02:00:00.000Z",
+      "startDate": "2026-10-15"
     },
     {
       "id": "lsx-36",
@@ -3574,7 +3708,8 @@
           "quantityPerUnit": 0.02
         }
       ],
-      "createdAt": "2026-10-17T02:00:00.000Z"
+      "createdAt": "2026-10-17T02:00:00.000Z",
+      "startDate": "2026-10-17"
     },
     {
       "id": "lsx-37",
@@ -3589,7 +3724,8 @@
           "quantityPerUnit": 0.25
         }
       ],
-      "createdAt": "2026-10-17T02:00:00.000Z"
+      "createdAt": "2026-10-17T02:00:00.000Z",
+      "startDate": "2026-10-17"
     },
     {
       "id": "lsx-38",
@@ -3731,117 +3867,678 @@
   ],
   "deliveryTrips": [
     {
-      "id": "ch-1",
-      "code": "CH0000001",
-      "date": "2026-08-20T02:00:00.000Z",
-      "driverName": "Đặng Văn Tài",
-      "vehicleId": "xe-1",
-      "status": "HOAN_TAT",
-      "orderIds": [
-        "dh-01",
-        "dh-02",
-        "dh-03"
-      ]
+      "id": "ch-10",
+      "code": "CH0000010",
+      "date": "2026-10-19",
+      "status": "GOM_DON",
+      "orderIds": [],
+      "createdByKey": "user-quanly"
     },
     {
-      "id": "ch-2",
-      "code": "CH0000002",
-      "date": "2026-08-28T02:00:00.000Z",
+      "id": "ch-9",
+      "code": "CH0000009",
+      "date": "2026-10-19",
+      "driverName": "Đặng Văn Tài",
+      "driverPhone": "0903111222",
+      "plateNumber": "51C-123.45",
+      "status": "GOM_DON",
+      "orderIds": [
+        "dh-18"
+      ],
+      "vehicleId": "xe-1",
+      "createdByKey": "user-quanly"
+    },
+    {
+      "id": "ch-8",
+      "code": "CH0000008",
+      "date": "2026-10-17",
       "driverName": "Lý Văn Sáu",
+      "driverPhone": "0903333444",
+      "plateNumber": "51D-678.90",
+      "status": "DA_XUAT_KHO",
+      "orderIds": [
+        "dh-16",
+        "dh-17"
+      ],
       "vehicleId": "xe-2",
-      "status": "HOAN_TAT",
-      "orderIds": [
-        "dh-04",
-        "dh-05"
-      ]
+      "shippedAt": "2026-10-17T08:30:00",
+      "costs": {
+        "fuel": 290000,
+        "toll": 0,
+        "other": 0
+      },
+      "loads": [
+        {
+          "orderId": "dh-16",
+          "lineIndex": 0,
+          "productId": "sp-khung-nhom-vang-30x40",
+          "quantity": 8,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-16",
+          "lineIndex": 1,
+          "productId": "sp-khung-soi-30x40",
+          "quantity": 8,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-17",
+          "lineIndex": 0,
+          "productId": "sp-khung-soi-40x60",
+          "quantity": 12,
+          "warehouseId": "wh-thanhpham"
+        }
+      ],
+      "confirmations": [],
+      "createdByKey": "user-quanly"
     },
     {
-      "id": "ch-3",
-      "code": "CH0000003",
-      "date": "2026-09-05T02:00:00.000Z",
+      "id": "ch-7",
+      "code": "CH0000007",
+      "date": "2026-10-12",
       "driverName": "Đặng Văn Tài",
-      "vehicleId": "xe-1",
-      "status": "HOAN_TAT",
+      "driverPhone": "0903111222",
+      "plateNumber": "51C-123.45",
+      "status": "XE_VE_KHO",
       "orderIds": [
-        "dh-06",
-        "dh-07",
-        "dh-08"
-      ]
+        "dh-14",
+        "dh-15"
+      ],
+      "vehicleId": "xe-1",
+      "shippedAt": "2026-10-12T08:30:00",
+      "returnedAt": "2026-10-12T17:15:00",
+      "costs": {
+        "fuel": 325000,
+        "toll": 40000,
+        "other": 0,
+        "note": "Qua trạm BOT An Sương"
+      },
+      "loads": [
+        {
+          "orderId": "dh-14",
+          "lineIndex": 0,
+          "productId": "sp-khung-soi-50x70",
+          "quantity": 16,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-14",
+          "lineIndex": 1,
+          "productId": "sp-khung-soi-60x90",
+          "quantity": 10,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-15",
+          "lineIndex": 0,
+          "productId": "sp-khung-nhom-vang-30x40",
+          "quantity": 2,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-15",
+          "lineIndex": 1,
+          "productId": "sp-khung-soi-30x40",
+          "quantity": 3,
+          "warehouseId": "wh-thanhpham"
+        }
+      ],
+      "confirmations": [
+        {
+          "orderId": "dh-14",
+          "confirmedAt": "2026-10-12T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 16
+            },
+            {
+              "lineIndex": 1,
+              "received": 10
+            }
+          ]
+        }
+      ],
+      "createdByKey": "user-quanly"
     },
     {
-      "id": "ch-4",
-      "code": "CH0000004",
-      "date": "2026-09-18T02:00:00.000Z",
-      "driverName": "Đặng Văn Tài",
-      "vehicleId": "xe-1",
-      "status": "HOAN_TAT",
-      "orderIds": [
-        "dh-09",
-        "dh-10"
-      ]
+      "id": "ch-6",
+      "code": "CH0000006",
+      "date": "2026-10-08",
+      "driverName": "Nguyễn Văn Bốn",
+      "driverPhone": "0903555666",
+      "plateNumber": "60C-777.77",
+      "status": "HUY",
+      "orderIds": [],
+      "cancelReason": "Xe thuê ngoài báo hỏng, dời đơn sang chuyến sau",
+      "createdByKey": "user-quanly"
     },
     {
       "id": "ch-5",
       "code": "CH0000005",
-      "date": "2026-09-30T02:00:00.000Z",
+      "date": "2026-09-30",
       "driverName": "Lý Văn Sáu",
-      "vehicleId": "xe-2",
+      "driverPhone": "0903333444",
+      "plateNumber": "51D-678.90",
       "status": "HOAN_TAT",
       "orderIds": [
         "dh-11",
         "dh-12",
         "dh-13"
-      ]
-    },
-    {
-      "id": "ch-6",
-      "code": "CH0000006",
-      "date": "2026-10-08T02:00:00.000Z",
-      "driverName": "Nguyễn Văn Bốn (xe thuê 60C-777.77)",
-      "status": "HUY",
-      "orderIds": []
-    },
-    {
-      "id": "ch-7",
-      "code": "CH0000007",
-      "date": "2026-10-12T02:00:00.000Z",
-      "driverName": "Đặng Văn Tài",
-      "vehicleId": "xe-1",
-      "status": "XE_VE_KHO",
-      "orderIds": [
-        "dh-14",
-        "dh-15"
-      ]
-    },
-    {
-      "id": "ch-8",
-      "code": "CH0000008",
-      "date": "2026-10-17T02:00:00.000Z",
-      "driverName": "Lý Văn Sáu",
+      ],
       "vehicleId": "xe-2",
-      "status": "DA_XUAT_KHO",
-      "orderIds": [
-        "dh-16",
-        "dh-17"
-      ]
+      "shippedAt": "2026-09-30T08:30:00",
+      "returnedAt": "2026-09-30T17:15:00",
+      "completedAt": "2026-09-30T17:30:00",
+      "costs": {
+        "fuel": 255000,
+        "toll": 40000,
+        "other": 0,
+        "note": "Qua trạm BOT An Sương"
+      },
+      "loads": [
+        {
+          "orderId": "dh-11",
+          "lineIndex": 0,
+          "productId": "sp-khung-soi-40x60",
+          "quantity": 24,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-11",
+          "lineIndex": 1,
+          "productId": "sp-khung-soi-50x70",
+          "quantity": 12,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-11",
+          "lineIndex": 2,
+          "productId": "dv-cong-dong",
+          "quantity": 1
+        },
+        {
+          "orderId": "dh-12",
+          "lineIndex": 0,
+          "productId": "sp-khung-oc-cho-40x60",
+          "quantity": 10,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-12",
+          "lineIndex": 1,
+          "productId": "sp-khung-nhom-den-40x60",
+          "quantity": 10,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-13",
+          "lineIndex": 0,
+          "productId": "sp-khung-soi-60x90",
+          "quantity": 1,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-13",
+          "lineIndex": 1,
+          "productId": "sp-khung-soi-30x40",
+          "quantity": 1,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-13",
+          "lineIndex": 2,
+          "productId": "vt-keo-dan",
+          "quantity": 1,
+          "warehouseId": "wh-phukien"
+        },
+        {
+          "orderId": "dh-13",
+          "lineIndex": 3,
+          "productId": "vt-ve-sinh-kinh",
+          "quantity": 2,
+          "warehouseId": "wh-ninhtrang"
+        }
+      ],
+      "confirmations": [
+        {
+          "orderId": "dh-11",
+          "confirmedAt": "2026-09-30T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 24
+            },
+            {
+              "lineIndex": 1,
+              "received": 12
+            },
+            {
+              "lineIndex": 2,
+              "received": 1
+            }
+          ]
+        },
+        {
+          "orderId": "dh-12",
+          "confirmedAt": "2026-09-30T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 10
+            },
+            {
+              "lineIndex": 1,
+              "received": 10
+            }
+          ]
+        },
+        {
+          "orderId": "dh-13",
+          "confirmedAt": "2026-09-30T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 1
+            },
+            {
+              "lineIndex": 1,
+              "received": 1
+            },
+            {
+              "lineIndex": 2,
+              "received": 1
+            },
+            {
+              "lineIndex": 3,
+              "received": 2
+            }
+          ]
+        }
+      ],
+      "createdByKey": "user-quanly"
     },
     {
-      "id": "ch-9",
-      "code": "CH0000009",
-      "date": "2026-10-19T02:00:00.000Z",
+      "id": "ch-4",
+      "code": "CH0000004",
+      "date": "2026-09-18",
       "driverName": "Đặng Văn Tài",
-      "vehicleId": "xe-1",
-      "status": "GOM_DON",
+      "driverPhone": "0903111222",
+      "plateNumber": "51C-123.45",
+      "status": "HOAN_TAT",
       "orderIds": [
-        "dh-18"
-      ]
+        "dh-09",
+        "dh-10"
+      ],
+      "vehicleId": "xe-1",
+      "shippedAt": "2026-09-18T08:30:00",
+      "returnedAt": "2026-09-18T17:15:00",
+      "completedAt": "2026-09-18T17:30:00",
+      "costs": {
+        "fuel": 290000,
+        "toll": 0,
+        "other": 50000
+      },
+      "loads": [
+        {
+          "orderId": "dh-09",
+          "lineIndex": 0,
+          "productId": "sp-khung-soi-40x60",
+          "quantity": 15,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-09",
+          "lineIndex": 1,
+          "productId": "sp-mica-cat",
+          "quantity": 6,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-10",
+          "lineIndex": 0,
+          "productId": "sp-khung-soi-20x30",
+          "quantity": 10,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-10",
+          "lineIndex": 1,
+          "productId": "sp-khung-soi-30x40",
+          "quantity": 10,
+          "warehouseId": "wh-thanhpham"
+        }
+      ],
+      "confirmations": [
+        {
+          "orderId": "dh-09",
+          "confirmedAt": "2026-09-18T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 15
+            },
+            {
+              "lineIndex": 1,
+              "received": 6
+            }
+          ]
+        },
+        {
+          "orderId": "dh-10",
+          "confirmedAt": "2026-09-18T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 10
+            },
+            {
+              "lineIndex": 1,
+              "received": 10
+            }
+          ]
+        }
+      ],
+      "createdByKey": "user-quanly"
     },
     {
-      "id": "ch-10",
-      "code": "CH0000010",
-      "date": "2026-10-19T02:00:00.000Z",
-      "status": "GOM_DON",
-      "orderIds": []
+      "id": "ch-3",
+      "code": "CH0000003",
+      "date": "2026-09-05",
+      "driverName": "Đặng Văn Tài",
+      "driverPhone": "0903111222",
+      "plateNumber": "51C-123.45",
+      "status": "HOAN_TAT",
+      "orderIds": [
+        "dh-06",
+        "dh-07",
+        "dh-08"
+      ],
+      "vehicleId": "xe-1",
+      "shippedAt": "2026-09-05T08:30:00",
+      "returnedAt": "2026-09-05T17:15:00",
+      "completedAt": "2026-09-05T17:30:00",
+      "costs": {
+        "fuel": 325000,
+        "toll": 40000,
+        "other": 0,
+        "note": "Qua trạm BOT An Sương"
+      },
+      "loads": [
+        {
+          "orderId": "dh-06",
+          "lineIndex": 0,
+          "productId": "sp-khung-soi-20x30",
+          "quantity": 4,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-07",
+          "lineIndex": 0,
+          "productId": "sp-khung-soi-40x60",
+          "quantity": 10,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-07",
+          "lineIndex": 1,
+          "productId": "sp-khung-soi-30x40",
+          "quantity": 10,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-08",
+          "lineIndex": 0,
+          "productId": "sp-khung-nhom-vang-30x40",
+          "quantity": 3,
+          "warehouseId": "wh-thanhpham"
+        }
+      ],
+      "confirmations": [
+        {
+          "orderId": "dh-06",
+          "confirmedAt": "2026-09-05T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 4
+            }
+          ]
+        },
+        {
+          "orderId": "dh-07",
+          "confirmedAt": "2026-09-05T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 7
+            },
+            {
+              "lineIndex": 1,
+              "received": 10
+            }
+          ]
+        },
+        {
+          "orderId": "dh-08",
+          "confirmedAt": "2026-09-05T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 0
+            }
+          ]
+        }
+      ],
+      "createdByKey": "user-quanly"
+    },
+    {
+      "id": "ch-2",
+      "code": "CH0000002",
+      "date": "2026-08-28",
+      "driverName": "Lý Văn Sáu",
+      "driverPhone": "0903333444",
+      "plateNumber": "51D-678.90",
+      "status": "HOAN_TAT",
+      "orderIds": [
+        "dh-04",
+        "dh-05"
+      ],
+      "vehicleId": "xe-2",
+      "shippedAt": "2026-08-28T08:30:00",
+      "returnedAt": "2026-08-28T17:15:00",
+      "completedAt": "2026-08-28T17:30:00",
+      "costs": {
+        "fuel": 220000,
+        "toll": 0,
+        "other": 0
+      },
+      "loads": [
+        {
+          "orderId": "dh-04",
+          "lineIndex": 0,
+          "productId": "sp-khung-soi-60x90",
+          "quantity": 12,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-04",
+          "lineIndex": 1,
+          "productId": "sp-khung-oc-cho-40x60",
+          "quantity": 8,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-04",
+          "lineIndex": 2,
+          "productId": "sp-kinh-cat",
+          "quantity": 5,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-05",
+          "lineIndex": 0,
+          "productId": "sp-khung-soi-50x70",
+          "quantity": 30,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-05",
+          "lineIndex": 1,
+          "productId": "sp-khung-nhom-den-40x60",
+          "quantity": 30,
+          "warehouseId": "wh-thanhpham"
+        }
+      ],
+      "confirmations": [
+        {
+          "orderId": "dh-04",
+          "confirmedAt": "2026-08-28T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 12
+            },
+            {
+              "lineIndex": 1,
+              "received": 8
+            },
+            {
+              "lineIndex": 2,
+              "received": 5
+            }
+          ]
+        },
+        {
+          "orderId": "dh-05",
+          "confirmedAt": "2026-08-28T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 30
+            },
+            {
+              "lineIndex": 1,
+              "received": 30
+            }
+          ]
+        }
+      ],
+      "createdByKey": "user-quanly"
+    },
+    {
+      "id": "ch-1",
+      "code": "CH0000001",
+      "date": "2026-08-20",
+      "driverName": "Đặng Văn Tài",
+      "driverPhone": "0903111222",
+      "plateNumber": "51C-123.45",
+      "status": "HOAN_TAT",
+      "orderIds": [
+        "dh-01",
+        "dh-02",
+        "dh-03"
+      ],
+      "vehicleId": "xe-1",
+      "shippedAt": "2026-08-20T08:30:00",
+      "returnedAt": "2026-08-20T17:15:00",
+      "completedAt": "2026-08-20T17:30:00",
+      "costs": {
+        "fuel": 255000,
+        "toll": 40000,
+        "other": 50000,
+        "note": "Qua trạm BOT An Sương"
+      },
+      "loads": [
+        {
+          "orderId": "dh-01",
+          "lineIndex": 0,
+          "productId": "sp-khung-soi-30x40",
+          "quantity": 2,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-01",
+          "lineIndex": 1,
+          "productId": "sp-khung-soi-40x60",
+          "quantity": 1,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-02",
+          "lineIndex": 0,
+          "productId": "sp-khung-soi-40x60",
+          "quantity": 20,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-02",
+          "lineIndex": 1,
+          "productId": "sp-khung-soi-50x70",
+          "quantity": 10,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-03",
+          "lineIndex": 0,
+          "productId": "sp-khung-nhom-vang-30x40",
+          "quantity": 6,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-03",
+          "lineIndex": 1,
+          "productId": "vt-den-led",
+          "quantity": 6,
+          "warehouseId": "wh-ninhtrang"
+        }
+      ],
+      "confirmations": [
+        {
+          "orderId": "dh-01",
+          "confirmedAt": "2026-08-20T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 2
+            },
+            {
+              "lineIndex": 1,
+              "received": 1
+            }
+          ]
+        },
+        {
+          "orderId": "dh-02",
+          "confirmedAt": "2026-08-20T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 20
+            },
+            {
+              "lineIndex": 1,
+              "received": 10
+            }
+          ]
+        },
+        {
+          "orderId": "dh-03",
+          "confirmedAt": "2026-08-20T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 6
+            },
+            {
+              "lineIndex": 1,
+              "received": 6
+            }
+          ]
+        }
+      ],
+      "createdByKey": "user-quanly"
     }
   ],
   "warehouseVouchers": [
@@ -3858,11 +4555,13 @@
         {
           "productId": "vt-den-led",
           "quantity": 25,
+          "delta": 25,
           "unitPrice": 95000
         },
         {
           "productId": "vt-ve-sinh-kinh",
           "quantity": 2,
+          "delta": 2,
           "unitPrice": 18000
         }
       ]
@@ -3880,21 +4579,25 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 1208,
+          "delta": 1208,
           "unitPrice": 600
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 13.38,
+          "delta": 13.38,
           "unitPrice": 28000
         },
         {
           "productId": "vt-kep-kinh",
           "quantity": 229,
+          "delta": 229,
           "unitPrice": 3500
         },
         {
           "productId": "vt-keo-dan",
           "quantity": 19,
+          "delta": 19,
           "unitPrice": 42000
         }
       ]
@@ -3912,41 +4615,49 @@
         {
           "productId": "sp-khung-soi-20x30",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 26757
         },
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 13,
+          "delta": 13,
           "unitPrice": 40988
         },
         {
           "productId": "sp-khung-soi-40x60",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 66271
         },
         {
           "productId": "sp-khung-soi-50x70",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 87067
         },
         {
           "productId": "sp-khung-soi-60x90",
           "quantity": 4,
+          "delta": 4,
           "unitPrice": 121575
         },
         {
           "productId": "sp-khung-nhom-vang-30x40",
           "quantity": 14,
+          "delta": 14,
           "unitPrice": 48285
         },
         {
           "productId": "sp-khung-nhom-den-40x60",
           "quantity": 14,
+          "delta": 14,
           "unitPrice": 80101
         },
         {
           "productId": "sp-khung-oc-cho-40x60",
           "quantity": 9,
+          "delta": 9,
           "unitPrice": 95739
         }
       ]
@@ -3964,41 +4675,49 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 176,
+          "delta": 176,
           "unitPrice": 38000
         },
         {
           "productId": "vt-nep-oc-cho",
           "quantity": 117,
+          "delta": 117,
           "unitPrice": 72000
         },
         {
           "productId": "vt-nhom-vang",
           "quantity": 183,
+          "delta": 183,
           "unitPrice": 46000
         },
         {
           "productId": "vt-nhom-den",
           "quantity": 177,
+          "delta": 177,
           "unitPrice": 52000
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 13.28,
+          "delta": 13.28,
           "unitPrice": 165000
         },
         {
           "productId": "vt-mica-2ly",
           "quantity": 30,
+          "delta": 30,
           "unitPrice": 420000
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 40.4,
+          "delta": 40.4,
           "unitPrice": 95000
         },
         {
           "productId": "vt-go-tho",
           "quantity": 92,
+          "delta": 92,
           "unitPrice": 30000
         }
       ]
@@ -4016,16 +4735,19 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 300,
+          "delta": 300,
           "unitPrice": 38000
         },
         {
           "productId": "vt-nep-oc-cho",
           "quantity": 100,
+          "delta": 100,
           "unitPrice": 72000
         },
         {
           "productId": "vt-go-tho",
           "quantity": 150,
+          "delta": 150,
           "unitPrice": 30000
         }
       ]
@@ -4043,11 +4765,13 @@
         {
           "productId": "vt-nhom-vang",
           "quantity": 200,
+          "delta": 200,
           "unitPrice": 46000
         },
         {
           "productId": "vt-nhom-den",
           "quantity": 200,
+          "delta": 200,
           "unitPrice": 52000
         }
       ]
@@ -4065,16 +4789,19 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 2.1,
+          "delta": 2.1,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 0.28,
+          "delta": 0.28,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 0.19,
+          "delta": 0.19,
           "unitPrice": 0
         }
       ]
@@ -4092,11 +4819,13 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 6,
+          "delta": 6,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.06,
+          "delta": 0.06,
           "unitPrice": 0
         }
       ]
@@ -4114,16 +4843,19 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 27.67,
+          "delta": 27.67,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 4.77,
+          "delta": 4.77,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 3.21,
+          "delta": 3.21,
           "unitPrice": 0
         }
       ]
@@ -4141,11 +4873,13 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 60,
+          "delta": 60,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.6,
+          "delta": 0.6,
           "unitPrice": 0
         }
       ]
@@ -4163,16 +4897,19 @@
         {
           "productId": "vt-kinh-3ly",
           "quantity": 60,
+          "delta": 60,
           "unitPrice": 165000
         },
         {
           "productId": "vt-mica-2ly",
           "quantity": 30,
+          "delta": 30,
           "unitPrice": 420000
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 80,
+          "delta": 80,
           "unitPrice": 95000
         }
       ]
@@ -4190,16 +4927,19 @@
         {
           "productId": "vt-nhom-vang",
           "quantity": 3.55,
+          "delta": 3.55,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 0.41,
+          "delta": 0.41,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 0.28,
+          "delta": 0.28,
           "unitPrice": 0
         }
       ]
@@ -4217,16 +4957,19 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 12,
+          "delta": 12,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.12,
+          "delta": 0.12,
           "unitPrice": 0
         },
         {
           "productId": "vt-kep-kinh",
           "quantity": 6,
+          "delta": 6,
           "unitPrice": 0
         }
       ]
@@ -4244,11 +4987,13 @@
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 2,
+          "delta": 2,
           "unitPrice": 40988
         },
         {
           "productId": "sp-khung-soi-40x60",
           "quantity": 1,
+          "delta": 1,
           "unitPrice": 66271
         }
       ]
@@ -4266,11 +5011,13 @@
         {
           "productId": "sp-khung-soi-40x60",
           "quantity": 20,
+          "delta": 20,
           "unitPrice": 66271
         },
         {
           "productId": "sp-khung-soi-50x70",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 87067
         }
       ]
@@ -4288,6 +5035,7 @@
         {
           "productId": "sp-khung-nhom-vang-30x40",
           "quantity": 6,
+          "delta": 6,
           "unitPrice": 48285
         }
       ]
@@ -4305,21 +5053,25 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 31,
+          "delta": 31,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 10.18,
+          "delta": 10.18,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 6.84,
+          "delta": 6.84,
           "unitPrice": 0
         },
         {
           "productId": "vt-nhom-den",
           "quantity": 24.96,
+          "delta": 24.96,
           "unitPrice": 0
         }
       ]
@@ -4337,16 +5089,19 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 120,
+          "delta": 120,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 1.2,
+          "delta": 1.2,
           "unitPrice": 0
         },
         {
           "productId": "vt-kep-kinh",
           "quantity": 30,
+          "delta": 30,
           "unitPrice": 0
         }
       ]
@@ -4364,21 +5119,25 @@
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 2,
+          "delta": 2,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-40x60",
           "quantity": 21,
+          "delta": 21,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-50x70",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-nhom-vang-30x40",
           "quantity": 6,
+          "delta": 6,
           "unitPrice": 0
         }
       ]
@@ -4396,6 +5155,7 @@
         {
           "productId": "vt-den-led",
           "quantity": 6,
+          "delta": 6,
           "unitPrice": 0
         }
       ]
@@ -4413,21 +5173,25 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 15.4,
+          "delta": 15.4,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 6.08,
+          "delta": 6.08,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 3.24,
+          "delta": 3.24,
           "unitPrice": 0
         },
         {
           "productId": "vt-nep-oc-cho",
           "quantity": 6.93,
+          "delta": 6.93,
           "unitPrice": 0
         }
       ]
@@ -4445,11 +5209,13 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 40,
+          "delta": 40,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.4,
+          "delta": 0.4,
           "unitPrice": 0
         }
       ]
@@ -4467,11 +5233,13 @@
         {
           "productId": "sp-khung-soi-50x70",
           "quantity": 30,
+          "delta": 30,
           "unitPrice": 87067
         },
         {
           "productId": "sp-khung-nhom-den-40x60",
           "quantity": 30,
+          "delta": 30,
           "unitPrice": 80101
         }
       ]
@@ -4489,26 +5257,31 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 3000,
+          "delta": 3000,
           "unitPrice": 600
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 40,
+          "delta": 40,
           "unitPrice": 28000
         },
         {
           "productId": "vt-day-thep",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 22000
         },
         {
           "productId": "vt-kep-kinh",
           "quantity": 400,
+          "delta": 400,
           "unitPrice": 3500
         },
         {
           "productId": "vt-keo-dan",
           "quantity": 30,
+          "delta": 30,
           "unitPrice": 42000
         }
       ]
@@ -4526,16 +5299,19 @@
         {
           "productId": "sp-khung-soi-60x90",
           "quantity": 12,
+          "delta": 12,
           "unitPrice": 121575
         },
         {
           "productId": "sp-khung-oc-cho-40x60",
           "quantity": 8,
+          "delta": 8,
           "unitPrice": 95739
         },
         {
           "productId": "sp-kinh-cat",
           "quantity": 5,
+          "delta": 5,
           "unitPrice": 41250
         }
       ]
@@ -4553,26 +5329,31 @@
         {
           "productId": "sp-khung-soi-60x90",
           "quantity": 12,
+          "delta": 12,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-oc-cho-40x60",
           "quantity": 8,
+          "delta": 8,
           "unitPrice": 0
         },
         {
           "productId": "sp-kinh-cat",
           "quantity": 5,
+          "delta": 5,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-50x70",
           "quantity": 30,
+          "delta": 30,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-nhom-den-40x60",
           "quantity": 30,
+          "delta": 30,
           "unitPrice": 0
         }
       ]
@@ -4590,16 +5371,19 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 1.8,
+          "delta": 1.8,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 0.14,
+          "delta": 0.14,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 0.09,
+          "delta": 0.09,
           "unitPrice": 0
         }
       ]
@@ -4617,11 +5401,13 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 8,
+          "delta": 8,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.08,
+          "delta": 0.08,
           "unitPrice": 0
         }
       ]
@@ -4639,16 +5425,19 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 14.83,
+          "delta": 14.83,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 2.07,
+          "delta": 2.07,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 1.39,
+          "delta": 1.39,
           "unitPrice": 0
         }
       ]
@@ -4666,11 +5455,13 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 40,
+          "delta": 40,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.4,
+          "delta": 0.4,
           "unitPrice": 0
         }
       ]
@@ -4688,16 +5479,19 @@
         {
           "productId": "vt-nhom-vang",
           "quantity": 1.78,
+          "delta": 1.78,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 0.21,
+          "delta": 0.21,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 0.14,
+          "delta": 0.14,
           "unitPrice": 0
         }
       ]
@@ -4715,16 +5509,19 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 6,
+          "delta": 6,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.06,
+          "delta": 0.06,
           "unitPrice": 0
         },
         {
           "productId": "vt-kep-kinh",
           "quantity": 3,
+          "delta": 3,
           "unitPrice": 0
         }
       ]
@@ -4742,6 +5539,7 @@
         {
           "productId": "sp-khung-soi-20x30",
           "quantity": 4,
+          "delta": 4,
           "unitPrice": 26757
         }
       ]
@@ -4759,16 +5557,19 @@
         {
           "productId": "sp-khung-soi-40x60",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 66271
         },
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 40988
         },
         {
           "productId": "sp-khung-nhom-vang-30x40",
           "quantity": 3,
+          "delta": 3,
           "unitPrice": 48285
         }
       ]
@@ -4786,11 +5587,13 @@
         {
           "productId": "sp-khung-soi-40x60",
           "quantity": 3,
+          "delta": 3,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-nhom-vang-30x40",
           "quantity": 3,
+          "delta": 3,
           "unitPrice": 0
         }
       ]
@@ -4808,21 +5611,25 @@
         {
           "productId": "sp-khung-soi-20x30",
           "quantity": 4,
+          "delta": 4,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-40x60",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-nhom-vang-30x40",
           "quantity": 3,
+          "delta": 3,
           "unitPrice": 0
         }
       ]
@@ -4841,6 +5648,7 @@
         {
           "productId": "vt-dinh-ghim",
           "quantity": 5,
+          "delta": 5,
           "unitPrice": 0
         }
       ]
@@ -4858,21 +5666,25 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 13,
+          "delta": 13,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 2.07,
+          "delta": 2.07,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 1.39,
+          "delta": 1.39,
           "unitPrice": 0
         },
         {
           "productId": "vt-mica-2ly",
           "quantity": 0.9,
+          "delta": 0.9,
           "unitPrice": 0
         }
       ]
@@ -4890,11 +5702,13 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 30,
+          "delta": 30,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.3,
+          "delta": 0.3,
           "unitPrice": 0
         }
       ]
@@ -4912,16 +5726,19 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 10.67,
+          "delta": 10.67,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 1.04,
+          "delta": 1.04,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 0.7,
+          "delta": 0.7,
           "unitPrice": 0
         }
       ]
@@ -4939,11 +5756,13 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 40,
+          "delta": 40,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.4,
+          "delta": 0.4,
           "unitPrice": 0
         }
       ]
@@ -4961,11 +5780,13 @@
         {
           "productId": "sp-khung-soi-40x60",
           "quantity": 15,
+          "delta": 15,
           "unitPrice": 66271
         },
         {
           "productId": "sp-mica-cat",
           "quantity": 6,
+          "delta": 6,
           "unitPrice": 63000
         }
       ]
@@ -4983,11 +5804,13 @@
         {
           "productId": "sp-khung-soi-20x30",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 26757
         },
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 40988
         }
       ]
@@ -5005,21 +5828,25 @@
         {
           "productId": "sp-khung-soi-40x60",
           "quantity": 15,
+          "delta": 15,
           "unitPrice": 0
         },
         {
           "productId": "sp-mica-cat",
           "quantity": 6,
+          "delta": 6,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-20x30",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 0
         }
       ]
@@ -5037,11 +5864,13 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 250,
+          "delta": 250,
           "unitPrice": 39000
         },
         {
           "productId": "vt-nep-oc-cho",
           "quantity": 120,
+          "delta": 120,
           "unitPrice": 73000
         }
       ]
@@ -5059,16 +5888,19 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 33.2,
+          "delta": 33.2,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 5.73,
+          "delta": 5.73,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 3.85,
+          "delta": 3.85,
           "unitPrice": 0
         }
       ]
@@ -5086,11 +5918,13 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 72,
+          "delta": 72,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.72,
+          "delta": 0.72,
           "unitPrice": 0
         }
       ]
@@ -5108,21 +5942,25 @@
         {
           "productId": "vt-nep-oc-cho",
           "quantity": 8.67,
+          "delta": 8.67,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 2.76,
+          "delta": 2.76,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 1.85,
+          "delta": 1.85,
           "unitPrice": 0
         },
         {
           "productId": "vt-nhom-den",
           "quantity": 8.32,
+          "delta": 8.32,
           "unitPrice": 0
         }
       ]
@@ -5140,16 +5978,19 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 40,
+          "delta": 40,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.4,
+          "delta": 0.4,
           "unitPrice": 0
         },
         {
           "productId": "vt-kep-kinh",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 0
         }
       ]
@@ -5167,11 +6008,13 @@
         {
           "productId": "sp-khung-soi-40x60",
           "quantity": 24,
+          "delta": 24,
           "unitPrice": 66271
         },
         {
           "productId": "sp-khung-soi-50x70",
           "quantity": 12,
+          "delta": 12,
           "unitPrice": 87067
         }
       ]
@@ -5189,16 +6032,19 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 1.9,
+          "delta": 1.9,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 0.38,
+          "delta": 0.38,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 0.26,
+          "delta": 0.26,
           "unitPrice": 0
         }
       ]
@@ -5216,11 +6062,13 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 4,
+          "delta": 4,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.04,
+          "delta": 0.04,
           "unitPrice": 0
         }
       ]
@@ -5238,11 +6086,13 @@
         {
           "productId": "sp-khung-oc-cho-40x60",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 95739
         },
         {
           "productId": "sp-khung-nhom-den-40x60",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 80101
         }
       ]
@@ -5260,11 +6110,13 @@
         {
           "productId": "sp-khung-soi-60x90",
           "quantity": 1,
+          "delta": 1,
           "unitPrice": 121575
         },
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 1,
+          "delta": 1,
           "unitPrice": 40988
         }
       ]
@@ -5282,11 +6134,13 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 571.43,
+          "delta": -3,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 36.16,
+          "delta": -1,
           "unitPrice": 0
         }
       ]
@@ -5304,31 +6158,37 @@
         {
           "productId": "sp-khung-soi-40x60",
           "quantity": 24,
+          "delta": 24,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-50x70",
           "quantity": 12,
+          "delta": 12,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-oc-cho-40x60",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-nhom-den-40x60",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-60x90",
           "quantity": 1,
+          "delta": 1,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 1,
+          "delta": 1,
           "unitPrice": 0
         }
       ]
@@ -5346,6 +6206,7 @@
         {
           "productId": "vt-keo-dan",
           "quantity": 1,
+          "delta": 1,
           "unitPrice": 0
         }
       ]
@@ -5363,6 +6224,7 @@
         {
           "productId": "vt-ve-sinh-kinh",
           "quantity": 2,
+          "delta": 2,
           "unitPrice": 0
         }
       ]
@@ -5380,16 +6242,19 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 29.37,
+          "delta": 29.37,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 6.32,
+          "delta": 6.32,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 4.25,
+          "delta": 4.25,
           "unitPrice": 0
         }
       ]
@@ -5407,11 +6272,13 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 52,
+          "delta": 52,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.52,
+          "delta": 0.52,
           "unitPrice": 0
         }
       ]
@@ -5429,21 +6296,25 @@
         {
           "productId": "vt-nhom-vang",
           "quantity": 1.18,
+          "delta": 1.18,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 0.35,
+          "delta": 0.35,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 0.23,
+          "delta": 0.23,
           "unitPrice": 0
         },
         {
           "productId": "vt-nep-soi",
           "quantity": 1.85,
+          "delta": 1.85,
           "unitPrice": 0
         }
       ]
@@ -5461,16 +6332,19 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.1,
+          "delta": 0.1,
           "unitPrice": 0
         },
         {
           "productId": "vt-kep-kinh",
           "quantity": 2,
+          "delta": 2,
           "unitPrice": 0
         }
       ]
@@ -5488,11 +6362,13 @@
         {
           "productId": "sp-khung-soi-50x70",
           "quantity": 16,
+          "delta": 16,
           "unitPrice": 87067
         },
         {
           "productId": "sp-khung-soi-60x90",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 121575
         }
       ]
@@ -5510,11 +6386,13 @@
         {
           "productId": "sp-khung-nhom-vang-30x40",
           "quantity": 2,
+          "delta": 2,
           "unitPrice": 48285
         },
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 3,
+          "delta": 3,
           "unitPrice": 40988
         }
       ]
@@ -5532,21 +6410,25 @@
         {
           "productId": "sp-khung-soi-50x70",
           "quantity": 16,
+          "delta": 16,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-60x90",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-nhom-vang-30x40",
           "quantity": 2,
+          "delta": 2,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 3,
+          "delta": 3,
           "unitPrice": 0
         }
       ]
@@ -5564,11 +6446,13 @@
         {
           "productId": "vt-den-led",
           "quantity": 30,
+          "delta": 30,
           "unitPrice": 95000
         },
         {
           "productId": "vt-ve-sinh-kinh",
           "quantity": 15,
+          "delta": 15,
           "unitPrice": 18000
         }
       ]
@@ -5586,21 +6470,25 @@
         {
           "productId": "vt-nhom-vang",
           "quantity": 4.74,
+          "delta": 4.74,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 1.1,
+          "delta": 1.1,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 0.74,
+          "delta": 0.74,
           "unitPrice": 0
         },
         {
           "productId": "vt-nep-soi",
           "quantity": 4.93,
+          "delta": 4.93,
           "unitPrice": 0
         }
       ]
@@ -5618,16 +6506,19 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 32,
+          "delta": 32,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.32,
+          "delta": 0.32,
           "unitPrice": 0
         },
         {
           "productId": "vt-kep-kinh",
           "quantity": 8,
+          "delta": 8,
           "unitPrice": 0
         }
       ]
@@ -5645,16 +6536,19 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 10.4,
+          "delta": 10.4,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 1.66,
+          "delta": 1.66,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 1.11,
+          "delta": 1.11,
           "unitPrice": 0
         }
       ]
@@ -5672,11 +6566,13 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 24,
+          "delta": 24,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.24,
+          "delta": 0.24,
           "unitPrice": 0
         }
       ]
@@ -5694,21 +6590,25 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 38.34,
+          "delta": 38.34,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 6.9,
+          "delta": 6.9,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 4.64,
+          "delta": 4.64,
           "unitPrice": 0
         },
         {
           "productId": "vt-nep-oc-cho",
           "quantity": 8.67,
+          "delta": 8.67,
           "unitPrice": 0
         }
       ]
@@ -5726,11 +6626,13 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 120,
+          "delta": 120,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 1.2,
+          "delta": 1.2,
           "unitPrice": 0
         }
       ]
@@ -5748,16 +6650,19 @@
         {
           "productId": "sp-khung-nhom-vang-30x40",
           "quantity": 8,
+          "delta": 8,
           "unitPrice": 48285
         },
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 8,
+          "delta": 8,
           "unitPrice": 40988
         },
         {
           "productId": "sp-khung-soi-40x60",
           "quantity": 12,
+          "delta": 12,
           "unitPrice": 66271
         }
       ]
@@ -5775,16 +6680,19 @@
         {
           "productId": "vt-nhom-den",
           "quantity": 19.97,
+          "delta": 19.97,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 3.31,
+          "delta": 3.31,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 2.22,
+          "delta": 2.22,
           "unitPrice": 0
         }
       ]
@@ -5802,16 +6710,19 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 48,
+          "delta": 48,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.48,
+          "delta": 0.48,
           "unitPrice": 0
         },
         {
           "productId": "vt-kep-kinh",
           "quantity": 24,
+          "delta": 24,
           "unitPrice": 0
         }
       ]
@@ -5829,16 +6740,19 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 20.67,
+          "delta": 20.67,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 6.52,
+          "delta": 6.52,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 2.7,
+          "delta": 2.7,
           "unitPrice": 0
         }
       ]
@@ -5856,11 +6770,13 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 40,
+          "delta": 40,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.4,
+          "delta": 0.4,
           "unitPrice": 0
         }
       ]
@@ -5878,16 +6794,19 @@
         {
           "productId": "sp-khung-nhom-vang-30x40",
           "quantity": 8,
+          "delta": 8,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 8,
+          "delta": 8,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-40x60",
           "quantity": 12,
+          "delta": 12,
           "unitPrice": 0
         }
       ]
@@ -5905,6 +6824,7 @@
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 20,
+          "delta": 20,
           "unitPrice": 40988
         }
       ]
@@ -5922,6 +6842,7 @@
         {
           "productId": "sp-khung-nhom-den-40x60",
           "quantity": 24,
+          "delta": 24,
           "unitPrice": 80101
         }
       ]

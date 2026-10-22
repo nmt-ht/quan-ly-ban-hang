@@ -1,9 +1,6 @@
-import { SalesOrder } from '../../../core/models/domain.models';
-import { lineGross, orderTotals } from '../../sales-orders/sales-order.rules';
-
 // Báo cáo Doanh thu (slug ban-hang). Doanh thu ghi nhận khi khách THỰC NHẬN hàng, đúng bằng số đã
-// vào công nợ phải thu (receivedValue, ngày = ngày giao — như DebtService). Chiết khấu cả đơn phân
-// bổ về từng dòng theo tỷ lệ giá trị (orderTotals). Pure functions — no Angular here.
+// vào công nợ phải thu (receivedValue, ngày = ngày giao). The server builds the lines (backend
+// modules/reports/report.rules.ts › revenueLines); this file groups them. Pure functions — no Angular here.
 
 /** One sales line as far as the customer received it. Sum of `total` per order = receivedValue. */
 export interface RevenueLine {
@@ -21,29 +18,6 @@ export interface RevenueLine {
   total: number; // tổng thanh toán = phải thu
 }
 
-export function revenueLines(orders: SalesOrder[]): RevenueLine[] {
-  const out: RevenueLine[] = [];
-  for (const o of orders) {
-    if (o.status === 'HUY' || !(o.receivedValue > 0)) continue;
-    const date = (o.deliveredDate ?? o.orderDate).slice(0, 10);
-    const t = orderTotals(o.lines, o.discountAmount);
-    o.lines.forEach((l, i) => {
-      const got = l.receivedQuantity ?? 0;
-      if (!got || !l.quantity) return;
-      const share = got / l.quantity;
-      // Same rounding as receivedValueOf, so the report ties out to công nợ phải thu to the đồng.
-      const total = Math.round(t.lines[i].total * share);
-      const vat = Math.round(t.lines[i].vat * share);
-      const net = total - vat;
-      const gross = Math.round(lineGross(l) * share);
-      out.push({
-        orderId: o.id, orderCode: o.code, date, customerId: o.customerId, salesRep: o.salesRep, productId: l.productId,
-        baseQty: Math.round(got * (l.ratioToBase ?? 1) * 10000) / 10000, gross, discount: gross - net, net, vat, total,
-      });
-    });
-  }
-  return out;
-}
 
 export interface RevenueSums {
   orders: number;

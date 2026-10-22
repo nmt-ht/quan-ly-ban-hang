@@ -15,6 +15,7 @@ import { PRODUCTION_ORDER_STATUS_LABEL, productionOrderStatusClass } from '../..
 import { round4 } from '../../purchase-orders/purchase-order.rules';
 import { SalesOrderService } from '../../sales-orders/sales-order.service';
 import { WarehouseVoucherService } from '../../warehouse-vouchers/warehouse-voucher.service';
+import { errorText } from '../../../core/api/api.service';
 import { VOUCHER_KIND_LABEL, kindOf } from '../../warehouse-vouchers/warehouse-voucher.rules';
 import { canCancelLsx, canComplete, canStart, isLate } from '../production-order.rules';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
@@ -57,6 +58,8 @@ export class ProductionOrderDetailComponent {
   readonly kindClass = (v: Parameters<typeof kindOf>[0]) => tagClass('warehouse-voucher', kindOf(v));
 
   readonly notice = signal('');
+  /** A save the server refused (or that could not reach it). */
+  readonly failure = signal('');
   readonly mode = signal<'' | 'complete' | 'cancel'>('');
   readonly produced = signal<number | null>(null);
   readonly cancelReason = signal('');
@@ -114,9 +117,10 @@ export class ProductionOrderDetailComponent {
     return (email && this.data.users().find((u) => u.email === email)?.name) || email || '—';
   }
 
-  start(): void {
+  async start(): Promise<void> {
     const x = this.lsx()!;
-    const v = this.orders.startProduction(x.id);
+    const v = await this.attempt(() => this.orders.startProduction(x.id));
+    if (!v) return;
     this.notice.set(`${x.code} đang sản xuất${v.length ? ` — đã xuất vật tư (${v.map((p) => p.code).join(', ')})` : ' — chưa có định mức nên không xuất vật tư'}.`);
   }
 
@@ -125,21 +129,33 @@ export class ProductionOrderDetailComponent {
     this.mode.set('complete');
   }
 
-  complete(): void {
+  async complete(): Promise<void> {
     const x = this.lsx()!;
     const qty = this.produced() ?? 0;
-    const v = this.orders.completeProduction(x.id, qty);
+    const v = await this.attempt(() => this.orders.completeProduction(x.id, qty));
+    if (!v) return;
     this.mode.set('');
     this.notice.set(v.length
       ? `${x.code} hoàn tất — đã nhập ${qty.toLocaleString('vi-VN')} ${this.product()?.baseUnit ?? ''} vào kho thành phẩm (${v.map((p) => p.code).join(', ')}).`
       : `${x.code} hoàn tất — không có thành phẩm đạt nên không nhập kho.`);
   }
 
-  cancel(): void {
+  async cancel(): Promise<void> {
     const x = this.lsx()!;
     const wasRunning = x.status === 'DANG_SAN_XUAT';
-    this.orders.cancelProduction(x.id, this.cancelReason());
+    if ((await this.attempt(() => this.orders.cancelProduction(x.id, this.cancelReason()).then(() => true))) === null) return;
     this.mode.set('');
     this.notice.set(`Đã huỷ ${x.code}.${wasRunning ? ' Vật tư đã xuất không tự nhập lại — lập phiếu nhập kho nếu còn dùng được.' : ''}`);
+  }
+
+  /** Runs a save; on failure shows why and answers null. */
+  private async attempt<T>(save: () => Promise<T>): Promise<T | null> {
+    this.failure.set('');
+    try {
+      return await save();
+    } catch (e) {
+      this.failure.set(errorText(e));
+      return null;
+    }
   }
 }

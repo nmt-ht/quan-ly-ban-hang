@@ -16,6 +16,7 @@ import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { PRODUCTION_ORDER_STATUS_LABEL, productionOrderStatusClass } from '../../shared/status-labels';
 import { SalesOrderService } from '../sales-orders/sales-order.service';
 import { canStart, isLate } from './production-order.rules';
+import { errorText } from '../../core/api/api.service';
 import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 
 interface ActiveChip {
@@ -45,6 +46,8 @@ export class ProductionOrdersComponent {
   readonly pageSize = signal(20);
   readonly exporting = signal(false);
   readonly notice = signal('');
+  /** A save the server refused (or that could not reach it). */
+  readonly failure = signal('');
   readonly canStart = canStart;
 
   private readonly productById = computed(() => new Map(this.data.products().map((p) => [p.id, p])));
@@ -151,8 +154,15 @@ export class ProductionOrdersComponent {
     });
   }
 
-  start(x: ProductionOrder): void {
-    const v = this.orders.startProduction(x.id);
+  async start(x: ProductionOrder): Promise<void> {
+    this.failure.set('');
+    let v;
+    try {
+      v = await this.orders.startProduction(x.id);
+    } catch (e) {
+      this.failure.set(errorText(e));
+      return;
+    }
     this.notice.set(`${x.code} đang sản xuất${v.length ? ` — đã xuất vật tư (${v.map((p) => p.code).join(', ')})` : ' — chưa có định mức nên không xuất vật tư'}.`);
   }
 

@@ -27,6 +27,12 @@
         <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
       </div>
     }
+    @if (failure()) {
+      <div class="notice is-error" role="alert">
+        <span>{{ failure() }}</span>
+        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="failure.set('')"><app-nav-icon name="x" /></button>
+      </div>
+    }
 
     <!-- Thu tiền: Chưa thu tiền / Thu tiền ngay (như MISA) -->
     <section class="card pay-bar" aria-label="Thu tiền">

@@ -1,12 +1,15 @@
 <div class="page-header">
   <div>
     <h1>Tổng quan</h1>
-    <p class="subtitle">Hôm nay <span class="num">{{ day(today) }}</span> · đang xem {{ periodLabel() }} (<span class="num">{{ day(range().from) }} → {{ day(range().to) }}</span>)</p>
+    <p class="subtitle">Hôm nay <span class="num">{{ day(today()) }}</span> · đang xem {{ periodLabel() }} (<span class="num">{{ day(range().from) }} → {{ day(range().to) }}</span>)</p>
   </div>
   <div class="toolbar">
     <app-period-filter [(value)]="period" />
   </div>
 </div>
+@if (failure()) {
+  <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div>
+}
 
 <!-- 1. Vấn đề: việc đầu tiên khách cần thấy. Nghiêm trọng trước, rồi cần theo dõi. -->
 <section class="card db-issues" aria-labelledby="db-iss">
@@ -64,24 +67,28 @@
     </span>
     <span class="db-kpi-note"><span class="num">{{ k.orders }}</span> đơn đã giao · trung bình <span class="num">{{ money(k.avg) }}</span></span>
   </a>
+  @if (showProfit()) {
   <a class="db-kpi" routerLink="/bao-cao" [queryParams]="{ name: 'loi-nhuan' }">
     <span class="db-kpi-label">Lãi gộp <span class="db-est" title="Giá vốn ước tính theo giá nhập gần nhất và định mức">ước tính</span></span>
-    <span class="db-kpi-value num" [class.amt-neg]="k.profit < 0">{{ money(k.profit) }}</span>
+    <span class="db-kpi-value num" [class.amt-neg]="(k.profit ?? 0) < 0">{{ money(k.profit ?? 0) }}</span>
     <span class="db-kpi-sub">
       Tỷ suất <span class="num">{{ percent(k.margin) }}</span>
-      @if (p.revenue > 0) { <span class="db-delta" [class.is-good]="k.margin > p.margin" [class.is-bad]="k.margin < p.margin">{{ k.margin >= p.margin ? 'Tăng' : 'Giảm' }} · kỳ trước {{ percent(p.margin) }}</span> }
+      @if (p.revenue > 0) { <span class="db-delta" [class.is-good]="(k.margin ?? 0) > (p.margin ?? 0)" [class.is-bad]="(k.margin ?? 0) < (p.margin ?? 0)">{{ (k.margin ?? 0) >= (p.margin ?? 0) ? 'Tăng' : 'Giảm' }} · kỳ trước {{ percent(p.margin) }}</span> }
     </span>
     <span class="db-kpi-note">Doanh thu trừ giá vốn hàng đã giao</span>
   </a>
+  }
+  @if (debts(); as dt) {
   <a class="db-kpi" routerLink="/cong-no/khach-hang">
     <span class="db-kpi-label">Khách còn nợ</span>
-    <span class="db-kpi-value num">{{ money(debt.receivableTotal()) }}</span>
+    <span class="db-kpi-value num">{{ money(dt.receivableTotal) }}</span>
     <span class="db-kpi-sub">
-      @if (debt.receivableOverdue() > 0) { <span class="db-delta is-bad">Quá hạn {{ money(debt.receivableOverdue()) }}</span> }
+      @if (dt.receivableOverdue > 0) { <span class="db-delta is-bad">Quá hạn {{ money(dt.receivableOverdue) }}</span> }
       @else { <span class="db-delta is-good">Không có khoản quá hạn</span> }
     </span>
-    <span class="db-kpi-note">Toàn bộ lịch sử · phải trả NCC <span class="num">{{ money(debt.payableTotal()) }}</span></span>
+    <span class="db-kpi-note">Toàn bộ lịch sử · phải trả NCC <span class="num">{{ money(dt.payableTotal) }}</span></span>
   </a>
+  }
   <a class="db-kpi" routerLink="/thu-chi">
     <span class="db-kpi-label">Tiền quỹ hiện có</span>
     <span class="db-kpi-value num" [class.amt-neg]="c.balance < 0">{{ money(c.balance) }}</span>
@@ -161,23 +168,27 @@
   <section class="card db-area" [attr.data-level]="areaLevel('profit')" aria-labelledby="db-a-profit">
     <header><h3 id="db-a-profit">Lợi nhuận</h3><span class="db-chip">{{ levelName[areaLevel('profit')] }}</span></header>
     <dl class="db-rows">
-      <div><dt><a class="code-link" routerLink="/bao-cao" [queryParams]="{ name: 'loi-nhuan' }">Tỷ suất lãi gộp (ước tính)</a></dt><dd class="num">{{ percent(k.margin) }}</dd></div>
-      <div [class.is-bad]="l.belowCostLines > 0"><dt><a class="code-link" routerLink="/bao-cao" [queryParams]="{ name: 'ban-duoi-gia-von' }">Bán dưới giá vốn</a></dt><dd class="num">{{ l.belowCostLines }} dòng · lỗ {{ money(l.belowCostLoss) }}</dd></div>
+      @if (showProfit()) {
+        <div><dt><a class="code-link" routerLink="/bao-cao" [queryParams]="{ name: 'loi-nhuan' }">Tỷ suất lãi gộp (ước tính)</a></dt><dd class="num">{{ percent(k.margin) }}</dd></div>
+        <div [class.is-bad]="(l.belowCostLines ?? 0) > 0"><dt><a class="code-link" routerLink="/bao-cao" [queryParams]="{ name: 'ban-duoi-gia-von' }">Bán dưới giá vốn</a></dt><dd class="num">{{ l.belowCostLines ?? 0 }} dòng · lỗ {{ money(l.belowCostLoss ?? 0) }}</dd></div>
+      }
       <div [class.is-warn]="l.discountPct >= 10"><dt><a class="code-link" routerLink="/bao-cao" [queryParams]="{ name: 'chiet-khau' }">Chiết khấu đã cấp</a></dt><dd class="num">{{ money(l.discount) }} · {{ l.discountPct }}%</dd></div>
     </dl>
   </section>
 
+  @if (debts(); as dt) {
   <section class="card db-area" [attr.data-level]="areaLevel('debt')" aria-labelledby="db-a-debt">
     <header><h3 id="db-a-debt">Công nợ</h3><span class="db-chip">{{ levelName[areaLevel('debt')] }}</span></header>
     <dl class="db-rows">
-      <div><dt><a class="code-link" routerLink="/cong-no/khach-hang">Phải thu khách hàng</a></dt><dd class="num">{{ money(debt.receivableTotal()) }}</dd></div>
-      <div class="db-sub" [class.is-bad]="debt.receivableOverdue() > 0"><dt>quá hạn · {{ a.overdueCustomers }} khách</dt><dd class="num">{{ money(debt.receivableOverdue()) }}</dd></div>
-      <div><dt><a class="code-link" routerLink="/cong-no/nha-cung-cap">Phải trả nhà cung cấp</a></dt><dd class="num">{{ money(debt.payableTotal()) }}</dd></div>
-      <div class="db-sub" [class.is-bad]="debt.payableOverdue() > 0"><dt>quá hạn</dt><dd class="num">{{ money(debt.payableOverdue()) }}</dd></div>
-      <div class="db-sub" [class.is-warn]="a.payableDue > 0"><dt>quá hạn &amp; đến hạn trong 7 ngày · {{ a.payableDueCount }} khoản</dt><dd class="num">{{ money(a.payableDue) }}</dd></div>
+      <div><dt><a class="code-link" routerLink="/cong-no/khach-hang">Phải thu khách hàng</a></dt><dd class="num">{{ money(dt.receivableTotal) }}</dd></div>
+      <div class="db-sub" [class.is-bad]="dt.receivableOverdue > 0"><dt>quá hạn · {{ dt.overdueCustomers }} khách</dt><dd class="num">{{ money(dt.receivableOverdue) }}</dd></div>
+      <div><dt><a class="code-link" routerLink="/cong-no/nha-cung-cap">Phải trả nhà cung cấp</a></dt><dd class="num">{{ money(dt.payableTotal) }}</dd></div>
+      <div class="db-sub" [class.is-bad]="dt.payableOverdue > 0"><dt>quá hạn</dt><dd class="num">{{ money(dt.payableOverdue) }}</dd></div>
+      <div class="db-sub" [class.is-warn]="dt.payableDue > 0"><dt>quá hạn &amp; đến hạn trong 7 ngày · {{ dt.payableDueCount }} khoản</dt><dd class="num">{{ money(dt.payableDue) }}</dd></div>
     </dl>
     <a class="btn" routerLink="/cong-no/tuoi-no">Báo cáo tuổi nợ</a>
   </section>
+  }
 
   <section class="card db-area" [attr.data-level]="areaLevel('cash')" aria-labelledby="db-a-cash">
     <header><h3 id="db-a-cash">Dòng tiền</h3><span class="db-chip">{{ levelName[areaLevel('cash')] }}</span></header>

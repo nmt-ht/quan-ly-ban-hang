@@ -125,9 +125,10 @@ async function main() {
     await prisma.purchaseOrder.create({
       data: {
         id: o.id, code: o.code, supplierId: o.supplierId, date: new Date(o.date), status: o.status,
+        receivedDate: D(o.receivedDate),
         createdById: user[o.createdByKey],
-        lines: { create: o.lines.map((l: any) => ({
-          productId: l.productId, quantity: l.quantity, unitPrice: l.unitPrice, receivedQuantity: l.receivedQuantity,
+        lines: { create: o.lines.map((l: any, i: number) => ({
+          id: l.id, productId: l.productId, quantity: l.quantity, unitPrice: l.unitPrice, receivedQuantity: l.receivedQuantity, sortOrder: i,
         })) },
       },
     });
@@ -142,11 +143,12 @@ async function main() {
         description: o.description, source: o.source,
         orderDate: new Date(o.orderDate), neededByDate: D(o.neededByDate),
         status: o.status, discountAmount: o.discountAmount,
+        deliveredDate: D(o.deliveredDate), dueDate: D(o.dueDate),
         salesRepId: o.salesRepKey ? user[o.salesRepKey] : undefined,
         createdById: user[o.createdByKey],
         tags: { create: (o.tagIds ?? []).map((t: string) => ({ tagId: tagMap[t] })) },
-        lines: { create: o.lines.map((l: any) => ({
-          productId: l.productId, unit: l.unit, quantity: l.quantity, unitPrice: l.unitPrice,
+        lines: { create: o.lines.map((l: any, i: number) => ({
+          id: l.id, productId: l.productId, unit: l.unit, quantity: l.quantity, unitPrice: l.unitPrice, sortOrder: i,
           length: l.length, width: l.width, note: l.note, receivedQuantity: l.receivedQuantity ?? 0,
         })) },
       },
@@ -159,6 +161,7 @@ async function main() {
       data: {
         id: p.id, code: p.code, sourceOrderId: p.sourceOrderId, productId: p.productId,
         quantity: p.quantity, status: p.status, bomSnapshot: p.bomSnapshot, createdAt: D(p.createdAt),
+        startDate: D(p.startDate), completeDate: D(p.completeDate), producedQuantity: p.producedQuantity,
       },
     });
   }
@@ -168,11 +171,23 @@ async function main() {
     ...v, createdAt: D(v.createdAt), registrationExpiry: D(v.registrationExpiry), insuranceExpiry: D(v.insuranceExpiry),
   })) });
   for (const t of data.deliveryTrips) {
+    // Loads point at the order line by its index on the order; chốt giao fills their received quantity.
+    const lineId = (orderId: string, index: number) => data.salesOrders.find((o: any) => o.id === orderId).lines[index].id;
+    const confirmed = new Map<string, any>((t.confirmations ?? []).map((c: any) => [c.orderId, c]));
     await prisma.deliveryTrip.create({
       data: {
-        id: t.id, code: t.code, date: new Date(t.date), driverName: t.driverName,
-        vehicleId: t.vehicleId, status: t.status,
-        orders: { create: t.orderIds.map((orderId: string) => ({ orderId })) },
+        id: t.id, code: t.code, date: new Date(t.date), driverName: t.driverName, driverPhone: t.driverPhone,
+        plateNumber: t.plateNumber, vehicleId: t.vehicleId, status: t.status, note: t.note,
+        shippedAt: D(t.shippedAt), returnedAt: D(t.returnedAt), completedAt: D(t.completedAt), cancelReason: t.cancelReason,
+        fuelCost: t.costs?.fuel ?? 0, tollCost: t.costs?.toll ?? 0, otherCost: t.costs?.other ?? 0, costNote: t.costs?.note,
+        createdById: user[t.createdByKey],
+        orders: { create: t.orderIds.map((orderId: string, i: number) => ({
+          orderId, sortOrder: i, confirmedAt: D(confirmed.get(orderId)?.confirmedAt), confirmNote: confirmed.get(orderId)?.note,
+        })) },
+        loads: { create: (t.loads ?? []).map((l: any) => ({
+          orderLineId: lineId(l.orderId, l.lineIndex), productId: l.productId, warehouseId: l.warehouseId, quantity: l.quantity,
+          receivedQuantity: confirmed.get(l.orderId)?.lines.find((x: any) => x.lineIndex === l.lineIndex)?.received,
+        })) },
       },
     });
   }
@@ -185,8 +200,8 @@ async function main() {
         warehouseId: wh[v.warehouseKey],
         targetWarehouseId: v.targetWarehouseKey ? wh[v.targetWarehouseKey] : undefined,
         reason: v.reason, isCancelled: v.isCancelled, createdById: user[v.createdByKey],
-        lines: { create: v.lines.map((l: any) => ({
-          productId: l.productId, quantity: l.quantity, unitPrice: l.unitPrice ?? 0,
+        lines: { create: v.lines.map((l: any, i: number) => ({
+          productId: l.productId, quantity: l.quantity, delta: l.delta ?? l.quantity, unitPrice: l.unitPrice ?? 0, sortOrder: i,
         })) },
       },
     });
@@ -206,9 +221,7 @@ async function main() {
       },
     });
   }
-  for (const [key, balance] of Object.entries<number>(data.cashAccountBalances)) {
-    await prisma.cashAccount.update({ where: { id: acc[key] }, data: { balance } });
-  }
+  // Số dư quỹ is not stored: the API derives it from the vouchers above (data.cashAccountBalances is the check).
 
   console.log('Đã nạp dữ liệu demo:', {
     khachHang: data.customers.length, donBan: data.salesOrders.length,

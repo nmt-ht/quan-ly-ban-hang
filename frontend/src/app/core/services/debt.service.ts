@@ -1,6 +1,10 @@
-import { Injectable, computed } from '@angular/core';
+import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { CashAllocation, CashVoucher, DebtAgingBucket } from '../models/domain.models';
 import { MockDataService } from './mock-data.service';
+import { AuthService } from './auth.service';
+import { ApiService } from '../api/api.service';
+import { CatalogLoader } from '../api/catalog-loader.service';
+import { CASH_FROM_API } from '../api/api.config';
 
 export interface DebtItem {
   ref: string; // mã chứng từ còn nợ (đơn nhập / đơn bán / phiếu hoàn tiền)
@@ -162,14 +166,65 @@ interface PartnerInput {
 
 const creditLabel = (days: number) => (days > 0 ? `${days} ngày` : 'Trả ngay');
 
+/** A DebtRow as /receivables and /payables send it: entries name their document by id. */
+type ApiDebtRow = Omit<DebtRow, 'entries'> & { entries: (Omit<DebtEntry, 'link'> & { sourceId?: string })[] };
+
+const withLinks = (path: string) => (r: ApiDebtRow): DebtRow => ({
+  ...r, entries: r.entries.map(({ sourceId, ...e }) => (sourceId ? { ...e, link: [path, sourceId] } : e)),
+});
+
 @Injectable({ providedIn: 'root' })
 export class DebtService {
   private readonly todayMs = new Date(new Date().toISOString().slice(0, 10)).getTime();
+  private readonly api = inject(ApiService);
+  private readonly auth = inject(AuthService);
+  private readonly loader = inject(CatalogLoader);
 
-  constructor(private readonly data: MockDataService) {}
+  /** Công nợ as the server computed it (CASH_FROM_API). */
+  private readonly server = signal<{ receivables: DebtRow[]; payables: DebtRow[] }>({ receivables: [], payables: [] });
+  private readSeq = 0;
+
+  readonly receivables = computed<DebtRow[]>(() => (CASH_FROM_API ? this.server().receivables : this.localReceivables()));
+  readonly payables = computed<DebtRow[]>(() => (CASH_FROM_API ? this.server().payables : this.localPayables()));
+
+  constructor(private readonly data: MockDataService) {
+    if (!CASH_FROM_API) return;
+    // Every write that moves công nợ (giao / nhận hàng, chốt giao, phiếu thu chi, số ngày được nợ) puts
+    // its result into one of these lists, so a change there reads công nợ again.
+    effect(() => {
+      if (this.loader.status() !== 'ready') return;
+      this.data.salesOrders();
+      this.data.purchaseOrders();
+      this.data.cashVouchers();
+      this.data.customers();
+      this.data.suppliers();
+      untracked(() => void this.refresh());
+    });
+  }
+
+  /** Read /receivables and /payables again; empty without debt.view (the server refuses them). */
+  async refresh(): Promise<void> {
+    const seq = ++this.readSeq;
+    if (!this.auth.can('debt.view')) {
+      this.server.set({ receivables: [], payables: [] });
+      return;
+    }
+    try {
+      const [receivables, payables] = await Promise.all([
+        this.api.get<ApiDebtRow[]>('/receivables'),
+        this.api.get<ApiDebtRow[]>('/payables'),
+      ]);
+      // Only the latest read counts: an older answer may predate the write that started a newer one.
+      if (seq === this.readSeq) {
+        this.server.set({ receivables: receivables.map(withLinks('/don-hang')), payables: payables.map(withLinks('/mua-hang')) });
+      }
+    } catch {
+      // Keep the last công nợ shown; the next change reads again.
+    }
+  }
 
   /** Phải thu: theo giá trị khách THỰC NHẬN (receivedValue), hạn = ngày giao + số ngày được nợ. */
-  readonly receivables = computed<DebtRow[]>(() => {
+  private readonly localReceivables = computed<DebtRow[]>(() => {
     const orders = this.data.salesOrders();
     const vouchers = this.data.cashVouchers().filter((v) => !v.isCancelled && v.partnerType === 'KHACH_HANG');
     return this.data.customers()
@@ -192,7 +247,7 @@ export class DebtService {
   });
 
   /** Phải trả: theo giá trị hàng ĐÃ NHẬN (receivedValue) của đơn nhập; hạn = ngày nhập kho + số ngày được nợ. */
-  readonly payables = computed<DebtRow[]>(() => {
+  private readonly localPayables = computed<DebtRow[]>(() => {
     const orders = this.data.purchaseOrders();
     const vouchers = this.data.cashVouchers().filter((v) => !v.isCancelled && v.partnerType === 'NHA_CUNG_CAP');
     const receipts = this.data.warehouseVouchers().filter((w) => !w.isCancelled && w.type === 'NHAP');

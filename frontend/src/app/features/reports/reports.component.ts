@@ -8,6 +8,8 @@ import { REPORT_GROUPS, REPORTS, ReportGroup, groupOf, reportBySlug } from './re
 import { RevenueReportComponent } from './revenue/revenue-report.component';
 import { TableReportComponent } from './table-report/table-report.component';
 import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
+import { AuthService } from '../../core/services/auth.service';
+import { ReportDef } from './report.types';
 
 // /bao-cao is the hub (every report, by group). /bao-cao?name=<slug> is one report inside a frame with
 // the same list beside it. Slugs are production's (docs/crawl/02-bao-cao.md), so old links keep working.
@@ -19,9 +21,13 @@ import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
   styleUrl: './reports.component.scss',
 })
 export class ReportsComponent {
+  private readonly auth = inject(AuthService);
+  /** Only the reports this role may open (GROUP permission, as the server checks). */
+  private readonly mine = REPORTS.filter((r: ReportDef) => this.auth.can(groupOf(r.group).permission));
+
   readonly groups = REPORT_GROUPS;
-  readonly total = REPORTS.length;
-  readonly ready = REPORTS.filter((r) => r.kind !== 'soon').length;
+  readonly total = this.mine.length;
+  readonly ready = this.mine.filter((r) => r.kind !== 'soon').length;
 
   private readonly router = inject(Router);
   private readonly name = toSignal(inject(ActivatedRoute).queryParamMap.pipe(map((q) => q.get('name'))), { initialValue: null });
@@ -29,7 +35,10 @@ export class ReportsComponent {
   readonly query = signal('');
 
   /** The open report, or null for the hub (also for an unknown ?name=). */
-  readonly active = computed(() => reportBySlug(this.name()) ?? null);
+  readonly active = computed(() => {
+    const r = reportBySlug(this.name());
+    return r && this.mine.includes(r) ? r : null;
+  });
   readonly activeGroup = computed(() => (this.active() ? groupOf(this.active()!.group) : null));
 
   /** Hub content: groups with the reports that match the search box. */
@@ -37,12 +46,12 @@ export class ReportsComponent {
     const q = foldVi(this.query().trim());
     return REPORT_GROUPS.map((g: ReportGroup) => ({
       group: g,
-      items: REPORTS.filter((r) => r.group === g.key && (!q || foldVi(r.label + ' ' + r.summary).includes(q))),
+      items: this.mine.filter((r) => r.group === g.key && (!q || foldVi(r.label + ' ' + r.summary).includes(q))),
     })).filter((s) => s.items.length);
   });
 
   /** The list beside an open report is never filtered. */
-  readonly frameSections = REPORT_GROUPS.map((g) => ({ group: g, items: REPORTS.filter((r) => r.group === g.key) }));
+  readonly frameSections = REPORT_GROUPS.map((g) => ({ group: g, items: this.mine.filter((r) => r.group === g.key) })).filter((s) => s.items.length);
 
   open(slug: string): void {
     this.router.navigate(['/bao-cao'], { queryParams: slug ? { name: slug } : {} });

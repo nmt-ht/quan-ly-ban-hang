@@ -13,11 +13,16 @@ import { DEFAULT_CASH_CATEGORIES } from '../../features/cash-vouchers/cash-vouch
 import { loadCompany } from './company.storage';
 import { PERMISSION_MODULES } from '../data/permission-catalog';
 import { grantsFor } from '../../features/settings/roles-permissions/role.rules';
-import { CATALOG_FROM_API } from '../api/api.config';
+import { CASH_FROM_API, CATALOG_FROM_API, DELIVERY_FROM_API, INVENTORY_FROM_API, PURCHASING_FROM_API, SALES_FROM_API } from '../api/api.config';
 
 // Danh mục start empty when they come from the API (CatalogLoader fills them after sign-in);
 // the demo lists stay for demo mode and for the modules not yet on the API.
 const demo = <T>(rows: T[]): T[] => (CATALOG_FROM_API ? [] : rows);
+const demoStock = <T>(rows: T[]): T[] => (INVENTORY_FROM_API ? [] : rows);
+const demoPurchasing = <T>(rows: T[]): T[] => (PURCHASING_FROM_API ? [] : rows);
+const demoSales = <T>(rows: T[]): T[] => (SALES_FROM_API ? [] : rows);
+const demoDelivery = <T>(rows: T[]): T[] => (DELIVERY_FROM_API ? [] : rows);
+const demoCash = <T>(rows: T[]): T[] => (CASH_FROM_API ? [] : rows);
 
 // Dữ liệu GIẢ (xem core/data/demo-data.ts, sinh bởi tools/gen-demo-data.mjs) — chỉ để thử giao diện.
 @Injectable({ providedIn: 'root' })
@@ -42,26 +47,26 @@ export class MockDataService {
 
   readonly products = signal<Product[]>(demo(DEMO_PRODUCTS));
   readonly bomLines = signal<BomLine[]>(demo(DEMO_BOM_LINES));
-  readonly stockLevels = signal<StockLevel[]>(DEMO_STOCK_LEVELS);
-  readonly warehouseVouchers = signal<WarehouseVoucher[]>(DEMO_WAREHOUSE_VOUCHERS);
-  readonly productionOrders = signal<ProductionOrder[]>(DEMO_PRODUCTION_ORDERS);
+  readonly stockLevels = signal<StockLevel[]>(demoStock(DEMO_STOCK_LEVELS));
+  readonly warehouseVouchers = signal<WarehouseVoucher[]>(demoStock(DEMO_WAREHOUSE_VOUCHERS));
+  readonly productionOrders = signal<ProductionOrder[]>(demoSales(DEMO_PRODUCTION_ORDERS));
 
   readonly suppliers = signal<Supplier[]>(demo(DEMO_SUPPLIERS));
   readonly supplierProducts = signal<SupplierProduct[]>(demo(DEMO_SUPPLIER_PRODUCTS));
 
-  readonly purchaseOrders = signal<PurchaseOrder[]>(DEMO_PURCHASE_ORDERS);
+  readonly purchaseOrders = signal<PurchaseOrder[]>(demoPurchasing(DEMO_PURCHASE_ORDERS));
 
   readonly customers = signal<Customer[]>(demo(DEMO_CUSTOMERS));
 
-  readonly salesOrders = signal<SalesOrder[]>(DEMO_SALES_ORDERS);
+  readonly salesOrders = signal<SalesOrder[]>(demoSales(DEMO_SALES_ORDERS));
 
-  readonly deliveryTrips = signal<DeliveryTrip[]>(DEMO_DELIVERY_TRIPS);
+  readonly deliveryTrips = signal<DeliveryTrip[]>(demoDelivery(DEMO_DELIVERY_TRIPS));
 
   readonly vehicles = signal<Vehicle[]>(demo(DEMO_VEHICLES));
 
   readonly cashAccounts = signal<CashAccount[]>(demo(DEMO_CASH_ACCOUNTS));
 
-  readonly cashVouchers = signal<CashVoucher[]>(DEMO_CASH_VOUCHERS);
+  readonly cashVouchers = signal<CashVoucher[]>(demoCash(DEMO_CASH_VOUCHERS));
 
   readonly cashCategories = signal<CashCategory[]>(demo(DEFAULT_CASH_CATEGORIES));
 

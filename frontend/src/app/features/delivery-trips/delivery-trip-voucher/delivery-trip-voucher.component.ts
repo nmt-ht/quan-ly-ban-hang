@@ -22,6 +22,7 @@ import { DeliveryTripService } from '../delivery-trip.service';
 import { TripHeaderDialogComponent } from '../trip-header-dialog/trip-header-dialog.component';
 import { PrintDocumentComponent } from '../../../shared/print/print-document.component';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
+import { errorText } from '../../../core/api/api.service';
 
 type Tab = 'don' | 'hang' | 'phieu' | 'chi-phi';
 type PrintMode = 'soan' | 'giao' | null;
@@ -81,6 +82,8 @@ export class DeliveryTripVoucherComponent {
 
   readonly tab = signal<Tab>('don');
   readonly notice = signal('');
+  /** A step the server refused (or that could not reach it). */
+  readonly failure = signal('');
   readonly printMode = signal<PrintMode>(null);
   readonly confirmCancel = signal(false);
   readonly cancelReason = signal('');
@@ -208,10 +211,11 @@ export class DeliveryTripVoucherComponent {
   });
 
   readonly services = computed(() =>
-    this.effectiveLoads().filter((l) => !l.warehouseId).map((l) => {
-      const o = this.orderById().get(l.orderId)!;
+    this.effectiveLoads().filter((l) => !l.warehouseId).flatMap((l) => {
+      const o = this.orderById().get(l.orderId);
+      if (!o) return []; // an order this user may not see (another seller's)
       const p = this.productById().get(l.productId);
-      return { key: `${l.orderId}-${l.lineIndex}`, code: p?.code ?? '', name: p?.name ?? '', qty: l.quantity, unit: o.lines[l.lineIndex].unit, order: o.code };
+      return [{ key: `${l.orderId}-${l.lineIndex}`, code: p?.code ?? '', name: p?.name ?? '', qty: l.quantity, unit: o.lines[l.lineIndex].unit, order: o.code }];
     }),
   );
 
@@ -244,43 +248,60 @@ export class DeliveryTripVoucherComponent {
     if (typeof msg === 'string') this.notice.set(msg);
   }
 
-  ship(): void {
+  /** Runs a step; on failure shows why and answers null. */
+  private async attempt<T>(step: () => Promise<T>): Promise<T | null> {
+    this.failure.set('');
+    try {
+      return await step();
+    } catch (e) {
+      this.failure.set(errorText(e));
+      return null;
+    }
+  }
+
+  private done = (p: Promise<unknown>) => p.then(() => true);
+
+  async ship(): Promise<void> {
     const t = this.trip()!;
-    const v = this.svc.ship(t.id);
+    const v = await this.attempt(() => this.svc.ship(t.id));
+    if (!v) return;
     this.notice.set(`Đã xuất kho một lượt${v.length ? ` (${v.map((x) => x.code).join(', ')})` : ''} — ${t.orderIds.length} đơn chuyển sang Đang giao. Chốt giao từng đơn khi xe giao xong.`);
   }
 
-  returnToWarehouse(): void {
-    const v = this.svc.returnToWarehouse(this.trip()!.id);
+  async returnToWarehouse(): Promise<void> {
+    const v = await this.attempt(() => this.svc.returnToWarehouse(this.trip()!.id));
+    if (!v) return;
     this.notice.set(v.length
       ? `Xe đã về kho — nhập lại hàng khách không nhận (${v.map((x) => x.code).join(', ')}).`
       : 'Xe đã về kho — khách nhận đủ, không có hàng mang về.');
     this.tab.set('phieu');
   }
 
-  complete(): void {
-    this.svc.complete(this.trip()!.id);
+  async complete(): Promise<void> {
+    if (!(await this.attempt(() => this.done(this.svc.complete(this.trip()!.id))))) return;
     this.notice.set('Chuyến đã hoàn tất.');
   }
 
-  doCancel(): void {
-    this.svc.cancel(this.trip()!.id, this.cancelReason());
+  async doCancel(): Promise<void> {
+    const ok = await this.attempt(() => this.done(this.svc.cancel(this.trip()!.id, this.cancelReason())));
     this.confirmCancel.set(false);
+    if (!ok) return;
     this.notice.set('Đã huỷ chuyến — các đơn đã gỡ khỏi chuyến, vẫn ở Chờ giao hàng.');
   }
 
-  removeOrder(r: OrderRow): void {
-    this.svc.removeOrder(this.trip()!.id, r.order.id);
+  async removeOrder(r: OrderRow): Promise<void> {
+    if (!(await this.attempt(() => this.done(this.svc.removeOrder(this.trip()!.id, r.order.id))))) return;
     this.notice.set(`Đã gỡ ${r.order.code} khỏi chuyến.`);
   }
 
-  saveCosts(): void {
-    this.svc.saveCosts(this.trip()!.id, { fuel: this.fuel() ?? 0, toll: this.toll() ?? 0, other: this.other() ?? 0, note: this.costNote() });
+  async saveCosts(): Promise<void> {
+    const costs = this.svc.saveCosts(this.trip()!.id, { fuel: this.fuel() ?? 0, toll: this.toll() ?? 0, other: this.other() ?? 0, note: this.costNote() });
+    if (!(await this.attempt(() => this.done(costs)))) return;
     this.notice.set(`Đã lưu chi phí chuyến: ${formatVnd(this.costSum())}.`);
   }
 
-  unconfirm(r: OrderRow): void {
-    this.svc.unconfirm(this.trip()!.id, r.order.id);
+  async unconfirm(r: OrderRow): Promise<void> {
+    if (!(await this.attempt(() => this.done(this.svc.unconfirm(this.trip()!.id, r.order.id))))) return;
     this.notice.set(`Đã bỏ chốt ${r.order.code} — đơn về Đang giao, công nợ ghi lúc chốt đã gỡ.`);
   }
 
@@ -329,9 +350,9 @@ export class DeliveryTripVoucherComponent {
     this.addPicked.set(this.addPicked().length === ids.length ? [] : ids);
   }
 
-  confirmAdd(): void {
-    const n = this.svc.addOrders(this.trip()!.id, this.addPicked());
+  async confirmAdd(): Promise<void> {
     this.closeAdd();
+    const n = await this.attempt(() => this.svc.addOrders(this.trip()!.id, this.addPicked()));
     if (n) this.notice.set(`Đã xếp ${n} đơn lên chuyến.`);
   }
 
@@ -380,12 +401,13 @@ export class DeliveryTripVoucherComponent {
   readonly confirmLoadedValue = computed(() => Math.round(this.confirmRows().reduce((s, r) => s + r.loaded * r.unitValue, 0)));
   readonly confirmIssue = computed(() => this.confirmRows().map((r) => this.rowError(r) && `${r.code}: ${this.rowError(r)}`).find(Boolean) ?? '');
 
-  doConfirm(): void {
+  async doConfirm(): Promise<void> {
     this.confirmAttempted.set(true);
     if (this.confirmIssue()) return;
     const r = this.confirmOrder()!;
-    this.svc.confirm(this.trip()!.id, r.order.id, this.confirmRows().map((x) => ({ lineIndex: x.lineIndex, received: x.received ?? 0 })), this.confirmNote());
     this.closeConfirm();
+    const lines = this.confirmRows().map((x) => ({ lineIndex: x.lineIndex, received: x.received ?? 0 }));
+    if (!(await this.attempt(() => this.done(this.svc.confirm(this.trip()!.id, r.order.id, lines, this.confirmNote()))))) return;
     const v = this.confirmValue();
     this.notice.set(v
       ? `Đã chốt giao ${r.order.code}: khách nhận ${formatVnd(v)} — ghi công nợ phải thu.`

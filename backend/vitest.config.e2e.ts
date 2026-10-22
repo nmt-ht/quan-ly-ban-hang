@@ -7,5 +7,7 @@ export default defineConfig({
     globals: true,
     root: './',
     include: ['**/*.e2e-spec.ts'],
+    // The suites share one database (and `prisma dev` serves one connection): run files one after another.
+    fileParallelism: false,
   },
 });

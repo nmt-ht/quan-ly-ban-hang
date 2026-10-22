@@ -63,8 +63,8 @@ export class CashVouchersComponent {
   readonly accountTypeLabel = ACCOUNT_TYPE_LABEL;
 
   constructor() {
-    // Keep balances true to the vouchers (demo data and any earlier session edits).
-    this.svc.recomputeBalances();
+    // Số dư quỹ as of now (another user may have lập phiếu since the list was loaded).
+    void this.svc.refreshBalances();
     effect(() => {
       this.vouchers();
       untracked(() => this.page.set(1));

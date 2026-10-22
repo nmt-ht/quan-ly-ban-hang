@@ -4,5 +4,6 @@ import { CategoriesController, LookupsService, WarehousesController } from './lo
 @Module({
   controllers: [WarehousesController, CategoriesController],
   providers: [LookupsService],
+  exports: [LookupsService],
 })
 export class LookupsModule {}

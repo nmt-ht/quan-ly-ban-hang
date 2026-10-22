@@ -19,6 +19,7 @@ import { KIND_SLUG, KIND_TEXT, SLUG_KIND, VOUCHER_KIND_LABEL, kindOf, sourceOf }
 import { WarehouseVoucherService } from '../warehouse-voucher.service';
 import { PrintDocumentComponent, PrintSigner } from '../../../shared/print/print-document.component';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
+import { errorText } from '../../../core/api/api.service';
 
 interface Line {
   key: string;
@@ -82,6 +83,9 @@ export class WarehouseVoucherFormComponent {
   readonly lines = signal<Line[]>([emptyLine()]);
   readonly attempted = signal(false);
   readonly error = signal('');
+  readonly saving = signal(false);
+  /** Đơn giá trên phiếu nhập needs its own permission (Thủ kho does not see purchase prices). */
+  readonly showPrice = computed(() => this.type() === 'NHAP' && this.auth.can('stock.import_price'));
   readonly notice = signal('');
   readonly confirmCancel = signal(false);
   readonly cancelReason = signal('');
@@ -221,11 +225,12 @@ export class WarehouseVoucherFormComponent {
     return out;
   });
 
-  save(): void {
+  async save(): Promise<void> {
     this.attempted.set(true);
-    if (this.issues().length) return;
+    if (this.issues().length || this.saving()) return;
+    this.saving.set(true);
     try {
-      const v = this.svc.create({
+      const v = await this.svc.create({
         type: this.type(),
         date: this.date(),
         warehouseId: this.warehouseId(),
@@ -239,7 +244,9 @@ export class WarehouseVoucherFormComponent {
       });
       this.router.navigate(['/kho/phieu', v.id], { state: { notice: `Đã lưu ${v.code} — tồn kho đã cập nhật.` } });
     } catch (e) {
-      this.error.set((e as Error).message);
+      this.error.set(errorText(e));
+    } finally {
+      this.saving.set(false);
     }
   }
 
@@ -267,12 +274,12 @@ export class WarehouseVoucherFormComponent {
   readonly company = computed(() => this.data.companyInfo());
   readonly newSlug = computed(() => KIND_SLUG[this.type()]);
 
-  doCancel(): void {
+  async doCancel(): Promise<void> {
     try {
-      this.svc.cancel(this.voucher()!.id, this.cancelReason());
+      await this.svc.cancel(this.voucher()!.id, this.cancelReason());
       this.notice.set(`Đã huỷ ${this.voucher()!.code} — tồn kho đã trả về như trước khi lập phiếu.`);
     } catch (e) {
-      this.error.set((e as Error).message);
+      this.error.set(errorText(e));
     }
     this.confirmCancel.set(false);
   }

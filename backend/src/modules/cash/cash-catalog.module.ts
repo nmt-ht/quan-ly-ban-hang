@@ -31,16 +31,35 @@ export class CashAccountDto {
   @IsOptional() @IsBoolean() isActive?: boolean;
 }
 
+/** Số dư of each account = số dư đầu kỳ + thu − chi of the phiếu chưa huỷ. Never stored. */
+export async function cashBalances(db: Pick<PrismaService, 'cashVoucher'>): Promise<Map<string, number>> {
+  const sums = await db.cashVoucher.groupBy({ by: ['accountId', 'kind'], where: { isCancelled: false }, _sum: { amount: true } });
+  const out = new Map<string, number>();
+  for (const s of sums) {
+    const amount = s._sum.amount?.toNumber() ?? 0;
+    out.set(s.accountId, (out.get(s.accountId) ?? 0) + (s.kind === 'THU' ? amount : -amount));
+  }
+  return out;
+}
+
 @Injectable()
 export class CashAccountsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
-    return this.prisma.cashAccount.findMany({ orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] });
+  async findAll() {
+    const [accounts, moved] = await Promise.all([
+      this.prisma.cashAccount.findMany({ orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] }),
+      cashBalances(this.prisma),
+    ]);
+    return accounts.map((a) => ({ ...a, balance: a.openingBalance.toNumber() + (moved.get(a.id) ?? 0) }));
+  }
+
+  private async one(id: string) {
+    return (await this.findAll()).find((a) => a.id === id)!;
   }
 
   async save(dto: CashAccountDto, id?: string) {
-    const all = await this.findAll();
+    const all = await this.prisma.cashAccount.findMany();
     const old = id ? all.find((a) => a.id === id) : undefined;
     if (id && !old) throw new NotFoundException('Không tìm thấy tài khoản tiền');
     if (dto.type === 'NGAN_HANG' && !dto.accountNumber) throw new BadRequestException('Nhập số tài khoản ngân hàng');
@@ -56,20 +75,19 @@ export class CashAccountsService {
       accountHolder: bank ? (dto.accountHolder ?? null) : null, branch: bank ? (dto.branch ?? null) : null,
       openingBalance: dto.openingBalance, sortOrder: dto.sortOrder ?? 0, note: dto.note ?? null, isDefault, isActive,
     };
-    return this.prisma.$transaction(async (tx) => {
+    const saved = await this.prisma.$transaction(async (tx) => {
       // "Chọn sẵn khi lập phiếu": one default account at most.
       // (No NOT: { id: undefined } on create — Prisma reads that as NOT {} and matches nothing.)
       if (isDefault) await tx.cashAccount.updateMany({ where: id ? { isDefault: true, NOT: { id } } : { isDefault: true }, data: { isDefault: false } });
-      if (!old) return tx.cashAccount.create({ data: { ...data, balance: dto.openingBalance } });
-      // Số dư = đầu kỳ + thu − chi: moving the opening balance moves the balance by the same amount.
-      const shift = dto.openingBalance - old.openingBalance.toNumber();
-      return tx.cashAccount.update({ where: { id }, data: { ...data, balance: { increment: shift } } });
+      return old ? tx.cashAccount.update({ where: { id }, data }) : tx.cashAccount.create({ data });
     });
+    return this.one(saved.id);
   }
 
   /** Ngừng dùng, never deleted: old vouchers keep it, new ones cannot pick it. */
-  setActive(id: string, isActive: boolean) {
-    return this.prisma.cashAccount.update({ where: { id }, data: isActive ? { isActive } : { isActive, isDefault: false } });
+  async setActive(id: string, isActive: boolean) {
+    await this.prisma.cashAccount.update({ where: { id }, data: isActive ? { isActive } : { isActive, isDefault: false } });
+    return this.one(id);
   }
 }
 
@@ -178,5 +196,6 @@ export class CashCategoriesController {
 @Module({
   controllers: [CashAccountsController, CashCategoriesController],
   providers: [CashAccountsService, CashCategoriesService],
+  exports: [CashAccountsService],
 })
 export class CashCatalogModule {}
