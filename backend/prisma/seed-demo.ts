@@ -185,8 +185,8 @@ async function main() {
         warehouseId: wh[v.warehouseKey],
         targetWarehouseId: v.targetWarehouseKey ? wh[v.targetWarehouseKey] : undefined,
         reason: v.reason, isCancelled: v.isCancelled, createdById: user[v.createdByKey],
-        lines: { create: v.lines.map((l: any) => ({
-          productId: l.productId, quantity: l.quantity, unitPrice: l.unitPrice ?? 0,
+        lines: { create: v.lines.map((l: any, i: number) => ({
+          productId: l.productId, quantity: l.quantity, delta: l.delta ?? l.quantity, unitPrice: l.unitPrice ?? 0, sortOrder: i,
         })) },
       },
     });

@@ -667,7 +667,12 @@ const be = clean({
   productionOrders: lsx.map((l) => ({ id: l.id, code: l.code, sourceOrderId: l.sourceOrderId, productId: l.productId, quantity: l.quantity, status: l.status, bomSnapshot: l.bomSnapshot, createdAt: iso(l.createdDate) })),
   vehicles: feVehicles,
   deliveryTrips: trips.map((t) => ({ id: t.id, code: t.code, date: iso(t.date), driverName: hiredNote(t), vehicleId: t.vehicleId, status: t.status, orderIds: t.orderIds })),
-  warehouseVouchers: warehouseVouchers.map((v) => ({ id: v.id, code: v.code, type: v.type, date: iso(v.date), warehouseKey: v.warehouseId, targetWarehouseKey: v.targetWarehouseId, reason: v.reason, isCancelled: v.isCancelled, createdByKey: v.createdBy, lines: v.lines })),
+  // Lines carry the stock change (delta) like the frontend's, plus the purchase price of phiếu nhập.
+  warehouseVouchers: warehouseVouchers.map((v) => ({
+    id: v.id, code: v.code, type: v.type, date: iso(v.date), warehouseKey: v.warehouseId, targetWarehouseKey: v.targetWarehouseId, reason: v.reason,
+    isCancelled: v.isCancelled, createdByKey: v.createdBy,
+    lines: feVoucherLines.get(v.id).map((l, j) => ({ ...l, unitPrice: v.lines[j]?.unitPrice ?? 0 })),
+  })),
   stockLevels: stockLevels.map((s) => ({ productId: s.productId, warehouseKey: s.warehouseId, quantity: s.quantity })),
   cashVouchers: cashVouchers.map((c) => ({
     id: c.id, code: c.code, date: iso(c.date), kind: c.kind, category: c.category, partnerType: c.partnerType,

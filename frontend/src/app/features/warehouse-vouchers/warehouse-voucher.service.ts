@@ -1,9 +1,11 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { MockDataService } from '../../core/services/mock-data.service';
 import { AuthService } from '../../core/services/auth.service';
 import { StockLevel, WarehouseVoucher, WarehouseVoucherType } from '../../core/models/domain.models';
 import { nextCode, round4 } from '../purchase-orders/purchase-order.rules';
 import { CODE_PREFIX, sourceOf } from './warehouse-voucher.rules';
+import { ApiService } from '../../core/api/api.service';
+import { INVENTORY_FROM_API } from '../../core/api/api.config';
 
 export interface VoucherLineDraft {
   productId: string;
@@ -27,9 +29,14 @@ export interface VoucherDraft {
 /**
  * Phiếu kho: the one place that moves stock. NHAP +, XUAT −, CHUYEN − kho xuất / + kho nhận,
  * KIEM_KE ± chênh lệch (số đếm − sổ sách lúc lưu). Cancelling applies the same movement in reverse.
+ * With INVENTORY_FROM_API, lập / huỷ go to the server (which numbers the phiếu and computes the
+ * kiểm kê difference) and the returned phiếu moves the local stock; `post` (used by đơn nhập, đơn
+ * bán, LSX, chuyến) stays in the browser until those modules move.
  */
 @Injectable({ providedIn: 'root' })
 export class WarehouseVoucherService {
+  private readonly api = inject(ApiService);
+
   constructor(
     private readonly data: MockDataService,
     private readonly auth: AuthService,
@@ -43,11 +50,27 @@ export class WarehouseVoucherService {
     return this.data.stockLevels().find((s) => s.productId === productId && s.warehouseId === warehouseId)?.quantity ?? 0;
   }
 
-  create(d: VoucherDraft): WarehouseVoucher {
+  async create(d: VoucherDraft): Promise<WarehouseVoucher> {
     if (!d.warehouseId) throw new Error('Chọn kho');
     if (d.type === 'CHUYEN' && (!d.targetWarehouseId || d.targetWarehouseId === d.warehouseId)) throw new Error('Kho nhận phải khác kho xuất');
     const lines = d.lines.filter((l) => l.productId && (d.type === 'KIEM_KE' ? l.quantity >= 0 : l.quantity > 0));
     if (!lines.length) throw new Error('Thêm ít nhất một dòng hàng');
+    if (INVENTORY_FROM_API) {
+      const saved = await this.api.post<WarehouseVoucher>('/warehouse-vouchers', {
+        type: d.type, date: d.date, warehouseId: d.warehouseId, targetWarehouseId: d.type === 'CHUYEN' ? d.targetWarehouseId : undefined,
+        reason: d.reason, note: d.note,
+        lines: lines.map((l) => ({
+          productId: l.productId,
+          quantity: round4(l.quantity * (l.ratio || 1)),
+          ...(l.unitName && l.ratio !== 1 ? { unitName: l.unitName, unitQuantity: l.quantity } : {}),
+          ...(d.type === 'NHAP' && l.unitPrice ? { unitPrice: Math.round(l.unitPrice / (l.ratio || 1)) } : {}),
+          note: l.note,
+        })),
+      });
+      this.data.warehouseVouchers.update((list) => [saved, ...list]);
+      this.applyStock([saved], 1);
+      return saved;
+    }
     const v: WarehouseVoucher = {
       id: crypto.randomUUID(),
       code: '',
@@ -80,9 +103,15 @@ export class WarehouseVoucherService {
   }
 
   /** Huỷ phiếu: hàng quay về như trước khi lập phiếu; phiếu vẫn lưu để đối chiếu. */
-  cancel(id: string, reason: string): void {
+  async cancel(id: string, reason: string): Promise<void> {
     const v = this.data.warehouseVouchers().find((x) => x.id === id);
     if (!v || !this.canCancel(v)) throw new Error('Phiếu này lập từ chứng từ khác — huỷ ở chứng từ gốc.');
+    if (INVENTORY_FROM_API) {
+      const saved = await this.api.post<WarehouseVoucher>(`/warehouse-vouchers/${id}/cancel`, { reason });
+      this.applyStock([v], -1);
+      this.data.warehouseVouchers.update((list) => list.map((x) => (x.id === id ? saved : x)));
+      return;
+    }
     this.applyStock([v], -1);
     this.data.warehouseVouchers.update((list) =>
       list.map((x) => (x.id === id ? { ...x, isCancelled: true, cancelReason: reason.trim() || undefined, cancelledAt: new Date().toISOString() } : x)),

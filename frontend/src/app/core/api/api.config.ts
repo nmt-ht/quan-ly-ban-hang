@@ -11,7 +11,13 @@ export const USE_API = {
   // Danh mục (người dùng, chức vụ, công ty, thẻ, kho, nhóm hàng, hàng hoá, định mức, khách hàng, NCC, xe,
   // tài khoản tiền, loại thu chi) are loaded from and saved to the database. Needs `auth`.
   catalog: true,
+  // Tồn kho and phiếu kho (lập, huỷ). Phiếu that other documents create (nhận hàng, giao hàng, sản xuất)
+  // stay in the browser until those modules move (Đợt 3–5). Needs `auth`.
+  inventory: true,
 } as const;
 
 /** Danh mục come from the API only when sign-in does too (the calls need the token). */
 export const CATALOG_FROM_API: boolean = USE_API.auth && USE_API.catalog;
+
+/** Tồn kho and phiếu kho come from the API (Đợt 2). */
+export const INVENTORY_FROM_API: boolean = USE_API.auth && USE_API.inventory;

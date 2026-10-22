@@ -3858,11 +3858,13 @@
         {
           "productId": "vt-den-led",
           "quantity": 25,
+          "delta": 25,
           "unitPrice": 95000
         },
         {
           "productId": "vt-ve-sinh-kinh",
           "quantity": 2,
+          "delta": 2,
           "unitPrice": 18000
         }
       ]
@@ -3880,21 +3882,25 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 1208,
+          "delta": 1208,
           "unitPrice": 600
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 13.38,
+          "delta": 13.38,
           "unitPrice": 28000
         },
         {
           "productId": "vt-kep-kinh",
           "quantity": 229,
+          "delta": 229,
           "unitPrice": 3500
         },
         {
           "productId": "vt-keo-dan",
           "quantity": 19,
+          "delta": 19,
           "unitPrice": 42000
         }
       ]
@@ -3912,41 +3918,49 @@
         {
           "productId": "sp-khung-soi-20x30",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 26757
         },
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 13,
+          "delta": 13,
           "unitPrice": 40988
         },
         {
           "productId": "sp-khung-soi-40x60",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 66271
         },
         {
           "productId": "sp-khung-soi-50x70",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 87067
         },
         {
           "productId": "sp-khung-soi-60x90",
           "quantity": 4,
+          "delta": 4,
           "unitPrice": 121575
         },
         {
           "productId": "sp-khung-nhom-vang-30x40",
           "quantity": 14,
+          "delta": 14,
           "unitPrice": 48285
         },
         {
           "productId": "sp-khung-nhom-den-40x60",
           "quantity": 14,
+          "delta": 14,
           "unitPrice": 80101
         },
         {
           "productId": "sp-khung-oc-cho-40x60",
           "quantity": 9,
+          "delta": 9,
           "unitPrice": 95739
         }
       ]
@@ -3964,41 +3978,49 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 176,
+          "delta": 176,
           "unitPrice": 38000
         },
         {
           "productId": "vt-nep-oc-cho",
           "quantity": 117,
+          "delta": 117,
           "unitPrice": 72000
         },
         {
           "productId": "vt-nhom-vang",
           "quantity": 183,
+          "delta": 183,
           "unitPrice": 46000
         },
         {
           "productId": "vt-nhom-den",
           "quantity": 177,
+          "delta": 177,
           "unitPrice": 52000
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 13.28,
+          "delta": 13.28,
           "unitPrice": 165000
         },
         {
           "productId": "vt-mica-2ly",
           "quantity": 30,
+          "delta": 30,
           "unitPrice": 420000
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 40.4,
+          "delta": 40.4,
           "unitPrice": 95000
         },
         {
           "productId": "vt-go-tho",
           "quantity": 92,
+          "delta": 92,
           "unitPrice": 30000
         }
       ]
@@ -4016,16 +4038,19 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 300,
+          "delta": 300,
           "unitPrice": 38000
         },
         {
           "productId": "vt-nep-oc-cho",
           "quantity": 100,
+          "delta": 100,
           "unitPrice": 72000
         },
         {
           "productId": "vt-go-tho",
           "quantity": 150,
+          "delta": 150,
           "unitPrice": 30000
         }
       ]
@@ -4043,11 +4068,13 @@
         {
           "productId": "vt-nhom-vang",
           "quantity": 200,
+          "delta": 200,
           "unitPrice": 46000
         },
         {
           "productId": "vt-nhom-den",
           "quantity": 200,
+          "delta": 200,
           "unitPrice": 52000
         }
       ]
@@ -4065,16 +4092,19 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 2.1,
+          "delta": 2.1,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 0.28,
+          "delta": 0.28,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 0.19,
+          "delta": 0.19,
           "unitPrice": 0
         }
       ]
@@ -4092,11 +4122,13 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 6,
+          "delta": 6,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.06,
+          "delta": 0.06,
           "unitPrice": 0
         }
       ]
@@ -4114,16 +4146,19 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 27.67,
+          "delta": 27.67,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 4.77,
+          "delta": 4.77,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 3.21,
+          "delta": 3.21,
           "unitPrice": 0
         }
       ]
@@ -4141,11 +4176,13 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 60,
+          "delta": 60,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.6,
+          "delta": 0.6,
           "unitPrice": 0
         }
       ]
@@ -4163,16 +4200,19 @@
         {
           "productId": "vt-kinh-3ly",
           "quantity": 60,
+          "delta": 60,
           "unitPrice": 165000
         },
         {
           "productId": "vt-mica-2ly",
           "quantity": 30,
+          "delta": 30,
           "unitPrice": 420000
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 80,
+          "delta": 80,
           "unitPrice": 95000
         }
       ]
@@ -4190,16 +4230,19 @@
         {
           "productId": "vt-nhom-vang",
           "quantity": 3.55,
+          "delta": 3.55,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 0.41,
+          "delta": 0.41,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 0.28,
+          "delta": 0.28,
           "unitPrice": 0
         }
       ]
@@ -4217,16 +4260,19 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 12,
+          "delta": 12,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.12,
+          "delta": 0.12,
           "unitPrice": 0
         },
         {
           "productId": "vt-kep-kinh",
           "quantity": 6,
+          "delta": 6,
           "unitPrice": 0
         }
       ]
@@ -4244,11 +4290,13 @@
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 2,
+          "delta": 2,
           "unitPrice": 40988
         },
         {
           "productId": "sp-khung-soi-40x60",
           "quantity": 1,
+          "delta": 1,
           "unitPrice": 66271
         }
       ]
@@ -4266,11 +4314,13 @@
         {
           "productId": "sp-khung-soi-40x60",
           "quantity": 20,
+          "delta": 20,
           "unitPrice": 66271
         },
         {
           "productId": "sp-khung-soi-50x70",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 87067
         }
       ]
@@ -4288,6 +4338,7 @@
         {
           "productId": "sp-khung-nhom-vang-30x40",
           "quantity": 6,
+          "delta": 6,
           "unitPrice": 48285
         }
       ]
@@ -4305,21 +4356,25 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 31,
+          "delta": 31,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 10.18,
+          "delta": 10.18,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 6.84,
+          "delta": 6.84,
           "unitPrice": 0
         },
         {
           "productId": "vt-nhom-den",
           "quantity": 24.96,
+          "delta": 24.96,
           "unitPrice": 0
         }
       ]
@@ -4337,16 +4392,19 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 120,
+          "delta": 120,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 1.2,
+          "delta": 1.2,
           "unitPrice": 0
         },
         {
           "productId": "vt-kep-kinh",
           "quantity": 30,
+          "delta": 30,
           "unitPrice": 0
         }
       ]
@@ -4364,21 +4422,25 @@
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 2,
+          "delta": 2,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-40x60",
           "quantity": 21,
+          "delta": 21,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-50x70",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-nhom-vang-30x40",
           "quantity": 6,
+          "delta": 6,
           "unitPrice": 0
         }
       ]
@@ -4396,6 +4458,7 @@
         {
           "productId": "vt-den-led",
           "quantity": 6,
+          "delta": 6,
           "unitPrice": 0
         }
       ]
@@ -4413,21 +4476,25 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 15.4,
+          "delta": 15.4,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 6.08,
+          "delta": 6.08,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 3.24,
+          "delta": 3.24,
           "unitPrice": 0
         },
         {
           "productId": "vt-nep-oc-cho",
           "quantity": 6.93,
+          "delta": 6.93,
           "unitPrice": 0
         }
       ]
@@ -4445,11 +4512,13 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 40,
+          "delta": 40,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.4,
+          "delta": 0.4,
           "unitPrice": 0
         }
       ]
@@ -4467,11 +4536,13 @@
         {
           "productId": "sp-khung-soi-50x70",
           "quantity": 30,
+          "delta": 30,
           "unitPrice": 87067
         },
         {
           "productId": "sp-khung-nhom-den-40x60",
           "quantity": 30,
+          "delta": 30,
           "unitPrice": 80101
         }
       ]
@@ -4489,26 +4560,31 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 3000,
+          "delta": 3000,
           "unitPrice": 600
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 40,
+          "delta": 40,
           "unitPrice": 28000
         },
         {
           "productId": "vt-day-thep",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 22000
         },
         {
           "productId": "vt-kep-kinh",
           "quantity": 400,
+          "delta": 400,
           "unitPrice": 3500
         },
         {
           "productId": "vt-keo-dan",
           "quantity": 30,
+          "delta": 30,
           "unitPrice": 42000
         }
       ]
@@ -4526,16 +4602,19 @@
         {
           "productId": "sp-khung-soi-60x90",
           "quantity": 12,
+          "delta": 12,
           "unitPrice": 121575
         },
         {
           "productId": "sp-khung-oc-cho-40x60",
           "quantity": 8,
+          "delta": 8,
           "unitPrice": 95739
         },
         {
           "productId": "sp-kinh-cat",
           "quantity": 5,
+          "delta": 5,
           "unitPrice": 41250
         }
       ]
@@ -4553,26 +4632,31 @@
         {
           "productId": "sp-khung-soi-60x90",
           "quantity": 12,
+          "delta": 12,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-oc-cho-40x60",
           "quantity": 8,
+          "delta": 8,
           "unitPrice": 0
         },
         {
           "productId": "sp-kinh-cat",
           "quantity": 5,
+          "delta": 5,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-50x70",
           "quantity": 30,
+          "delta": 30,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-nhom-den-40x60",
           "quantity": 30,
+          "delta": 30,
           "unitPrice": 0
         }
       ]
@@ -4590,16 +4674,19 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 1.8,
+          "delta": 1.8,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 0.14,
+          "delta": 0.14,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 0.09,
+          "delta": 0.09,
           "unitPrice": 0
         }
       ]
@@ -4617,11 +4704,13 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 8,
+          "delta": 8,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.08,
+          "delta": 0.08,
           "unitPrice": 0
         }
       ]
@@ -4639,16 +4728,19 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 14.83,
+          "delta": 14.83,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 2.07,
+          "delta": 2.07,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 1.39,
+          "delta": 1.39,
           "unitPrice": 0
         }
       ]
@@ -4666,11 +4758,13 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 40,
+          "delta": 40,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.4,
+          "delta": 0.4,
           "unitPrice": 0
         }
       ]
@@ -4688,16 +4782,19 @@
         {
           "productId": "vt-nhom-vang",
           "quantity": 1.78,
+          "delta": 1.78,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 0.21,
+          "delta": 0.21,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 0.14,
+          "delta": 0.14,
           "unitPrice": 0
         }
       ]
@@ -4715,16 +4812,19 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 6,
+          "delta": 6,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.06,
+          "delta": 0.06,
           "unitPrice": 0
         },
         {
           "productId": "vt-kep-kinh",
           "quantity": 3,
+          "delta": 3,
           "unitPrice": 0
         }
       ]
@@ -4742,6 +4842,7 @@
         {
           "productId": "sp-khung-soi-20x30",
           "quantity": 4,
+          "delta": 4,
           "unitPrice": 26757
         }
       ]
@@ -4759,16 +4860,19 @@
         {
           "productId": "sp-khung-soi-40x60",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 66271
         },
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 40988
         },
         {
           "productId": "sp-khung-nhom-vang-30x40",
           "quantity": 3,
+          "delta": 3,
           "unitPrice": 48285
         }
       ]
@@ -4786,11 +4890,13 @@
         {
           "productId": "sp-khung-soi-40x60",
           "quantity": 3,
+          "delta": 3,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-nhom-vang-30x40",
           "quantity": 3,
+          "delta": 3,
           "unitPrice": 0
         }
       ]
@@ -4808,21 +4914,25 @@
         {
           "productId": "sp-khung-soi-20x30",
           "quantity": 4,
+          "delta": 4,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-40x60",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-nhom-vang-30x40",
           "quantity": 3,
+          "delta": 3,
           "unitPrice": 0
         }
       ]
@@ -4841,6 +4951,7 @@
         {
           "productId": "vt-dinh-ghim",
           "quantity": 5,
+          "delta": 5,
           "unitPrice": 0
         }
       ]
@@ -4858,21 +4969,25 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 13,
+          "delta": 13,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 2.07,
+          "delta": 2.07,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 1.39,
+          "delta": 1.39,
           "unitPrice": 0
         },
         {
           "productId": "vt-mica-2ly",
           "quantity": 0.9,
+          "delta": 0.9,
           "unitPrice": 0
         }
       ]
@@ -4890,11 +5005,13 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 30,
+          "delta": 30,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.3,
+          "delta": 0.3,
           "unitPrice": 0
         }
       ]
@@ -4912,16 +5029,19 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 10.67,
+          "delta": 10.67,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 1.04,
+          "delta": 1.04,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 0.7,
+          "delta": 0.7,
           "unitPrice": 0
         }
       ]
@@ -4939,11 +5059,13 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 40,
+          "delta": 40,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.4,
+          "delta": 0.4,
           "unitPrice": 0
         }
       ]
@@ -4961,11 +5083,13 @@
         {
           "productId": "sp-khung-soi-40x60",
           "quantity": 15,
+          "delta": 15,
           "unitPrice": 66271
         },
         {
           "productId": "sp-mica-cat",
           "quantity": 6,
+          "delta": 6,
           "unitPrice": 63000
         }
       ]
@@ -4983,11 +5107,13 @@
         {
           "productId": "sp-khung-soi-20x30",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 26757
         },
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 40988
         }
       ]
@@ -5005,21 +5131,25 @@
         {
           "productId": "sp-khung-soi-40x60",
           "quantity": 15,
+          "delta": 15,
           "unitPrice": 0
         },
         {
           "productId": "sp-mica-cat",
           "quantity": 6,
+          "delta": 6,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-20x30",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 0
         }
       ]
@@ -5037,11 +5167,13 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 250,
+          "delta": 250,
           "unitPrice": 39000
         },
         {
           "productId": "vt-nep-oc-cho",
           "quantity": 120,
+          "delta": 120,
           "unitPrice": 73000
         }
       ]
@@ -5059,16 +5191,19 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 33.2,
+          "delta": 33.2,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 5.73,
+          "delta": 5.73,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 3.85,
+          "delta": 3.85,
           "unitPrice": 0
         }
       ]
@@ -5086,11 +5221,13 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 72,
+          "delta": 72,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.72,
+          "delta": 0.72,
           "unitPrice": 0
         }
       ]
@@ -5108,21 +5245,25 @@
         {
           "productId": "vt-nep-oc-cho",
           "quantity": 8.67,
+          "delta": 8.67,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 2.76,
+          "delta": 2.76,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 1.85,
+          "delta": 1.85,
           "unitPrice": 0
         },
         {
           "productId": "vt-nhom-den",
           "quantity": 8.32,
+          "delta": 8.32,
           "unitPrice": 0
         }
       ]
@@ -5140,16 +5281,19 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 40,
+          "delta": 40,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.4,
+          "delta": 0.4,
           "unitPrice": 0
         },
         {
           "productId": "vt-kep-kinh",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 0
         }
       ]
@@ -5167,11 +5311,13 @@
         {
           "productId": "sp-khung-soi-40x60",
           "quantity": 24,
+          "delta": 24,
           "unitPrice": 66271
         },
         {
           "productId": "sp-khung-soi-50x70",
           "quantity": 12,
+          "delta": 12,
           "unitPrice": 87067
         }
       ]
@@ -5189,16 +5335,19 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 1.9,
+          "delta": 1.9,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 0.38,
+          "delta": 0.38,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 0.26,
+          "delta": 0.26,
           "unitPrice": 0
         }
       ]
@@ -5216,11 +5365,13 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 4,
+          "delta": 4,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.04,
+          "delta": 0.04,
           "unitPrice": 0
         }
       ]
@@ -5238,11 +5389,13 @@
         {
           "productId": "sp-khung-oc-cho-40x60",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 95739
         },
         {
           "productId": "sp-khung-nhom-den-40x60",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 80101
         }
       ]
@@ -5260,11 +5413,13 @@
         {
           "productId": "sp-khung-soi-60x90",
           "quantity": 1,
+          "delta": 1,
           "unitPrice": 121575
         },
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 1,
+          "delta": 1,
           "unitPrice": 40988
         }
       ]
@@ -5282,11 +5437,13 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 571.43,
+          "delta": -3,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 36.16,
+          "delta": -1,
           "unitPrice": 0
         }
       ]
@@ -5304,31 +5461,37 @@
         {
           "productId": "sp-khung-soi-40x60",
           "quantity": 24,
+          "delta": 24,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-50x70",
           "quantity": 12,
+          "delta": 12,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-oc-cho-40x60",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-nhom-den-40x60",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-60x90",
           "quantity": 1,
+          "delta": 1,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 1,
+          "delta": 1,
           "unitPrice": 0
         }
       ]
@@ -5346,6 +5509,7 @@
         {
           "productId": "vt-keo-dan",
           "quantity": 1,
+          "delta": 1,
           "unitPrice": 0
         }
       ]
@@ -5363,6 +5527,7 @@
         {
           "productId": "vt-ve-sinh-kinh",
           "quantity": 2,
+          "delta": 2,
           "unitPrice": 0
         }
       ]
@@ -5380,16 +5545,19 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 29.37,
+          "delta": 29.37,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 6.32,
+          "delta": 6.32,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 4.25,
+          "delta": 4.25,
           "unitPrice": 0
         }
       ]
@@ -5407,11 +5575,13 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 52,
+          "delta": 52,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.52,
+          "delta": 0.52,
           "unitPrice": 0
         }
       ]
@@ -5429,21 +5599,25 @@
         {
           "productId": "vt-nhom-vang",
           "quantity": 1.18,
+          "delta": 1.18,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 0.35,
+          "delta": 0.35,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 0.23,
+          "delta": 0.23,
           "unitPrice": 0
         },
         {
           "productId": "vt-nep-soi",
           "quantity": 1.85,
+          "delta": 1.85,
           "unitPrice": 0
         }
       ]
@@ -5461,16 +5635,19 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.1,
+          "delta": 0.1,
           "unitPrice": 0
         },
         {
           "productId": "vt-kep-kinh",
           "quantity": 2,
+          "delta": 2,
           "unitPrice": 0
         }
       ]
@@ -5488,11 +5665,13 @@
         {
           "productId": "sp-khung-soi-50x70",
           "quantity": 16,
+          "delta": 16,
           "unitPrice": 87067
         },
         {
           "productId": "sp-khung-soi-60x90",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 121575
         }
       ]
@@ -5510,11 +5689,13 @@
         {
           "productId": "sp-khung-nhom-vang-30x40",
           "quantity": 2,
+          "delta": 2,
           "unitPrice": 48285
         },
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 3,
+          "delta": 3,
           "unitPrice": 40988
         }
       ]
@@ -5532,21 +5713,25 @@
         {
           "productId": "sp-khung-soi-50x70",
           "quantity": 16,
+          "delta": 16,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-60x90",
           "quantity": 10,
+          "delta": 10,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-nhom-vang-30x40",
           "quantity": 2,
+          "delta": 2,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 3,
+          "delta": 3,
           "unitPrice": 0
         }
       ]
@@ -5564,11 +5749,13 @@
         {
           "productId": "vt-den-led",
           "quantity": 30,
+          "delta": 30,
           "unitPrice": 95000
         },
         {
           "productId": "vt-ve-sinh-kinh",
           "quantity": 15,
+          "delta": 15,
           "unitPrice": 18000
         }
       ]
@@ -5586,21 +5773,25 @@
         {
           "productId": "vt-nhom-vang",
           "quantity": 4.74,
+          "delta": 4.74,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 1.1,
+          "delta": 1.1,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 0.74,
+          "delta": 0.74,
           "unitPrice": 0
         },
         {
           "productId": "vt-nep-soi",
           "quantity": 4.93,
+          "delta": 4.93,
           "unitPrice": 0
         }
       ]
@@ -5618,16 +5809,19 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 32,
+          "delta": 32,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.32,
+          "delta": 0.32,
           "unitPrice": 0
         },
         {
           "productId": "vt-kep-kinh",
           "quantity": 8,
+          "delta": 8,
           "unitPrice": 0
         }
       ]
@@ -5645,16 +5839,19 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 10.4,
+          "delta": 10.4,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 1.66,
+          "delta": 1.66,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 1.11,
+          "delta": 1.11,
           "unitPrice": 0
         }
       ]
@@ -5672,11 +5869,13 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 24,
+          "delta": 24,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.24,
+          "delta": 0.24,
           "unitPrice": 0
         }
       ]
@@ -5694,21 +5893,25 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 38.34,
+          "delta": 38.34,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 6.9,
+          "delta": 6.9,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 4.64,
+          "delta": 4.64,
           "unitPrice": 0
         },
         {
           "productId": "vt-nep-oc-cho",
           "quantity": 8.67,
+          "delta": 8.67,
           "unitPrice": 0
         }
       ]
@@ -5726,11 +5929,13 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 120,
+          "delta": 120,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 1.2,
+          "delta": 1.2,
           "unitPrice": 0
         }
       ]
@@ -5748,16 +5953,19 @@
         {
           "productId": "sp-khung-nhom-vang-30x40",
           "quantity": 8,
+          "delta": 8,
           "unitPrice": 48285
         },
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 8,
+          "delta": 8,
           "unitPrice": 40988
         },
         {
           "productId": "sp-khung-soi-40x60",
           "quantity": 12,
+          "delta": 12,
           "unitPrice": 66271
         }
       ]
@@ -5775,16 +5983,19 @@
         {
           "productId": "vt-nhom-den",
           "quantity": 19.97,
+          "delta": 19.97,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 3.31,
+          "delta": 3.31,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 2.22,
+          "delta": 2.22,
           "unitPrice": 0
         }
       ]
@@ -5802,16 +6013,19 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 48,
+          "delta": 48,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.48,
+          "delta": 0.48,
           "unitPrice": 0
         },
         {
           "productId": "vt-kep-kinh",
           "quantity": 24,
+          "delta": 24,
           "unitPrice": 0
         }
       ]
@@ -5829,16 +6043,19 @@
         {
           "productId": "vt-nep-soi",
           "quantity": 20.67,
+          "delta": 20.67,
           "unitPrice": 0
         },
         {
           "productId": "vt-kinh-3ly",
           "quantity": 6.52,
+          "delta": 6.52,
           "unitPrice": 0
         },
         {
           "productId": "vt-hau-mdf",
           "quantity": 2.7,
+          "delta": 2.7,
           "unitPrice": 0
         }
       ]
@@ -5856,11 +6073,13 @@
         {
           "productId": "vt-moc-treo",
           "quantity": 40,
+          "delta": 40,
           "unitPrice": 0
         },
         {
           "productId": "vt-dinh-ghim",
           "quantity": 0.4,
+          "delta": 0.4,
           "unitPrice": 0
         }
       ]
@@ -5878,16 +6097,19 @@
         {
           "productId": "sp-khung-nhom-vang-30x40",
           "quantity": 8,
+          "delta": 8,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 8,
+          "delta": 8,
           "unitPrice": 0
         },
         {
           "productId": "sp-khung-soi-40x60",
           "quantity": 12,
+          "delta": 12,
           "unitPrice": 0
         }
       ]
@@ -5905,6 +6127,7 @@
         {
           "productId": "sp-khung-soi-30x40",
           "quantity": 20,
+          "delta": 20,
           "unitPrice": 40988
         }
       ]
@@ -5922,6 +6145,7 @@
         {
           "productId": "sp-khung-nhom-den-40x60",
           "quantity": 24,
+          "delta": 24,
           "unitPrice": 80101
         }
       ]
