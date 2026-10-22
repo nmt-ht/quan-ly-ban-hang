@@ -221,9 +221,7 @@ async function main() {
       },
     });
   }
-  for (const [key, balance] of Object.entries<number>(data.cashAccountBalances)) {
-    await prisma.cashAccount.update({ where: { id: acc[key] }, data: { balance } });
-  }
+  // Số dư quỹ is not stored: the API derives it from the vouchers above (data.cashAccountBalances is the check).
 
   console.log('Đã nạp dữ liệu demo:', {
     khachHang: data.customers.length, donBan: data.salesOrders.length,

@@ -16,10 +16,13 @@ export class PayablesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async rows(today = new Date().toISOString().slice(0, 10)): Promise<DebtRow[]> {
-    const [suppliers, orders, vouchers] = await Promise.all([
+    const [suppliers, orders, vouchers, receipts] = await Promise.all([
       this.prisma.supplier.findMany({ orderBy: { name: 'asc' } }),
       this.prisma.purchaseOrder.findMany({ where: { status: { not: 'HUY' } }, include: { lines: true } }),
       this.prisma.cashVoucher.findMany({ where: { isCancelled: false, partnerType: 'NHA_CUNG_CAP' }, include: { allocations: true } }),
+      this.prisma.warehouseVoucher.findMany({
+        where: { isCancelled: false, type: 'NHAP' }, select: { code: true, purchaseOrderId: true, reason: true }, orderBy: { code: 'asc' },
+      }),
     ]);
     const now = dayMs(today);
 
@@ -31,7 +34,10 @@ export class PayablesService {
             quantity: l.quantity.toNumber(), unitPrice: l.unitPrice.toNumber(), receivedQuantity: l.receivedQuantity.toNumber(), vatRate: l.vatRate.toNumber(),
           })));
           const date = toDay(o.receivedDate ?? o.date)!;
-          return { ref: o.code, date, dueDate: addDays(date, s.creditDays), amount, typeLabel: 'Nhập kho', description: `Nhận hàng đơn nhập ${o.code}`, sourceId: o.id };
+          // The phiếu nhập kho of this order (older ones only name it in their lý do).
+          const pnk = receipts.filter((w) => w.purchaseOrderId === o.id || (w.reason ?? '').includes(o.code)).map((w) => w.code);
+          const description = `Nhận hàng đơn nhập ${o.code}` + (pnk.length ? ` (${pnk.join(', ')})` : '');
+          return { ref: o.code, date, dueDate: addDays(date, s.creditDays), amount, typeLabel: 'Nhập kho', description, sourceId: o.id };
         })
         .filter((c) => c.amount > 0);
       const payments: DebtSettlement[] = [];

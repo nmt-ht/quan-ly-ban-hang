@@ -44,13 +44,13 @@ export class DeliveryTripService {
   private apply(res: TripResult): DeliveryTrip {
     this.data.deliveryTrips.update((list) => upsertById(list, res.trip));
     for (const o of res.orders) this.data.salesOrders.update((list) => upsertById(list, o));
-    // Phiếu thu chi are still in the browser (Đợt 6): mirror the server's "Thu tiền ngay" changes there.
+    // The server lập / huỷ the "Thu tiền ngay" phiếu thu: keep the list in step and read số dư quỹ again.
     if (res.receipts?.length) this.data.cashVouchers.update((list) => [...res.receipts!, ...list]);
     if (res.cancelledReceipts?.length) {
       const ids = new Set(res.cancelledReceipts);
       this.data.cashVouchers.update((list) => list.map((v) => (ids.has(v.id) ? { ...v, isCancelled: true } : v)));
     }
-    if (res.receipts?.length || res.cancelledReceipts?.length) this.cash.recomputeBalances();
+    if (res.receipts?.length || res.cancelledReceipts?.length) void this.cash.refreshBalances();
     return res.trip;
   }
 

@@ -70,7 +70,6 @@ describe('Bán hàng, sản xuất & công nợ phải thu (e2e)', () => {
   afterAll(async () => {
     const receipts = await prisma.cashVoucher.findMany({ where: { allocations: { some: { ref: { in: (await prisma.salesOrder.findMany({ where: { id: { in: orders } } })).map((o) => o.code) } } } } });
     await prisma.cashVoucher.deleteMany({ where: { id: { in: receipts.map((r) => r.id) } } });
-    await prisma.cashAccount.update({ where: { id: 'acc-cash' }, data: { balance: cashBefore } });
     await prisma.warehouseVoucher.deleteMany({ where: { lines: { some: { productId: { in: products } } } } });
     await prisma.productionOrder.deleteMany({ where: { sourceOrderId: { in: orders } } });
     await prisma.salesOrder.deleteMany({ where: { id: { in: orders } } });

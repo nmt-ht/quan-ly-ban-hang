@@ -1,12 +1,12 @@
 import { Injectable, inject, signal } from '@angular/core';
 import {
-  AppUser, BomLine, DeliveryTrip, ProductionOrder, PurchaseOrder, SalesOrder, StockLevel, WarehouseVoucher, CashAccount, CashCategory, CompanyInfo, Customer, Product, ProductCategory, Role, Supplier, SupplierProduct, Tag, Vehicle,
+  AppUser, BomLine, CashVoucher, DeliveryTrip, ProductionOrder, PurchaseOrder, SalesOrder, StockLevel, WarehouseVoucher, CashAccount, CashCategory, CompanyInfo, Customer, Product, ProductCategory, Role, Supplier, SupplierProduct, Tag, Vehicle,
   Warehouse,
 } from '../models/domain.models';
 import { MockDataService } from '../services/mock-data.service';
 import { AuthService } from '../services/auth.service';
 import { ApiService, errorText } from './api.service';
-import { CATALOG_FROM_API, DELIVERY_FROM_API, INVENTORY_FROM_API, PURCHASING_FROM_API, SALES_FROM_API } from './api.config';
+import { CASH_FROM_API, CATALOG_FROM_API, DELIVERY_FROM_API, INVENTORY_FROM_API, PURCHASING_FROM_API, SALES_FROM_API } from './api.config';
 
 type DirectoryUser = Pick<AppUser, 'id' | 'name' | 'email' | 'roleId' | 'status'>;
 
@@ -69,6 +69,11 @@ export class CatalogLoader {
         this.data.productionOrders.set(lsx);
       }
       if (DELIVERY_FROM_API) this.data.deliveryTrips.set(await this.api.get<DeliveryTrip[]>('/delivery-trips'));
+      if (CASH_FROM_API) {
+        // Công nợ, the dashboard and the cash-flow report read them too (same rule as the server).
+        const canRead = ['voucher.view', 'debt.view', 'report.cashflow', 'report.dashboard'].some((c) => can(c));
+        this.data.cashVouchers.set(canRead ? await this.api.get<CashVoucher[]>('/cash-vouchers') : []);
+      }
       if (!CATALOG_FROM_API) {
         this.status.set('ready');
         return;

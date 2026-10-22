@@ -124,7 +124,7 @@ export class SalesOrderService {
     if (!this.data.cashAccounts().some((a) => a.id === o.payNowAccountId)) return;
     const marker = `Thu tiền ngay đơn ${o.code}`;
     if (delta > 0) {
-      this.cash.create({
+      void this.cash.create({
         kind: 'THU', date: o.deliveredDate ?? isoDay(new Date()), category: 'Thu tiền khách hàng', partnerType: 'KHACH_HANG',
         partnerId: o.customerId, accountId: o.payNowAccountId, amount: delta, description: marker,
         allocations: [{ ref: o.code, amount: delta }], settledAmount: delta,
@@ -135,7 +135,7 @@ export class SalesOrderService {
     const auto = this.data.cashVouchers().filter((v) => !v.isCancelled && v.description === marker).sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
     for (const v of auto) {
       if (left <= 0 || v.amount > left) continue;
-      this.cash.cancel(v.id, 'Khách bỏ nhận hàng — huỷ phiếu thu tự lập');
+      void this.cash.cancel(v.id, 'Khách bỏ nhận hàng — huỷ phiếu thu tự lập');
       left -= v.amount;
     }
   }
@@ -321,9 +321,9 @@ export class SalesOrderService {
       });
       this.keepOrder(res.order);
       if (res.receipts.length) {
-        // Phiếu thu chi are still in the browser (Đợt 6): show the server's "Thu tiền ngay" receipt there too.
+        // The server lập the "Thu tiền ngay" phiếu thu: add it to the list and read số dư quỹ again.
         this.data.cashVouchers.update((list) => [...res.receipts, ...list]);
-        this.cash.recomputeBalances();
+        await this.cash.refreshBalances();
       }
       return this.newVouchers(before, (v) => v.salesOrderId === id);
     }

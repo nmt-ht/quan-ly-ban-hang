@@ -71,7 +71,6 @@ describe('Chuyến giao hàng (e2e)', () => {
   afterAll(async () => {
     const codes = (await prisma.salesOrder.findMany({ where: { id: { in: orders } } })).map((o) => o.code);
     await prisma.cashVoucher.deleteMany({ where: { description: { in: codes.map((c) => `Thu tiền ngay đơn ${c}`) } } });
-    await prisma.cashAccount.update({ where: { id: 'acc-cash' }, data: { balance: cashBefore } });
     await prisma.warehouseVoucher.deleteMany({ where: { lines: { some: { productId: { in: products } } } } });
     await prisma.deliveryTrip.deleteMany({ where: { id: { in: trips } } });
     await prisma.salesOrder.deleteMany({ where: { id: { in: orders } } });

@@ -6,6 +6,7 @@ import { SequenceService } from '../../prisma/sequence.service.js';
 import { InventoryService, VoucherLineInput } from '../inventory/inventory.service.js';
 import type { AuthUser } from '../../auth/auth.service.js';
 import { fromDay, toDay } from '../../common/text.js';
+import { CASH_INCLUDE, cashToApi } from '../cash/cash-voucher.mapper.js';
 import {
   LsxState, PriceSource, STATUS_LABEL, SaleLine, canCancel, canClose, canDeliver, canEdit, deriveStatus, lineDiscount, lineRemaining,
   linesNeedingLsx, orderTotals, priceFor, receivedValueOf, round4,
@@ -64,16 +65,6 @@ const ORDER_INCLUDE = {
 } as const satisfies Prisma.SalesOrderInclude;
 
 const LSX_INCLUDE = { createdBy: { select: { email: true } } } as const satisfies Prisma.ProductionOrderInclude;
-const CASH_INCLUDE = { allocations: true, createdBy: { select: { email: true } } } as const satisfies Prisma.CashVoucherInclude;
-
-/** The frontend's CashVoucher (partnerId instead of customerId/supplierId, creator e-mail). */
-export function cashToApi(v: Prisma.CashVoucherGetPayload<{ include: typeof CASH_INCLUDE }>) {
-  const { allocations, createdBy, createdById: _c, customerId, supplierId, ...rest } = v;
-  return {
-    ...rest, partnerId: customerId ?? supplierId, date: toDay(v.date)!, createdBy: createdBy.email,
-    allocations: allocations.map((a) => ({ ref: a.ref, amount: a.amount })),
-  };
-}
 
 type OrderRow = Prisma.SalesOrderGetPayload<{ include: typeof ORDER_INCLUDE }>;
 type LineRow = OrderRow['lines'][number];
@@ -303,7 +294,6 @@ export class SalesService {
         },
         include: CASH_INCLUDE,
       });
-      await tx.cashAccount.update({ where: { id: o.payNowAccountId }, data: { balance: { increment: delta } } });
       return { ...none, receipts: [cashToApi(v)] };
     }
     let left = -delta;
@@ -312,7 +302,6 @@ export class SalesService {
       const amount = v.amount.toNumber();
       if (left <= 0 || amount > left) continue;
       await tx.cashVoucher.update({ where: { id: v.id }, data: { isCancelled: true, cancelReason: 'Khách bỏ nhận hàng — huỷ phiếu thu tự lập', cancelledAt: new Date() } });
-      await tx.cashAccount.update({ where: { id: v.accountId }, data: { balance: { decrement: amount } } });
       none.cancelled.push(v.id);
       left -= amount;
     }

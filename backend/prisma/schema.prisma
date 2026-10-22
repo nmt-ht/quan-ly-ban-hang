@@ -664,8 +664,7 @@ model CashAccount {
   accountHolder  String?
   branch         String?
   openingBalance Decimal         @default(0) // số dư trước khi dùng phần mềm
-  // Kept in step with vouchers until Đợt 6 derives it (opening + thu − chi, uncancelled).
-  balance        Decimal         @default(0)
+  // No stored balance: số dư = openingBalance + thu − chi of the phiếu chưa huỷ (CashAccountsService).
   sortOrder      Int             @default(0)
   note           String?
   isDefault      Boolean         @default(false)

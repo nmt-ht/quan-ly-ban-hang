@@ -58,7 +58,7 @@ export class CashAccountsComponent {
   readonly attempted = signal(false);
 
   constructor() {
-    this.svc.recomputeBalances();
+    void this.svc.refreshBalances();
   }
 
   private readonly voucherCount = computed(() => {

@@ -15,8 +15,7 @@ export const USE_API = {
   // stay in the browser until those modules move (Đợt 3–5). Needs `auth`.
   inventory: true,
   // Đơn nhập hàng (lập, sửa, gửi NCC, nhận hàng, hoàn tất, huỷ). Nhận hàng writes its phiếu nhập kho on
-  // the server. Công nợ phải trả is still computed on screen from these orders and the phiếu chi (Đợt 6).
-  // Needs `auth` and `inventory`.
+  // the server. Needs `auth` and `inventory`.
   purchasing: true,
   // Đơn hàng bán (lập, sửa, huỷ, kết thúc, giao hàng + thu tiền ngay) and lệnh sản xuất (lập, bắt đầu,
   // nghiệm thu, huỷ); their phiếu kho are written on the server. Chuyến giao hàng still changes orders
@@ -25,6 +24,10 @@ export const USE_API = {
   // Chuyến giao hàng (lập, xếp đơn, xuất kho, chốt giao / bỏ chốt, xe về kho, hoàn tất, huỷ, chi phí).
   // Needs `sales`.
   delivery: true,
+  // Phiếu thu chi (lập, huỷ, đối trừ chọn tay / tự động); số dư quỹ is computed by the server from the
+  // phiếu, and công nợ phải thu / phải trả are read from /receivables and /payables.
+  // Needs `sales` and `purchasing`.
+  cash: true,
 } as const;
 
 /** Danh mục come from the API only when sign-in does too (the calls need the token). */
@@ -41,3 +44,6 @@ export const SALES_FROM_API: boolean = INVENTORY_FROM_API && USE_API.sales;
 
 /** Chuyến giao hàng come from the API (Đợt 5). */
 export const DELIVERY_FROM_API: boolean = SALES_FROM_API && USE_API.delivery;
+
+/** Phiếu thu chi, số dư quỹ and công nợ come from the API (Đợt 6). */
+export const CASH_FROM_API: boolean = SALES_FROM_API && PURCHASING_FROM_API && USE_API.cash;
