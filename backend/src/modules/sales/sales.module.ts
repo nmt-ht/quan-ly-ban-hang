@@ -75,16 +75,15 @@ export class CompleteDto {
 export class SalesController {
   constructor(private readonly sales: SalesService) {}
 
-  // Reads are open to every signed-in user: trips, production, debts and the dashboard show orders.
-  // (Filtering by order.view_all waits until Chuyến giao hàng reads from the API — Đợt 5.)
+  // A seller without order.view_all sees only their own orders (SalesService.visibleTo).
   @Get('sales-orders')
-  orders() {
-    return this.sales.orders();
+  orders(@CurrentUser() user: AuthUser) {
+    return this.sales.orders(user);
   }
 
   @Get('sales-orders/:id')
-  order(@Param('id') id: string) {
-    return this.sales.order(id);
+  order(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.sales.orderFor(id, user);
   }
 
   @RequirePermissions('order.create')
@@ -172,5 +171,6 @@ export class ReceivablesController {
   imports: [InventoryModule],
   controllers: [SalesController, ReceivablesController],
   providers: [SalesService, ReceivablesService],
+  exports: [SalesService],
 })
 export class SalesModule {}

@@ -51,8 +51,8 @@
   </div>
 
   <footer class="rg-foot">
-    <p class="rg-summary" [class.text-danger]="attempted() && issues().length" role="status">
-      {{ attempted() && issues().length ? issues()[0] : (vehicleId() ? 'Xe công ty' : 'Xe thuê ngoài — không cần khai trong danh mục xe') }}
+    <p class="rg-summary" [class.text-danger]="error() || (attempted() && issues().length)" role="status">
+      {{ error() || (attempted() && issues().length ? issues()[0] : (vehicleId() ? 'Xe công ty' : 'Xe thuê ngoài — không cần khai trong danh mục xe')) }}
     </p>
     <div class="toolbar">
       <button type="button" class="btn" (click)="close()">Huỷ</button>

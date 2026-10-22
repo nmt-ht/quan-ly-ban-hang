@@ -58,8 +58,8 @@ export class ApiService {
     return this.run(this.http.patch<T>(API_BASE + path, body));
   }
 
-  delete(path: string): Promise<void> {
-    return this.run(this.http.delete<void>(API_BASE + path));
+  delete<T = void>(path: string): Promise<T> {
+    return this.run(this.http.delete<T>(API_BASE + path));
   }
 
   private async run<T>(req: Observable<T>): Promise<T> {

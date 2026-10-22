@@ -3867,117 +3867,678 @@
   ],
   "deliveryTrips": [
     {
-      "id": "ch-1",
-      "code": "CH0000001",
-      "date": "2026-08-20T02:00:00.000Z",
-      "driverName": "Đặng Văn Tài",
-      "vehicleId": "xe-1",
-      "status": "HOAN_TAT",
-      "orderIds": [
-        "dh-01",
-        "dh-02",
-        "dh-03"
-      ]
+      "id": "ch-10",
+      "code": "CH0000010",
+      "date": "2026-10-19",
+      "status": "GOM_DON",
+      "orderIds": [],
+      "createdByKey": "user-quanly"
     },
     {
-      "id": "ch-2",
-      "code": "CH0000002",
-      "date": "2026-08-28T02:00:00.000Z",
+      "id": "ch-9",
+      "code": "CH0000009",
+      "date": "2026-10-19",
+      "driverName": "Đặng Văn Tài",
+      "driverPhone": "0903111222",
+      "plateNumber": "51C-123.45",
+      "status": "GOM_DON",
+      "orderIds": [
+        "dh-18"
+      ],
+      "vehicleId": "xe-1",
+      "createdByKey": "user-quanly"
+    },
+    {
+      "id": "ch-8",
+      "code": "CH0000008",
+      "date": "2026-10-17",
       "driverName": "Lý Văn Sáu",
+      "driverPhone": "0903333444",
+      "plateNumber": "51D-678.90",
+      "status": "DA_XUAT_KHO",
+      "orderIds": [
+        "dh-16",
+        "dh-17"
+      ],
       "vehicleId": "xe-2",
-      "status": "HOAN_TAT",
-      "orderIds": [
-        "dh-04",
-        "dh-05"
-      ]
+      "shippedAt": "2026-10-17T08:30:00",
+      "costs": {
+        "fuel": 290000,
+        "toll": 0,
+        "other": 0
+      },
+      "loads": [
+        {
+          "orderId": "dh-16",
+          "lineIndex": 0,
+          "productId": "sp-khung-nhom-vang-30x40",
+          "quantity": 8,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-16",
+          "lineIndex": 1,
+          "productId": "sp-khung-soi-30x40",
+          "quantity": 8,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-17",
+          "lineIndex": 0,
+          "productId": "sp-khung-soi-40x60",
+          "quantity": 12,
+          "warehouseId": "wh-thanhpham"
+        }
+      ],
+      "confirmations": [],
+      "createdByKey": "user-quanly"
     },
     {
-      "id": "ch-3",
-      "code": "CH0000003",
-      "date": "2026-09-05T02:00:00.000Z",
+      "id": "ch-7",
+      "code": "CH0000007",
+      "date": "2026-10-12",
       "driverName": "Đặng Văn Tài",
-      "vehicleId": "xe-1",
-      "status": "HOAN_TAT",
+      "driverPhone": "0903111222",
+      "plateNumber": "51C-123.45",
+      "status": "XE_VE_KHO",
       "orderIds": [
-        "dh-06",
-        "dh-07",
-        "dh-08"
-      ]
+        "dh-14",
+        "dh-15"
+      ],
+      "vehicleId": "xe-1",
+      "shippedAt": "2026-10-12T08:30:00",
+      "returnedAt": "2026-10-12T17:15:00",
+      "costs": {
+        "fuel": 325000,
+        "toll": 40000,
+        "other": 0,
+        "note": "Qua trạm BOT An Sương"
+      },
+      "loads": [
+        {
+          "orderId": "dh-14",
+          "lineIndex": 0,
+          "productId": "sp-khung-soi-50x70",
+          "quantity": 16,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-14",
+          "lineIndex": 1,
+          "productId": "sp-khung-soi-60x90",
+          "quantity": 10,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-15",
+          "lineIndex": 0,
+          "productId": "sp-khung-nhom-vang-30x40",
+          "quantity": 2,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-15",
+          "lineIndex": 1,
+          "productId": "sp-khung-soi-30x40",
+          "quantity": 3,
+          "warehouseId": "wh-thanhpham"
+        }
+      ],
+      "confirmations": [
+        {
+          "orderId": "dh-14",
+          "confirmedAt": "2026-10-12T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 16
+            },
+            {
+              "lineIndex": 1,
+              "received": 10
+            }
+          ]
+        }
+      ],
+      "createdByKey": "user-quanly"
     },
     {
-      "id": "ch-4",
-      "code": "CH0000004",
-      "date": "2026-09-18T02:00:00.000Z",
-      "driverName": "Đặng Văn Tài",
-      "vehicleId": "xe-1",
-      "status": "HOAN_TAT",
-      "orderIds": [
-        "dh-09",
-        "dh-10"
-      ]
+      "id": "ch-6",
+      "code": "CH0000006",
+      "date": "2026-10-08",
+      "driverName": "Nguyễn Văn Bốn",
+      "driverPhone": "0903555666",
+      "plateNumber": "60C-777.77",
+      "status": "HUY",
+      "orderIds": [],
+      "cancelReason": "Xe thuê ngoài báo hỏng, dời đơn sang chuyến sau",
+      "createdByKey": "user-quanly"
     },
     {
       "id": "ch-5",
       "code": "CH0000005",
-      "date": "2026-09-30T02:00:00.000Z",
+      "date": "2026-09-30",
       "driverName": "Lý Văn Sáu",
-      "vehicleId": "xe-2",
+      "driverPhone": "0903333444",
+      "plateNumber": "51D-678.90",
       "status": "HOAN_TAT",
       "orderIds": [
         "dh-11",
         "dh-12",
         "dh-13"
-      ]
-    },
-    {
-      "id": "ch-6",
-      "code": "CH0000006",
-      "date": "2026-10-08T02:00:00.000Z",
-      "driverName": "Nguyễn Văn Bốn (xe thuê 60C-777.77)",
-      "status": "HUY",
-      "orderIds": []
-    },
-    {
-      "id": "ch-7",
-      "code": "CH0000007",
-      "date": "2026-10-12T02:00:00.000Z",
-      "driverName": "Đặng Văn Tài",
-      "vehicleId": "xe-1",
-      "status": "XE_VE_KHO",
-      "orderIds": [
-        "dh-14",
-        "dh-15"
-      ]
-    },
-    {
-      "id": "ch-8",
-      "code": "CH0000008",
-      "date": "2026-10-17T02:00:00.000Z",
-      "driverName": "Lý Văn Sáu",
+      ],
       "vehicleId": "xe-2",
-      "status": "DA_XUAT_KHO",
-      "orderIds": [
-        "dh-16",
-        "dh-17"
-      ]
+      "shippedAt": "2026-09-30T08:30:00",
+      "returnedAt": "2026-09-30T17:15:00",
+      "completedAt": "2026-09-30T17:30:00",
+      "costs": {
+        "fuel": 255000,
+        "toll": 40000,
+        "other": 0,
+        "note": "Qua trạm BOT An Sương"
+      },
+      "loads": [
+        {
+          "orderId": "dh-11",
+          "lineIndex": 0,
+          "productId": "sp-khung-soi-40x60",
+          "quantity": 24,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-11",
+          "lineIndex": 1,
+          "productId": "sp-khung-soi-50x70",
+          "quantity": 12,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-11",
+          "lineIndex": 2,
+          "productId": "dv-cong-dong",
+          "quantity": 1
+        },
+        {
+          "orderId": "dh-12",
+          "lineIndex": 0,
+          "productId": "sp-khung-oc-cho-40x60",
+          "quantity": 10,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-12",
+          "lineIndex": 1,
+          "productId": "sp-khung-nhom-den-40x60",
+          "quantity": 10,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-13",
+          "lineIndex": 0,
+          "productId": "sp-khung-soi-60x90",
+          "quantity": 1,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-13",
+          "lineIndex": 1,
+          "productId": "sp-khung-soi-30x40",
+          "quantity": 1,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-13",
+          "lineIndex": 2,
+          "productId": "vt-keo-dan",
+          "quantity": 1,
+          "warehouseId": "wh-phukien"
+        },
+        {
+          "orderId": "dh-13",
+          "lineIndex": 3,
+          "productId": "vt-ve-sinh-kinh",
+          "quantity": 2,
+          "warehouseId": "wh-ninhtrang"
+        }
+      ],
+      "confirmations": [
+        {
+          "orderId": "dh-11",
+          "confirmedAt": "2026-09-30T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 24
+            },
+            {
+              "lineIndex": 1,
+              "received": 12
+            },
+            {
+              "lineIndex": 2,
+              "received": 1
+            }
+          ]
+        },
+        {
+          "orderId": "dh-12",
+          "confirmedAt": "2026-09-30T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 10
+            },
+            {
+              "lineIndex": 1,
+              "received": 10
+            }
+          ]
+        },
+        {
+          "orderId": "dh-13",
+          "confirmedAt": "2026-09-30T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 1
+            },
+            {
+              "lineIndex": 1,
+              "received": 1
+            },
+            {
+              "lineIndex": 2,
+              "received": 1
+            },
+            {
+              "lineIndex": 3,
+              "received": 2
+            }
+          ]
+        }
+      ],
+      "createdByKey": "user-quanly"
     },
     {
-      "id": "ch-9",
-      "code": "CH0000009",
-      "date": "2026-10-19T02:00:00.000Z",
+      "id": "ch-4",
+      "code": "CH0000004",
+      "date": "2026-09-18",
       "driverName": "Đặng Văn Tài",
-      "vehicleId": "xe-1",
-      "status": "GOM_DON",
+      "driverPhone": "0903111222",
+      "plateNumber": "51C-123.45",
+      "status": "HOAN_TAT",
       "orderIds": [
-        "dh-18"
-      ]
+        "dh-09",
+        "dh-10"
+      ],
+      "vehicleId": "xe-1",
+      "shippedAt": "2026-09-18T08:30:00",
+      "returnedAt": "2026-09-18T17:15:00",
+      "completedAt": "2026-09-18T17:30:00",
+      "costs": {
+        "fuel": 290000,
+        "toll": 0,
+        "other": 50000
+      },
+      "loads": [
+        {
+          "orderId": "dh-09",
+          "lineIndex": 0,
+          "productId": "sp-khung-soi-40x60",
+          "quantity": 15,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-09",
+          "lineIndex": 1,
+          "productId": "sp-mica-cat",
+          "quantity": 6,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-10",
+          "lineIndex": 0,
+          "productId": "sp-khung-soi-20x30",
+          "quantity": 10,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-10",
+          "lineIndex": 1,
+          "productId": "sp-khung-soi-30x40",
+          "quantity": 10,
+          "warehouseId": "wh-thanhpham"
+        }
+      ],
+      "confirmations": [
+        {
+          "orderId": "dh-09",
+          "confirmedAt": "2026-09-18T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 15
+            },
+            {
+              "lineIndex": 1,
+              "received": 6
+            }
+          ]
+        },
+        {
+          "orderId": "dh-10",
+          "confirmedAt": "2026-09-18T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 10
+            },
+            {
+              "lineIndex": 1,
+              "received": 10
+            }
+          ]
+        }
+      ],
+      "createdByKey": "user-quanly"
     },
     {
-      "id": "ch-10",
-      "code": "CH0000010",
-      "date": "2026-10-19T02:00:00.000Z",
-      "status": "GOM_DON",
-      "orderIds": []
+      "id": "ch-3",
+      "code": "CH0000003",
+      "date": "2026-09-05",
+      "driverName": "Đặng Văn Tài",
+      "driverPhone": "0903111222",
+      "plateNumber": "51C-123.45",
+      "status": "HOAN_TAT",
+      "orderIds": [
+        "dh-06",
+        "dh-07",
+        "dh-08"
+      ],
+      "vehicleId": "xe-1",
+      "shippedAt": "2026-09-05T08:30:00",
+      "returnedAt": "2026-09-05T17:15:00",
+      "completedAt": "2026-09-05T17:30:00",
+      "costs": {
+        "fuel": 325000,
+        "toll": 40000,
+        "other": 0,
+        "note": "Qua trạm BOT An Sương"
+      },
+      "loads": [
+        {
+          "orderId": "dh-06",
+          "lineIndex": 0,
+          "productId": "sp-khung-soi-20x30",
+          "quantity": 4,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-07",
+          "lineIndex": 0,
+          "productId": "sp-khung-soi-40x60",
+          "quantity": 10,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-07",
+          "lineIndex": 1,
+          "productId": "sp-khung-soi-30x40",
+          "quantity": 10,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-08",
+          "lineIndex": 0,
+          "productId": "sp-khung-nhom-vang-30x40",
+          "quantity": 3,
+          "warehouseId": "wh-thanhpham"
+        }
+      ],
+      "confirmations": [
+        {
+          "orderId": "dh-06",
+          "confirmedAt": "2026-09-05T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 4
+            }
+          ]
+        },
+        {
+          "orderId": "dh-07",
+          "confirmedAt": "2026-09-05T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 7
+            },
+            {
+              "lineIndex": 1,
+              "received": 10
+            }
+          ]
+        },
+        {
+          "orderId": "dh-08",
+          "confirmedAt": "2026-09-05T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 0
+            }
+          ]
+        }
+      ],
+      "createdByKey": "user-quanly"
+    },
+    {
+      "id": "ch-2",
+      "code": "CH0000002",
+      "date": "2026-08-28",
+      "driverName": "Lý Văn Sáu",
+      "driverPhone": "0903333444",
+      "plateNumber": "51D-678.90",
+      "status": "HOAN_TAT",
+      "orderIds": [
+        "dh-04",
+        "dh-05"
+      ],
+      "vehicleId": "xe-2",
+      "shippedAt": "2026-08-28T08:30:00",
+      "returnedAt": "2026-08-28T17:15:00",
+      "completedAt": "2026-08-28T17:30:00",
+      "costs": {
+        "fuel": 220000,
+        "toll": 0,
+        "other": 0
+      },
+      "loads": [
+        {
+          "orderId": "dh-04",
+          "lineIndex": 0,
+          "productId": "sp-khung-soi-60x90",
+          "quantity": 12,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-04",
+          "lineIndex": 1,
+          "productId": "sp-khung-oc-cho-40x60",
+          "quantity": 8,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-04",
+          "lineIndex": 2,
+          "productId": "sp-kinh-cat",
+          "quantity": 5,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-05",
+          "lineIndex": 0,
+          "productId": "sp-khung-soi-50x70",
+          "quantity": 30,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-05",
+          "lineIndex": 1,
+          "productId": "sp-khung-nhom-den-40x60",
+          "quantity": 30,
+          "warehouseId": "wh-thanhpham"
+        }
+      ],
+      "confirmations": [
+        {
+          "orderId": "dh-04",
+          "confirmedAt": "2026-08-28T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 12
+            },
+            {
+              "lineIndex": 1,
+              "received": 8
+            },
+            {
+              "lineIndex": 2,
+              "received": 5
+            }
+          ]
+        },
+        {
+          "orderId": "dh-05",
+          "confirmedAt": "2026-08-28T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 30
+            },
+            {
+              "lineIndex": 1,
+              "received": 30
+            }
+          ]
+        }
+      ],
+      "createdByKey": "user-quanly"
+    },
+    {
+      "id": "ch-1",
+      "code": "CH0000001",
+      "date": "2026-08-20",
+      "driverName": "Đặng Văn Tài",
+      "driverPhone": "0903111222",
+      "plateNumber": "51C-123.45",
+      "status": "HOAN_TAT",
+      "orderIds": [
+        "dh-01",
+        "dh-02",
+        "dh-03"
+      ],
+      "vehicleId": "xe-1",
+      "shippedAt": "2026-08-20T08:30:00",
+      "returnedAt": "2026-08-20T17:15:00",
+      "completedAt": "2026-08-20T17:30:00",
+      "costs": {
+        "fuel": 255000,
+        "toll": 40000,
+        "other": 50000,
+        "note": "Qua trạm BOT An Sương"
+      },
+      "loads": [
+        {
+          "orderId": "dh-01",
+          "lineIndex": 0,
+          "productId": "sp-khung-soi-30x40",
+          "quantity": 2,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-01",
+          "lineIndex": 1,
+          "productId": "sp-khung-soi-40x60",
+          "quantity": 1,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-02",
+          "lineIndex": 0,
+          "productId": "sp-khung-soi-40x60",
+          "quantity": 20,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-02",
+          "lineIndex": 1,
+          "productId": "sp-khung-soi-50x70",
+          "quantity": 10,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-03",
+          "lineIndex": 0,
+          "productId": "sp-khung-nhom-vang-30x40",
+          "quantity": 6,
+          "warehouseId": "wh-thanhpham"
+        },
+        {
+          "orderId": "dh-03",
+          "lineIndex": 1,
+          "productId": "vt-den-led",
+          "quantity": 6,
+          "warehouseId": "wh-ninhtrang"
+        }
+      ],
+      "confirmations": [
+        {
+          "orderId": "dh-01",
+          "confirmedAt": "2026-08-20T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 2
+            },
+            {
+              "lineIndex": 1,
+              "received": 1
+            }
+          ]
+        },
+        {
+          "orderId": "dh-02",
+          "confirmedAt": "2026-08-20T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 20
+            },
+            {
+              "lineIndex": 1,
+              "received": 10
+            }
+          ]
+        },
+        {
+          "orderId": "dh-03",
+          "confirmedAt": "2026-08-20T15:00:00",
+          "lines": [
+            {
+              "lineIndex": 0,
+              "received": 6
+            },
+            {
+              "lineIndex": 1,
+              "received": 6
+            }
+          ]
+        }
+      ],
+      "createdByKey": "user-quanly"
     }
   ],
   "warehouseVouchers": [

@@ -8,6 +8,7 @@ import { PHONE_PATTERN } from '../../customers/customer.rules';
 import { ACTIVE_TRIP } from '../delivery-trip.rules';
 import { VEHICLE_TYPE_LABEL } from '../../vehicles/vehicle.rules';
 import { DeliveryTripService, TripHeader } from '../delivery-trip.service';
+import { errorText } from '../../../core/api/api.service';
 
 const HIRED = '';
 
@@ -32,6 +33,8 @@ export class TripHeaderDialogComponent {
   readonly phone = signal('');
   readonly note = signal('');
   readonly attempted = signal(false);
+  /** Why the server refused the save (shown in the footer). */
+  readonly error = signal('');
 
   constructor(
     readonly data: MockDataService,
@@ -91,9 +94,10 @@ export class TripHeaderDialogComponent {
     return out;
   });
 
-  confirm(): void {
+  async confirm(): Promise<void> {
     this.attempted.set(true);
     if (this.issues().length) return;
+    this.error.set('');
     const h: TripHeader = {
       date: this.date(),
       vehicleId: this.vehicleId() || undefined,
@@ -103,14 +107,18 @@ export class TripHeaderDialogComponent {
       note: this.note(),
     };
     const t = this.editing();
-    if (t) {
-      this.trips.updateHeader(t.id, h);
-      this.close();
-      this.saved.emit('Đã lưu thông tin chuyến.');
-    } else {
-      const created = this.trips.create(h);
-      this.close();
-      this.saved.emit(created);
+    try {
+      if (t) {
+        await this.trips.updateHeader(t.id, h);
+        this.close();
+        this.saved.emit('Đã lưu thông tin chuyến.');
+      } else {
+        const created = await this.trips.create(h);
+        this.close();
+        this.saved.emit(created);
+      }
+    } catch (e) {
+      this.error.set(errorText(e));
     }
   }
 }

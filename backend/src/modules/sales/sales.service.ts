@@ -64,6 +64,16 @@ const ORDER_INCLUDE = {
 } as const satisfies Prisma.SalesOrderInclude;
 
 const LSX_INCLUDE = { createdBy: { select: { email: true } } } as const satisfies Prisma.ProductionOrderInclude;
+const CASH_INCLUDE = { allocations: true, createdBy: { select: { email: true } } } as const satisfies Prisma.CashVoucherInclude;
+
+/** The frontend's CashVoucher (partnerId instead of customerId/supplierId, creator e-mail). */
+export function cashToApi(v: Prisma.CashVoucherGetPayload<{ include: typeof CASH_INCLUDE }>) {
+  const { allocations, createdBy, createdById: _c, customerId, supplierId, ...rest } = v;
+  return {
+    ...rest, partnerId: customerId ?? supplierId, date: toDay(v.date)!, createdBy: createdBy.email,
+    allocations: allocations.map((a) => ({ ref: a.ref, amount: a.amount })),
+  };
+}
 
 type OrderRow = Prisma.SalesOrderGetPayload<{ include: typeof ORDER_INCLUDE }>;
 type LineRow = OrderRow['lines'][number];
@@ -108,9 +118,25 @@ export class SalesService {
 
   // ---------- đọc ----------
 
-  async orders() {
-    const rows = await this.prisma.salesOrder.findMany({ include: ORDER_INCLUDE, orderBy: [{ orderDate: 'desc' }, { code: 'desc' }] });
+  /**
+   * "Xem đơn của mọi người bán": a seller (order.create) without order.view_all sees only the orders
+   * they sell or made. Roles that do not sell (Thủ kho, giao hàng) see every order: they ship them.
+   */
+  visibleTo(user: AuthUser): Prisma.SalesOrderWhereInput {
+    const perms = user.permissions;
+    if (perms.includes('order.view_all') || !perms.includes('order.create')) return {};
+    return { OR: [{ salesRepId: user.id }, { createdById: user.id }] };
+  }
+
+  async orders(user: AuthUser) {
+    const rows = await this.prisma.salesOrder.findMany({ where: this.visibleTo(user), include: ORDER_INCLUDE, orderBy: [{ orderDate: 'desc' }, { code: 'desc' }] });
     return rows.map(orderToApi);
+  }
+
+  async orderFor(id: string, user: AuthUser) {
+    const o = await this.prisma.salesOrder.findFirst({ where: { id, ...this.visibleTo(user) }, include: ORDER_INCLUDE });
+    if (!o) throw new NotFoundException('Không tìm thấy đơn hàng');
+    return orderToApi(o);
   }
 
   async order(id: string, db: Tx | PrismaService = this.prisma) {
@@ -251,29 +277,46 @@ export class SalesService {
       await tx.salesOrder.update({ where: { id }, data: { deliveredDate: fromDay(input.date), dueDate: null } });
       await this.refreshStatus(tx, id);
 
-      const receipts = [];
       const delta = receivedValueOf(nums, o.discountAmount.toNumber()) - before;
-      if (o.payNowAccountId && delta > 0) receipts.push(await this.payNow(tx, o.code, o.customerId, o.payNowAccountId, delta, input.date, user.id));
+      const { receipts } = await this.syncPayNow(tx, o, delta, input.date, user.id);
       return { order: await this.order(id, tx), receipts };
     });
   }
 
-  // "Thu tiền ngay": a phiếu thu for the value just received, đối trừ thẳng vào đơn này.
-  private async payNow(tx: Tx, orderCode: string, customerId: string, accountId: string, amount: number, date: string, userId: string) {
-    const v = await tx.cashVoucher.create({
-      data: {
-        code: await this.sequences.nextCode('PT', tx), date: fromDay(date)!, kind: 'THU', category: 'Thu tiền khách hàng',
-        partnerType: 'KHACH_HANG', customerId, accountId, amount, settledAmount: amount, description: `Thu tiền ngay đơn ${orderCode}`,
-        createdById: userId, allocations: { create: [{ ref: orderCode, amount }] },
-      },
-      include: { allocations: true, createdBy: { select: { email: true } } },
-    });
-    await tx.cashAccount.update({ where: { id: accountId }, data: { balance: { increment: amount } } });
-    const { allocations, createdBy, createdById: _c, customerId: partnerId, supplierId: _s, ...rest } = v;
-    return {
-      ...rest, partnerId, date: toDay(v.date)!, createdBy: createdBy.email,
-      allocations: allocations.map((a) => ({ ref: a.ref, amount: a.amount })),
-    };
+  /**
+   * "Thu tiền ngay": the customer received more → a phiếu thu for exactly that value, đối trừ thẳng vào
+   * đơn này. Received less (bỏ chốt giao on a chuyến) → the latest automatic phiếu thu that fit are
+   * cancelled so công nợ matches again. Returns the new receipts and the ids of the cancelled ones.
+   */
+  async syncPayNow(
+    tx: Tx, o: { code: string; customerId: string; payNowAccountId: string | null; status: SalesOrderStatus }, delta: number, date: string, userId: string,
+  ) {
+    const none = { receipts: [] as ReturnType<typeof cashToApi>[], cancelled: [] as string[] };
+    if (!o.payNowAccountId || o.status === 'HUY' || !delta) return none;
+    const marker = `Thu tiền ngay đơn ${o.code}`;
+    if (delta > 0) {
+      const v = await tx.cashVoucher.create({
+        data: {
+          code: await this.sequences.nextCode('PT', tx), date: fromDay(date)!, kind: 'THU', category: 'Thu tiền khách hàng',
+          partnerType: 'KHACH_HANG', customerId: o.customerId, accountId: o.payNowAccountId, amount: delta, settledAmount: delta,
+          description: marker, createdById: userId, allocations: { create: [{ ref: o.code, amount: delta }] },
+        },
+        include: CASH_INCLUDE,
+      });
+      await tx.cashAccount.update({ where: { id: o.payNowAccountId }, data: { balance: { increment: delta } } });
+      return { ...none, receipts: [cashToApi(v)] };
+    }
+    let left = -delta;
+    const auto = await tx.cashVoucher.findMany({ where: { isCancelled: false, description: marker }, orderBy: { createdAt: 'desc' } });
+    for (const v of auto) {
+      const amount = v.amount.toNumber();
+      if (left <= 0 || amount > left) continue;
+      await tx.cashVoucher.update({ where: { id: v.id }, data: { isCancelled: true, cancelReason: 'Khách bỏ nhận hàng — huỷ phiếu thu tự lập', cancelledAt: new Date() } });
+      await tx.cashAccount.update({ where: { id: v.accountId }, data: { balance: { decrement: amount } } });
+      none.cancelled.push(v.id);
+      left -= amount;
+    }
+    return none;
   }
 
   // ---------- lệnh sản xuất ----------
@@ -399,7 +442,7 @@ export class SalesService {
   }
 
   // The order row is locked for the rest of the transaction: two deliveries at once cannot both pass.
-  private async locked(tx: Tx, id: string) {
+  async locked(tx: Tx, id: string) {
     await tx.$queryRaw`SELECT "id" FROM "SalesOrder" WHERE "id" = ${id} FOR UPDATE`;
     const o = await tx.salesOrder.findUnique({ where: { id }, include: ORDER_INCLUDE });
     if (!o) throw new NotFoundException('Không tìm thấy đơn hàng');

@@ -641,7 +641,6 @@ export const DEMO_ROLE_USER_COUNT: Record<string, number> = ${J(roleUserCount)};
 `;
 
 // ---- backend ----
-const hiredNote = (t) => (t.vehicleId ? t.driverName : t.driverName ? `${t.driverName} (xe thuê ${t.plateNumber ?? ''})`.replace(' )', ')') : undefined);
 const be = clean({
   meta: { generatedFor: TODAY, note: 'Dữ liệu GIẢ do tools/gen-demo-data.mjs sinh ra. Đừng sửa tay.' },
   // Danh mục: same objects (and ids) as the frontend demo, so both sides show the same catalog.
@@ -669,7 +668,8 @@ const be = clean({
     createdAt: iso(l.createdDate), startDate: l.startDate, completeDate: l.completeDate, producedQuantity: l.status === 'HOAN_TAT' ? l.quantity : undefined,
   })),
   vehicles: feVehicles,
-  deliveryTrips: trips.map((t) => ({ id: t.id, code: t.code, date: iso(t.date), driverName: hiredNote(t), vehicleId: t.vehicleId, status: t.status, orderIds: t.orderIds })),
+  // Same chuyến as the frontend (xếp hàng, chốt giao, chi phí); totals are derived on the server.
+  deliveryTrips: feTrips.map(({ totalValue: _v, receivedValue: _r, confirmedCount: _c, createdBy: _b, ...t }) => ({ ...t, createdByKey: 'user-quanly' })),
   // Lines carry the stock change (delta) like the frontend's, plus the purchase price of phiếu nhập.
   warehouseVouchers: warehouseVouchers.map((v) => ({
     id: v.id, code: v.code, type: v.type, date: iso(v.date), warehouseKey: v.warehouseId, targetWarehouseKey: v.targetWarehouseId, reason: v.reason,

@@ -171,11 +171,23 @@ async function main() {
     ...v, createdAt: D(v.createdAt), registrationExpiry: D(v.registrationExpiry), insuranceExpiry: D(v.insuranceExpiry),
   })) });
   for (const t of data.deliveryTrips) {
+    // Loads point at the order line by its index on the order; chốt giao fills their received quantity.
+    const lineId = (orderId: string, index: number) => data.salesOrders.find((o: any) => o.id === orderId).lines[index].id;
+    const confirmed = new Map<string, any>((t.confirmations ?? []).map((c: any) => [c.orderId, c]));
     await prisma.deliveryTrip.create({
       data: {
-        id: t.id, code: t.code, date: new Date(t.date), driverName: t.driverName,
-        vehicleId: t.vehicleId, status: t.status,
-        orders: { create: t.orderIds.map((orderId: string) => ({ orderId })) },
+        id: t.id, code: t.code, date: new Date(t.date), driverName: t.driverName, driverPhone: t.driverPhone,
+        plateNumber: t.plateNumber, vehicleId: t.vehicleId, status: t.status, note: t.note,
+        shippedAt: D(t.shippedAt), returnedAt: D(t.returnedAt), completedAt: D(t.completedAt), cancelReason: t.cancelReason,
+        fuelCost: t.costs?.fuel ?? 0, tollCost: t.costs?.toll ?? 0, otherCost: t.costs?.other ?? 0, costNote: t.costs?.note,
+        createdById: user[t.createdByKey],
+        orders: { create: t.orderIds.map((orderId: string, i: number) => ({
+          orderId, sortOrder: i, confirmedAt: D(confirmed.get(orderId)?.confirmedAt), confirmNote: confirmed.get(orderId)?.note,
+        })) },
+        loads: { create: (t.loads ?? []).map((l: any) => ({
+          orderLineId: lineId(l.orderId, l.lineIndex), productId: l.productId, warehouseId: l.warehouseId, quantity: l.quantity,
+          receivedQuantity: confirmed.get(l.orderId)?.lines.find((x: any) => x.lineIndex === l.lineIndex)?.received,
+        })) },
       },
     });
   }

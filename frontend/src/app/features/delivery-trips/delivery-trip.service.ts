@@ -1,6 +1,10 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { MockDataService } from '../../core/services/mock-data.service';
-import { DeliveryTrip, TripConfirmation, TripCosts, TripLoad, WarehouseVoucher } from '../../core/models/domain.models';
+import { CashVoucher, DeliveryTrip, SalesOrder, TripConfirmation, TripCosts, TripLoad, WarehouseVoucher } from '../../core/models/domain.models';
+import { ApiService, upsertById } from '../../core/api/api.service';
+import { CatalogLoader } from '../../core/api/catalog-loader.service';
+import { DELIVERY_FROM_API } from '../../core/api/api.config';
+import { CashVoucherService } from '../cash-vouchers/cash-voucher.service';
 import { isoDay } from '../../shared/period';
 import { nextCode, round4 } from '../purchase-orders/purchase-order.rules';
 import { defaultWarehouse, lineRatio, lineRemaining, movesStock } from '../sales-orders/sales-order.rules';
@@ -19,10 +23,45 @@ export interface TripHeader {
   note?: string;
 }
 
-// All writes for Chuyến giao hàng. Against the mock store today; maps 1:1 to backend endpoints
-// later (trip.create / trip.ship / trip.deliver / trip.return …).
+/** What every chuyến step answers on the server. */
+interface TripResult {
+  trip: DeliveryTrip;
+  orders: SalesOrder[];
+  receipts?: CashVoucher[];
+  cancelledReceipts?: string[];
+}
+
+// All writes for Chuyến giao hàng: the API (DELIVERY_FROM_API) — the server checks the steps, writes the
+// phiếu kho, moves the orders and makes / cancels the "Thu tiền ngay" phiếu thu — or, in demo mode, the
+// in-browser store.
 @Injectable({ providedIn: 'root' })
 export class DeliveryTripService {
+  private readonly api = inject(ApiService);
+  private readonly loader = inject(CatalogLoader);
+  private readonly cash = inject(CashVoucherService);
+
+  /** Put the chuyến and the orders it touched back into the local lists. */
+  private apply(res: TripResult): DeliveryTrip {
+    this.data.deliveryTrips.update((list) => upsertById(list, res.trip));
+    for (const o of res.orders) this.data.salesOrders.update((list) => upsertById(list, o));
+    // Phiếu thu chi are still in the browser (Đợt 6): mirror the server's "Thu tiền ngay" changes there.
+    if (res.receipts?.length) this.data.cashVouchers.update((list) => [...res.receipts!, ...list]);
+    if (res.cancelledReceipts?.length) {
+      const ids = new Set(res.cancelledReceipts);
+      this.data.cashVouchers.update((list) => list.map((v) => (ids.has(v.id) ? { ...v, isCancelled: true } : v)));
+    }
+    if (res.receipts?.length || res.cancelledReceipts?.length) this.cash.recomputeBalances();
+    return res.trip;
+  }
+
+  /** A step that wrote phiếu kho: read stock and vouchers again, return this chuyến's new ones. */
+  private async withVouchers(path: string, id: string): Promise<WarehouseVoucher[]> {
+    const before = new Set(this.data.warehouseVouchers().map((v) => v.id));
+    const t = this.apply(await this.api.post<TripResult>(path));
+    await this.loader.loadInventory();
+    return this.vouchersOf(t).filter((v) => !before.has(v.id));
+  }
+
   constructor(
     private readonly data: MockDataService,
     private readonly orders: SalesOrderService,
@@ -67,7 +106,12 @@ export class DeliveryTripService {
     return next;
   }
 
-  create(h: TripHeader): DeliveryTrip {
+  async create(h: TripHeader): Promise<DeliveryTrip> {
+    if (DELIVERY_FROM_API) {
+      const t = await this.api.post<DeliveryTrip>('/delivery-trips', h);
+      this.data.deliveryTrips.update((list) => upsertById(list, t));
+      return t;
+    }
     const t: DeliveryTrip = {
       ...this.cleanHeader(h),
       id: crypto.randomUUID(),
@@ -83,7 +127,11 @@ export class DeliveryTripService {
     return this.save(t);
   }
 
-  updateHeader(id: string, h: TripHeader): void {
+  async updateHeader(id: string, h: TripHeader): Promise<void> {
+    if (DELIVERY_FROM_API) {
+      this.apply(await this.api.put<TripResult>(`/delivery-trips/${id}`, h));
+      return;
+    }
     this.save({ ...this.find(id), ...this.cleanHeader(h) });
   }
 
@@ -99,15 +147,23 @@ export class DeliveryTripService {
     };
   }
 
-  saveCosts(id: string, costs: TripCosts): void {
+  async saveCosts(id: string, costs: TripCosts): Promise<void> {
+    if (DELIVERY_FROM_API) {
+      this.apply(await this.api.put<TripResult>(`/delivery-trips/${id}/costs`, { ...costs, note: costs.note?.trim() || undefined }));
+      return;
+    }
     this.save({ ...this.find(id), costs: { ...costs, note: costs.note?.trim() || undefined } });
   }
 
   // ---------- xếp đơn ----------
 
-  addOrders(id: string, orderIds: string[]): number {
+  async addOrders(id: string, orderIds: string[]): Promise<number> {
     const t = this.find(id);
     if (!canArrange(t)) return 0;
+    if (DELIVERY_FROM_API) {
+      const next = this.apply(await this.api.post<TripResult>(`/delivery-trips/${id}/orders`, { orderIds }));
+      return next.orderIds.length - t.orderIds.length;
+    }
     const ok = orderIds.filter((oid) => {
       const o = this.data.salesOrders().find((x) => x.id === oid);
       return !!o && !t.orderIds.includes(oid) && canLoadOrder(o, this.tripOf);
@@ -117,9 +173,13 @@ export class DeliveryTripService {
     return ok.length;
   }
 
-  removeOrder(id: string, orderId: string): void {
+  async removeOrder(id: string, orderId: string): Promise<void> {
     const t = this.find(id);
     if (!canArrange(t)) return;
+    if (DELIVERY_FROM_API) {
+      this.apply(await this.api.delete<TripResult>(`/delivery-trips/${id}/orders/${orderId}`));
+      return;
+    }
     this.orders.setTrip(orderId, undefined);
     this.save({ ...t, orderIds: t.orderIds.filter((x) => x !== orderId) });
   }
@@ -127,9 +187,10 @@ export class DeliveryTripService {
   // ---------- xuất kho một lượt ----------
 
   /** Xếp toàn bộ phần còn phải giao lên xe; một phiếu xuất kho cho mỗi kho; đơn chuyển Đang giao. */
-  ship(id: string): WarehouseVoucher[] {
+  async ship(id: string): Promise<WarehouseVoucher[]> {
     const t = this.find(id);
     if (!canShip(t)) throw new Error('Chuyến chưa có đơn hoặc đã xuất kho.');
+    if (DELIVERY_FROM_API) return this.withVouchers(`/delivery-trips/${id}/ship`, id);
     const products = new Map(this.data.products().map((p) => [p.id, p]));
     const loads: TripLoad[] = [];
     const byWh = new Map<string, { productId: string; q: number }[]>();
@@ -164,9 +225,13 @@ export class DeliveryTripService {
   }
 
   /** Chốt số khách thực nhận từng dòng (≤ số đã xếp lên xe). Công nợ phải thu ghi theo số này. */
-  confirm(id: string, orderId: string, lines: { lineIndex: number; received: number }[], note: string): void {
+  async confirm(id: string, orderId: string, lines: { lineIndex: number; received: number }[], note: string): Promise<void> {
     const t = this.find(id);
     if (!canConfirm(t) || isConfirmed(t, orderId)) return;
+    if (DELIVERY_FROM_API) {
+      this.apply(await this.api.post<TripResult>(`/delivery-trips/${id}/orders/${orderId}/confirm`, { lines, note: note.trim() || undefined }));
+      return;
+    }
     const loads = this.loadsOf(t, orderId);
     const clean = loads.map((l) => {
       const r = lines.find((x) => x.lineIndex === l.lineIndex)?.received ?? 0;
@@ -179,10 +244,14 @@ export class DeliveryTripService {
   }
 
   /** Bỏ chốt (trước khi xe về kho): trả lại số đã ghi nhận, đơn về Đang giao. */
-  unconfirm(id: string, orderId: string): void {
+  async unconfirm(id: string, orderId: string): Promise<void> {
     const t = this.find(id);
     const c = t.confirmations?.find((x) => x.orderId === orderId);
     if (!canConfirm(t) || !c) return;
+    if (DELIVERY_FROM_API) {
+      this.apply(await this.api.post<TripResult>(`/delivery-trips/${id}/orders/${orderId}/unconfirm`));
+      return;
+    }
     this.orders.recordTripReceipt(orderId, c.lines, isoDay(new Date()), -1);
     this.save({ ...t, confirmations: (t.confirmations ?? []).filter((x) => x.orderId !== orderId) });
   }
@@ -190,9 +259,10 @@ export class DeliveryTripService {
   // ---------- xe về kho / hoàn tất / huỷ ----------
 
   /** Hàng khách không nhận được nhập lại đúng kho đã xuất (phiếu "Nhập trả về"). */
-  returnToWarehouse(id: string): WarehouseVoucher[] {
+  async returnToWarehouse(id: string): Promise<WarehouseVoucher[]> {
     const t = this.find(id);
     if (!canReturn(t)) throw new Error('Còn đơn chưa chốt giao.');
+    if (DELIVERY_FROM_API) return this.withVouchers(`/delivery-trips/${id}/return`, id);
     const byWh = new Map<string, { productId: string; q: number }[]>();
     const refs = new Set<string>();
     for (const l of t.loads ?? []) {
@@ -214,15 +284,23 @@ export class DeliveryTripService {
     return vouchers;
   }
 
-  complete(id: string): void {
+  async complete(id: string): Promise<void> {
     const t = this.find(id);
     if (!canComplete(t)) return;
+    if (DELIVERY_FROM_API) {
+      this.apply(await this.api.post<TripResult>(`/delivery-trips/${id}/complete`));
+      return;
+    }
     this.save({ ...t, status: 'HOAN_TAT', completedAt: new Date().toISOString() });
   }
 
-  cancel(id: string, reason: string): void {
+  async cancel(id: string, reason: string): Promise<void> {
     const t = this.find(id);
     if (!canCancel(t)) return;
+    if (DELIVERY_FROM_API) {
+      this.apply(await this.api.post<TripResult>(`/delivery-trips/${id}/cancel`, { reason: reason.trim() || undefined }));
+      return;
+    }
     for (const oid of t.orderIds) this.orders.setTrip(oid, undefined);
     this.save({ ...t, status: 'HUY', orderIds: [], cancelReason: reason.trim() || undefined });
   }

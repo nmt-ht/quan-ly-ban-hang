@@ -13,7 +13,7 @@ import { DEFAULT_CASH_CATEGORIES } from '../../features/cash-vouchers/cash-vouch
 import { loadCompany } from './company.storage';
 import { PERMISSION_MODULES } from '../data/permission-catalog';
 import { grantsFor } from '../../features/settings/roles-permissions/role.rules';
-import { CATALOG_FROM_API, INVENTORY_FROM_API, PURCHASING_FROM_API, SALES_FROM_API } from '../api/api.config';
+import { CATALOG_FROM_API, DELIVERY_FROM_API, INVENTORY_FROM_API, PURCHASING_FROM_API, SALES_FROM_API } from '../api/api.config';
 
 // Danh mục start empty when they come from the API (CatalogLoader fills them after sign-in);
 // the demo lists stay for demo mode and for the modules not yet on the API.
@@ -21,6 +21,7 @@ const demo = <T>(rows: T[]): T[] => (CATALOG_FROM_API ? [] : rows);
 const demoStock = <T>(rows: T[]): T[] => (INVENTORY_FROM_API ? [] : rows);
 const demoPurchasing = <T>(rows: T[]): T[] => (PURCHASING_FROM_API ? [] : rows);
 const demoSales = <T>(rows: T[]): T[] => (SALES_FROM_API ? [] : rows);
+const demoDelivery = <T>(rows: T[]): T[] => (DELIVERY_FROM_API ? [] : rows);
 
 // Dữ liệu GIẢ (xem core/data/demo-data.ts, sinh bởi tools/gen-demo-data.mjs) — chỉ để thử giao diện.
 @Injectable({ providedIn: 'root' })
@@ -58,7 +59,7 @@ export class MockDataService {
 
   readonly salesOrders = signal<SalesOrder[]>(demoSales(DEMO_SALES_ORDERS));
 
-  readonly deliveryTrips = signal<DeliveryTrip[]>(DEMO_DELIVERY_TRIPS);
+  readonly deliveryTrips = signal<DeliveryTrip[]>(demoDelivery(DEMO_DELIVERY_TRIPS));
 
   readonly vehicles = signal<Vehicle[]>(demo(DEMO_VEHICLES));
 
