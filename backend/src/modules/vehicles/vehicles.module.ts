@@ -103,5 +103,5 @@ export class VehiclesController {
   }
 }
 
-@Module({ controllers: [VehiclesController], providers: [VehiclesService] })
+@Module({ controllers: [VehiclesController], providers: [VehiclesService], exports: [VehiclesService] })
 export class VehiclesModule {}

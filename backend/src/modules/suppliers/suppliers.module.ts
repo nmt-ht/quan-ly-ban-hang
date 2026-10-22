@@ -134,5 +134,5 @@ export class SuppliersController {
   }
 }
 
-@Module({ controllers: [SuppliersController], providers: [SuppliersService] })
+@Module({ controllers: [SuppliersController], providers: [SuppliersService], exports: [SuppliersService] })
 export class SuppliersModule {}

@@ -23,6 +23,10 @@
   <input type="search" class="filter-search" [placeholder]="d.searchHint ?? 'Tìm trong báo cáo…'" aria-label="Tìm trong báo cáo" [value]="search()" (input)="search.set($any($event.target).value)" />
 </div>
 
+@if (failure()) {
+  <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div>
+}
+
 @if (result().kpis; as kpis) {
   <div class="tr-kpis">
     @for (k of kpis; track k.label) {
@@ -37,8 +41,12 @@
 
 @if (!result().rows.length) {
   <div class="empty-state">
-    <h3>Không có số liệu</h3>
-    <p>{{ result().emptyHint ?? 'Thử mở rộng khoảng ngày, hoặc kiểm tra xem đã có chứng từ nào chưa.' }}</p>
+    @if (loading()) {
+      <h3>Đang tính số liệu…</h3>
+    } @else {
+      <h3>Không có số liệu</h3>
+      <p>{{ result().emptyHint ?? 'Thử mở rộng khoảng ngày, hoặc kiểm tra xem đã có chứng từ nào chưa.' }}</p>
+    }
   </div>
 } @else {
   @if (result().chart; as ch) {
@@ -77,7 +85,7 @@
           <tr>
             @for (c of columns(); track c.key) {
               <td [class.r]="isNumeric(c)" [class.num]="isNumeric(c) || c.kind === 'date'" [class]="toneClass(c, r[c.key])">
-                @if (c.link && c.link(r); as l) {
+                @if (c.link && r[c.link]; as l) {
                   <a class="code-link" [routerLink]="l">{{ text(c, r[c.key]) }}</a>
                 } @else {
                   {{ text(c, r[c.key]) }}

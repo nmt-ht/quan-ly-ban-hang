@@ -1,9 +1,6 @@
-import { CostService } from '../../core/services/cost.service';
-import { MockDataService } from '../../core/services/mock-data.service';
-
-// Báo cáo dạng bảng: each report is a plain definition (metadata + a `run` function). The shared
-// <app-table-report> owns everything around it — kỳ, cách nhóm, tìm kiếm, KPI, biểu đồ, sắp xếp,
-// phân trang, xuất Excel — so a new report is only "what rows, what columns".
+// Báo cáo dạng bảng: each report is a plain definition (what the screen says about it); the server
+// computes its rows (GET /api/reports/:slug, backend modules/reports). The shared <app-table-report>
+// owns everything around them — kỳ, cách nhóm, tìm kiếm, KPI, biểu đồ, sắp xếp, phân trang, xuất Excel.
 
 export type ColKind = 'text' | 'money' | 'qty' | 'int' | 'pct' | 'date';
 
@@ -13,8 +10,8 @@ export interface ReportCol {
   kind?: ColKind; // default text
   /** Colour by sign (+ green / − red): money flows, chênh lệch, lãi / lỗ. */
   tone?: boolean;
-  /** Router link for the cell, or null for plain text on that row. */
-  link?: (row: ReportRow) => unknown[] | null;
+  /** Row field holding the router link of the cell (absent on a row = plain text). */
+  link?: string;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -42,16 +39,6 @@ export interface ReportResult {
   emptyHint?: string;
 }
 
-export interface ReportOptions {
-  range: { from: string; to: string };
-  group: string;
-}
-
-export interface ReportEnv {
-  data: MockDataService;
-  cost: CostService;
-}
-
 export type ReportGroupKey = 'sell' | 'profit' | 'stock' | 'buy' | 'make' | 'deliver' | 'debt' | 'cash';
 
 export interface ReportLink {
@@ -71,5 +58,4 @@ export interface ReportDef {
   searchHint?: string;
   notes?: string[]; // definitions printed under the table
   links?: ReportLink[]; // for kind 'link'
-  run?: (env: ReportEnv, opts: ReportOptions) => ReportResult;
 }

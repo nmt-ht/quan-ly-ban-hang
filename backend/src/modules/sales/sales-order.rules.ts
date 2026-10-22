@@ -34,7 +34,7 @@ export function orderTotals(lines: SaleLine[], orderDiscount: number) {
     given += share;
     const taxable = nets[i] - share;
     const vat = Math.round((taxable * l.vatRate) / 100);
-    return { gross: gross(l), taxable, vat, total: taxable + vat };
+    return { gross: gross(l), lineDiscount: lineDiscount(l), orderDiscount: share, taxable, vat, total: taxable + vat };
   });
   return {
     goods: calc.reduce((s, c) => s + c.gross, 0),

@@ -139,5 +139,6 @@ export class TripsController {
   imports: [InventoryModule, SalesModule],
   controllers: [TripsController],
   providers: [TripsService],
+  exports: [TripsService],
 })
 export class DeliveryModule {}

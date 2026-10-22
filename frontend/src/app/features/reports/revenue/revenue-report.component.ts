@@ -6,10 +6,11 @@ import { PeriodFilterComponent, PeriodValue } from '../../../shared/period-filte
 import { amountTone, foldVi, formatQty, formatVnd } from '../../../shared/format.util';
 import { PERIOD_PRESETS, formatDay, inRange, isoDay, presetRange, rangeLabel } from '../../../shared/period';
 import { downloadWorkbook, exportFileName } from '../../../shared/excel.util';
+import { apiQuery, queryString } from '../../../core/api/api-query';
 import { CUSTOMER_TYPE_LABEL } from '../../sales-orders/sales-order.rules';
 import {
   RevenueLine, RevenueSums, TIME_UNIT_LABEL, TimeUnit, autoUnit, bucketLabel, bucketOf, bucketsBetween, previousRange,
-  revenueLines, shortBucketLabel, sumLines,
+  shortBucketLabel, sumLines,
 } from './revenue.rules';
 
 export type RevenueGroup = 'time' | 'customer' | 'product' | 'category' | 'rep';
@@ -81,12 +82,21 @@ export class RevenueReportComponent {
     });
   }
 
-  private readonly all = computed(() => revenueLines(this.data.salesOrders()));
+  // Doanh thu lines from the server (GET /api/reports/revenue-lines): the kỳ and the kỳ trước before it,
+  // or every line for "Toàn bộ". Grouping, chart and Excel stay on this page.
+  private readonly query = apiQuery<{ first?: string; lines: RevenueLine[] }>(() => {
+    const r = this.period().range;
+    const to = !r.to || r.to > this.today ? this.today : r.to;
+    return '/reports/revenue-lines' + queryString({ from: r.from ? previousRange(r.from, to).from : null, to });
+  }, { lines: [] });
+  private readonly all = computed(() => this.query.value().lines);
+  readonly loading = this.query.loading;
+  readonly failure = this.query.error;
 
   /** Kỳ đang xem, ngày cuối không vượt quá hôm nay ("Tháng này" chỉ tính tới hôm nay). */
   readonly range = computed(() => {
     const r = this.period().range;
-    const first = this.all().map((l) => l.date).sort()[0] ?? this.today;
+    const first = this.query.value().first ?? this.today;
     const to = !r.to || r.to > this.today ? this.today : r.to;
     return { from: r.from ?? first, to };
   });

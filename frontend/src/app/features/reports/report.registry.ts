@@ -9,18 +9,20 @@ export interface ReportGroup {
   label: string;
   description: string;
   icon: NavIconName;
+  /** Who may open the reports of this group (the server checks the same). */
+  permission: string;
 }
 
 // 8 nhóm / 21 báo cáo, theo thứ tự của hệ thống tham chiếu (docs/crawl/02-bao-cao.md).
 export const REPORT_GROUPS: ReportGroup[] = [
-  { key: 'sell', label: 'Bán hàng', description: 'Doanh thu, chiết khấu và khách hàng', icon: 'receipt' },
-  { key: 'profit', label: 'Lợi nhuận', description: 'Lãi gộp và hàng bán lỗ', icon: 'report' },
-  { key: 'stock', label: 'Kho', description: 'Tồn kho, nhập xuất tồn, hàng cần nhập', icon: 'stock' },
-  { key: 'buy', label: 'Mua hàng', description: 'Nhập hàng theo nhà cung cấp', icon: 'cart' },
-  { key: 'make', label: 'Sản xuất', description: 'Sản lượng và giá thành thành phẩm', icon: 'factory' },
-  { key: 'deliver', label: 'Giao hàng', description: 'Chi phí xe và hiệu quả giao hàng', icon: 'truck' },
-  { key: 'debt', label: 'Công nợ', description: 'Số dư và tuổi nợ phải thu, phải trả', icon: 'money-in' },
-  { key: 'cash', label: 'Dòng tiền', description: 'Sổ quỹ và thu chi', icon: 'cash' },
+  { key: 'sell', label: 'Bán hàng', description: 'Doanh thu, chiết khấu và khách hàng', icon: 'receipt', permission: 'report.sales' },
+  { key: 'profit', label: 'Lợi nhuận', description: 'Lãi gộp và hàng bán lỗ', icon: 'report', permission: 'report.view_profit' },
+  { key: 'stock', label: 'Kho', description: 'Tồn kho, nhập xuất tồn, hàng cần nhập', icon: 'stock', permission: 'report.stock' },
+  { key: 'buy', label: 'Mua hàng', description: 'Nhập hàng theo nhà cung cấp', icon: 'cart', permission: 'report.purchase' },
+  { key: 'make', label: 'Sản xuất', description: 'Sản lượng và giá thành thành phẩm', icon: 'factory', permission: 'report.production' },
+  { key: 'deliver', label: 'Giao hàng', description: 'Chi phí xe và hiệu quả giao hàng', icon: 'truck', permission: 'report.delivery' },
+  { key: 'debt', label: 'Công nợ', description: 'Số dư và tuổi nợ phải thu, phải trả', icon: 'money-in', permission: 'debt.view' },
+  { key: 'cash', label: 'Dòng tiền', description: 'Sổ quỹ và thu chi', icon: 'cash', permission: 'report.cashflow' },
 ];
 
 const byslug = (defs: ReportDef[], slug: string) => {

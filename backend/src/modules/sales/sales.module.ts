@@ -171,6 +171,6 @@ export class ReceivablesController {
   imports: [InventoryModule],
   controllers: [SalesController, ReceivablesController],
   providers: [SalesService, ReceivablesService],
-  exports: [SalesService],
+  exports: [SalesService, ReceivablesService],
 })
 export class SalesModule {}

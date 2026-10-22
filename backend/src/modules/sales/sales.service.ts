@@ -124,6 +124,12 @@ export class SalesService {
     return rows.map(orderToApi);
   }
 
+  /** Every order, whoever sells it — for báo cáo and tổng quan, which only show totals. */
+  async allOrders() {
+    const rows = await this.prisma.salesOrder.findMany({ include: ORDER_INCLUDE, orderBy: [{ orderDate: 'desc' }, { code: 'desc' }] });
+    return rows.map(orderToApi);
+  }
+
   async orderFor(id: string, user: AuthUser) {
     const o = await this.prisma.salesOrder.findFirst({ where: { id, ...this.visibleTo(user) }, include: ORDER_INCLUDE });
     if (!o) throw new NotFoundException('Không tìm thấy đơn hàng');

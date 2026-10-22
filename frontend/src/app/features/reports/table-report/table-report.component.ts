@@ -1,7 +1,6 @@
-import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
+import { Component, computed, effect, input, signal, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { CostService } from '../../../core/services/cost.service';
-import { MockDataService } from '../../../core/services/mock-data.service';
+import { apiQuery, queryString } from '../../../core/api/api-query';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { amountTone, foldVi, formatQty, formatVnd } from '../../../shared/format.util';
 import { downloadWorkbook, exportFileName } from '../../../shared/excel.util';
@@ -13,8 +12,8 @@ const PAGE = 100;
 type Sort = { key: string; dir: 1 | -1 } | null;
 
 // The shell around every table report: filters (kỳ · cách nhóm · tìm), KPI strip, top-10 chart, a table
-// you can sort, "hiện thêm" paging, a totals row, definition notes and Excel export. Reports only
-// supply `def.run()`; nothing here knows about sales, stock or cash.
+// you can sort, "hiện thêm" paging, a totals row, definition notes and Excel export. The rows come from
+// GET /api/reports/:slug; nothing here knows about sales, stock or cash.
 @Component({
   selector: 'app-table-report',
   standalone: true,
@@ -23,9 +22,6 @@ type Sort = { key: string; dir: 1 | -1 } | null;
   styleUrl: './table-report.component.scss',
 })
 export class TableReportComponent {
-  private readonly data = inject(MockDataService);
-  private readonly cost = inject(CostService);
-
   readonly def = input.required<ReportDef>();
   /** Open on "the last N days" instead of this month (the dashboard's 60-day alert links here). */
   readonly startDays = input<number | null>(null);
@@ -81,11 +77,17 @@ export class TableReportComponent {
     return p.preset && p.preset !== 'custom' ? PERIOD_PRESETS.find((x) => x.value === p.preset)?.label ?? '' : '';
   });
 
-  readonly result = computed<ReportResult>(() => {
+  private readonly query = apiQuery<ReportResult>(() => {
     const d = this.def();
-    if (!d.run) return { columns: [], rows: [] };
-    return d.run({ data: this.data, cost: this.cost }, { range: this.range(), group: this.group() });
-  });
+    if (d.kind !== 'period' && d.kind !== 'snapshot') return null;
+    const r = this.range();
+    const period = d.kind === 'period';
+    return `/reports/${d.slug}` + queryString({ from: period ? r.from : null, to: period ? r.to : null, group: this.group() || null });
+  }, { columns: [], rows: [] });
+
+  readonly result = this.query.value;
+  readonly loading = this.query.loading;
+  readonly failure = this.query.error;
 
   readonly columns = computed(() => this.result().columns);
 

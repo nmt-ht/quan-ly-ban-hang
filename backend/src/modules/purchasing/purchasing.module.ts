@@ -123,5 +123,6 @@ export class PayablesController {
   imports: [InventoryModule],
   controllers: [PurchaseOrdersController, PayablesController],
   providers: [PurchaseOrdersService, PayablesService],
+  exports: [PurchaseOrdersService, PayablesService],
 })
 export class PurchasingModule {}

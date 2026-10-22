@@ -196,5 +196,6 @@ export class CashCategoriesController {
 @Module({
   controllers: [CashAccountsController, CashCategoriesController],
   providers: [CashAccountsService, CashCategoriesService],
+  exports: [CashAccountsService],
 })
 export class CashCatalogModule {}

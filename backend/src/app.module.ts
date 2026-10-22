@@ -19,6 +19,7 @@ import { PurchasingModule } from './modules/purchasing/purchasing.module.js';
 import { SalesModule } from './modules/sales/sales.module.js';
 import { DeliveryModule } from './modules/delivery/delivery.module.js';
 import { CashVouchersModule } from './modules/cash/cash-vouchers.module.js';
+import { ReportsModule } from './modules/reports/reports.module.js';
 import { DecimalInterceptor } from './common/decimal.interceptor.js';
 import { PrismaExceptionFilter } from './common/prisma-exception.filter.js';
 
@@ -47,6 +48,8 @@ import { PrismaExceptionFilter } from './common/prisma-exception.filter.js';
     DeliveryModule,
     // Đợt 6 — phiếu thu chi
     CashVouchersModule,
+    // Đợt 7 — tổng quan, báo cáo
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [

@@ -145,5 +145,5 @@ export class CashVouchersController {
   }
 }
 
-@Module({ controllers: [CashVouchersController], providers: [CashVouchersService] })
+@Module({ controllers: [CashVouchersController], providers: [CashVouchersService], exports: [CashVouchersService] })
 export class CashVouchersModule {}

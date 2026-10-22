@@ -25,10 +25,18 @@
   }
 </div>
 
+@if (failure()) {
+  <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div>
+}
+
 @if (!lines().length) {
   <div class="empty-state">
-    <h3>Không có số liệu trong kỳ này</h3>
-    <p>Thử mở rộng khoảng ngày, hoặc kiểm tra xem đã có chứng từ nào trong kỳ chưa.</p>
+    @if (loading()) {
+      <h3>Đang tính số liệu…</h3>
+    } @else {
+      <h3>Không có số liệu trong kỳ này</h3>
+      <p>Thử mở rộng khoảng ngày, hoặc kiểm tra xem đã có chứng từ nào trong kỳ chưa.</p>
+    }
   </div>
 } @else {
   @let t = totals();
