@@ -7,7 +7,8 @@ import { CopyButtonComponent } from '../../../shared/copy-button/copy-button.com
 import { NO_PERIOD, PeriodFilterComponent, PeriodValue } from '../../../shared/period-filter/period-filter.component';
 import { amountTone, formatVnd, formatVndSigned } from '../../../shared/format.util';
 import { formatDay, inRange, rangeLabel } from '../../../shared/period';
-import { downloadWorkbook, todayStamp } from '../../../shared/excel.util';
+import { downloadWorkbook, exportFileName } from '../../../shared/excel.util';
+import { PrintDocumentComponent } from '../../../shared/print/print-document.component';
 
 export type DebtSide = 'PHAI_TRA' | 'PHAI_THU';
 
@@ -44,7 +45,7 @@ const SIDE = {
 @Component({
   selector: 'app-debt-ledger',
   standalone: true,
-  imports: [RouterLink, NavIconComponent, CopyButtonComponent, PeriodFilterComponent],
+  imports: [RouterLink, NavIconComponent, CopyButtonComponent, PeriodFilterComponent, PrintDocumentComponent],
   templateUrl: './debt-ledger.component.html',
   styleUrl: './debt-ledger.component.scss',
 })
@@ -131,7 +132,7 @@ export class DebtLedgerComponent {
     this.exporting.set(true);
     try {
       const rows = this.inPeriod();
-      await downloadWorkbook(`so-cong-no-${p.code}-${todayStamp()}.xlsx`, [{
+      await downloadWorkbook(exportFileName(`Sổ công nợ ${p.code}`), [{
         name: `Sổ công nợ ${p.code}`,
         columns: [
           { header: 'Ngày', width: 12 },

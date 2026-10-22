@@ -1,0 +1,352 @@
+/* Hallmark · component: printout (phiếu in) · genre: modern-minimal · design-system: design.md § Print
+ * One system for every printout in the app. Screens compose <app-print-document> and put plain
+ * content (.pd-meta, .pd-form, .pd-table, .pd-totals …) inside it; they never style paper themselves.
+ * Paper is always white with black ink, whatever theme is on screen.
+ */
+
+.print-only {
+  display: none;
+}
+
+// Wide tables (tuổi nợ) print on a landscape page: <app-print-document [landscape]="true">.
+@page wide {
+  size: A4 landscape;
+  margin: 12mm 14mm 14mm;
+}
+
+@page {
+  size: A4 portrait;
+  margin: 14mm 12mm 16mm 16mm;
+
+  @bottom-center {
+    content: 'Trang ' counter(page) ' / ' counter(pages);
+    font-size: 8pt;
+    color: #555;
+  }
+}
+
+@media print {
+  // Paper tokens — the only raw values in print: fixed so dark mode never prints grey on white.
+  :root {
+    --pr-ink: #000;
+    --pr-ink-2: #262626;
+    --pr-muted: #555;
+    --pr-rule: #7a7a7a;
+    --pr-hair: #bdbdbd;
+    --pr-fill: #f0f0f0;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: var(--pr-ink);
+  }
+
+  .sidebar,
+  .topbar,
+  .scrim,
+  .notice,
+  .screen-only,
+  dialog,
+  app-pagination {
+    display: none !important;
+  }
+
+  .shell,
+  .main {
+    display: block;
+    background: #fff;
+  }
+
+  .content {
+    padding: 0 !important;
+    background: #fff;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .pd {
+    --color-ink: var(--pr-ink);
+    --color-ink-2: var(--pr-ink-2);
+    --color-muted: var(--pr-muted);
+    --color-rule: var(--pr-hair);
+    color: var(--pr-ink);
+    font-size: 10.5pt;
+    line-height: 1.45;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .pd * {
+    box-shadow: none !important;
+  }
+
+  .pd-landscape {
+    page: wide;
+  }
+
+  .pd-break {
+    break-after: page;
+  }
+
+  // ---------- header: letterhead left, document number right ----------
+
+  .pd-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8mm;
+    padding-bottom: 3mm;
+    border-bottom: 1.5pt solid var(--pr-ink);
+  }
+
+  .pd-brand {
+    flex: 1;
+    min-width: 0;
+    font-size: 9.5pt;
+  }
+
+  .pd-ref {
+    flex: none;
+    min-width: 40mm;
+    text-align: right;
+    font-size: 10pt;
+  }
+
+  .pd-stamp {
+    display: inline-block;
+    margin-top: 2mm;
+    padding: 0.8mm 3mm;
+    border: 1.5pt solid var(--pr-ink);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+
+  // ---------- title block ----------
+
+  .pd-titlebar {
+    margin: 6mm 0 4mm;
+    text-align: center;
+  }
+
+  .pd-title {
+    margin: 0;
+    font-size: 16pt;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  .pd-sub,
+  .pd-date {
+    margin: 1mm 0 0;
+    font-size: 10pt;
+    color: var(--pr-ink-2);
+  }
+
+  // ---------- information blocks ----------
+
+  .pd-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5mm 10mm;
+    margin: 0 0 4mm;
+    padding: 2.5mm 3mm;
+    border: 0.5pt solid var(--pr-hair);
+    background: var(--pr-fill);
+  }
+
+  .pd-meta > div {
+    display: flex;
+    gap: 2mm;
+    min-width: 0;
+  }
+
+  .pd-meta dt {
+    flex: 0 0 30mm;
+    margin: 0;
+    font-weight: 600;
+    color: var(--pr-ink-2);
+  }
+
+  .pd-meta dd {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .pd-meta .wide {
+    grid-column: 1 / -1;
+  }
+
+  // Fill-in rows with a dotted rule (phiếu thu / phiếu chi).
+  .pd-form {
+    margin: 0 0 4mm;
+  }
+
+  .pd-form > div {
+    display: flex;
+    gap: 3mm;
+    padding: 1.4mm 0;
+    border-bottom: 0.5pt dotted var(--pr-rule);
+  }
+
+  .pd-form dt {
+    flex: 0 0 48mm;
+    margin: 0;
+  }
+
+  .pd-form dd {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+  }
+
+  .pd-h3 {
+    margin: 5mm 0 2mm;
+    font-size: 11pt;
+    font-weight: 700;
+  }
+
+  // ---------- data table ----------
+
+  .pd-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9.5pt;
+  }
+
+  .pd-table th,
+  .pd-table td {
+    padding: 1.4mm 2mm;
+    border: 0.5pt solid var(--pr-rule);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .pd-table th {
+    background: var(--pr-fill);
+    font-weight: 700;
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  .pd-table thead {
+    display: table-header-group;
+  }
+
+  .pd-table tr {
+    break-inside: avoid;
+  }
+
+  .pd-table th.nw {
+    white-space: nowrap;
+  }
+
+  .pd-table .r {
+    white-space: nowrap;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .pd-table .c {
+    text-align: center;
+  }
+
+  .pd-table .stt {
+    width: 9mm;
+    text-align: center;
+  }
+
+  .pd-table tfoot td,
+  .pd-table .sum td {
+    background: var(--pr-fill);
+    font-weight: 700;
+  }
+
+  .pd-table .box {
+    width: 14mm;
+    text-align: center;
+    font-size: 12pt;
+  }
+
+  // ---------- totals, words, notes ----------
+
+  .pd-totals {
+    width: 78mm;
+    margin: 3mm 0 0 auto;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .pd-totals > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 4mm;
+    padding: 0.8mm 0;
+    border-bottom: 0.5pt solid var(--pr-hair);
+  }
+
+  .pd-totals .grand {
+    border-top: 1pt solid var(--pr-ink);
+    border-bottom: 1.5pt double var(--pr-ink);
+    font-size: 11.5pt;
+    font-weight: 700;
+  }
+
+  .pd-words {
+    margin: 3mm 0 0;
+  }
+
+  .pd-note {
+    margin: 3mm 0 0;
+    font-size: 9.5pt;
+    color: var(--pr-ink-2);
+  }
+
+  // ---------- signatures ----------
+
+  .pd-sign {
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+    gap: 4mm;
+    margin-top: 8mm;
+    text-align: center;
+    break-inside: avoid;
+  }
+
+  .pd-sign > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5mm;
+    min-height: 30mm;
+  }
+
+  .pd-sign span {
+    font-size: 9pt;
+    color: var(--pr-muted);
+  }
+
+  .pd-sign .pd-signer {
+    margin-top: auto;
+    font-size: 10pt;
+    font-weight: 600;
+    color: var(--pr-ink);
+  }
+
+  // ---------- footer ----------
+
+  .pd-foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 6mm;
+    margin-top: 6mm;
+    padding-top: 2mm;
+    border-top: 0.5pt solid var(--pr-hair);
+    font-size: 8pt;
+    color: var(--pr-muted);
+  }
+}

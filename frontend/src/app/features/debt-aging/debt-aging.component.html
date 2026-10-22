@@ -26,13 +26,13 @@
       [value]="query()"
       (input)="query.set($any($event.target).value)"
     />
-    <button type="button" class="filter-toggle" [attr.aria-pressed]="overdueOnly()" (click)="overdueOnly.set(!overdueOnly())">Chỉ quá hạn</button>
     <select aria-label="Sắp xếp" [value]="sort()" (change)="sort.set($any($event.target).value)">
       <option value="overdue">Quá hạn nhiều nhất</option>
       <option value="oldest">Quá hạn lâu nhất</option>
       <option value="total">Tổng nợ lớn nhất</option>
       <option value="name">Tên A → Z</option>
     </select>
+    <button type="button" class="filter-toggle" [attr.aria-pressed]="overdueOnly()" (click)="overdueOnly.set(!overdueOnly())">Chỉ quá hạn</button>
   </div>
 
   <!-- Thẻ theo nhóm tuổi nợ: bấm để lọc -->
@@ -170,19 +170,18 @@
 </div>
 
 <!-- Bản in -->
-<article class="print-only ag-print">
-  <header class="ag-print-head">
-    <strong>{{ company().name }}</strong>
-    <span>Ngày in: {{ day(today) }}</span>
-  </header>
-  <h2>BÁO CÁO TUỔI NỢ {{ side() === 'PHAI_TRA' ? 'PHẢI TRẢ NHÀ CUNG CẤP' : 'PHẢI THU KHÁCH HÀNG' }}</h2>
-  <p class="ag-print-sub">Tính đến ngày {{ day(today) }}{{ bucketLabel() ? ' · nhóm ' + bucketLabel() : '' }}{{ overdueOnly() ? ' · chỉ khoản quá hạn' : '' }}</p>
-  <table>
+<app-print-document
+  [landscape]="true"
+  [title]="'BÁO CÁO TUỔI NỢ ' + (side() === 'PHAI_TRA' ? 'PHẢI TRẢ NHÀ CUNG CẤP' : 'PHẢI THU KHÁCH HÀNG')"
+  [sub]="'Tính đến ngày ' + day(today) + (bucketLabel() ? ' · nhóm ' + bucketLabel() : '') + (overdueOnly() ? ' · chỉ khoản quá hạn' : '')"
+  [signers]="[{ role: 'Người lập biểu' }, { role: 'Kế toán trưởng' }]"
+>
+  <table class="pd-table">
     <thead>
       <tr>
         <th>Mã</th><th>{{ t().partner }}</th>
-        @for (b of buckets; track b.key) { <th class="r">{{ b.label }}</th> }
-        <th class="r">Tổng còn nợ</th>
+        @for (b of buckets; track b.key) { <th>{{ b.label }}</th> }
+        <th>Tổng còn nợ</th>
       </tr>
     </thead>
     <tbody>
@@ -193,11 +192,13 @@
           <td class="r"><strong>{{ money(p.total) }}</strong></td>
         </tr>
       }
-      <tr>
-        <td colspan="2"><strong>Tổng cộng</strong></td>
-        @for (b of buckets; track b.key) { <td class="r"><strong>{{ money(footer()[b.key]) }}</strong></td> }
-        <td class="r"><strong>{{ money(footer().total) }}</strong></td>
-      </tr>
     </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="2">Tổng cộng</td>
+        @for (b of buckets; track b.key) { <td class="r">{{ money(footer()[b.key]) }}</td> }
+        <td class="r">{{ money(footer().total) }}</td>
+      </tr>
+    </tfoot>
   </table>
-</article>
+</app-print-document>

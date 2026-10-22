@@ -6,8 +6,9 @@ import { DebtRow, DebtService } from '../../core/services/debt.service';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { foldVi, formatVnd } from '../../shared/format.util';
 import { formatDay, isoDay } from '../../shared/period';
-import { downloadWorkbook, todayStamp } from '../../shared/excel.util';
+import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { AGING_COLUMNS } from '../debts/aging';
+import { PrintDocumentComponent } from '../../shared/print/print-document.component';
 
 type Side = 'PHAI_TRA' | 'PHAI_THU';
 type Bucket = (typeof AGING_COLUMNS)[number]['key'];
@@ -50,7 +51,7 @@ export function bucketOf(days: number): Bucket {
 @Component({
   selector: 'app-debt-aging',
   standalone: true,
-  imports: [NgClass, RouterLink, NavIconComponent],
+  imports: [NgClass, RouterLink, NavIconComponent, PrintDocumentComponent],
   templateUrl: './debt-aging.component.html',
   styleUrl: './debt-aging.component.scss',
 })
@@ -188,9 +189,9 @@ export class DebtAgingComponent {
 
   async exportExcel(): Promise<void> {
     this.exporting.set(true);
-    const side = this.side() === 'PHAI_TRA' ? 'phai-tra' : 'phai-thu';
+    const side = this.side() === 'PHAI_TRA' ? 'phải trả' : 'phải thu';
     try {
-      await downloadWorkbook(`tuoi-no-${side}-${todayStamp()}.xlsx`, [
+      await downloadWorkbook(exportFileName(`Tuổi nợ ${side}`), [
         {
           name: 'Theo đối tác',
           columns: [

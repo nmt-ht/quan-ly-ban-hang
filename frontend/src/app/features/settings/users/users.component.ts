@@ -11,7 +11,7 @@ import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { ColumnFilters, applyColumnFilters } from '../../../shared/column-filter';
 import { foldVi } from '../../../shared/format.util';
 import { tagClass } from '../../../shared/tag-class';
-import { downloadWorkbook, todayStamp } from '../../../shared/excel.util';
+import { downloadWorkbook, exportFileName } from '../../../shared/excel.util';
 import { UserService } from './user.service';
 import { UserDialogComponent } from './user-dialog/user-dialog.component';
 import { PasswordDialogComponent } from './password-dialog/password-dialog.component';
@@ -185,7 +185,7 @@ export class UsersComponent {
   async exportExcel(): Promise<void> {
     this.exporting.set(true);
     try {
-      await downloadWorkbook(`nguoi-dung-${todayStamp()}.xlsx`, [{
+      await downloadWorkbook(exportFileName('Người dùng'), [{
         name: 'Người dùng',
         columns: [
           { header: 'Họ tên', width: 24 }, { header: 'Email', width: 30 }, { header: 'Chức vụ', width: 20 }, { header: 'Điện thoại', width: 13 },

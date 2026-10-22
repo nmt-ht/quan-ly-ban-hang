@@ -17,6 +17,7 @@ import { tagClass } from '../../../shared/tag-class';
 import { round4 } from '../../purchase-orders/purchase-order.rules';
 import { KIND_SLUG, KIND_TEXT, SLUG_KIND, VOUCHER_KIND_LABEL, kindOf, sourceOf } from '../warehouse-voucher.rules';
 import { WarehouseVoucherService } from '../warehouse-voucher.service';
+import { PrintDocumentComponent, PrintSigner } from '../../../shared/print/print-document.component';
 
 interface Line {
   key: string;
@@ -39,7 +40,7 @@ const emptyLine = (): Line => ({ key: crypto.randomUUID(), productId: '', unitNa
 @Component({
   selector: 'app-warehouse-voucher-form',
   standalone: true,
-  imports: [NgClass, FormsModule, RouterLink, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent],
+  imports: [NgClass, FormsModule, RouterLink, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent, PrintDocumentComponent],
   templateUrl: './warehouse-voucher-form.component.html',
   styleUrls: ['../../../shared/voucher/voucher.scss', './warehouse-voucher-form.component.scss'],
 })
@@ -274,6 +275,19 @@ export class WarehouseVoucherFormComponent {
     }
     this.confirmCancel.set(false);
   }
+
+  /** Signature block by document type. The maker's name is printed under the signature space. */
+  readonly printSigners = computed<PrintSigner[]>(() => {
+    const v = this.voucher();
+    if (!v) return [];
+    const maker = { role: v.type === 'KIEM_KE' ? 'Người kiểm kê' : 'Người lập phiếu', name: this.userName(v.createdBy) };
+    switch (v.type) {
+      case 'NHAP': return [maker, { role: 'Người giao hàng' }, { role: 'Thủ kho' }, { role: 'Kế toán trưởng' }];
+      case 'XUAT': return [maker, { role: 'Người nhận hàng' }, { role: 'Thủ kho' }, { role: 'Kế toán trưởng' }];
+      case 'CHUYEN': return [maker, { role: 'Thủ kho xuất' }, { role: 'Thủ kho nhận' }, { role: 'Kế toán trưởng' }];
+      default: return [maker, { role: 'Thủ kho' }, { role: 'Kế toán trưởng' }];
+    }
+  });
 
   print(): void {
     window.print();

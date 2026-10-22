@@ -14,7 +14,7 @@ import { foldVi, formatVnd } from '../../shared/format.util';
 import { PERIOD_PRESETS, formatDay, inRange, rangeLabel } from '../../shared/period';
 import { PURCHASE_ORDER_STATUS_LABEL, purchaseOrderStatusClass } from '../../shared/status-labels';
 import { tagClass } from '../../shared/tag-class';
-import { downloadWorkbook, todayStamp } from '../../shared/excel.util';
+import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { canEdit, receivedPercent } from './purchase-order.rules';
 
 interface ActiveChip {
@@ -187,7 +187,7 @@ export class PurchaseOrdersComponent {
   async exportExcel(): Promise<void> {
     this.exporting.set(true);
     try {
-      await downloadWorkbook(`don-nhap-hang-${todayStamp()}.xlsx`, [{
+      await downloadWorkbook(exportFileName('Đơn nhập hàng'), [{
         name: 'Đơn nhập hàng',
         columns: [
           { header: 'Mã đơn', width: 14 },

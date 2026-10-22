@@ -10,7 +10,7 @@ import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
 import { foldVi, formatVnd } from '../../shared/format.util';
 import { formatDay, isoDay } from '../../shared/period';
 import { tagClass } from '../../shared/tag-class';
-import { downloadWorkbook, todayStamp } from '../../shared/excel.util';
+import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { costTotal } from '../delivery-trips/delivery-trip.rules';
 import { VEHICLE_STATUSES, VEHICLE_STATUS_LABEL, VEHICLE_TYPES, VEHICLE_TYPE_LABEL, currentTripOf, expiryState } from './vehicle.rules';
 import { VehicleDialogComponent } from './vehicle-dialog/vehicle-dialog.component';
@@ -141,7 +141,7 @@ export class VehiclesComponent {
   async exportExcel(): Promise<void> {
     this.exporting.set(true);
     try {
-      await downloadWorkbook(`danh-muc-xe-${todayStamp()}.xlsx`, [{
+      await downloadWorkbook(exportFileName('Danh mục xe'), [{
         name: 'Danh mục xe',
         columns: [
           { header: 'Mã xe', width: 12 }, { header: 'Biển số', width: 13 }, { header: 'Tên gọi', width: 18 }, { header: 'Loại', width: 14 },

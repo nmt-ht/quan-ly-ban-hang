@@ -5,43 +5,142 @@
   </div>
 </div>
 
-<div class="card" style="margin-bottom:16px">
-  <h3 style="margin-top:0">Thông tin pháp lý</h3>
-  <div class="field">
-    <label>Tên công ty <span class="required-mark">*</span></label>
-    <input type="text" [(ngModel)]="data.companyInfo().name" (change)="save()" />
+@if (notice()) {
+  <div class="notice" role="status">
+    <span>{{ notice() }}</span>
+    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
   </div>
-  <div class="field">
-    <label>Địa chỉ</label>
-    <input type="text" [(ngModel)]="data.companyInfo().address" (change)="save()" placeholder="Số nhà, đường, phường/xã, tỉnh/TP" />
-  </div>
-  <div class="form-grid">
-    <div class="field">
-      <label>Mã số thuế</label>
-      <input type="text" [(ngModel)]="data.companyInfo().taxCode" (change)="save()" />
-    </div>
-    <div class="field">
-      <label>Điện thoại</label>
-      <input type="text" [(ngModel)]="data.companyInfo().phone" (change)="save()" />
-    </div>
-    <div class="field">
-      <label>Email</label>
-      <input type="email" [(ngModel)]="data.companyInfo().email" (change)="save()" />
-    </div>
-    <div class="field">
-      <label>Website</label>
-      <input type="text" [(ngModel)]="data.companyInfo().website" (change)="save()" />
-    </div>
-  </div>
-</div>
+}
 
-<div class="card">
-  <h3 style="margin-top:0">Xem trước tiêu đề phiếu in</h3>
-  <div class="print-preview">
-    <strong>{{ data.companyInfo().name | uppercase }}</strong>
-    <span>PX0000123</span>
-    <br />
-    <span class="subtitle">{{ data.companyInfo().address || '—' }}</span>
-    <span class="subtitle">Ngày {{ today }}</span>
+<form [formGroup]="form" (ngSubmit)="save()" novalidate>
+  <div class="co-layout">
+    <div class="co-main">
+    <div class="card section-block">
+      <h3 class="form-section-title">Logo</h3>
+      <div class="co-logo">
+        <div class="co-logo-box">
+          @if (logo(); as src) {
+            <img [src]="src" alt="Logo công ty" />
+          } @else {
+            <span class="co-logo-empty">Chưa có logo</span>
+          }
+        </div>
+        <div class="co-logo-side">
+          <div class="toolbar">
+            <label class="btn co-file">
+              <app-nav-icon name="image-plus" />{{ logo() ? 'Đổi logo' : 'Tải logo lên' }}
+              <input type="file" accept="image/png,image/jpeg,image/webp" (change)="pickLogo($event)" />
+            </label>
+            @if (logo()) {
+              <button type="button" class="btn btn-danger-ghost" (click)="removeLogo()">Xoá logo</button>
+            }
+          </div>
+          @if (logoError()) {
+            <span class="hint text-danger" role="alert">{{ logoError() }}</span>
+          } @else {
+            <span class="hint">PNG, JPG hoặc WebP, tối đa 2 MB. Nên dùng nền trong suốt. Logo in ở góc trái tiêu đề phiếu, cao khoảng 3,5 cm.</span>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="card section-block">
+      <h3 class="form-section-title">Thông tin pháp lý</h3>
+      <div class="form-grid">
+        <div class="field co-wide">
+          <label for="co-name">Tên công ty <span class="required-mark">*</span></label>
+          <input id="co-name" type="text" formControlName="name" placeholder="VD: Công ty TNHH Ninh Trang" autocomplete="organization" />
+          @if (showError('name')) {
+            <span class="hint text-danger">Nhập tên công ty — tên này in ở đầu mọi phiếu.</span>
+          }
+        </div>
+
+        <div class="field co-wide">
+          <label for="co-address">Địa chỉ</label>
+          <input id="co-address" type="text" formControlName="address" placeholder="Số nhà, đường, phường/xã, tỉnh/TP" autocomplete="street-address" />
+        </div>
+
+        <div class="field">
+          <label for="co-tax">Mã số thuế</label>
+          <input id="co-tax" type="text" inputmode="numeric" formControlName="taxCode" placeholder="0301234567" class="num" />
+          @if (showError('taxCode')) {
+            <span class="hint text-danger">Mã số thuế gồm 10 chữ số (chi nhánh: 10 số + "-" + 3 số).</span>
+          }
+        </div>
+        <div class="field">
+          <label for="co-phone">Điện thoại</label>
+          <input id="co-phone" type="tel" formControlName="phone" placeholder="0912345678" autocomplete="tel" class="num" />
+          @if (showError('phone')) {
+            <span class="hint text-danger">Số điện thoại gồm 8–15 ký tự, chỉ chữ số và + ( ) . -</span>
+          }
+        </div>
+
+        <div class="field">
+          <label for="co-email">Email</label>
+          <input id="co-email" type="email" formControlName="email" placeholder="lienhe@congty.vn" autocomplete="email" />
+          @if (showError('email')) {
+            <span class="hint text-danger">Email không đúng định dạng.</span>
+          }
+        </div>
+        <div class="field">
+          <label for="co-web">Website</label>
+          <input id="co-web" type="text" inputmode="url" formControlName="website" placeholder="congty.vn" autocomplete="url" />
+          @if (showError('website')) {
+            <span class="hint text-danger">Website không đúng định dạng, ví dụ congty.vn.</span>
+          }
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <aside class="card section-block co-preview" aria-labelledby="co-preview-title">
+      <h3 id="co-preview-title" class="form-section-title">Xem trước tiêu đề phiếu in</h3>
+      <div class="co-paper">
+        <header class="co-paper-head">
+          <app-company-letterhead [info]="draft()" />
+        </header>
+
+        <div class="co-paper-titlebar">
+          <p class="co-paper-title">PHIẾU XUẤT KHO</p>
+          <p class="co-paper-date">Ngày {{ today.getDate() }} tháng {{ today.getMonth() + 1 }} năm {{ today.getFullYear() }}</p>
+          <p class="co-paper-no">Số: <strong class="num">PXK0000123</strong> <span class="co-sample">(số mẫu)</span></p>
+        </div>
+
+        <table class="co-paper-table" aria-hidden="true">
+          <thead>
+            <tr><th class="c-stt">STT</th><th>Mã hàng</th><th>Tên hàng</th><th>ĐVT</th><th class="c-qty">Số lượng</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="c-stt">1</td><td><span class="co-bar w-60"></span></td><td><span class="co-bar w-90"></span></td><td><span class="co-bar w-40"></span></td><td class="c-qty"><span class="co-bar w-40"></span></td></tr>
+            <tr><td class="c-stt">2</td><td><span class="co-bar w-60"></span></td><td><span class="co-bar w-75"></span></td><td><span class="co-bar w-40"></span></td><td class="c-qty"><span class="co-bar w-40"></span></td></tr>
+          </tbody>
+        </table>
+
+        <div class="co-paper-sign" aria-hidden="true">
+          <div><strong>Người lập phiếu</strong><span>(Ký, họ tên)</span></div>
+          <div><strong>Thủ kho</strong><span>(Ký, họ tên)</span></div>
+          <div><strong>Kế toán trưởng</strong><span>(Ký, họ tên)</span></div>
+        </div>
+      </div>
+      <p class="hint">Đây là phiếu mẫu: số phiếu, ngày và các dòng hàng chỉ để minh hoạ bố cục, không phải phiếu thật. Phần tiêu đề phía trên (logo, tên, địa chỉ, mã số thuế, điện thoại, email, website) là phần sẽ in thật trên mọi phiếu. Bấm Lưu để áp dụng.</p>
+    </aside>
   </div>
-</div>
+
+  <div class="form-actions-bar">
+    <span class="hint" role="status">
+      @if (form.invalid && form.touched) {
+        Còn thông tin chưa hợp lệ
+      } @else if (dirty()) {
+        Có thay đổi chưa lưu
+      } @else {
+        Đã lưu — chưa có thay đổi
+      }
+    </span>
+    <div class="form-actions">
+      <button class="btn" type="button" [disabled]="!dirty()" (click)="revert()">Huỷ thay đổi</button>
+      <button class="btn btn-primary" type="submit" [disabled]="!dirty()">
+        <app-nav-icon name="check" />Lưu thay đổi
+      </button>
+    </div>
+  </div>
+</form>

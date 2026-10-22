@@ -30,7 +30,7 @@ export function priceFor(op: UnitOperation, factor: number, basePrice: number): 
 
 const n = (x: number) => x.toLocaleString('vi-VN', { maximumFractionDigits: 4 });
 
-// "1 bó = 12 cái" · "10 lạng = 1 kg" · "1 hộp = 1 cái, giá +5.000 ₫"
+// "1 bó = 12 cái" · "10 lạng = 1 kg" · "1 hộp = 1 cái, giá +5.000₫"
 export function describe(op: UnitOperation, factor: number, unit: string, baseUnit: string): string {
   const u = unit.trim() || 'đơn vị';
   const b = baseUnit.trim() || 'đơn vị chính';
@@ -38,8 +38,8 @@ export function describe(op: UnitOperation, factor: number, unit: string, baseUn
   switch (op) {
     case 'MUL': return `1 ${u} = ${n(factor)} ${b}`;
     case 'DIV': return `${n(factor)} ${u} = 1 ${b}`;
-    case 'ADD': return `1 ${u} = 1 ${b}, giá cộng thêm ${n(factor)} ₫`;
-    case 'SUB': return `1 ${u} = 1 ${b}, giá bớt ${n(factor)} ₫`;
+    case 'ADD': return `1 ${u} = 1 ${b}, giá cộng thêm ${n(factor)}₫`;
+    case 'SUB': return `1 ${u} = 1 ${b}, giá bớt ${n(factor)}₫`;
   }
 }
 

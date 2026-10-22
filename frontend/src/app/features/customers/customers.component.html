@@ -15,7 +15,7 @@
   <input
     type="text"
     class="filter-search"
-    placeholder="Tìm theo tên, mã, điện thoại, mã số thuế…"
+    placeholder="Tìm tên, mã, điện thoại, mã số thuế…"
     aria-label="Tìm khách hàng"
     [value]="search()"
     (input)="search.set($any($event.target).value)"
@@ -27,12 +27,12 @@
     <option value="active">Đang theo dõi ({{ statusCounts().active }})</option>
     <option value="inactive">Ngừng theo dõi ({{ statusCounts().inactive }})</option>
   </select>
-  <button type="button" class="filter-toggle" [attr.aria-pressed]="owing()" (click)="owing.set(!owing())">Còn công nợ</button>
   <select aria-label="Sắp xếp" [value]="sort()" (change)="sort.set($any($event.target).value)">
     @for (s of sorts; track s.value) {
       <option [value]="s.value">{{ s.label }}</option>
     }
   </select>
+  <button type="button" class="filter-toggle" [attr.aria-pressed]="owing()" (click)="owing.set(!owing())">Còn công nợ</button>
 </div>
 
 @if (chips().length) {

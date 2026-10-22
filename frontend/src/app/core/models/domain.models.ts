@@ -427,6 +427,7 @@ export interface CompanyInfo {
   phone?: string;
   email?: string;
   website?: string;
+  logo?: string; // data: URL, PNG/JPEG đã thu nhỏ (giữ trong trình duyệt tới khi có backend upload)
 }
 
 export interface Role {
@@ -437,6 +438,7 @@ export interface Role {
   userCount: number;
   permissionCount: number;
   totalPermissionCount: number;
+  permissions: string[]; // mã quyền đã cấp (danh mục: core/data/permission-catalog.ts)
   isActive: boolean;
 }
 

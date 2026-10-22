@@ -235,41 +235,55 @@
   }
 
   @if (voucher(); as v) {
-    <article class="print-only wv-print">
-      <header class="wv-print-head">
-        <div><strong>{{ company().name }}</strong>@if (company().address) { <div>{{ company().address }}</div> }</div>
-        <div>Số: <strong>{{ v.code }}</strong>@if (v.isCancelled) { <div><strong>ĐÃ HUỶ</strong></div> }</div>
-      </header>
-      <h2>{{ text().print }}</h2>
-      <p class="wv-print-date">Ngày {{ v.date.slice(8, 10) }} tháng {{ v.date.slice(5, 7) }} năm {{ v.date.slice(0, 4) }}</p>
-      <p>{{ text().warehouse }}: <strong>{{ warehouseName(v.warehouseId) }}</strong>@if (v.type === 'CHUYEN') { → Kho nhận: <strong>{{ warehouseName(v.targetWarehouseId) }}</strong> }</p>
-      <p>Lý do: {{ v.reason || '' }}</p>
-      <table>
+    <app-print-document [title]="text().print" [no]="v.code" [date]="v.date" [status]="v.isCancelled ? 'ĐÃ HUỶ' : undefined" [signers]="printSigners()">
+      <dl pdMeta class="pd-meta">
+        <div><dt>{{ text().warehouse }}</dt><dd>{{ warehouseName(v.warehouseId) }}</dd></div>
+        @if (v.type === 'CHUYEN') {
+          <div><dt>Kho nhận</dt><dd>{{ warehouseName(v.targetWarehouseId) }}</dd></div>
+        } @else {
+          <div><dt>Người lập</dt><dd>{{ userName(v.createdBy) }}</dd></div>
+        }
+        <div class="wide"><dt>Lý do</dt><dd>{{ v.reason || '—' }}</dd></div>
+        @if (source(); as s) {
+          <div class="wide"><dt>Chứng từ gốc</dt><dd>{{ s.label }}{{ s.code ? ' ' + s.code : '' }}</dd></div>
+        }
+        @if (v.note) {
+          <div class="wide"><dt>Ghi chú</dt><dd>{{ v.note }}</dd></div>
+        }
+      </dl>
+      <table class="pd-table">
         <thead>
           <tr>
-            <th>STT</th><th>Mã hàng</th><th>Tên hàng</th><th>ĐVT</th>
-            @if (v.type === 'KIEM_KE') { <th class="r">Sổ sách</th><th class="r">Thực đếm</th><th class="r">Chênh lệch</th> }
-            @else { <th class="r">Số lượng</th> }
-            @if (v.type === 'NHAP') { <th class="r">Đơn giá</th><th class="r">Thành tiền</th> }
+            <th class="stt">STT</th><th>Mã hàng</th><th>Tên hàng</th><th>ĐVT</th>
+            @if (v.type === 'KIEM_KE') { <th class="nw">Số sổ sách</th><th class="nw">Thực đếm</th><th class="nw">Chênh lệch</th> } @else { <th class="nw">Số lượng</th> }
+            @if (v.type === 'NHAP') { <th class="nw">Đơn giá</th><th class="nw">Thành tiền</th> }
           </tr>
         </thead>
         <tbody>
           @for (l of viewLines(); track l.i) {
             <tr>
-              <td>{{ l.i + 1 }}</td><td>{{ l.p?.code }}</td><td>{{ l.p?.name }}</td><td>{{ l.unit }}</td>
-              @if (v.type === 'KIEM_KE') { <td class="r">{{ l.book !== undefined ? qty(l.book) : '' }}</td><td class="r">{{ qty(l.qty) }}</td><td class="r">{{ signed(l.delta) }}</td> }
-              @else { <td class="r">{{ l.qty.toLocaleString('vi-VN') }}</td> }
-              @if (v.type === 'NHAP') { <td class="r">{{ l.price ? l.price.toLocaleString('vi-VN') : '' }}</td><td class="r">{{ l.value ? l.value.toLocaleString('vi-VN') : '' }}</td> }
+              <td class="stt">{{ l.i + 1 }}</td>
+              <td>{{ l.p?.code }}</td>
+              <td>{{ l.p?.name }}{{ l.note ? ' — ' + l.note : '' }}</td>
+              <td class="c">{{ l.unit }}</td>
+              @if (v.type === 'KIEM_KE') {
+                <td class="r">{{ l.book !== undefined ? qty(l.book) : '' }}</td>
+                <td class="r">{{ qty(l.qty) }}</td>
+                <td class="r">{{ signed(l.delta) }}</td>
+              } @else {
+                <td class="r">{{ qty(l.qty) }}</td>
+              }
+              @if (v.type === 'NHAP') {
+                <td class="r">{{ l.price ? l.price.toLocaleString('vi-VN') : '' }}</td>
+                <td class="r">{{ l.value ? l.value.toLocaleString('vi-VN') : '' }}</td>
+              }
             </tr>
           }
         </tbody>
       </table>
-      <div class="wv-sign">
-        <div><strong>Người lập phiếu</strong><span>(Ký, họ tên)</span></div>
-        <div><strong>{{ v.type === 'NHAP' ? 'Người giao hàng' : v.type === 'XUAT' ? 'Người nhận hàng' : 'Người kiểm' }}</strong><span>(Ký, họ tên)</span></div>
-        <div><strong>Thủ kho</strong><span>(Ký, họ tên)</span></div>
-        <div><strong>Kế toán trưởng</strong><span>(Ký, họ tên)</span></div>
-      </div>
-    </article>
+      @if (v.type === 'NHAP' && viewTotals().value) {
+        <div class="pd-totals"><div class="grand"><span>Tổng giá trị nhập</span><span>{{ money(viewTotals().value) }}</span></div></div>
+      }
+    </app-print-document>
   }
 }

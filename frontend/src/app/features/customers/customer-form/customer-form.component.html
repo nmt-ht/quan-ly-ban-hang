@@ -103,7 +103,7 @@
         </div>
         <div class="field span-3">
           <label for="cf-note">Ghi chú</label>
-          <textarea id="cf-note" rows="3" formControlName="note" placeholder="Thói quen mua, người liên hệ, yêu cầu hoá đơn…"></textarea>
+          <textarea id="cf-note" rows="3" formControlName="note" placeholder="Thói quen mua, liên hệ, hoá đơn…"></textarea>
         </div>
       </div>
     </div>
@@ -123,7 +123,7 @@
             </div>
             <div class="field">
               <label [for]="'addr-rec-' + a.key">Người nhận</label>
-              <input [id]="'addr-rec-' + a.key" type="text" placeholder="Để trống thì lấy tên khách" [ngModel]="a.recipientName" [ngModelOptions]="{ standalone: true }" (ngModelChange)="patchAddress(a.key, { recipientName: $event })" />
+              <input [id]="'addr-rec-' + a.key" type="text" placeholder="Theo tên khách" [ngModel]="a.recipientName" [ngModelOptions]="{ standalone: true }" (ngModelChange)="patchAddress(a.key, { recipientName: $event })" />
             </div>
             <div class="field">
               <label [for]="'addr-phone-' + a.key">Điện thoại</label>

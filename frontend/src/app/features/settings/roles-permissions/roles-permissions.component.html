@@ -1,62 +1,252 @@
 <div class="page-header">
   <div>
-    <h1>Chức vụ & phân quyền</h1>
-    <p class="subtitle">{{ data.roles().length }} chức vụ</p>
+    <h1>Chức vụ &amp; phân quyền</h1>
+    <p class="subtitle">{{ data.roles().length }} chức vụ · chức vụ quyết định mỗi người dùng được xem và làm gì trong hệ thống.</p>
+  </div>
+  <div class="toolbar">
+    <button type="button" class="btn btn-primary" (click)="openCreate()"><app-nav-icon name="plus" />Thêm chức vụ</button>
   </div>
 </div>
 
-<div class="card" style="margin-bottom:20px;padding:0;overflow-x:auto">
-  <table>
-    <thead>
-      <tr>
-        <th>Chức vụ</th>
-        <th>Mô tả</th>
-        <th style="text-align:right">Người dùng</th>
-        <th style="text-align:right">Số quyền</th>
-        <th>Trạng thái</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr
-        *ngFor="let role of data.roles()"
-        (click)="select(role)"
-        [style.cursor]="'pointer'"
-        [style.background]="selectedRole().id === role.id ? 'var(--nt-bg)' : ''"
-      >
-        <td>
-          {{ role.name }}
-          <span class="badge badge-muted" *ngIf="role.isSystem" style="margin-left:6px">Hệ thống</span>
-        </td>
-        <td style="white-space:normal;max-width:420px">{{ role.description }}</td>
-        <td style="text-align:right">{{ role.userCount }}</td>
-        <td style="text-align:right">{{ role.permissionCount }}</td>
-        <td><span class="badge badge-success">Đang dùng</span></td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+@if (notice()) {
+  <div class="notice" role="status">
+    <span>{{ notice() }}</span>
+    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+  </div>
+}
 
-<div class="card">
-  <h3 style="margin-top:0">Phân quyền — {{ selectedRole().name }}</h3>
-  <p class="subtitle" *ngIf="selectedRole().isSystem" style="margin-top:-8px">
-    Chức vụ hệ thống, không sửa được quyền
-  </p>
-
-  <div class="permission-groups">
-    <div class="permission-group" *ngFor="let module of data.permissionModules()">
-      <div class="permission-group-title">
-        {{ module.label }}
-        <span class="subtitle">
-          ({{ selectedRole().isSystem ? module.permissions.length : (module.permissions.length + 1) / 2 | number:'1.0-0' }}/{{ module.permissions.length }})
-        </span>
-      </div>
-      <label class="permission-item" *ngFor="let perm of module.permissions; let i = index">
-        <input type="checkbox" [checked]="hasPermission(i)" [disabled]="selectedRole().isSystem" />
-        <span>
-          {{ perm.label }}
-          <code>{{ perm.code }}</code>
-        </span>
-      </label>
+@if (pendingId()) {
+  <div class="confirm-strip" role="alertdialog" aria-labelledby="rp-switch-title">
+    <p id="rp-switch-title"><strong>Bỏ thay đổi chưa lưu?</strong> Phân quyền của {{ role()?.name }} đang có {{ diff().added }} quyền thêm, {{ diff().removed }} quyền bỏ chưa lưu.</p>
+    <div class="toolbar">
+      <button type="button" class="btn" (click)="resolveSwitch(false)">Ở lại</button>
+      <button type="button" class="btn btn-danger" (click)="resolveSwitch(true)">Bỏ thay đổi</button>
     </div>
   </div>
+}
+
+<div class="rp-layout">
+  <!-- ============ chức vụ ============ -->
+  <nav class="rp-list" aria-label="Danh sách chức vụ">
+    @for (r of data.roles(); track r.id) {
+      <button
+        type="button"
+        class="rp-role"
+        [class.is-active]="r.id === selectedId()"
+        [class.is-off]="!r.isActive"
+        [attr.aria-current]="r.id === selectedId() ? 'true' : null"
+        (click)="select(r)"
+      >
+        <span class="rp-avatar" aria-hidden="true">{{ initials(r.name) }}</span>
+        <span class="rp-role-body">
+          <span class="rp-role-name">
+            {{ r.name }}
+            @if (r.isSystem) { <span class="badge badge-muted">Hệ thống</span> }
+            @if (!r.isActive) { <span class="badge badge-muted">Ngừng dùng</span> }
+          </span>
+          <span class="rp-role-meta">
+            <span class="num">{{ memberCount().get(r.id) ?? 0 }}</span> người ·
+            <span class="num">{{ r.permissionCount }}/{{ total }}</span> quyền
+          </span>
+          <span class="rp-bar" aria-hidden="true"><span [style.width.%]="(r.permissionCount / total) * 100"></span></span>
+        </span>
+      </button>
+    }
+  </nav>
+
+  @if (role(); as r) {
+    <section class="rp-detail" [attr.aria-label]="'Phân quyền ' + r.name">
+      <!-- ============ tóm tắt ============ -->
+      <div class="card rp-summary">
+        <div class="rp-summary-top">
+          <span class="rp-avatar rp-avatar-lg" aria-hidden="true">{{ initials(r.name) }}</span>
+          <div class="rp-summary-main">
+            <h2 class="rp-title">
+              {{ r.name }}
+              @if (r.isSystem) { <span class="badge badge-muted">Hệ thống</span> }
+              @if (!r.isActive) { <span class="badge badge-muted">Ngừng dùng</span> }
+            </h2>
+            <p class="rp-desc">{{ r.description || 'Chưa có mô tả.' }}</p>
+          </div>
+          @if (!r.isSystem) {
+            <div class="toolbar">
+              <button type="button" class="btn" (click)="openEdit()"><app-nav-icon name="pencil" />Sửa</button>
+              <button type="button" class="btn" [class.btn-danger-ghost]="r.isActive" (click)="toggleActive()">{{ r.isActive ? 'Ngừng dùng' : 'Dùng lại' }}</button>
+            </div>
+          }
+        </div>
+
+        <dl class="rp-stats">
+          <div class="rp-stat">
+            <dt>Người dùng</dt>
+            <dd>
+              <span class="rp-stat-value num">{{ members().length }}</span>
+              @if (members().length) {
+                <span class="rp-people">
+                  @for (u of shownMembers(); track u.id) {
+                    <a class="rp-person" [routerLink]="['/thiet-lap/nguoi-dung', u.id]" [attr.title]="u.name" [attr.aria-label]="'Mở hồ sơ ' + u.name">{{ initials(u.name) }}</a>
+                  }
+                  @if (members().length > shownMembers().length) {
+                    <span class="rp-more">+{{ members().length - shownMembers().length }}</span>
+                  }
+                </span>
+              } @else {
+                <span class="rp-none">Chưa có ai giữ chức vụ này</span>
+              }
+            </dd>
+          </div>
+          <div class="rp-stat">
+            <dt>Quyền đã cấp</dt>
+            <dd>
+              <span class="rp-stat-value num">{{ draft().size }}<span class="rp-of">/{{ total }}</span></span>
+              <span class="rp-bar rp-bar-wide" aria-hidden="true"><span [style.width.%]="percent()"></span></span>
+            </dd>
+          </div>
+          <div class="rp-stat">
+            <dt>Nhóm chức năng</dt>
+            <dd>
+              <span class="rp-stat-value num">{{ groupsWithAccess() }}<span class="rp-of">/{{ groupCount() }}</span></span>
+              <span class="rp-none">có ít nhất một quyền</span>
+            </dd>
+          </div>
+        </dl>
+      </div>
+
+      @if (locked()) {
+        <p class="form-note">Chức vụ hệ thống — luôn có toàn quyền, không chỉnh được. Hệ thống cần ít nhất một tài khoản CEO.</p>
+      }
+
+      <!-- ============ phân quyền ============ -->
+      <div class="card rp-perms">
+        <div class="rp-tools">
+          <label class="rp-search">
+            <app-nav-icon name="search" />
+            <input type="search" placeholder="Tìm quyền, ví dụ: đơn hàng, giá vốn…" aria-label="Tìm quyền" [ngModel]="query()" (ngModelChange)="query.set($event)" />
+            @if (query()) {
+              <button type="button" class="rp-clear" aria-label="Xoá nội dung tìm" (click)="query.set('')"><app-nav-icon name="x" /></button>
+            }
+          </label>
+          @if (!locked()) {
+            <label class="rp-pick">
+              <span class="visually-hidden">Lấy quyền từ chức vụ khác</span>
+              <select (change)="copyFromRole($any($event.target).value); $any($event.target).value = ''">
+                <option value="">Lấy quyền từ chức vụ…</option>
+                @for (x of data.roles(); track x.id) {
+                  @if (x.id !== r.id) { <option [value]="x.id">{{ x.name }}</option> }
+                }
+              </select>
+              <app-nav-icon name="chevron-down" />
+            </label>
+            <span class="rp-quick">
+              <button type="button" class="link-btn" (click)="setAll(true)">Chọn tất cả</button>
+              <span aria-hidden="true">·</span>
+              <button type="button" class="link-btn" (click)="setAll(false)">Bỏ tất cả</button>
+            </span>
+          }
+        </div>
+
+        @if (!searching()) {
+          <div class="detail-tabs rp-tabs" role="tablist" aria-label="Khu vực chức năng">
+            @for (a of areas(); track a.key) {
+              <button type="button" role="tab" [attr.aria-selected]="tab() === a.key" (click)="tab.set(a.key)">
+                {{ a.label }} <span class="tab-count num">{{ a.on }}/{{ a.total }}</span>
+              </button>
+            }
+          </div>
+        }
+
+        @for (g of view(); track g.key) {
+          @if (searching()) { <h3 class="rp-area-title">{{ g.label }}</h3> }
+          <div class="rp-mods">
+            @for (row of g.rows; track row.m.key) {
+              <article class="rp-mod" [class.is-open]="isOpen(row.m.key)">
+                <header class="rp-mod-head">
+                  <button
+                    type="button"
+                    class="rp-mod-toggle"
+                    [attr.aria-expanded]="isOpen(row.m.key)"
+                    [attr.aria-controls]="'rp-body-' + row.m.key"
+                    (click)="toggleOpen(row.m.key)"
+                  >
+                    <app-nav-icon [name]="isOpen(row.m.key) ? 'chevron-down' : 'chevron-right'" />
+                    <span class="rp-mod-name">{{ row.m.label }}</span>
+                    <span class="rp-mod-count num">{{ row.on }}/{{ row.total }}</span>
+                  </button>
+
+                  <span class="rp-level rp-level-{{ row.level }}">{{ levelLabel[row.level] }}</span>
+
+                  <div class="segmented rp-seg" role="group" [attr.aria-label]="'Mức quyền nhóm ' + row.m.label">
+                    <button type="button" [attr.aria-pressed]="row.level === 'none'" [disabled]="locked()" (click)="applyLevel(row.m, 'none')">Không</button>
+                    @if (hasViewLevel(row.m)) {
+                      <button type="button" [attr.aria-pressed]="row.level === 'view'" [disabled]="locked()" (click)="applyLevel(row.m, 'view')">Chỉ xem</button>
+                    }
+                    <button type="button" [attr.aria-pressed]="row.level === 'full'" [disabled]="locked()" (click)="applyLevel(row.m, 'full')">Đầy đủ</button>
+                  </div>
+                </header>
+
+                @if (isOpen(row.m.key)) {
+                  <div class="rp-mod-body" [id]="'rp-body-' + row.m.key">
+                    @for (p of row.items; track p.code) {
+                      <label class="rp-perm">
+                        <input type="checkbox" [checked]="has(p.code)" [disabled]="locked()" (change)="toggle(row.m, p.code, $any($event.target).checked)" />
+                        <span>{{ p.label }}</span>
+                      </label>
+                    }
+                  </div>
+                }
+              </article>
+            }
+          </div>
+        } @empty {
+          <p class="rp-none rp-empty">Không có quyền nào khớp “{{ query() }}”.</p>
+        }
+      </div>
+    </section>
+  }
 </div>
+
+@if (dirty()) {
+  <div class="form-actions-bar">
+    <span class="hint" role="status">Có thay đổi chưa lưu: thêm {{ diff().added }}, bỏ {{ diff().removed }} quyền</span>
+    <div class="form-actions">
+      <button type="button" class="btn" (click)="revert()">Huỷ thay đổi</button>
+      <button type="button" class="btn btn-primary" (click)="save()"><app-nav-icon name="check" />Lưu phân quyền</button>
+    </div>
+  </div>
+}
+
+<dialog #dialog class="rg-dialog th-dialog" aria-labelledby="rp-dlg-title">
+  <header class="rg-head">
+    <div><h2 id="rp-dlg-title">{{ dlgMode() === 'edit' ? 'Sửa chức vụ' : 'Thêm chức vụ' }}</h2></div>
+    <button type="button" class="icon-action" aria-label="Đóng" (click)="closeDialog()"><app-nav-icon name="x" /></button>
+  </header>
+  <div class="rg-body th-body">
+    <label class="field th-note">
+      <span>Tên chức vụ <span class="required-mark">*</span></span>
+      <input id="rp-name" type="text" maxlength="60" placeholder="VD: Trưởng ca xưởng" [ngModel]="name()" (ngModelChange)="name.set($event)" (keydown.enter)="saveRole()" />
+    </label>
+    <label class="field th-note">
+      <span>Mô tả</span>
+      <textarea rows="3" maxlength="300" placeholder="Chức vụ này làm gì, được xem gì…" [ngModel]="description()" (ngModelChange)="description.set($event)"></textarea>
+    </label>
+    @if (dlgMode() === 'create') {
+      <label class="field th-note">
+        <span>Bắt đầu từ quyền của</span>
+        <select [ngModel]="copyFrom()" (ngModelChange)="copyFrom.set($event)">
+          <option value="">Không có quyền nào</option>
+          @for (r of data.roles(); track r.id) {
+            @if (!r.isSystem) { <option [value]="r.id">{{ r.name }} ({{ r.permissionCount }} quyền)</option> }
+          }
+        </select>
+        <span class="hint">Sao chép nhanh rồi chỉnh lại; có thể sửa quyền sau khi tạo.</span>
+      </label>
+    }
+  </div>
+  <footer class="rg-foot">
+    <p class="rg-summary text-danger" role="alert">{{ error() }}</p>
+    <div class="toolbar">
+      <button type="button" class="btn" (click)="closeDialog()">Huỷ</button>
+      <button type="button" class="btn btn-primary" [disabled]="!name().trim()" (click)="saveRole()">{{ dlgMode() === 'edit' ? 'Lưu' : 'Thêm chức vụ' }}</button>
+    </div>
+  </footer>
+</dialog>

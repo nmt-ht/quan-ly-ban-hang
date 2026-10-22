@@ -122,32 +122,23 @@
 
   <!-- Biên bản đối chiếu công nợ (print only) -->
   @if (row()) {
-    <article class="print-only reconciliation">
-      <header class="rc-head">
-        <div>
-          <strong>{{ company().name }}</strong>
-          @if (company().address) { <div>{{ company().address }}</div> }
-          @if (company().taxCode) { <div>MST: {{ company().taxCode }}</div> }
-        </div>
-        <div class="rc-date">Ngày in: {{ day(today) }}</div>
-      </header>
-      <h2>BIÊN BẢN ĐỐI CHIẾU CÔNG NỢ</h2>
-      <p class="rc-period">Kỳ đối chiếu: {{ periodLabel() }}</p>
-      <dl class="rc-parties">
-        <div><dt>{{ t().partyA }}</dt><dd>{{ company().name }}</dd></div>
-        <div><dt>{{ t().partyB }}</dt><dd>{{ p.name }} — {{ p.code }}{{ p.taxCode ? ' — MST ' + p.taxCode : '' }}</dd></div>
+    <app-print-document
+      title="BIÊN BẢN ĐỐI CHIẾU CÔNG NỢ" [sub]="'Kỳ đối chiếu: ' + periodLabel()" [date]="today"
+      [signers]="[{ role: 'ĐẠI DIỆN BÊN A', hint: '(Ký, ghi rõ họ tên, đóng dấu)' }, { role: 'ĐẠI DIỆN BÊN B', hint: '(Ký, ghi rõ họ tên, đóng dấu)' }]"
+    >
+      <dl pdMeta class="pd-meta">
+        <div class="wide"><dt>{{ t().partyA }}</dt><dd>{{ company().name }}</dd></div>
+        <div class="wide"><dt>{{ t().partyB }}</dt><dd>{{ p.name }} — {{ p.code }}{{ p.taxCode ? ' — MST ' + p.taxCode : '' }}</dd></div>
       </dl>
-      <table>
+      <table class="pd-table">
         <thead>
-          <tr>
-            <th>Ngày</th><th>Chứng từ</th><th>Diễn giải</th><th>Phát sinh tăng</th><th>Phát sinh giảm</th><th>Số dư</th>
-          </tr>
+          <tr><th>Ngày</th><th>Chứng từ</th><th>Diễn giải</th><th>Phát sinh tăng</th><th>Phát sinh giảm</th><th>Số dư</th></tr>
         </thead>
         <tbody>
-          <tr><td colspan="5"><strong>Số dư đầu kỳ</strong></td><td class="r">{{ money(opening()) }}</td></tr>
+          <tr class="sum"><td colspan="5">Số dư đầu kỳ</td><td class="r">{{ money(opening()) }}</td></tr>
           @for (e of printRows(); track e.ref + e.kind) {
             <tr>
-              <td>{{ day(e.date) }}</td>
+              <td class="c">{{ day(e.date) }}</td>
               <td>{{ e.ref }}</td>
               <td>{{ e.description }}</td>
               <td class="r">{{ e.amount > 0 ? money(e.amount) : '' }}</td>
@@ -155,26 +146,22 @@
               <td class="r">{{ money(e.balance) }}</td>
             </tr>
           }
+        </tbody>
+        <tfoot>
           <tr>
-            <td colspan="3"><strong>Cộng phát sinh</strong></td>
-            <td class="r"><strong>{{ money(periodTotals().increase) }}</strong></td>
-            <td class="r"><strong>{{ money(periodTotals().decrease) }}</strong></td>
+            <td colspan="3">Cộng phát sinh</td>
+            <td class="r">{{ money(periodTotals().increase) }}</td>
+            <td class="r">{{ money(periodTotals().decrease) }}</td>
             <td></td>
           </tr>
           <tr>
-            <td colspan="5">
-              <strong>Số dư cuối kỳ ({{ periodTotals().closing >= 0 ? t().owes : t().prepaid }})</strong>
-            </td>
-            <td class="r"><strong>{{ money(periodTotals().closing < 0 ? -periodTotals().closing : periodTotals().closing) }}</strong></td>
+            <td colspan="5">Số dư cuối kỳ ({{ periodTotals().closing >= 0 ? t().owes : t().prepaid }})</td>
+            <td class="r">{{ money(periodTotals().closing < 0 ? -periodTotals().closing : periodTotals().closing) }}</td>
           </tr>
-        </tbody>
+        </tfoot>
       </table>
-      <p>Hai bên thống nhất số liệu trên. Nếu có chênh lệch, đề nghị Bên B phản hồi trong vòng 07 ngày kể từ ngày nhận biên bản.</p>
-      <div class="rc-sign">
-        <div><strong>ĐẠI DIỆN BÊN A</strong><span>(Ký, ghi rõ họ tên)</span></div>
-        <div><strong>ĐẠI DIỆN BÊN B</strong><span>(Ký, ghi rõ họ tên)</span></div>
-      </div>
-    </article>
+      <p class="pd-note">Hai bên thống nhất số liệu trên. Nếu có chênh lệch, đề nghị Bên B phản hồi trong vòng 07 ngày kể từ ngày nhận biên bản.</p>
+    </app-print-document>
   }
 } @else {
   <div class="card empty-state">

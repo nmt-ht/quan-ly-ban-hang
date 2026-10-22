@@ -1,42 +1,107 @@
-<div class="page-header">
-  <div>
-    <h1>Báo cáo</h1>
-    <p class="subtitle">{{ active().label }}</p>
-  </div>
-</div>
-
-<label class="report-picker">
-  <span class="visually-hidden">Chọn báo cáo</span>
-  <select [value]="active().slug" (change)="open($any($event.target).value)">
-    @for (group of groups; track group.label) {
-      <optgroup [label]="group.label">
-        @for (item of group.items; track item.slug) { <option [value]="item.slug">{{ item.label }}</option> }
-      </optgroup>
-    }
-  </select>
-</label>
-
-<div class="report-layout">
-  <nav class="report-nav card" aria-label="Danh sách báo cáo">
-    @for (group of groups; track group.label) {
-      <div class="report-group-label">{{ group.label }}</div>
-      @for (item of group.items; track item.slug) {
-        <a class="report-item" [class.active]="active().slug === item.slug" [attr.aria-current]="active().slug === item.slug ? 'page' : null"
-          routerLink="/bao-cao" [queryParams]="{ name: item.slug }">{{ item.label }}</a>
-      }
-    }
+@if (active(); as r) {
+  <nav class="rc-crumb" aria-label="Vị trí">
+    <a routerLink="/bao-cao">Báo cáo</a>
+    <span aria-hidden="true">›</span>
+    <span>{{ activeGroup()!.label }}</span>
   </nav>
-
-  <div class="report-body card">
-    @switch (active().slug) {
-      @case ('ban-hang') { <app-revenue-report /> }
-      @default {
-        <div class="empty-state">
-          <h3>{{ active().label }}</h3>
-          <p>Báo cáo này đang được làm lại. Hiện đã có: Doanh thu.</p>
-          <a class="btn" routerLink="/bao-cao" [queryParams]="{ name: 'ban-hang' }">Mở báo cáo Doanh thu</a>
-        </div>
-      }
-    }
+  <div class="page-header">
+    <div>
+      <h1>{{ r.label }}</h1>
+    </div>
   </div>
-</div>
+
+  <label class="report-picker">
+    <span class="visually-hidden">Chọn báo cáo</span>
+    <select [value]="r.slug" (change)="open($any($event.target).value)">
+      <option value="">Tất cả báo cáo</option>
+      @for (s of frameSections; track s.group.key) {
+        <optgroup [label]="s.group.label">
+          @for (item of s.items; track item.slug) { <option [value]="item.slug" [selected]="item.slug === r.slug">{{ item.label }}{{ item.kind === 'soon' ? ' (sắp có)' : '' }}</option> }
+        </optgroup>
+      }
+    </select>
+  </label>
+
+  <div class="report-layout">
+    <nav class="report-nav card" aria-label="Danh sách báo cáo">
+      <a class="rc-all" routerLink="/bao-cao"><app-nav-icon name="chevron-left" />Tất cả báo cáo</a>
+      @for (s of frameSections; track s.group.key) {
+        <div class="report-group-label">{{ s.group.label }}</div>
+        @for (item of s.items; track item.slug) {
+          <a class="report-item" [class.active]="r.slug === item.slug" [class.is-soon]="item.kind === 'soon'" [attr.aria-current]="r.slug === item.slug ? 'page' : null"
+            routerLink="/bao-cao" [queryParams]="{ name: item.slug }">{{ item.label }}</a>
+        }
+      }
+    </nav>
+
+    <div class="report-body card">
+      @switch (r.kind) {
+        @case ('custom') { <app-revenue-report /> }
+        @case ('period') { <app-table-report [def]="r" [startDays]="days()" /> }
+        @case ('snapshot') { <app-table-report [def]="r" /> }
+        @case ('link') {
+          <p class="rc-lead">{{ r.summary }}</p>
+          <div class="rc-links">
+            @for (l of r.links ?? []; track l.path + l.label) {
+              <a class="rc-link" [routerLink]="l.path" [queryParams]="l.query">
+                <span>{{ l.label }}</span>
+                <app-nav-icon name="chevron-right" />
+              </a>
+            }
+          </div>
+          @for (n of r.notes ?? []; track n) { <p class="rc-note">{{ n }}</p> }
+        }
+        @default {
+          <div class="empty-state">
+            <h3>{{ r.label }}</h3>
+            <p>{{ r.summary }}</p>
+            <p>Báo cáo này sắp có. Hiện đã có {{ ready }} / {{ total }} báo cáo.</p>
+            <a class="btn" routerLink="/bao-cao">Xem các báo cáo đã có</a>
+          </div>
+        }
+      }
+    </div>
+  </div>
+} @else {
+  <div class="page-header">
+    <div>
+      <h1>Báo cáo</h1>
+      <p class="subtitle">{{ ready }} báo cáo sẵn sàng · {{ total - ready }} sắp có</p>
+    </div>
+  </div>
+
+  <div class="filters-bar">
+    <input type="search" class="filter-search" placeholder="Tìm báo cáo…" aria-label="Tìm báo cáo" [value]="query()" (input)="query.set($any($event.target).value)" />
+  </div>
+
+  @for (s of sections(); track s.group.key) {
+    <section class="rc-section" [attr.aria-labelledby]="'rc-' + s.group.key">
+      <h2 class="rc-group" [id]="'rc-' + s.group.key">
+        <app-nav-icon [name]="s.group.icon" />
+        <span>{{ s.group.label }}</span>
+        <span class="rc-group-desc">{{ s.group.description }}</span>
+      </h2>
+      <div class="rc-grid">
+        @for (item of s.items; track item.slug) {
+          @if (item.kind === 'soon') {
+            <a class="rc-card is-soon" routerLink="/bao-cao" [queryParams]="{ name: item.slug }">
+              <span class="rc-card-title">{{ item.label }}<span class="rc-tag">Sắp có</span></span>
+              <span class="rc-card-sum">{{ item.summary }}</span>
+            </a>
+          } @else {
+            <a class="rc-card" routerLink="/bao-cao" [queryParams]="{ name: item.slug }">
+              <span class="rc-card-title">{{ item.label }}</span>
+              <span class="rc-card-sum">{{ item.summary }}</span>
+            </a>
+          }
+        }
+      </div>
+    </section>
+  } @empty {
+    <div class="empty-state">
+      <h3>Không tìm thấy báo cáo</h3>
+      <p>Không có báo cáo nào khớp “{{ query() }}”.</p>
+      <button type="button" class="btn" (click)="query.set('')">Xoá tìm kiếm</button>
+    </div>
+  }
+}

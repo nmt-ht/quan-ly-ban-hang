@@ -3,6 +3,9 @@
 // Design tokens (colour, type, space, motion) live in tokens.css — see /design.md.
 @use 'tokens';
 
+// Phiếu in: one print system for every printout (see design.md § Print).
+@use 'app/shared/print/print';
+
 // Legacy --nt-* names stay as aliases so every feature template keeps working.
 // Declared on both :root and body so body.dark-theme re-resolves them.
 :root,
@@ -236,22 +239,6 @@ kbd,
   .btn-danger-ghost:hover {
     background: var(--color-danger-tint);
     border-color: var(--color-danger);
-  }
-}
-
-// Print: only the page content.
-@media print {
-  .sidebar,
-  .topbar,
-  .scrim,
-  .notice {
-    display: none !important;
-  }
-
-  body,
-  .shell,
-  .content {
-    background: #fff;
   }
 }
 
@@ -957,7 +944,7 @@ input[appmoney] {
 }
 
 .filters-bar .filter-search {
-  flex: 0 1 18rem;
+  flex: 0 1 22rem;
   min-width: 0;
 }
 
@@ -1221,17 +1208,89 @@ input[appmoney] {
 .aging-overdue61to90 { background: var(--color-danger); }
 .aging-overdueOver90 { background: color-mix(in oklch, var(--color-danger), var(--color-ink) 35%); }
 
-// Toggle filters (Tồn âm, Dưới tồn tối thiểu): pressed = ink fill.
+// Toggle filters ("Chỉ quá hạn", "Dưới tồn tối thiểu", "Hiện phiếu đã huỷ"…): a pill with a tick box in
+// front, so it reads as an option you switch on rather than a button that does something.
+// Off = dashed outline + empty box. On = solid accent outline, tinted fill, ticked box.
+// Never use this for choosing one of several views — that is .segmented.
+.filter-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  min-height: var(--control-h);
+  padding: 0 var(--space-xs) 0 var(--space-2xs);
+  border: var(--rule-hair) dashed var(--color-rule-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-ink-2);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-short) var(--ease-out),
+    border-color var(--dur-short) var(--ease-out),
+    color var(--dur-short) var(--ease-out);
+}
+
+.filter-toggle::before {
+  content: '';
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--color-rule-strong);
+  border-radius: 4px;
+  background: var(--color-surface);
+  transition:
+    background-color var(--dur-short) var(--ease-out),
+    border-color var(--dur-short) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .filter-toggle:hover {
+    border-color: var(--color-ink-2);
+    background: var(--color-paper-2);
+    color: var(--color-ink);
+  }
+}
+
+.filter-toggle:active {
+  background: var(--color-paper-3);
+}
+
 .filter-toggle[aria-pressed='true'] {
-  background: var(--color-ink);
-  border-color: var(--color-ink);
-  color: var(--color-surface);
+  border-style: solid;
+  border-color: var(--color-accent);
+  background: var(--color-accent-tint);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.filter-toggle[aria-pressed='true']::before {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+}
+
+// The tick, drawn with borders so it follows the theme tokens.
+.filter-toggle[aria-pressed='true']::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--space-2xs) + 4.5px);
+  top: 50%;
+  width: 4px;
+  height: 8px;
+  border: solid var(--color-accent-ink);
+  border-width: 0 2px 2px 0;
+  transform: translateY(-65%) rotate(45deg);
 }
 
 @media (hover: hover) {
   .filter-toggle[aria-pressed='true']:hover {
-    background: var(--color-ink-2);
-    border-color: var(--color-ink-2);
+    background: var(--color-accent-tint);
+    border-color: var(--color-accent);
+    color: var(--color-accent);
   }
 }
 
@@ -1311,6 +1370,12 @@ input[appmoney] {
   padding: var(--space-2xs) var(--space-xs);
   line-height: 1.5;
   resize: vertical;
+}
+
+// A placeholder that still does not fit ends in "…" instead of being cut mid-letter.
+input,
+textarea {
+  text-overflow: ellipsis;
 }
 
 .filters-bar input::placeholder,

@@ -11,7 +11,7 @@ import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { Product, ProductType } from '../../core/models/domain.models';
 import { PRODUCT_TYPE_CLASS, PRODUCT_TYPE_LABEL, businessStatusClass } from '../../shared/status-labels';
 import { foldVi, formatVnd } from '../../shared/format.util';
-import { downloadWorkbook, todayStamp } from '../../shared/excel.util';
+import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { productExportSheet } from './product-excel';
 import { ProductImportDialogComponent } from './product-import-dialog/product-import-dialog.component';
 
@@ -263,7 +263,7 @@ export class ProductsComponent {
         warehouses: this.data.warehouses(),
         stockLevels: this.data.stockLevels(),
       });
-      await downloadWorkbook(`hang-hoa-${todayStamp()}.xlsx`, [sheet]);
+      await downloadWorkbook(exportFileName('Hàng hoá'), [sheet]);
     } finally {
       this.exporting.set(false);
     }

@@ -14,7 +14,7 @@ import { foldVi, formatVnd } from '../../shared/format.util';
 import { PERIOD_PRESETS, formatDay, inRange, isoDay, rangeLabel } from '../../shared/period';
 import { SALES_ORDER_STATUS_LABEL, salesOrderStatusClass } from '../../shared/status-labels';
 import { tagClass } from '../../shared/tag-class';
-import { downloadWorkbook, todayStamp } from '../../shared/excel.util';
+import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { tagStyle } from '../../shared/tag-colors';
 import { canEdit, deliveredPercent, lineRemaining } from './sales-order.rules';
 
@@ -239,7 +239,7 @@ export class SalesOrdersComponent {
   async exportExcel(): Promise<void> {
     this.exporting.set(true);
     try {
-      await downloadWorkbook(`don-hang-ban-${todayStamp()}.xlsx`, [{
+      await downloadWorkbook(exportFileName('Đơn hàng bán'), [{
         name: 'Đơn hàng bán',
         columns: [
           { header: 'Mã đơn', width: 14 },

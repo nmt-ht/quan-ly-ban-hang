@@ -10,7 +10,7 @@ import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
 import { foldVi, formatVnd } from '../../shared/format.util';
 import { formatDay } from '../../shared/period';
 import { supplierStatusClass, supplierStatusLabel } from '../../shared/status-labels';
-import { downloadWorkbook, todayStamp } from '../../shared/excel.util';
+import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { SUPPLIER_SORTS, SupplierSort, creditLabel, sortSuppliers } from './supplier.rules';
 import { SupplierService } from './supplier.service';
 
@@ -150,7 +150,7 @@ export class SuppliersComponent {
   async exportExcel(): Promise<void> {
     this.exporting.set(true);
     try {
-      await downloadWorkbook(`nha-cung-cap-${todayStamp()}.xlsx`, [{
+      await downloadWorkbook(exportFileName('Nhà cung cấp'), [{
         name: 'Nhà cung cấp',
         columns: [
           { header: 'Mã NCC', width: 14 },

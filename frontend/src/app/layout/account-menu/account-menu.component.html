@@ -58,6 +58,29 @@
 
     <div class="menu-sep" role="separator"></div>
 
+    <p class="menu-label" id="account-density-label">Mật độ hiển thị</p>
+    <div role="group" aria-labelledby="account-density-label">
+      @for (d of densities; track d.value) {
+        <button
+          type="button"
+          class="menu-item"
+          role="menuitemradio"
+          tabindex="-1"
+          [title]="d.hint"
+          [attr.aria-checked]="density.mode() === d.value"
+          (click)="setDensity(d.value)"
+        >
+          <span class="menu-item-label">{{ d.label }}</span>
+          <span class="menu-item-hint">{{ d.hint }}</span>
+          @if (density.mode() === d.value) {
+            <app-nav-icon class="menu-check" name="check" />
+          }
+        </button>
+      }
+    </div>
+
+    <div class="menu-sep" role="separator"></div>
+
     <button type="button" class="menu-item menu-item-danger" role="menuitem" tabindex="-1" (click)="logout()">
       <app-nav-icon name="log-out" />
       <span class="menu-item-label">Đăng xuất</span>

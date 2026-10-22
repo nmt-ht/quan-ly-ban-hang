@@ -63,7 +63,7 @@ export interface DataTableColumn<T> {
                   *ngSwitchCase="'number'"
                   type="text"
                   inputmode="decimal"
-                  placeholder="vd >100, 10-20"
+                  placeholder="vd >100"
                   [value]="filters[col.key] || ''"
                   (input)="setFilter(col.key, $any($event.target).value)"
                   [attr.aria-label]="'Lọc cột ' + col.label + ' (>, <, =, khoảng a-b)'"

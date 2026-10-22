@@ -11,7 +11,7 @@ import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
 import { foldVi, formatVnd } from '../../shared/format.util';
 import { formatDay } from '../../shared/period';
 import { CUSTOMER_TYPE_SHORT, customerStatusClass, customerStatusLabel, customerTypeClass } from '../../shared/status-labels';
-import { downloadWorkbook, todayStamp } from '../../shared/excel.util';
+import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { tagStyle } from '../../shared/tag-colors';
 import { CUSTOMER_SORTS, CUSTOMER_TYPES, CustomerSort, creditLabel, taxCodeOf } from './customer.rules';
 import { CustomerService } from './customer.service';
@@ -192,7 +192,7 @@ export class CustomersComponent {
   async exportExcel(): Promise<void> {
     this.exporting.set(true);
     try {
-      await downloadWorkbook(`khach-hang-${todayStamp()}.xlsx`, [{
+      await downloadWorkbook(exportFileName('Khách hàng'), [{
         name: 'Khách hàng',
         columns: [
           { header: 'Mã KH', width: 13 },

@@ -1,0 +1,116 @@
+@let d = def();
+<header class="tr-head">
+  <div>
+    <p class="tr-summary">{{ d.summary }}</p>
+    @if (d.kind === 'period') {
+      <p class="subtitle">@if (periodLabel()) { {{ periodLabel() }} · }<span class="num">{{ day(range().from) }} – {{ day(range().to) }}</span></p>
+    } @else {
+      <p class="subtitle">Tính tại thời điểm xem · {{ day(today) }}</p>
+    }
+  </div>
+  <button type="button" class="btn" [disabled]="exporting() || !filtered().length" (click)="exportExcel()">
+    <app-nav-icon name="download" />{{ exporting() ? 'Đang xuất…' : 'Xuất Excel' }}
+  </button>
+</header>
+
+<div class="filters-bar">
+  @if (d.groups) {
+    <select aria-label="Cách nhóm" [value]="group()" (change)="group.set($any($event.target).value)">
+      @for (g of d.groups; track g.value) { <option [value]="g.value">{{ g.label }}</option> }
+    </select>
+  }
+  @if (d.kind === 'period') { <app-period-filter [(value)]="period" /> }
+  <input type="search" class="filter-search" [placeholder]="d.searchHint ?? 'Tìm trong báo cáo…'" aria-label="Tìm trong báo cáo" [value]="search()" (input)="search.set($any($event.target).value)" />
+</div>
+
+@if (result().kpis; as kpis) {
+  <div class="tr-kpis">
+    @for (k of kpis; track k.label) {
+      <div class="tr-kpi">
+        <span class="tr-kpi-label">{{ k.label }}</span>
+        <span class="tr-kpi-value num" [class.amt-pos]="k.tone === 'pos'" [class.amt-neg]="k.tone === 'neg'">{{ k.value }}</span>
+        @if (k.sub) { <span class="tr-kpi-sub">{{ k.sub }}</span> }
+      </div>
+    }
+  </div>
+}
+
+@if (!result().rows.length) {
+  <div class="empty-state">
+    <h3>Không có số liệu</h3>
+    <p>{{ result().emptyHint ?? 'Thử mở rộng khoảng ngày, hoặc kiểm tra xem đã có chứng từ nào chưa.' }}</p>
+  </div>
+} @else {
+  @if (result().chart; as ch) {
+    @if (ch.items.length) {
+      <section class="tr-chart" [attr.aria-label]="ch.title">
+        <h3>{{ ch.title }}</h3>
+        <ol class="tr-bars">
+          @for (b of ch.items; track b.label) {
+            <li>
+              <span class="tr-bar-label" [title]="b.label">{{ b.label }}</span>
+              <span class="tr-bar-track"><span class="tr-bar" [class.is-neg]="b.value < 0" [style.width.%]="chartMax() ? (b.value < 0 ? -b.value : b.value) / chartMax() * 100 : 0"></span></span>
+              <span class="tr-bar-value num" [class.amt-neg]="b.value < 0">{{ money(b.value) }}</span>
+            </li>
+          }
+        </ol>
+      </section>
+    }
+  }
+
+  <div class="tr-table-wrap">
+    <table class="tr-table">
+      <thead>
+        <tr>
+          @for (c of columns(); track c.key) {
+            <th scope="col" [class.r]="isNumeric(c)" [attr.aria-sort]="ariaSort(c)">
+              <button type="button" class="tr-sort" (click)="toggleSort(c)">
+                {{ c.label }}
+                <span class="tr-arrow" aria-hidden="true">{{ ariaSort(c) === 'ascending' ? '▲' : ariaSort(c) === 'descending' ? '▼' : '' }}</span>
+              </button>
+            </th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (r of visible(); track r.id) {
+          <tr>
+            @for (c of columns(); track c.key) {
+              <td [class.r]="isNumeric(c)" [class.num]="isNumeric(c) || c.kind === 'date'" [class]="toneClass(c, r[c.key])">
+                @if (c.link && c.link(r); as l) {
+                  <a class="code-link" [routerLink]="l">{{ text(c, r[c.key]) }}</a>
+                } @else {
+                  {{ text(c, r[c.key]) }}
+                }
+              </td>
+            }
+          </tr>
+        } @empty {
+          <tr><td class="tr-none" [attr.colspan]="columns().length">Không có dòng nào khớp “{{ search() }}”.</td></tr>
+        }
+      </tbody>
+      @if (totals(); as t) {
+        <tfoot>
+          <tr>
+            @for (c of columns(); track c.key) {
+              <td [class.r]="isNumeric(c)" [class.num]="isNumeric(c)" [class]="toneClass(c, t[c.key])">{{ text(c, t[c.key]) }}</td>
+            }
+          </tr>
+        </tfoot>
+      }
+    </table>
+  </div>
+
+  <footer class="tr-foot">
+    <span>{{ visible().length.toLocaleString('vi-VN') }} / {{ filtered().length.toLocaleString('vi-VN') }} dòng</span>
+    @if (filtered().length > visible().length) {
+      <button type="button" class="btn" (click)="limit.set(limit() + 100)">Hiện thêm 100 dòng</button>
+    }
+  </footer>
+}
+
+@if (d.notes?.length) {
+  <footer class="tr-notes">
+    @for (n of d.notes; track n) { <p>{{ n }}</p> }
+  </footer>
+}

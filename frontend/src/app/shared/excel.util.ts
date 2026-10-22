@@ -120,8 +120,12 @@ export async function readSheet(file: File, sheetName?: string): Promise<{ heade
   return { headers: headers.filter(Boolean), rows };
 }
 
-export function todayStamp(): string {
-  const d = new Date();
+/**
+ * Tên file xuất: "Đơn hàng bán - 22-10-2026 14h35.xlsx" — tên tiếng Việt có dấu, theo sau là ngày giờ xuất
+ * (giờ máy người dùng). Không dùng ":" và "/" vì Windows không cho phép trong tên file.
+ */
+export function exportFileName(title: string, now: Date = new Date()): string {
   const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`;
+  const stamp = `${p(now.getDate())}-${p(now.getMonth() + 1)}-${now.getFullYear()} ${p(now.getHours())}h${p(now.getMinutes())}`;
+  return `${title.replace(/[\\/:*?"<>|]/g, '-').trim()} - ${stamp}.xlsx`;
 }

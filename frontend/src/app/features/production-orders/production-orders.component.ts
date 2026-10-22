@@ -11,7 +11,7 @@ import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
 import { foldVi } from '../../shared/format.util';
 import { PERIOD_PRESETS, formatDay, inRange, isoDay, rangeLabel } from '../../shared/period';
-import { downloadWorkbook, todayStamp } from '../../shared/excel.util';
+import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { PRODUCTION_ORDER_STATUS_LABEL, productionOrderStatusClass } from '../../shared/status-labels';
 import { SalesOrderService } from '../sales-orders/sales-order.service';
 import { canStart, isLate } from './production-order.rules';
@@ -172,7 +172,7 @@ export class ProductionOrdersComponent {
           x.startDate ? formatDay(x.startDate) : '', x.completeDate ? formatDay(x.completeDate) : '', PRODUCTION_ORDER_STATUS_LABEL[x.status], x.cancelReason ?? '',
         ];
       });
-      await downloadWorkbook(`lenh-san-xuat-${todayStamp()}.xlsx`, [{
+      await downloadWorkbook(exportFileName('Lệnh sản xuất'), [{
         name: 'Lệnh sản xuất',
         columns: [
           { header: 'Mã lệnh', width: 12 }, { header: 'Ngày lập', width: 12 }, { header: 'Mã TP', width: 12 }, { header: 'Thành phẩm', width: 32 },

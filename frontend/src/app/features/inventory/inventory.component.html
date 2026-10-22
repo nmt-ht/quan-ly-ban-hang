@@ -33,7 +33,7 @@
   <input
     type="text"
     class="filter-search"
-    placeholder="Tìm theo mã, mã đối chiếu hoặc tên…"
+    placeholder="Tìm mã, mã đối chiếu hoặc tên…"
     aria-label="Tìm mặt hàng"
     [value]="search()"
     (input)="search.set($any($event.target).value)"
@@ -44,9 +44,6 @@
   </select>
   <app-filter-multi-select label="Tính chất" [options]="typeOptions()" [(selected)]="types" />
   <app-filter-multi-select label="Nhóm hàng" [options]="categoryOptions()" [(selected)]="categories" />
-  <button type="button" class="filter-toggle" [attr.aria-pressed]="negativeOnly()" (click)="negativeOnly.set(!negativeOnly())">Đang tồn âm</button>
-  <button type="button" class="filter-toggle" [attr.aria-pressed]="belowMinOnly()" (click)="belowMinOnly.set(!belowMinOnly())">Dưới tồn tối thiểu</button>
-  <button type="button" class="filter-toggle" [attr.aria-pressed]="showZero()" (click)="showZero.set(!showZero())">Hiện cả tồn 0</button>
   <select aria-label="Sắp xếp" [value]="sort()" (change)="sort.set($any($event.target).value)">
     <option value="name">Tên A → Z</option>
     <option value="code">Mã tăng dần</option>
@@ -54,6 +51,9 @@
     <option value="qty-asc">Tồn ít → nhiều</option>
     <option value="value">Giá trị tồn lớn nhất</option>
   </select>
+  <button type="button" class="filter-toggle" [attr.aria-pressed]="negativeOnly()" (click)="negativeOnly.set(!negativeOnly())">Đang tồn âm</button>
+  <button type="button" class="filter-toggle" [attr.aria-pressed]="belowMinOnly()" (click)="belowMinOnly.set(!belowMinOnly())">Dưới tồn tối thiểu</button>
+  <button type="button" class="filter-toggle" [attr.aria-pressed]="showZero()" (click)="showZero.set(!showZero())">Hiện cả tồn 0</button>
   @if (hasFilters()) {
     <button type="button" class="filter-clear-all" (click)="clearAll()"><app-nav-icon name="x" />Xoá bộ lọc</button>
   }

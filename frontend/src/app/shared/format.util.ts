@@ -1,7 +1,7 @@
 const MINUS = '−'; // U+2212: wider and easier to see than a hyphen
 
 export function formatVnd(amount: number): string {
-  const text = Math.abs(amount).toLocaleString('vi-VN') + ' ₫';
+  const text = Math.abs(amount).toLocaleString('vi-VN') + '₫';
   return amount < 0 ? MINUS + text : text;
 }
 
@@ -16,7 +16,7 @@ export function formatQtySigned(n: number): string {
   return (n > 0 ? '+' : '') + formatQty(n);
 }
 
-/** "+5.000.000 ₫" / "−430.000 ₫" — for money flows (thu/chi, phát sinh tăng/giảm). */
+/** "+5.000.000₫" / "−430.000₫" — for money flows (thu/chi, phát sinh tăng/giảm). */
 export function formatVndSigned(amount: number): string {
   return (amount > 0 ? '+' : '') + formatVnd(amount);
 }

@@ -12,7 +12,7 @@ import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
 import { foldVi, formatQty, formatQtySigned, formatVnd } from '../../shared/format.util';
 import { PERIOD_PRESETS, formatDay, inRange, rangeLabel } from '../../shared/period';
 import { tagClass } from '../../shared/tag-class';
-import { downloadWorkbook, todayStamp } from '../../shared/excel.util';
+import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { KIND_SLUG, VOUCHER_KIND_LABEL, VoucherKindKey, kindOf, sourceOf } from './warehouse-voucher.rules';
 
 interface ActiveChip {
@@ -184,7 +184,7 @@ export class WarehouseVouchersComponent {
           l.unitPrice ?? '', l.unitPrice ? l.unitPrice * l.quantity : '', this.userName().get(v.createdBy) ?? v.createdBy, v.isCancelled ? 'Đã huỷ' : '',
         ];
       }));
-      await downloadWorkbook(`phieu-kho-${todayStamp()}.xlsx`, [{
+      await downloadWorkbook(exportFileName('Phiếu kho'), [{
         name: 'Phiếu kho',
         columns: [
           { header: 'Số phiếu', width: 13 }, { header: 'Ngày', width: 12 }, { header: 'Loại', width: 13 }, { header: 'Kho', width: 30 },

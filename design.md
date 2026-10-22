@@ -19,8 +19,8 @@ modern-minimal (ERP / B2B app)
 - App pages (every route under the shell): **Workbench** — page header
   (title + count/date left, actions right, hairline under), filters bar, then
   one data surface (table, form cards, or report rail + panel).
-- Dashboard: Workbench with stacked sections; the single "needs action" block
-  carries a 3 px ink left rule.
+- Dashboard: Workbench with stacked sections, ordered by what the reader must do first (see
+  "Dashboard (Tổng quan)" below); the single "needs action" block carries a 3 px ink left rule.
 - Marketing / content pages: none yet. Add a family here before building one.
 
 ## Theme
@@ -162,6 +162,125 @@ mix in a second icon library or emoji.
 - Theme is a personal preference (`core/services/theme.service.ts`, saved per
   browser, follows the OS when "Theo hệ thống").
 
+## Permission screens (reference: Chức vụ & phân quyền)
+- Master-detail Workbench: chức vụ cards on the left (initials avatar, name, "N người · x/98 quyền", thin
+  coverage bar; active = moss border + tint), detail on the right. Under 1100 px the list becomes a
+  horizontal strip above the detail.
+- Detail top = summary card (avatar, name, mô tả, Sửa / Ngừng dùng) with three stats: Người dùng (initials
+  chips linking to the profile), Quyền đã cấp (x/98 + bar), Nhóm chức năng (n/23).
+- Permissions are read by **area tabs** (Bán hàng · Mua hàng · Hàng hoá & kho · Sản xuất · Tiền & công nợ ·
+  Báo cáo · Hệ thống), each with its x/y count. A group is one row: chevron + name + count, a level pill
+  (Không có quyền · Chỉ xem · Đầy đủ · Tuỳ chỉnh) and a `.segmented` control **Không / Chỉ xem / Đầy đủ**;
+  the chevron opens single permissions for fine tuning. Searching shows matching groups across all tabs.
+- Never show technical permission codes (`position.delete` …) to customers — labels only.
+- Edits are a draft: sticky `.form-actions-bar` "Có thay đổi chưa lưu: thêm N, bỏ M quyền" → Lưu phân
+  quyền / Huỷ thay đổi; switching chức vụ with a draft asks to keep or discard. "Lấy quyền từ chức vụ…"
+  fills the draft from another chức vụ. CEO (hệ thống) is read-only. Roles are switched off, never deleted.
+- Code: `role.rules.ts` (areas, levels, default grants), `role.service.ts` (writes), catalog in
+  `core/data/permission-catalog.ts`.
+
+## Display colours (reference: Màu hiển thị)
+- Same master-detail shape as Chức vụ & phân quyền: groups of labels on the left (name, "N đã đổi" chip,
+  a dot per value in its current colour), detail on the right; under 1100 px the list is a strip above.
+- Detail head shows the **whole group on a light and a dark ground side by side** (`.preview-light` /
+  `.preview-dark` force the paper tokens whatever theme is on), so palette harmony is judged at a glance.
+- One row per value: badge + colour name ("· đã đổi" when it differs from the default), 12 swatches
+  (`role=radio`, ring on the chosen one) and "Tuỳ chỉnh sắc độ" which opens a hue slider with a rainbow
+  track (one open at a time). "Khôi phục mặc định" per group and "Khôi phục tất cả mặc định" in the header.
+- Colours are hues only; lightness / chroma stay fixed tokens so every choice keeps its contrast.
+
+## Search, quick create & density (usability layer)
+- **Tìm hoặc tạo nhanh** (`layout/command-palette`; Ctrl K, or "/" outside a field; topbar
+  button "Tìm hoặc tạo nhanh…", icon-only 44 px on phones): one native `<dialog>` with a
+  WAI-ARIA combobox + listbox. Empty query = "Tạo mới" (đơn bán, đơn nhập, phiếu thu/chi,
+  phiếu nhập/xuất kho, khách, hàng hoá, NCC) then "Đi tới" (every menu page). Typing searches
+  code, name, phone, plate number across đơn bán, khách, hàng hoá, NCC, đơn nhập, phiếu kho,
+  lệnh SX, chuyến, xe, phiếu thu chi (diacritic-insensitive, all words must match, 5 per group,
+  code matches first). ↑↓ move, Enter opens, Esc closes. State via `CommandPaletteService`.
+  New searchable entity = add one `rec(...)` line in the component.
+- **Mật độ hiển thị** (account menu, saved per browser like the theme; `DensityService` →
+  `body[data-density]`): Gọn (default, 36 px controls, 13 px text) · Vừa (40 px, 14 px) ·
+  Rộng (44 px, 15 px). Everything reads `--control-h`, `--row-h` and the `--text-*` scale from
+  tokens.css, so a new screen follows with no extra CSS — never hard-code a control height.
+- Phones: dashboard KPI cards go one per row under 480 px so figures are never clipped.
+
+## Dashboard (Tổng quan)
+- Order is the message: **Cần xử lý** (problems, worst first) → 4 headline numbers → trend (revenue chart, top
+  products) → **Tình hình từng mảng** (one card per area). A reader should know *where* the problem is without
+  reading a number.
+- Problems come from ONE list (`issues` in dashboard.component.ts). Each issue = level · title (what + amount) ·
+  one-sentence detail (why it matters) · area · link that opens the screen where it is fixed. Level is shown as a
+  word AND a colour: **Nghiêm trọng** (damage done / overdue: late orders, overdue receivables or payables,
+  below-cost lines, negative gross profit, negative cash account) and **Theo dõi** (about to happen / worth a look:
+  payables due ≤ 7 days, margin −5 pts, discount ≥ 10 %, revenue −20 %, lost customers, below min stock, spending
+  > income). Plain progress counts (waiting for production, shipping, waiting for goods) are NOT problems.
+- Area cards take their chip (Ổn / Cần theo dõi / Có vấn đề) from the same list, so the two can never disagree.
+  Rows that are a problem turn danger / warning colour; everything else stays ink. No decoration without a meaning.
+- Headline numbers carry a delta line coloured good / bad (success / danger tokens) and a muted note line; a number
+  the reader should act on links to the report or ledger behind it.
+- New check = push one `Issue` in `issues()`; no template change.
+
+## Toggle filters (bộ lọc bật / tắt)
+- Anything in a filters bar that switches ONE condition on or off ("Chỉ quá hạn", "Chỉ đối tác còn nợ", "Dưới tồn tối thiểu",
+  "Hiện phiếu đã huỷ") is a `.filter-toggle` `<button aria-pressed>`: a **pill with a tick box in front**. It must not look like a
+  button (buttons do something; this only narrows the list) and must not look like a text field.
+- Off = dashed outline, empty box, muted text. On = solid accent outline, tinted fill, accent text, ticked box. State is the box +
+  outline + weight — never colour alone. Wording says what you get when it is on ("Chỉ …", "Hiện …"), never "Lọc …".
+- Choosing one of several views (Lưới / Bảng, Không / Chỉ xem / Đầy đủ) is `.segmented`, not this. Cards that filter (tuổi nợ buckets,
+  tài khoản quỹ) keep their own card style.
+- **Position: always the LAST controls of the filters bar** — after search, dropdowns, period and the sort select, before "Xoá bộ lọc". Put them at the end of the markup too (not just visually) so tab order matches.
+- Markup: `<button type="button" class="filter-toggle" [attr.aria-pressed]="flag()" (click)="flag.set(!flag())">Chỉ quá hạn</button>`
+  (an extra `btn` class is harmless). No per-screen CSS.
+
+## Placeholders
+- A placeholder must fit its field at 375 px: ≤ ~38 characters in a search box, ≤ ~18 in a narrow table cell. Name the 3–4 things you can search by ("Tìm mã đơn, khách, người nhận, mặt hàng…"), never a sentence. Use "…" (one character), not "...".
+- Search boxes in a filters bar are 22rem wide; global CSS ends an over-long placeholder with an ellipsis, but treat that as a safety net, not a layout.
+
+## Reports (reference: Báo cáo)
+- `/bao-cao` is a **hub**: "Tìm báo cáo…" box, then the 8 groups (icon + one-line description) as card grids; every
+  card = report name + one-sentence summary. Not-built reports stay visible as dashed cards tagged "Sắp có" — never
+  hide them. `/bao-cao?name=<slug>` is one report in a **frame**: breadcrumb "Báo cáo › Nhóm", h1 = report name, the
+  report list on the left (≤ 900 px: a select), the report in a `.card` on the right. Slugs are production's.
+- Reports are **declarations**, not components: `features/reports/defs/*.defs.ts` export `ReportDef`
+  (`slug, label, group, summary, kind, groups?, notes?, run(env, {range, group})`) registered in
+  `report.registry.ts`; `run` returns `{ columns, rows, totals?, kpis?, chart?, emptyHint? }`. A new report = one def.
+  `kind`: `period` (has the kỳ filter), `snapshot` (as of now), `custom` (own component — Doanh thu),
+  `link` (points at an existing page — Số dư công nợ, Tuổi nợ), `soon`.
+- `app-table-report` draws every table report: Xuất Excel (top right) · filters bar (Cách nhóm, Chọn kỳ, search) ·
+  KPI strip (3–4 tiles, sub-line explains) · top-10 bar chart · sortable table (click header: desc → asc → off) with a
+  sticky header, numeric columns right-aligned + `nowrap`, a TỔNG CỘNG footer that re-sums when you search ·
+  "Hiện thêm 100 dòng" paging · definition notes. Default kỳ = Tháng này, end date capped at today.
+- Report numbers must tie to each other and to the ledgers (Doanh thu = Chiết khấu + Lãi gộp over all time = receivedValue;
+  Sổ quỹ = Thu chi). Anything estimated (giá vốn) is labelled "ước tính" in the notes.
+- Deep links keep the slug and may add `ngay=N` (open on "last N days"), e.g. the dashboard's Khách ngừng mua tile.
+
+## Sidebar groups (menu trái)
+- Each group heading (Nghiệp vụ, Mua hàng, …) is a button with a chevron that folds its links (`aria-expanded`,
+  `aria-controls`, height animated with `grid-template-rows`, folded links are `inert`). The ungrouped top links never fold.
+- Folded groups are remembered per browser (`nt.navClosed`, a list of group labels). Navigating to a page inside a folded
+  group unfolds it, so the active link is never hidden. The icon-only rail has no headings, so every link shows there.
+
+## Print (phiếu in) — one paper for the whole system
+- Every printout is `<app-print-document>` (`shared/print/print-document.component.ts`) + the global
+  stylesheet `shared/print/print.scss`. A screen never styles paper itself: it wraps its screen UI in
+  `.screen-only` and puts the document next to it; the component is `.print-only`.
+- Layout, top to bottom: **letterhead** (`app-company-letterhead`: logo, tên công ty, then labelled lines
+  Địa chỉ / Mã số thuế / Điện thoại / Email / Website) with the **Số** and an optional stamp ("ĐÃ HUỶ") on
+  the right, a 1.5 pt rule · centred **title** (16 pt caps) with "Ngày … tháng … năm …" (or a `sub` line for
+  reports) · **information block** (`dl.pd-meta`, 2 columns, `.wide` spans both; or `dl.pd-form` fill-in
+  rows with dotted rules for phiếu thu / chi) · **table** (`table.pd-table`: STT first, shaded header,
+  numbers `.r` right + tabular, `tfoot` / `.sum` rows shaded) · **totals** (`.pd-totals`, last row `.grand`
+  with a double rule) + `.pd-words` "Bằng chữ" for money documents · **signatures** (`[signers]`, 2–5 columns,
+  "(Ký, họ tên)", maker's name printed under the space) · **footer** "In lúc … · người in" + company, and
+  "Trang x / y" from `@page`.
+- A4 portrait, margins 14/12/16/16 mm; wide tables use `[landscape]="true"` (named page `wide`). Several
+  documents in one print (phiếu giao hàng per đơn) use `[pageBreak]`.
+- Paper is always white with black ink — print tokens `--pr-*` are fixed, dark mode never leaks into paper.
+- Printouts today: phiếu nhập / xuất / chuyển / kiểm kê kho · phiếu thu · phiếu chi · đơn hàng bán · đơn nhập
+  hàng · phiếu soạn hàng · phiếu giao hàng · biên bản đối chiếu công nợ · báo cáo tuổi nợ. A new printout =
+  one `<app-print-document>`; nothing else to style.
+- The same letterhead is the live preview in Thiết lập › Thông tin công ty.
+
 ## Voucher screens (chứng từ, MISA-style) — reference: Đơn nhập hàng
 - The product is being remade to work like MISA. Business documents (đơn nhập,
   later đơn bán, phiếu kho, phiếu thu chi) use ONE screen for lập / xem / sửa:
@@ -227,6 +346,12 @@ mix in a second icon library or emoji.
 ## What pages MAY differ on
 - Table vs form vs report-rail layout inside the Workbench frame.
 - Per-column mono via `DataTableColumn.mono`.
+
+## Excel exports
+- File name = Vietnamese title with diacritics + export date and time: `Đơn hàng bán - 22-10-2026 14h35.xlsx`.
+  Always build it with `exportFileName(title)` (shared/excel.util.ts) — never hand-write a slug or `todayStamp`.
+  Reports are titled "Báo cáo <tên báo cáo>"; a ledger names its partner ("Sổ công nợ NCC0000001").
+- Import templates (`Mẫu nhập hàng hoá.xlsx`) are not exports and carry no timestamp.
 
 ## Exports
 

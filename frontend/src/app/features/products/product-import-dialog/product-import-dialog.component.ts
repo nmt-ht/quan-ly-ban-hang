@@ -60,9 +60,9 @@ export class ProductImportDialogComponent {
   async downloadTemplate(): Promise<void> {
     const lk = this.lookups();
     if (this.mode() === 'products') {
-      await downloadWorkbook('mau-nhap-hang-hoa.xlsx', [productTemplateSheet(lk)]);
+      await downloadWorkbook('Mẫu nhập hàng hoá.xlsx', [productTemplateSheet(lk)]);
     } else {
-      await downloadWorkbook('mau-nhap-dinh-muc.xlsx', [bomTemplateSheet(lk.products, this.data.bomLines())]);
+      await downloadWorkbook('Mẫu nhập định mức.xlsx', [bomTemplateSheet(lk.products, this.data.bomLines())]);
     }
   }
 

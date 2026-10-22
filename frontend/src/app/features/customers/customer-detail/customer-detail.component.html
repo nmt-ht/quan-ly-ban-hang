@@ -125,7 +125,7 @@
               </div>
               <div class="field">
                 <label for="ad-rec">Người nhận</label>
-                <input id="ad-rec" name="recipient" type="text" placeholder="Để trống thì lấy tên khách" [ngModel]="addrDraft().recipientName" (ngModelChange)="patchDraft({ recipientName: $event })" />
+                <input id="ad-rec" name="recipient" type="text" placeholder="Theo tên khách" [ngModel]="addrDraft().recipientName" (ngModelChange)="patchDraft({ recipientName: $event })" />
               </div>
               <div class="field">
                 <label for="ad-phone">Điện thoại</label>

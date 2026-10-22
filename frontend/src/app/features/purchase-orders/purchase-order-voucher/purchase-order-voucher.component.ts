@@ -5,11 +5,13 @@ import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MockDataService } from '../../../core/services/mock-data.service';
-import { Product, PurchaseOrderLine } from '../../../core/models/domain.models';
+import { Product, PurchaseOrder, PurchaseOrderLine } from '../../../core/models/domain.models';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { CopyButtonComponent } from '../../../shared/copy-button/copy-button.component';
 import { MoneyInputDirective } from '../../../shared/money-input.directive';
 import { ProductPickerComponent } from '../../../shared/product-picker/product-picker.component';
+import { PrintDocumentComponent } from '../../../shared/print/print-document.component';
+import { vndInWords } from '../../../shared/vnd-words';
 import { PaginationComponent } from '../../../shared/pagination/pagination.component';
 import { PURCHASE_ORDER_STATUS_LABEL, purchaseOrderStatusClass } from '../../../shared/status-labels';
 import { formatVnd } from '../../../shared/format.util';
@@ -53,7 +55,7 @@ const emptyLine = (): DraftLine => ({
   standalone: true,
   imports: [
     NgClass, FormsModule, RouterLink, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
-    ReceiveGoodsDialogComponent, PaginationComponent,
+    ReceiveGoodsDialogComponent, PaginationComponent, PrintDocumentComponent,
   ],
   templateUrl: './purchase-order-voucher.component.html',
   styleUrl: '../../../shared/voucher/voucher.scss',
@@ -97,6 +99,7 @@ export class PurchaseOrderVoucherComponent {
   readonly statusLabel = PURCHASE_ORDER_STATUS_LABEL;
   readonly statusClass = purchaseOrderStatusClass;
   readonly money = formatVnd;
+  readonly words = vndInWords;
   readonly day = formatDay;
 
   constructor() {
@@ -221,6 +224,28 @@ export class PurchaseOrderVoucherComponent {
   }
 
   // Grid pagination (MISA: "Số dòng/trang"); totals always cover every line.
+  // ---------- bản in (xem đơn đã lưu) ----------
+  printSupplier(o: PurchaseOrder) {
+    return this.data.suppliers().find((s) => s.id === o.supplierId);
+  }
+
+  readonly printTotals = computed(() => {
+    const o = this.order();
+    return o ? orderTotals(o.lines) : null;
+  });
+
+  readonly printRows = computed(() => {
+    const o = this.order();
+    if (!o) return [];
+    return o.lines.map((l, i) => {
+      const p = this.product(l.productId);
+      return {
+        i, code: p?.code ?? '', name: p?.name ?? l.productId, unit: l.unitName ?? p?.baseUnit ?? '', qty: l.quantity, price: l.unitPrice,
+        amount: lineAmount(l), vatRate: l.vatRate ?? 0, vat: lineVat(l),
+      };
+    });
+  });
+
   readonly page = signal(1);
   readonly pageSize = signal(20);
   readonly pageStart = computed(() => (this.page() - 1) * this.pageSize());

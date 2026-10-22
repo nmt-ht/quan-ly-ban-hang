@@ -2,6 +2,7 @@ import { Component, ElementRef, HostListener, computed, signal, viewChild } from
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ThemeMode, ThemeService } from '../../core/services/theme.service';
+import { DENSITIES, Density, DensityService } from '../../core/services/density.service';
 import { NavIconComponent, NavIconName } from '../nav-icon/nav-icon.component';
 
 // Topbar account menu: who is signed in, personal preferences (Giao diện), sign out.
@@ -24,6 +25,8 @@ export class AccountMenuComponent {
     { value: 'system', label: 'Theo hệ thống', icon: 'monitor' },
   ];
 
+  readonly densities = DENSITIES;
+
   readonly user = computed(() => this.auth.user());
   readonly name = computed(() => this.user()?.name || 'Người dùng');
   readonly initials = computed(() => {
@@ -35,6 +38,7 @@ export class AccountMenuComponent {
   constructor(
     private readonly auth: AuthService,
     readonly theme: ThemeService,
+    readonly density: DensityService,
     private readonly router: Router,
     private readonly host: ElementRef<HTMLElement>,
   ) {}
@@ -52,6 +56,10 @@ export class AccountMenuComponent {
     if (!this.open()) return;
     this.open.set(false);
     if (returnFocus) this.trigger().nativeElement.focus();
+  }
+
+  setDensity(mode: Density): void {
+    this.density.set(mode); // menu stays open so the effect is visible
   }
 
   setTheme(mode: ThemeMode): void {

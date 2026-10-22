@@ -113,36 +113,25 @@
   }
 
   <!-- Mẫu in phiếu thu / phiếu chi -->
-  <article class="print-only cvv-print">
-    <header class="cvv-print-head">
-      <div>
-        <strong>{{ company().name }}</strong>
-        @if (company().address) { <div>{{ company().address }}</div> }
-        @if (company().taxCode) { <div>MST: {{ company().taxCode }}</div> }
-      </div>
-      <div class="cvv-print-no">
-        <div>Số: <strong>{{ v.code }}</strong></div>
-        @if (v.isCancelled) { <div><strong>ĐÃ HUỶ</strong></div> }
-      </div>
-    </header>
-    <h2>{{ title().toUpperCase() }}</h2>
-    <p class="cvv-print-date">Ngày {{ v.date.slice(8, 10) }} tháng {{ v.date.slice(5, 7) }} năm {{ v.date.slice(0, 4) }}</p>
-    <dl class="cvv-print-body">
+  <app-print-document
+    [title]="title().toUpperCase()" [no]="v.code" [date]="v.date" [status]="v.isCancelled ? 'ĐÃ HUỶ' : undefined"
+    [signers]="[
+      { role: 'Giám đốc', hint: '(Ký, đóng dấu)' },
+      { role: 'Kế toán trưởng' },
+      { role: isThu() ? 'Người nộp tiền' : 'Người nhận tiền' },
+      { role: 'Người lập phiếu', name: creator(v.createdBy) },
+      { role: 'Thủ quỹ' }
+    ]"
+  >
+    <dl class="pd-form">
       <div><dt>{{ isThu() ? 'Họ và tên người nộp tiền:' : 'Họ và tên người nhận tiền:' }}</dt><dd>{{ partner()?.contact || '' }}</dd></div>
       <div><dt>Đơn vị:</dt><dd>{{ partner()?.name || '' }}</dd></div>
       <div><dt>Địa chỉ:</dt><dd>{{ partner()?.address || '' }}</dd></div>
       <div><dt>{{ isThu() ? 'Lý do nộp:' : 'Lý do chi:' }}</dt><dd>{{ v.description || v.category }}</dd></div>
       <div><dt>Số tiền:</dt><dd><strong>{{ money(v.amount) }}</strong> ({{ method() }})</dd></div>
-      <div><dt>Viết bằng chữ:</dt><dd><em>{{ words(v.amount) }}</em></dd></div>
+      <div><dt>Viết bằng chữ:</dt><dd>{{ words(v.amount) }}</dd></div>
     </dl>
-    <div class="cvv-sign">
-      <div><strong>Giám đốc</strong><span>(Ký, họ tên, đóng dấu)</span></div>
-      <div><strong>Kế toán trưởng</strong><span>(Ký, họ tên)</span></div>
-      <div><strong>{{ isThu() ? 'Người nộp tiền' : 'Người nhận tiền' }}</strong><span>(Ký, họ tên)</span></div>
-      <div><strong>Người lập phiếu</strong><span>(Ký, họ tên)</span><span class="cvv-signer">{{ creator(v.createdBy) }}</span></div>
-      <div><strong>Thủ quỹ</strong><span>(Ký, họ tên)</span></div>
-    </div>
-  </article>
+  </app-print-document>
 } @else {
   <div class="card empty-state">
     <h3>Không tìm thấy phiếu</h3>

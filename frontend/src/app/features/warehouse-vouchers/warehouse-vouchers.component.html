@@ -34,7 +34,7 @@
   <input
     type="text"
     class="filter-search"
-    placeholder="Tìm mã phiếu, lý do hoặc hàng hoá trong phiếu…"
+    placeholder="Tìm mã phiếu, lý do, hàng hoá…"
     aria-label="Tìm phiếu kho"
     [value]="search()"
     (input)="search.set($any($event.target).value)"
@@ -67,7 +67,7 @@
     <div><dt>Xuất kho</dt><dd class="num">{{ totals().xuat }} phiếu</dd></div>
     <div><dt>Chuyển kho</dt><dd class="num">{{ totals().chuyen }} phiếu</dd></div>
     <div><dt>Kiểm kê</dt><dd class="num">{{ totals().kiemKe }} phiếu</dd></div>
-    @if (totals().value) { <div><dt>Giá trị nhập</dt><dd class="num">{{ totals().value.toLocaleString('vi-VN') }} ₫</dd></div> }
+    @if (totals().value) { <div><dt>Giá trị nhập</dt><dd class="num">{{ totals().value.toLocaleString('vi-VN') }}₫</dd></div> }
   </dl>
 }
 

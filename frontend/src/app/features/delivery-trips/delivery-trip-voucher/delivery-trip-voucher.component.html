@@ -477,47 +477,50 @@
 
   <!-- Print: phiếu soạn hàng / phiếu giao hàng -->
   @if (printMode() === 'soan') {
-    <article class="print-only tv-print">
-      <h2>PHIẾU SOẠN HÀNG</h2>
-      <p class="tv-print-meta">Chuyến <strong>{{ t.code }}</strong> · ngày {{ day(t.date) }} · xe {{ t.plateNumber || '—' }} · tài xế {{ t.driverName || '—' }}</p>
+    <app-print-document title="PHIẾU SOẠN HÀNG" [no]="t.code" [date]="t.date" [signers]="[{ role: 'Thủ kho' }, { role: 'Tài xế' }]">
+      <dl pdMeta class="pd-meta">
+        <div><dt>Chuyến</dt><dd>{{ t.code }}</dd></div>
+        <div><dt>Số đơn</dt><dd>{{ t.orderIds.length }}</dd></div>
+        <div><dt>Xe</dt><dd>{{ t.plateNumber || '—' }}</dd></div>
+        <div><dt>Tài xế</dt><dd>{{ t.driverName || '—' }}</dd></div>
+      </dl>
       @for (g of picking(); track g.warehouseId) {
-        <h3>{{ warehouseName(g.warehouseId) }}</h3>
-        <table>
-          <thead><tr><th>Đã soạn</th><th>Mã hàng</th><th>Tên hàng</th><th>ĐVT</th><th class="r">Số lượng</th><th>Của đơn</th></tr></thead>
+        <h2 class="pd-h3">{{ warehouseName(g.warehouseId) }}</h2>
+        <table class="pd-table">
+          <thead><tr><th>Đã soạn</th><th>Mã hàng</th><th>Tên hàng</th><th>ĐVT</th><th class="nw">Số lượng</th><th>Của đơn</th></tr></thead>
           <tbody>
             @for (it of g.items; track it.productId) {
-              <tr><td class="box">☐</td><td>{{ it.code }}</td><td>{{ it.name }}</td><td>{{ it.unit }}</td><td class="r">{{ it.qty.toLocaleString('vi-VN') }}</td><td>{{ it.orders }}</td></tr>
+              <tr><td class="box">☐</td><td>{{ it.code }}</td><td>{{ it.name }}</td><td class="c">{{ it.unit }}</td><td class="r">{{ it.qty.toLocaleString('vi-VN') }}</td><td>{{ it.orders }}</td></tr>
             }
           </tbody>
         </table>
       }
-      <div class="tv-sign"><div><strong>Thủ kho</strong><span>(Ký, ghi rõ họ tên)</span></div><div><strong>Tài xế</strong><span>(Ký, ghi rõ họ tên)</span></div></div>
-    </article>
+    </app-print-document>
   }
   @if (printMode() === 'giao') {
-    <article class="print-only tv-print">
-      @for (r of rows(); track r.order.id; let last = $last) {
-        <section class="tv-print-order" [class.page-break]="!last">
-          <h2>PHIẾU GIAO HÀNG</h2>
-          <p class="tv-print-meta">Đơn <strong>{{ r.order.code }}</strong> · chuyến {{ t.code }} · ngày {{ day(t.date) }} · xe {{ t.plateNumber || '—' }}</p>
-          <dl class="tv-print-party">
-            <div><dt>Khách hàng</dt><dd>{{ r.customerName }}</dd></div>
-            <div><dt>Người nhận</dt><dd>{{ r.recipient }}{{ r.phone ? ' — ' + r.phone : '' }}</dd></div>
-            <div><dt>Địa chỉ</dt><dd>{{ r.address || '—' }}</dd></div>
-          </dl>
-          <table>
-            <thead><tr><th>#</th><th>Mã hàng</th><th>Tên hàng</th><th>ĐVT</th><th class="r">Số lượng giao</th><th class="r">Khách nhận</th></tr></thead>
-            <tbody>
-              @for (l of linesOf(r.order); track l.key; let i = $index) {
-                <tr><td>{{ i + 1 }}</td><td>{{ l.code }}</td><td>{{ l.name }}</td><td>{{ l.unit }}</td><td class="r">{{ l.qty.toLocaleString('vi-VN') }}</td><td></td></tr>
-              }
-            </tbody>
-          </table>
-          <p>Giá trị đơn trên chuyến: <strong>{{ money(r.value) }}</strong></p>
-          <div class="tv-sign"><div><strong>Người giao</strong><span>(Ký, ghi rõ họ tên)</span></div><div><strong>Khách ký nhận</strong><span>(Ký, ghi rõ họ tên)</span></div></div>
-        </section>
-      }
-    </article>
+    @for (r of rows(); track r.order.id; let last = $last) {
+      <app-print-document
+        title="PHIẾU GIAO HÀNG" [no]="r.order.code" [date]="t.date" [pageBreak]="!last"
+        [signers]="[{ role: 'Người giao', name: t.driverName || undefined }, { role: 'Khách ký nhận' }]"
+      >
+        <dl pdMeta class="pd-meta">
+          <div><dt>Chuyến</dt><dd>{{ t.code }}</dd></div>
+          <div><dt>Xe</dt><dd>{{ t.plateNumber || '—' }}</dd></div>
+          <div class="wide"><dt>Khách hàng</dt><dd>{{ r.customerName }}</dd></div>
+          <div class="wide"><dt>Người nhận</dt><dd>{{ r.recipient }}{{ r.phone ? ' — ' + r.phone : '' }}</dd></div>
+          <div class="wide"><dt>Địa chỉ</dt><dd>{{ r.address || '—' }}</dd></div>
+        </dl>
+        <table class="pd-table">
+          <thead><tr><th class="stt">STT</th><th>Mã hàng</th><th>Tên hàng</th><th>ĐVT</th><th class="nw">Số lượng giao</th><th class="nw">Khách nhận</th></tr></thead>
+          <tbody>
+            @for (l of linesOf(r.order); track l.key; let i = $index) {
+              <tr><td class="stt">{{ i + 1 }}</td><td>{{ l.code }}</td><td>{{ l.name }}</td><td class="c">{{ l.unit }}</td><td class="r">{{ l.qty.toLocaleString('vi-VN') }}</td><td></td></tr>
+            }
+          </tbody>
+        </table>
+        <div class="pd-totals"><div class="grand"><span>Giá trị đơn trên chuyến</span><span>{{ money(r.value) }}</span></div></div>
+      </app-print-document>
+    }
   }
 } @else {
   <div class="card empty-state">

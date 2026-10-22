@@ -13,7 +13,7 @@ import { foldVi, formatVnd } from '../../shared/format.util';
 import { PERIOD_PRESETS, formatDay, inRange, rangeLabel } from '../../shared/period';
 import { DELIVERY_TRIP_STATUS_LABEL, deliveryTripStatusClass } from '../../shared/status-labels';
 import { tagClass } from '../../shared/tag-class';
-import { downloadWorkbook, todayStamp } from '../../shared/excel.util';
+import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { costTotal } from './delivery-trip.rules';
 import { TripHeaderDialogComponent } from './trip-header-dialog/trip-header-dialog.component';
 
@@ -172,7 +172,7 @@ export class DeliveryTripsComponent {
   async exportExcel(): Promise<void> {
     this.exporting.set(true);
     try {
-      await downloadWorkbook(`chuyen-giao-hang-${todayStamp()}.xlsx`, [{
+      await downloadWorkbook(exportFileName('Chuyến giao hàng'), [{
         name: 'Chuyến giao hàng',
         columns: [
           { header: 'Mã chuyến', width: 13 },

@@ -13,7 +13,7 @@ import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
 import { amountTone, foldVi, formatVnd, formatVndSigned } from '../../shared/format.util';
 import { PERIOD_PRESETS, formatDay, inRange, rangeLabel } from '../../shared/period';
-import { downloadWorkbook, todayStamp } from '../../shared/excel.util';
+import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { ACCOUNT_TYPE_LABEL } from './cash-voucher.rules';
 import { CashVoucherService } from './cash-voucher.service';
 
@@ -228,7 +228,7 @@ export class CashVouchersComponent {
   async exportExcel(): Promise<void> {
     this.exporting.set(true);
     try {
-      await downloadWorkbook(`phieu-thu-chi-${todayStamp()}.xlsx`, [{
+      await downloadWorkbook(exportFileName('Phiếu thu chi'), [{
         name: 'Phiếu thu chi',
         columns: [
           { header: 'Số phiếu', width: 13 }, { header: 'Ngày', width: 12 }, { header: 'Loại phiếu', width: 11 }, { header: 'Loại thu chi', width: 22 },

@@ -31,13 +31,13 @@
       [value]="search()"
       (input)="search.set($any($event.target).value)"
     />
-    <button type="button" class="filter-toggle" [attr.aria-pressed]="owingOnly()" (click)="owingOnly.set(!owingOnly())">Chỉ đối tác còn nợ</button>
-    <button type="button" class="filter-toggle" [attr.aria-pressed]="overdueOnly()" (click)="overdueOnly.set(!overdueOnly())">Chỉ quá hạn</button>
     <select aria-label="Sắp xếp" [value]="sort()" (change)="sort.set($any($event.target).value)">
       @for (s of sorts; track s.value) {
         <option [value]="s.value">{{ s.label }}</option>
       }
     </select>
+    <button type="button" class="filter-toggle" [attr.aria-pressed]="owingOnly()" (click)="owingOnly.set(!owingOnly())">Chỉ đối tác còn nợ</button>
+    <button type="button" class="filter-toggle" [attr.aria-pressed]="overdueOnly()" (click)="overdueOnly.set(!overdueOnly())">Chỉ quá hạn</button>
   </div>
 
   @if (rows().length) {

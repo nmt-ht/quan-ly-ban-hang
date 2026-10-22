@@ -11,7 +11,7 @@ import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
 import { foldVi, formatVnd } from '../../shared/format.util';
 import { PRODUCT_TYPE_CLASS, PRODUCT_TYPE_LABEL } from '../../shared/status-labels';
-import { downloadWorkbook, todayStamp } from '../../shared/excel.util';
+import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { lineRemaining } from '../sales-orders/sales-order.rules';
 import { lineRemaining as poLineRemaining } from '../purchase-orders/purchase-order.rules';
 
@@ -234,7 +234,7 @@ export class InventoryComponent {
     this.exporting.set(true);
     const whs = this.warehouses();
     try {
-      await downloadWorkbook(`ton-kho-${todayStamp()}.xlsx`, [{
+      await downloadWorkbook(exportFileName('Tồn kho'), [{
         name: 'Tồn kho',
         columns: [
           { header: 'Mã hàng', width: 13 }, { header: 'Tên hàng', width: 34 }, { header: 'Tính chất', width: 12 }, { header: 'ĐVT', width: 8 },

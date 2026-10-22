@@ -90,6 +90,23 @@
 }
 
 /* ---------- colour · dark (same hues, lightness + chroma move) ---------- */
+/* ---------- density · personal preference (DensityService → body[data-density]) ---------- */
+body[data-density='comfortable'] {
+  --control-h: 2.5rem; /* 40 */
+  --row-h: 2.5rem;
+  --text-sm: 0.875rem; /* 14 */
+  --text-xs: 0.8125rem; /* 13 */
+}
+
+body[data-density='spacious'] {
+  --control-h: 2.75rem; /* 44 */
+  --row-h: 2.875rem;
+  --text-sm: 0.9375rem; /* 15 */
+  --text-base: 1rem;
+  --text-xs: 0.875rem;
+  --text-2xs: 0.8125rem;
+}
+
 body.dark-theme {
   color-scheme: dark;
   --color-paper:        oklch(16.5% 0.008 150);

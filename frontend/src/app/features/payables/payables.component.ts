@@ -9,7 +9,7 @@ import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
 import { foldVi, formatVnd } from '../../shared/format.util';
 import { formatDay } from '../../shared/period';
-import { downloadWorkbook, todayStamp } from '../../shared/excel.util';
+import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { DebtLedgerComponent } from '../debts/debt-ledger/debt-ledger.component';
 import { AGING_COLUMNS } from '../debts/aging';
 
@@ -121,7 +121,7 @@ export class PayablesComponent {
   async exportExcel(): Promise<void> {
     this.exporting.set(true);
     try {
-      await downloadWorkbook(`cong-no-phai-tra-${todayStamp()}.xlsx`, [
+      await downloadWorkbook(exportFileName('Công nợ phải trả'), [
         {
           name: 'Công nợ phải trả',
           columns: [

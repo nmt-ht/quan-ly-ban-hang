@@ -13,7 +13,7 @@ import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
 import { foldVi, formatVnd } from '../../shared/format.util';
 import { formatDay } from '../../shared/period';
 import { CUSTOMER_TYPE_SHORT, customerTypeClass } from '../../shared/status-labels';
-import { downloadWorkbook, todayStamp } from '../../shared/excel.util';
+import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { DebtLedgerComponent } from '../debts/debt-ledger/debt-ledger.component';
 import { AGING_COLUMNS } from '../debts/aging';
 import { CUSTOMER_TYPES } from '../customers/customer.rules';
@@ -152,7 +152,7 @@ export class ReceivablesComponent {
   async exportExcel(): Promise<void> {
     this.exporting.set(true);
     try {
-      await downloadWorkbook(`cong-no-phai-thu-${todayStamp()}.xlsx`, [
+      await downloadWorkbook(exportFileName('Công nợ phải thu'), [
         {
           name: 'Công nợ phải thu',
           columns: [

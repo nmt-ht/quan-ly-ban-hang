@@ -1,0 +1,53 @@
+<dialog #dialog class="cp" aria-label="Tìm hoặc tạo nhanh" (close)="onClose()" (click)="onBackdrop($event)">
+  <div class="cp-box">
+    <div class="cp-search">
+      <app-nav-icon name="search" />
+      <input
+        #input
+        type="text"
+        role="combobox"
+        aria-controls="cp-list"
+        aria-expanded="true"
+        aria-autocomplete="list"
+        autocomplete="off"
+        spellcheck="false"
+        [attr.aria-activedescendant]="results().length ? 'cp-opt-' + active() : null"
+        placeholder="Tìm đơn hàng, khách hàng, hàng hoá, phiếu… hoặc tạo mới"
+        [value]="query()"
+        (input)="query.set($any($event.target).value)"
+        (keydown)="onInputKey($event)"
+      />
+      <kbd class="cp-kbd">Esc</kbd>
+    </div>
+
+    <div #list id="cp-list" class="cp-list" role="listbox" aria-label="Kết quả">
+      @for (g of groups(); track g.name) {
+        <div class="cp-group" role="presentation">{{ g.name }}</div>
+        @for (r of g.items; track r.item.id) {
+          <button
+            type="button"
+            role="option"
+            tabindex="-1"
+            class="cp-opt"
+            [id]="'cp-opt-' + r.index"
+            [class.is-active]="r.index === active()"
+            [attr.aria-selected]="r.index === active()"
+            (mousemove)="active.set(r.index)"
+            (click)="go(r.item)"
+          >
+            <app-nav-icon [name]="r.item.icon" />
+            <span class="cp-main">
+              @if (r.item.code) { <span class="cp-code">{{ r.item.code }}</span> }
+              <span class="cp-label">{{ r.item.label }}</span>
+            </span>
+            @if (r.item.hint) { <span class="cp-hint">{{ r.item.hint }}</span> }
+          </button>
+        }
+      } @empty {
+        <p class="cp-empty" role="status">Không thấy “{{ query() }}”. Thử mã đơn, tên khách, số điện thoại hoặc biển số xe.</p>
+      }
+    </div>
+
+    <p class="cp-foot" aria-hidden="true"><kbd class="cp-kbd">↑</kbd><kbd class="cp-kbd">↓</kbd> chọn <kbd class="cp-kbd">Enter</kbd> mở <kbd class="cp-kbd">Ctrl K</kbd> bật / tắt</p>
+  </div>
+</dialog>

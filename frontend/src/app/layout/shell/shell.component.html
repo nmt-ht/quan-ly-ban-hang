@@ -1,25 +1,39 @@
 <div class="shell" [class.collapsed]="collapsed()" [class.menu-open]="menuOpen()">
   <aside class="sidebar" id="app-sidebar">
-    <div class="brand">
+    <a class="brand" routerLink="/tong-quan" aria-label="Ninh Trang — về trang Tổng quan" title="Về trang Tổng quan" (click)="closeMenu()">
       <span class="brand-mark" aria-hidden="true">NT</span>
       <span class="brand-name" *ngIf="!collapsed()">Ninh Trang</span>
-    </div>
+    </a>
 
     <nav class="nav" aria-label="Điều hướng chính">
-      <ng-container *ngFor="let group of navGroups">
-        <div class="nav-group-label" *ngIf="group.label && !collapsed()">{{ group.label }}</div>
-        <a
-          *ngFor="let link of group.links"
-          class="nav-link"
-          [routerLink]="link.path"
-          routerLinkActive="active"
-          ariaCurrentWhenActive="page"
-          [title]="collapsed() ? link.label : ''"
-          (click)="closeMenu()"
+      <ng-container *ngFor="let group of navGroups; let i = index">
+        <button
+          *ngIf="group.label && !collapsed()"
+          type="button"
+          class="nav-group-toggle"
+          [attr.aria-expanded]="isOpen(group)"
+          [attr.aria-controls]="'nav-group-' + i"
+          (click)="toggleGroup(group)"
         >
-          <app-nav-icon class="nav-link-icon" [name]="link.icon" />
-          <span class="nav-link-label">{{ link.label }}</span>
-        </a>
+          <app-nav-icon class="nav-group-chevron" name="chevron-down" />
+          <span class="nav-group-name">{{ group.label }}</span>
+        </button>
+        <div class="nav-items" [id]="'nav-group-' + i" [class.is-closed]="!isOpen(group)" [attr.inert]="isOpen(group) ? null : ''">
+          <div class="nav-items-inner">
+            <a
+              *ngFor="let link of group.links"
+              class="nav-link"
+              [routerLink]="link.path"
+              routerLinkActive="active"
+              ariaCurrentWhenActive="page"
+              [title]="collapsed() ? link.label : ''"
+              (click)="closeMenu()"
+            >
+              <app-nav-icon class="nav-link-icon" [name]="link.icon" />
+              <span class="nav-link-label">{{ link.label }}</span>
+            </a>
+          </div>
+        </div>
       </ng-container>
     </nav>
 
@@ -48,6 +62,17 @@
       >
         Menu
       </button>
+      <button
+        class="search-btn"
+        type="button"
+        aria-label="Tìm hoặc tạo nhanh"
+        aria-keyshortcuts="Control+K"
+        (click)="palette.show()"
+      >
+        <app-nav-icon name="search" />
+        <span class="search-text">Tìm hoặc tạo nhanh…</span>
+        <kbd class="search-kbd" aria-hidden="true">Ctrl K</kbd>
+      </button>
       <div class="topbar-spacer"></div>
       <app-account-menu />
     </header>
@@ -57,3 +82,5 @@
     </main>
   </div>
 </div>
+
+<app-command-palette />

@@ -8,7 +8,7 @@ export interface NumberRange {
   max: number | null;
 }
 
-const vnd = (n: number) => n.toLocaleString('vi-VN') + ' ₫';
+const vnd = (n: number) => n.toLocaleString('vi-VN') + '₫';
 
 // "Giá trị đơn" (as in production): Từ → Đến in a popover, applied as you type.
 @Component({

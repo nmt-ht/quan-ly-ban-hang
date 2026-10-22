@@ -5,7 +5,7 @@ import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { PeriodFilterComponent, PeriodValue } from '../../../shared/period-filter/period-filter.component';
 import { amountTone, foldVi, formatQty, formatVnd } from '../../../shared/format.util';
 import { PERIOD_PRESETS, formatDay, inRange, isoDay, presetRange, rangeLabel } from '../../../shared/period';
-import { downloadWorkbook, todayStamp } from '../../../shared/excel.util';
+import { downloadWorkbook, exportFileName } from '../../../shared/excel.util';
 import { CUSTOMER_TYPE_LABEL } from '../../sales-orders/sales-order.rules';
 import {
   RevenueLine, RevenueSums, TIME_UNIT_LABEL, TimeUnit, autoUnit, bucketLabel, bucketOf, bucketsBetween, previousRange,
@@ -229,7 +229,7 @@ export class RevenueReportComponent {
         return [formatDay(l.date), l.orderCode, c?.code ?? '', c?.name ?? '', p?.code ?? '', p?.name ?? '', p?.baseUnit ?? '', l.baseQty,
           l.gross, l.discount, l.net, l.vat, l.total, this.users().get(l.salesRep) ?? l.salesRep ?? ''];
       });
-      await downloadWorkbook(`doanh-thu-${todayStamp()}.xlsx`, [
+      await downloadWorkbook(exportFileName('Báo cáo Doanh thu'), [
         {
           name: 'Tổng hợp',
           columns: [

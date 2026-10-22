@@ -6,11 +6,13 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MockDataService } from '../../../core/services/mock-data.service';
 import { DebtService } from '../../../core/services/debt.service';
-import { Product, SalesOrderLine } from '../../../core/models/domain.models';
+import { Product, SalesOrder, SalesOrderLine } from '../../../core/models/domain.models';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { CopyButtonComponent } from '../../../shared/copy-button/copy-button.component';
 import { MoneyInputDirective } from '../../../shared/money-input.directive';
 import { ProductPickerComponent } from '../../../shared/product-picker/product-picker.component';
+import { PrintDocumentComponent } from '../../../shared/print/print-document.component';
+import { vndInWords } from '../../../shared/vnd-words';
 import { PaginationComponent } from '../../../shared/pagination/pagination.component';
 import { FilterMultiSelectComponent, FilterOption } from '../../../shared/filter-multi-select/filter-multi-select.component';
 import {
@@ -68,7 +70,7 @@ const emptyLine = (): DraftLine => ({
   standalone: true,
   imports: [
     NgClass, FormsModule, RouterLink, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
-    PaginationComponent, FilterMultiSelectComponent, DeliverDialogComponent,
+    PaginationComponent, FilterMultiSelectComponent, DeliverDialogComponent, PrintDocumentComponent,
   ],
   templateUrl: './sales-order-voucher.component.html',
   styleUrls: ['../../../shared/voucher/voucher.scss', './sales-order-voucher.component.scss'],
@@ -128,6 +130,7 @@ export class SalesOrderVoucherComponent {
   readonly typeLabel = CUSTOMER_TYPE_LABEL;
   readonly priceLabel = CUSTOMER_PRICE_LABEL;
   readonly money = formatVnd;
+  readonly words = vndInWords;
   readonly day = formatDay;
 
   constructor() {
@@ -259,6 +262,30 @@ export class SalesOrderVoucherComponent {
       note: d.note.trim() || undefined,
     };
   }
+
+  // ---------- bản in (xem đơn đã lưu) ----------
+  printCustomer(o: SalesOrder) {
+    return this.data.customers().find((c) => c.id === o.customerId);
+  }
+
+  readonly printTotals = computed(() => {
+    const o = this.order();
+    return o ? orderTotals(o.lines, o.discountAmount) : null;
+  });
+
+  readonly printRows = computed(() => {
+    const o = this.order();
+    if (!o) return [];
+    const t = orderTotals(o.lines, o.discountAmount);
+    return o.lines.map((l, i) => {
+      const p = this.product(l.productId);
+      const size = l.length && l.width ? ` (${l.length}×${l.width} cm)` : '';
+      return {
+        i, code: p?.code ?? '', name: (p?.name ?? l.productId) + size, unit: l.unit, qty: l.quantity, price: l.unitPrice,
+        discount: t.lines[i].lineDiscount, vatRate: l.vatRate ?? 0, amount: t.lines[i].gross - t.lines[i].lineDiscount,
+      };
+    });
+  });
 
   readonly page = signal(1);
   readonly pageSize = signal(20);

@@ -20,6 +20,7 @@ import {
 } from '../delivery-trip.rules';
 import { DeliveryTripService } from '../delivery-trip.service';
 import { TripHeaderDialogComponent } from '../trip-header-dialog/trip-header-dialog.component';
+import { PrintDocumentComponent } from '../../../shared/print/print-document.component';
 
 type Tab = 'don' | 'hang' | 'phieu' | 'chi-phi';
 type PrintMode = 'soan' | 'giao' | null;
@@ -51,7 +52,7 @@ interface ConfirmRow {
 @Component({
   selector: 'app-delivery-trip-voucher',
   standalone: true,
-  imports: [NgClass, FormsModule, RouterLink, NavIconComponent, CopyButtonComponent, MoneyInputDirective, TripHeaderDialogComponent],
+  imports: [NgClass, FormsModule, RouterLink, NavIconComponent, CopyButtonComponent, MoneyInputDirective, TripHeaderDialogComponent, PrintDocumentComponent],
   templateUrl: './delivery-trip-voucher.component.html',
   styleUrls: [
     '../../../shared/voucher/voucher.scss',

@@ -4,6 +4,7 @@ import { MockDataService } from '../../core/services/mock-data.service';
 import { DebtService } from '../../core/services/debt.service';
 import { CostService } from '../../core/services/cost.service';
 import { SalesOrder } from '../../core/models/domain.models';
+import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { PeriodFilterComponent, PeriodValue } from '../../shared/period-filter/period-filter.component';
 import { amountTone, formatVnd, formatVndSigned } from '../../shared/format.util';
 import { DateRange, PERIOD_PRESETS, formatDay, inRange, isoDay, presetRange, rangeLabel } from '../../shared/period';
@@ -14,6 +15,19 @@ const INACTIVE_DAYS = 60; // khách ngừng mua: không mua trong 60 ngày gần
 
 const ms = (d: string) => new Date(d.slice(0, 10)).getTime();
 const toIso = (t: number) => new Date(t).toISOString().slice(0, 10);
+
+type IssueArea = 'sell' | 'stock' | 'profit' | 'debt' | 'cash';
+
+interface Issue {
+  key: string;
+  area: IssueArea;
+  level: 'bad' | 'warn'; // bad = đã gây thiệt hại / quá hạn; warn = sắp xảy ra hoặc nên xem
+  title: string;
+  detail: string;
+  to: string;
+  query?: Record<string, string | number | boolean>;
+  cta: string;
+}
 
 interface Sale {
   order: SalesOrder;
@@ -27,7 +41,7 @@ interface Sale {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [RouterLink, PeriodFilterComponent],
+  imports: [RouterLink, PeriodFilterComponent, NavIconComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
@@ -169,6 +183,47 @@ export class DashboardComponent {
     const stopped = [...lastBuy].filter(([id, d]) => d < cutoff && this.data.customers().find((c) => c.id === id)?.isActive).length;
     return { belowCostLines, belowCostLoss, discount, discountPct: revenue ? Math.round((discount / (revenue + discount)) * 1000) / 10 : 0, stopped };
   });
+
+  // ---------- vấn đề cần xử lý ----------
+  // Ngưỡng đặt ở đây để cả trang dùng chung một định nghĩa "có vấn đề" (xem design.md › Tổng quan).
+  readonly issues = computed<Issue[]>(() => {
+    const a = this.attention();
+    const l = this.leaks();
+    const k = this.kpis();
+    const p = this.prevKpis();
+    const c = this.cash();
+    const m = formatVnd;
+    const out: Issue[] = [];
+
+    if (a.late > 0) out.push({ key: 'late', area: 'sell', level: 'bad', title: `${a.late} đơn trễ hẹn giao`, detail: 'Đã quá ngày khách cần hàng mà vẫn còn dòng chưa giao.', to: '/don-hang', query: { late: 1 }, cta: 'Xem đơn' });
+    if (a.receivableOverdue > 0) out.push({ key: 'ar', area: 'debt', level: 'bad', title: `Khách nợ quá hạn ${m(a.receivableOverdue)}`, detail: `${a.overdueCustomers} khách đã quá hạn thanh toán — cần nhắc nợ.`, to: '/cong-no/tuoi-no', query: { loai: 'phai-thu' }, cta: 'Xem tuổi nợ' });
+    if (this.debt.payableOverdue() > 0) out.push({ key: 'ap', area: 'debt', level: 'bad', title: `Nợ nhà cung cấp quá hạn ${m(this.debt.payableOverdue())}`, detail: 'Trả chậm có thể bị siết hạn mức hoặc giao hàng.', to: '/cong-no/tuoi-no', cta: 'Xem tuổi nợ' });
+    else if (a.payableDue > 0) out.push({ key: 'ap', area: 'debt', level: 'warn', title: `Phải trả NCC đến hạn trong 7 ngày: ${m(a.payableDue)}`, detail: `${a.payableDueCount} khoản — chuẩn bị tiền để trả đúng hạn.`, to: '/cong-no/tuoi-no', cta: 'Xem tuổi nợ' });
+    if (l.belowCostLines > 0) out.push({ key: 'below', area: 'profit', level: 'bad', title: `Bán dưới giá vốn: ${l.belowCostLines} dòng`, detail: `Lỗ ${m(l.belowCostLoss)} trong kỳ — kiểm tra giá bán hoặc chiết khấu.`, to: '/bao-cao', query: { name: 'ban-duoi-gia-von' }, cta: 'Xem báo cáo' });
+    if (k.orders > 0 && k.profit < 0) out.push({ key: 'loss', area: 'profit', level: 'bad', title: `Lãi gộp âm ${m(k.profit)}`, detail: 'Giá vốn ước tính cao hơn doanh thu trong kỳ.', to: '/bao-cao', query: { name: 'loi-nhuan' }, cta: 'Xem lãi gộp' });
+    else if (p.revenue > 0 && k.revenue > 0 && k.margin < p.margin - 5) out.push({ key: 'margin', area: 'profit', level: 'warn', title: 'Tỷ suất lãi gộp giảm', detail: `${this.percent(k.margin)} so với ${this.percent(p.margin)} kỳ trước.`, to: '/bao-cao', query: { name: 'loi-nhuan' }, cta: 'Xem lãi gộp' });
+    if (l.discountPct >= 10) out.push({ key: 'disc', area: 'profit', level: 'warn', title: `Chiết khấu ${l.discountPct}% giá trị hàng`, detail: `${m(l.discount)} đã cấp trong kỳ.`, to: '/bao-cao', query: { name: 'chiet-khau' }, cta: 'Xem chiết khấu' });
+    if (p.revenue > 0 && k.revenue < p.revenue * 0.8) out.push({ key: 'rev', area: 'sell', level: 'warn', title: `Doanh thu giảm ${Math.round((1 - k.revenue / p.revenue) * 100)}% so với kỳ trước`, detail: `${m(k.revenue)} so với ${m(p.revenue)}.`, to: '/bao-cao', query: { name: 'ban-hang' }, cta: 'Xem doanh thu' });
+    if (l.stopped > 0) out.push({ key: 'lost', area: 'sell', level: 'warn', title: `${l.stopped} khách ngừng mua`, detail: `Không mua trong ${INACTIVE_DAYS} ngày gần nhất — nên chăm sóc lại.`, to: '/bao-cao', query: { name: 'khach-ngung-mua', ngay: INACTIVE_DAYS }, cta: 'Xem khách' });
+    if (a.belowMin > 0) out.push({ key: 'min', area: 'stock', level: 'warn', title: `${a.belowMin} mặt hàng dưới tồn tối thiểu`, detail: 'Cần nhập hoặc sản xuất thêm để không đứt hàng.', to: '/kho/ton-kho', query: { belowMin: true }, cta: 'Xem tồn kho' });
+    const negative = c.accounts.filter((x) => x.balance < 0);
+    if (negative.length) out.push({ key: 'neg', area: 'cash', level: 'bad', title: `Quỹ âm: ${negative.map((x) => x.name).join(', ')}`, detail: 'Số dư tài khoản nhỏ hơn 0 — thường do thiếu phiếu thu hoặc nhập sai.', to: '/thu-chi', cta: 'Xem thu chi' });
+    else if (c.net < 0) out.push({ key: 'net', area: 'cash', level: 'warn', title: `Chi vượt thu ${m(-c.net)} trong kỳ`, detail: `Thu ${m(c.thu)} · chi ${m(c.chi)}.`, to: '/thu-chi', cta: 'Xem thu chi' });
+
+    return [...out.filter((i) => i.level === 'bad'), ...out.filter((i) => i.level === 'warn')];
+  });
+
+  readonly badCount = computed(() => this.issues().filter((i) => i.level === 'bad').length);
+  readonly warnCount = computed(() => this.issues().filter((i) => i.level === 'warn').length);
+
+  /** Worst level among the issues of one area; areas with none are "ok". */
+  areaLevel(area: IssueArea): 'bad' | 'warn' | 'ok' {
+    const list = this.issues().filter((i) => i.area === area);
+    return list.some((i) => i.level === 'bad') ? 'bad' : list.length ? 'warn' : 'ok';
+  }
+
+  readonly areaName: Record<IssueArea, string> = { sell: 'Bán hàng', stock: 'Kho', profit: 'Lợi nhuận', debt: 'Công nợ', cash: 'Dòng tiền' };
+  readonly levelName = { bad: 'Có vấn đề', warn: 'Cần theo dõi', ok: 'Ổn' };
 
   // ---------- biểu đồ & bán chạy ----------
   readonly byDay = computed(() => {
