@@ -299,6 +299,8 @@ mix in a second icon library or emoji.
   toán; hand-typed prices carry a small warning dot and are not re-priced when
   the customer changes. Status actions in the bar: Lập lệnh sản xuất →
   Giao hàng (dialog, like Nhận hàng) → Lập phiếu thu / Kết thúc đơn.
+- MISA parity on Đơn hàng bán (and the pattern for later vouchers): a **Thu tiền bar** above the header card (segmented Chưa thu tiền / Thu tiền ngay + account select; view mode shows it as a pill); a **Tham chiếu** row at the end of the header grid linking the related chuyến / phiếu xuất / lệnh SX / phiếu thu (every related document links back); a **Giá vốn tab** next to the goods tab (giá vốn, doanh thu thuần, lãi gộp, tỷ suất, always labelled "ước tính"); **‹ n/N ›** in the left of the sticky action bar to step to the previous / next chứng từ.
+- Never show a customer *type* (Lẻ / Sỉ / Dropship) next to a *tag* (Khách quen…) without a label: the type lives in "Loại khách · bảng giá", the tag in "Thẻ đánh dấu", and the chip beside the name says only the payment term.
 - Product choice uses `app-product-picker` (search, VT/SP/DV tag, code, stock).
 
 ## Detail pages

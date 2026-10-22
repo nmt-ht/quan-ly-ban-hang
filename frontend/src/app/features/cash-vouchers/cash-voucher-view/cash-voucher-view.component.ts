@@ -49,6 +49,11 @@ export class CashVoucherViewComponent {
     });
   }
 
+  /** Đơn hàng bán mà dòng đối trừ trỏ tới (mã DH…), để bấm mở được. */
+  orderOf(ref: string) {
+    return this.data.salesOrders().find((o) => o.code === ref);
+  }
+
   readonly isThu = computed(() => this.voucher()?.kind === 'THU');
   readonly title = computed(() => (this.isThu() ? 'Phiếu thu' : 'Phiếu chi'));
   readonly account = computed(() => this.data.cashAccounts().find((a) => a.id === this.voucher()?.accountId));

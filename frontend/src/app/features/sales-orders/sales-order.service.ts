@@ -6,6 +6,7 @@ import {
 } from '../../core/models/domain.models';
 import { isoDay } from '../../shared/period';
 import { WarehouseVoucherService } from '../warehouse-vouchers/warehouse-voucher.service';
+import { CashVoucherService } from '../cash-vouchers/cash-voucher.service';
 import { nextCode, round4 } from '../purchase-orders/purchase-order.rules';
 import {
   canCancel, canClose, canDeliver, canEdit, deriveStatus, lineRatio, lineRemaining, linesNeedingLsx, movesStock,
@@ -24,6 +25,7 @@ export interface SalesOrderDraft {
   neededByDate?: string;
   salesRep: string;
   discountAmount: number;
+  payNowAccountId?: string;
   lines: SalesOrderLine[];
 }
 
@@ -43,6 +45,7 @@ export class SalesOrderService {
     private readonly data: MockDataService,
     private readonly auth: AuthService,
     private readonly stock: WarehouseVoucherService,
+    private readonly cash: CashVoucherService,
   ) {}
 
   get userEmail(): string {
@@ -78,8 +81,35 @@ export class SalesOrderService {
     };
     next.status = deriveStatus(next, this.lsxOf(o.id), this.isTp);
     const list = this.data.salesOrders();
+    const before = list.find((x) => x.id === o.id)?.receivedValue ?? 0;
     this.data.salesOrders.set(list.some((x) => x.id === o.id) ? list.map((x) => (x.id === o.id ? next : x)) : [next, ...list]);
+    this.syncPayNow(next, next.receivedValue - before);
     return next;
+  }
+
+  /**
+   * "Thu tiền ngay": khách nhận thêm hàng → lập phiếu thu đúng phần vừa nhận, đối trừ thẳng vào đơn này.
+   * Bỏ chốt giao (số nhận giảm) → huỷ các phiếu thu tự lập gần nhất cho khớp lại công nợ.
+   */
+  private syncPayNow(o: SalesOrder, delta: number): void {
+    if (!o.payNowAccountId || o.status === 'HUY' || !delta) return;
+    if (!this.data.cashAccounts().some((a) => a.id === o.payNowAccountId)) return;
+    const marker = `Thu tiền ngay đơn ${o.code}`;
+    if (delta > 0) {
+      this.cash.create({
+        kind: 'THU', date: o.deliveredDate ?? isoDay(new Date()), category: 'Thu tiền khách hàng', partnerType: 'KHACH_HANG',
+        partnerId: o.customerId, accountId: o.payNowAccountId, amount: delta, description: marker,
+        allocations: [{ ref: o.code, amount: delta }], settledAmount: delta,
+      });
+      return;
+    }
+    let left = -delta;
+    const auto = this.data.cashVouchers().filter((v) => !v.isCancelled && v.description === marker).sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
+    for (const v of auto) {
+      if (left <= 0 || v.amount > left) continue;
+      this.cash.cancel(v.id, 'Khách bỏ nhận hàng — huỷ phiếu thu tự lập');
+      left -= v.amount;
+    }
   }
 
   create(d: SalesOrderDraft): SalesOrder {

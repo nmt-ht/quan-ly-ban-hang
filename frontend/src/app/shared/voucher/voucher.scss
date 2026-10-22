@@ -144,6 +144,7 @@
 }
 
 .voucher-grid-scroll {
+  position: relative; // keeps .visually-hidden cells inside the scroller
   overflow-x: auto;
 }
 

@@ -264,6 +264,8 @@ export interface SalesOrder {
   vatAmount?: number;
   cancelReason?: string;
   closedDate?: string; // "Kết thúc đơn": khách không lấy phần còn lại
+  /** "Thu tiền ngay": mỗi lần khách nhận hàng, tự lập phiếu thu đúng số nhận vào tài khoản này. */
+  payNowAccountId?: string;
   updatedAt?: string;
 }
 

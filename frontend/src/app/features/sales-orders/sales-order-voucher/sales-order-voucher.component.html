@@ -28,6 +28,31 @@
       </div>
     }
 
+    <!-- Thu tiền: Chưa thu tiền / Thu tiền ngay (như MISA) -->
+    <section class="card pay-bar" aria-label="Thu tiền">
+      <span class="pay-label">Thu tiền</span>
+      @if (editable()) {
+        <div class="segmented" role="group" aria-label="Hình thức thu tiền">
+          <button type="button" [attr.aria-pressed]="!payNow()" (click)="payNow.set(false)">Chưa thu tiền</button>
+          <button type="button" [attr.aria-pressed]="payNow()" (click)="payNow.set(true)">Thu tiền ngay</button>
+        </div>
+        @if (payNow()) {
+          <select aria-label="Tài khoản nhận tiền" [ngModel]="payAccountId()" (ngModelChange)="payAccountId.set($event)"
+            [attr.aria-invalid]="attempted() && !payAccountId() ? 'true' : null">
+            <option value="">— Tài khoản nhận tiền —</option>
+            @for (a of accounts(); track a.id) { <option [value]="a.id">{{ a.name }}</option> }
+          </select>
+        }
+        <p class="pay-hint">
+          @if (payNow()) { Khi khách <strong>nhận hàng</strong>, hệ thống tự lập phiếu thu đúng số khách thực nhận vào tài khoản này và trừ công nợ của đơn. }
+          @else { Khách nhận hàng sẽ ghi công nợ phải thu; thu tiền sau bằng phiếu thu. }
+        </p>
+      } @else {
+        <span class="pay-state" [class.is-now]="payNow()">{{ payNow() ? 'Thu tiền ngay · ' + accountName() : 'Chưa thu tiền' }}</span>
+        @if (payNow() && !(order()?.receivedValue)) { <p class="pay-hint">Phiếu thu tự lập khi khách nhận hàng.</p> }
+      }
+    </section>
+
     <!-- Header: fields + totals panel -->
     <section class="card voucher-head">
       <div class="head-fields">
@@ -50,7 +75,7 @@
           <p class="field-value">
             {{ customer() ? (customer()!.companyName || customer()!.name) : '—' }}
             @if (customer(); as c) {
-              <span class="so-chip">{{ typeLabel[c.type] }} · {{ c.creditDays > 0 ? 'nợ ' + c.creditDays + ' ngày' : 'trả ngay' }}</span>
+              <span class="so-chip">{{ c.creditDays > 0 ? 'Được nợ ' + c.creditDays + ' ngày' : 'Trả ngay' }}</span>
             }
           </p>
         </div>
@@ -148,8 +173,8 @@
           }
         </div>
         <div class="field">
-          <span class="field-label">Bảng giá áp dụng</span>
-          <p class="field-value">{{ customer() ? priceLabel[customerType()] : 'Chọn khách trước' }}</p>
+          <span class="field-label">Loại khách · bảng giá</span>
+          <p class="field-value">{{ customer() ? typeLabel[customerType()] + ' · ' + priceLabel[customerType()].toLowerCase() : 'Chọn khách trước' }}</p>
         </div>
         <div class="field">
           <span class="field-label">Hạn thanh toán</span>
@@ -161,6 +186,17 @@
             } @else { — }
           </p>
         </div>
+
+        @if (references().length) {
+          <div class="field span-full">
+            <span class="field-label">Tham chiếu</span>
+            <p class="field-value so-refs">
+              @for (r of references(); track r.code) {
+                <a class="ref-link" [routerLink]="r.link" [title]="r.title + ' ' + r.code"><span class="ref-kind">{{ r.label }}</span><span class="num">{{ r.code }}</span></a>
+              }
+            </p>
+          </div>
+        }
       </div>
 
       <aside class="head-summary">
@@ -204,6 +240,7 @@
       <button type="button" role="tab" [attr.aria-selected]="tab() === 'hang'" (click)="tab.set('hang')">
         Hàng hoá <span class="tab-count num">{{ validLines().length }}</span>
       </button>
+      <button type="button" role="tab" [attr.aria-selected]="tab() === 'gia-von'" (click)="tab.set('gia-von')">Giá vốn</button>
       @if (order()) {
         @if (lsx().length || lsxNeeded()) {
           <button type="button" role="tab" [attr.aria-selected]="tab() === 'lsx'" (click)="tab.set('lsx')">
@@ -409,6 +446,66 @@
         </section>
       }
 
+      @case ('gia-von') {
+        <section class="card voucher-grid-card">
+          <div class="voucher-grid-scroll">
+            <table class="voucher-grid so-cost">
+              <thead>
+                <tr>
+                  <th scope="col" class="c-idx">#</th>
+                  <th scope="col">Hàng hoá</th>
+                  <th scope="col" class="c-unit">ĐVT</th>
+                  <th scope="col" class="c-num">Số lượng</th>
+                  <th scope="col" class="c-num">Giá vốn / ĐVT</th>
+                  <th scope="col" class="c-num">Giá vốn thành tiền</th>
+                  <th scope="col" class="c-num">Doanh thu thuần</th>
+                  <th scope="col" class="c-num">Lãi gộp</th>
+                  <th scope="col" class="c-num">Tỷ suất</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (r of costRows(); track r.key; let i = $index) {
+                  <tr>
+                    <td class="c-idx num">{{ i + 1 }}</td>
+                    <td><span class="num">{{ r.code }}</span> {{ r.name }}</td>
+                    <td class="c-unit">{{ r.unit }}</td>
+                    <td class="c-num num">{{ r.quantity.toLocaleString('vi-VN') }}</td>
+                    <td class="c-num num">
+                      @if (r.service) { <span class="subtitle">Dịch vụ</span> }
+                      @else if (r.noCost) { <span class="so-nocost" title="Chưa có giá nhập hoặc định mức để tính giá vốn">Chưa có</span> }
+                      @else { {{ money(r.unitCost) }} }
+                    </td>
+                    <td class="c-num num">{{ money(r.costAmount) }}</td>
+                    <td class="c-num num">{{ money(r.net) }}</td>
+                    <td class="c-num num" [class.amt-neg]="r.profit < 0">{{ money(r.profit) }}</td>
+                    <td class="c-num num" [class.amt-neg]="r.profit < 0">{{ percentText(r.margin) }}</td>
+                  </tr>
+                } @empty {
+                  <tr><td colspan="9" class="so-empty-row">Chưa có dòng hàng. Chọn hàng ở tab Hàng hoá để xem giá vốn.</td></tr>
+                }
+              </tbody>
+              @if (costRows().length) {
+                <tfoot>
+                  <tr>
+                    <td></td>
+                    <td colspan="4" class="foot-label">Cộng</td>
+                    <td class="c-num num">{{ money(costTotals().costAmount) }}</td>
+                    <td class="c-num num">{{ money(costTotals().net) }}</td>
+                    <td class="c-num num" [class.amt-neg]="costTotals().profit < 0">{{ money(costTotals().profit) }}</td>
+                    <td class="c-num num" [class.amt-neg]="costTotals().profit < 0">{{ percentText(costTotals().margin) }}</td>
+                  </tr>
+                </tfoot>
+              }
+            </table>
+          </div>
+          <p class="grid-hint">
+            Giá vốn <strong>ước tính</strong> theo giá nhập gần nhất (vật tư) hoặc định mức × giá vật tư (thành phẩm); chưa phải giá vốn chốt khi giao.
+            Doanh thu thuần = tiền hàng sau chiết khấu, chưa thuế GTGT.
+            @if (costTotals().noCost) { <span class="text-danger"> {{ costTotals().noCost }} dòng chưa có giá vốn nên lãi gộp đang cao hơn thực tế.</span> }
+          </p>
+        </section>
+      }
+
       @case ('lsx') {
         <section class="card voucher-grid-card">
           @if (lsx().length) {
@@ -528,6 +625,23 @@
 
     <!-- Sticky action bar -->
     <footer class="voucher-actions">
+      <div class="actions-left">
+        @if (order() && !editable()) {
+          @let nb = neighbours();
+          <nav class="doc-nav" aria-label="Chuyển chứng từ">
+            @if (nb.prev; as pv) {
+              <a class="icon-action" [routerLink]="['/don-hang', pv.id]" [attr.aria-label]="'Đơn trước ' + pv.code" [title]="'Đơn trước · ' + pv.code"><app-nav-icon name="chevron-left" /></a>
+            } @else {
+              <span class="icon-action is-off" aria-hidden="true"><app-nav-icon name="chevron-left" /></span>
+            }
+            <span class="doc-nav-pos num" [title]="nb.index + ' / ' + nb.total + ' đơn hàng'">{{ nb.index }}/{{ nb.total }}</span>
+            @if (nb.next; as nx) {
+              <a class="icon-action" [routerLink]="['/don-hang', nx.id]" [attr.aria-label]="'Đơn sau ' + nx.code" [title]="'Đơn sau · ' + nx.code"><app-nav-icon name="chevron-right" /></a>
+            } @else {
+              <span class="icon-action is-off" aria-hidden="true"><app-nav-icon name="chevron-right" /></span>
+            }
+          </nav>
+        }
       <p class="actions-hint" [class.text-danger]="attempted() && issues().length" role="status">
         @if (editable()) {
           {{ issues()[0] ?? 'Sẵn sàng lưu' }}
@@ -535,6 +649,7 @@
           Lập bởi {{ userName(o.createdBy) }} · ngày đặt <span class="num">{{ day(o.orderDate) }}</span>
         }
       </p>
+      </div>
       <div class="toolbar">
         @if (editable()) {
           <button type="button" class="btn" (click)="cancelEditing()">Huỷ</button>

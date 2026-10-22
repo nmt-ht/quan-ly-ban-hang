@@ -79,7 +79,7 @@
       <section class="card cvv-alloc">
         <h3>Đối trừ chọn tay</h3>
         <ul>
-          @for (a of v.allocations; track a.ref) { <li><span class="num">{{ a.ref }}</span> · <span class="num">{{ money(a.amount) }}</span></li> }
+          @for (a of v.allocations; track a.ref) { <li>@if (orderOf(a.ref); as o) { <a class="code-link num" [routerLink]="['/don-hang', o.id]">{{ a.ref }}</a> } @else { <span class="num">{{ a.ref }}</span> } · <span class="num">{{ money(a.amount) }}</span></li> }
         </ul>
       </section>
     }

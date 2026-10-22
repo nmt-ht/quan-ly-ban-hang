@@ -6,6 +6,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MockDataService } from '../../../core/services/mock-data.service';
 import { DebtService } from '../../../core/services/debt.service';
+import { CostService } from '../../../core/services/cost.service';
 import { Product, SalesOrder, SalesOrderLine } from '../../../core/models/domain.models';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { CopyButtonComponent } from '../../../shared/copy-button/copy-button.component';
@@ -30,7 +31,7 @@ import { SalesOrderDraft, SalesOrderService } from '../sales-order.service';
 import { DeliverDialogComponent } from '../deliver-dialog/deliver-dialog.component';
 
 type Mode = 'create' | 'edit' | 'view';
-type Tab = 'hang' | 'lsx' | 'pxk' | 'cong-no';
+type Tab = 'hang' | 'gia-von' | 'lsx' | 'pxk' | 'cong-no';
 
 interface DraftLine {
   key: string;
@@ -81,6 +82,7 @@ export class SalesOrderVoucherComponent {
   readonly data = inject(MockDataService);
   private readonly debt = inject(DebtService);
   private readonly orders = inject(SalesOrderService);
+  private readonly cost = inject(CostService);
   private readonly deliverDialog = viewChild<DeliverDialogComponent>('deliverDialog');
 
   readonly id = toSignal(this.route.paramMap.pipe(map((p) => p.get('id'))), { initialValue: this.route.snapshot.paramMap.get('id') });
@@ -114,6 +116,9 @@ export class SalesOrderVoucherComponent {
   readonly neededByDate = signal('');
   readonly salesRep = signal('');
   readonly orderDiscount = signal<number | null>(null);
+  /** "Thu tiền ngay": khi khách nhận hàng tự lập phiếu thu vào tài khoản này. */
+  readonly payNow = signal(false);
+  readonly payAccountId = signal('');
   readonly lines = signal<DraftLine[]>([emptyLine()]);
   readonly attempted = signal(false);
   readonly tab = signal<Tab>('hang');
@@ -152,6 +157,8 @@ export class SalesOrderVoucherComponent {
         this.neededByDate.set(o?.neededByDate?.slice(0, 10) ?? '');
         this.salesRep.set(o?.salesRep ?? this.defaultRep());
         this.orderDiscount.set(o?.discountAmount || null);
+        this.payNow.set(!!o?.payNowAccountId);
+        this.payAccountId.set(o?.payNowAccountId ?? this.defaultAccount());
         this.lines.set(o ? o.lines.map((l) => this.toDraft(l)) : [emptyLine()]);
         this.attempted.set(false);
         this.tab.set('hang');
@@ -161,6 +168,11 @@ export class SalesOrderVoucherComponent {
         if (id) this.notice.set((history.state as { notice?: string } | null)?.notice ?? '');
       });
     });
+  }
+
+  private defaultAccount(): string {
+    const list = this.accounts();
+    return (list.find((a) => a.type === 'TIEN_MAT') ?? list[0])?.id ?? '';
   }
 
   private defaultRep(): string {
@@ -175,6 +187,9 @@ export class SalesOrderVoucherComponent {
   readonly customerOptions = computed(() =>
     this.data.customers().filter((c) => c.isActive || c.id === this.customerId()).sort((a, b) => a.code.localeCompare(b.code)),
   );
+  /** Tài khoản nhận tiền cho "Thu tiền ngay" (tài khoản đang dùng). */
+  readonly accounts = computed(() => this.data.cashAccounts().filter((a) => a.isActive !== false));
+  readonly accountName = computed(() => this.data.cashAccounts().find((a) => a.id === this.payAccountId())?.name ?? '—');
   readonly customerDebt = computed(() => this.debt.receivables().find((r) => r.partnerId === this.customerId()));
   readonly productOptions = computed(() =>
     this.data.products().filter((p) => p.isActive && p.isSellable).sort((a, b) => a.name.localeCompare(b.name, 'vi')),
@@ -316,6 +331,7 @@ export class SalesOrderVoucherComponent {
     const out: string[] = [];
     if (!this.customerId()) out.push('Chọn khách hàng');
     if (!this.orderDate()) out.push('Chọn ngày đặt hàng');
+    if (this.payNow() && !this.payAccountId()) out.push('Chọn tài khoản nhận tiền');
     if (this.neededByDate() && this.neededByDate() < this.orderDate()) out.push('Ngày cần giao trước ngày đặt');
     this.lines().forEach((l, i) => {
       if (l.productId && !((l.quantity ?? 0) > 0)) out.push(`Dòng ${i + 1}: nhập số lượng`);
@@ -446,6 +462,7 @@ export class SalesOrderVoucherComponent {
       neededByDate: this.neededByDate() || undefined,
       salesRep: this.salesRep(),
       discountAmount: this.orderDiscount() ?? 0,
+      payNowAccountId: this.payNow() && this.payAccountId() ? this.payAccountId() : undefined,
       lines: this.validSaleLines(),
     };
     const id = this.id();
@@ -518,7 +535,7 @@ export class SalesOrderVoucherComponent {
   }
 
   onDelivered(message: string): void {
-    this.notice.set(message);
+    this.notice.set(this.order()?.payNowAccountId ? `${message} Đã tự lập phiếu thu vào ${this.accountName()}.` : message);
     this.tab.set('pxk');
   }
 
@@ -539,6 +556,60 @@ export class SalesOrderVoucherComponent {
   voucherQty(v: { lines?: { delta: number }[] }): number {
     return round4((v.lines ?? []).reduce((s, l) => s + l.delta, 0));
   }
+
+  // ---------- tab Giá vốn ----------
+  /** Per line: giá vốn ước tính (CostService, theo ĐVT của dòng), doanh thu thuần sau chiết khấu, lãi gộp. */
+  readonly costRows = computed(() => {
+    const t = this.totals();
+    return this.validLines().map((l, i) => {
+      const p = this.product(l.productId);
+      const unitCost = Math.round(this.cost.costOf(l.productId) * this.ratio(l));
+      const costAmount = Math.round(unitCost * (l.quantity ?? 0));
+      const net = t.lines[i].taxable;
+      const profit = net - costAmount;
+      return {
+        key: l.key, name: p?.name ?? l.productId, code: p?.code ?? '', unit: this.unitLabel(l), quantity: l.quantity ?? 0,
+        service: p?.type === 'DICH_VU', unitCost, costAmount, net, profit, margin: net ? (profit / net) * 100 : 0,
+        noCost: p?.type !== 'DICH_VU' && unitCost === 0,
+      };
+    });
+  });
+
+  readonly costTotals = computed(() => {
+    const rows = this.costRows();
+    const net = rows.reduce((s, r) => s + r.net, 0);
+    const costAmount = rows.reduce((s, r) => s + r.costAmount, 0);
+    return { net, costAmount, profit: net - costAmount, margin: net ? ((net - costAmount) / net) * 100 : 0, noCost: rows.filter((r) => r.noCost).length };
+  });
+
+  percentText(n: number): string {
+    return n.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+  }
+
+  // ---------- tham chiếu & chuyển chứng từ ----------
+  /** Chứng từ liên quan của đơn đã lưu: chuyến giao, phiếu xuất kho, lệnh SX, phiếu thu. */
+  readonly references = computed(() => {
+    const o = this.order();
+    if (!o) return [];
+    const out: { label: string; code: string; link: string[]; title: string }[] = [];
+    const trip = o.tripId ? this.data.deliveryTrips().find((t) => t.id === o.tripId) : undefined;
+    if (trip) out.push({ label: 'Chuyến giao', code: trip.code, link: ['/giao-hang', trip.id], title: 'Chuyến giao hàng' });
+    for (const v of this.exportVouchers()) out.push({ label: 'Phiếu xuất', code: v.code, link: ['/kho/phieu', v.id], title: 'Phiếu xuất kho' });
+    for (const x of this.lsx().filter((y) => y.status !== 'HUY')) out.push({ label: 'Lệnh SX', code: x.code, link: ['/san-xuat', x.id], title: 'Lệnh sản xuất' });
+    const receipts = this.data.cashVouchers().filter((v) => !v.isCancelled && v.kind === 'THU'
+      && (v.allocations?.some((a) => a.ref === o.code) || (v.description ?? '').includes(o.code)));
+    for (const v of receipts) out.push({ label: 'Phiếu thu', code: v.code, link: ['/thu-chi', v.id], title: 'Phiếu thu' });
+    return out;
+  });
+
+  /** Đơn liền trước / liền sau theo số chứng từ (như nút ‹ › của MISA). */
+  readonly neighbours = computed(() => {
+    const o = this.order();
+    if (!o) return { prev: undefined, next: undefined, index: 0, total: 0 };
+    const all = [...this.data.salesOrders()].sort((a, b) => a.code.localeCompare(b.code));
+    const i = all.findIndex((x) => x.id === o.id);
+    return { prev: all[i - 1], next: all[i + 1], index: i + 1, total: all.length };
+  });
 
   lsxStock(productId: string): number {
     return this.stock().get(productId) ?? 0;
