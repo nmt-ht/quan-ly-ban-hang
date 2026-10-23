@@ -1,9 +1,8 @@
 import { Injectable, computed, inject } from '@angular/core';
-import { MockDataService } from '../../../core/services/mock-data.service';
+import { DataStore } from '../../../core/services/data-store.service';
 import { Tag } from '../../../core/models/domain.models';
 import { foldVi } from '../../../shared/format.util';
 import { ApiService, upsertById } from '../../../core/api/api.service';
-import { CATALOG_FROM_API } from '../../../core/api/api.config';
 
 export type TagDraft = Omit<Tag, 'id' | 'orderCount' | 'customerCount'>;
 
@@ -12,7 +11,7 @@ export type TagDraft = Omit<Tag, 'id' | 'orderCount' | 'customerCount'>;
 export class TagService {
   private readonly api = inject(ApiService);
 
-  constructor(private readonly data: MockDataService) {}
+  constructor(private readonly data: DataStore) {}
 
   /** Đơn hàng / khách hàng gắn mỗi thẻ — derived, never stored on the tag. */
   readonly usage = computed(() => {
@@ -33,33 +32,22 @@ export class TagService {
   }
 
   async create(d: TagDraft): Promise<Tag> {
-    if (CATALOG_FROM_API) return this.keep(await this.api.post<Tag>('/tags', { ...d, name: d.name.trim() }));
-    const t: Tag = { ...d, name: d.name.trim(), id: crypto.randomUUID() };
-    this.data.tags.update((list) => [...list, t]);
-    return t;
+    return this.keep(await this.api.post<Tag>('/tags', { ...d, name: d.name.trim() }));
   }
 
   async update(id: string, d: TagDraft): Promise<void> {
-    if (CATALOG_FROM_API) {
-      this.keep(await this.api.put<Tag>(`/tags/${id}`, { ...d, name: d.name.trim() }));
-      return;
-    }
-    this.data.tags.update((list) => list.map((t) => (t.id === id ? { ...t, ...d, name: d.name.trim() } : t)));
+    this.keep(await this.api.put<Tag>(`/tags/${id}`, { ...d, name: d.name.trim() }));
   }
 
   async setActive(id: string, isActive: boolean): Promise<void> {
-    if (CATALOG_FROM_API) {
-      this.keep(await this.api.patch<Tag>(`/tags/${id}/active`, { isActive }));
-      return;
-    }
-    this.data.tags.update((list) => list.map((t) => (t.id === id ? { ...t, isActive } : t)));
+    this.keep(await this.api.patch<Tag>(`/tags/${id}/active`, { isActive }));
   }
 
   /** Xoá chỉ khi chưa gắn vào đơn / khách nào — thẻ đang dùng thì Ngừng dùng để giữ lịch sử. */
   async remove(id: string): Promise<void> {
     const u = this.usageOf(id);
     if (u.orders || u.customers) throw new Error('Thẻ đang được dùng — chọn Ngừng dùng thay vì xoá.');
-    if (CATALOG_FROM_API) await this.api.delete(`/tags/${id}`);
+    await this.api.delete(`/tags/${id}`);
     this.data.tags.update((list) => list.filter((t) => t.id !== id));
   }
 

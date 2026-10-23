@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../audit/audit.service.js';
 
 /** The signed-in user as every request sees it (`req.user`) and as /auth/me returns it. */
 export interface AuthUser {
@@ -26,17 +27,33 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly audit: AuditService,
   ) {}
 
   async login(email: string, password: string): Promise<{ accessToken: string; user: AuthUser }> {
-    const account = await this.prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } });
+    const key = email.trim().toLowerCase();
+    const account = await this.prisma.user.findUnique({ where: { email: key } });
     // Same message for unknown, locked and wrong password: the screen must not reveal which accounts exist.
-    if (!account || account.status !== 'ACTIVE') throw new UnauthorizedException('Sai email hoặc mật khẩu');
-    if (!(await bcrypt.compare(password, account.passwordHash))) throw new UnauthorizedException('Sai email hoặc mật khẩu');
+    // The log keeps the real reason for whoever reads Nhật ký hoạt động.
+    const reason = !account ? 'email không tồn tại' : account.status !== 'ACTIVE' ? 'tài khoản đã khoá'
+      : !(await bcrypt.compare(password, account.passwordHash)) ? 'sai mật khẩu' : null;
+    const user = reason ? null : await this.loadUser(account!.id);
+    if (!user) {
+      await this.audit.log(this.prisma, {
+        action: 'auth.login_failed', entityType: 'User', entityId: account?.id ?? key, entityCode: key,
+        summary: `Đăng nhập thất bại (${reason ?? 'chức vụ không còn hiệu lực'}): ${key}`,
+        actor: { id: account?.id ?? null, name: account?.name ?? key },
+      });
+      throw new UnauthorizedException('Sai email hoặc mật khẩu');
+    }
 
-    await this.prisma.user.update({ where: { id: account.id }, data: { lastLoginAt: new Date() } });
-    const user = await this.loadUser(account.id);
-    if (!user) throw new UnauthorizedException('Sai email hoặc mật khẩu');
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+      await this.audit.log(tx, {
+        action: 'auth.login', entityType: 'User', entityId: user.id, entityCode: user.email,
+        summary: `Đăng nhập (${user.roleName})`, actor: { id: user.id, name: user.name },
+      });
+    });
     const payload: JwtPayload = { sub: user.id };
     return { accessToken: await this.jwt.signAsync(payload), user };
   }

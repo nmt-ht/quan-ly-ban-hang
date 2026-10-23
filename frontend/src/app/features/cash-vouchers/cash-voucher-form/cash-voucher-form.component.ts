@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import { MockDataService } from '../../../core/services/mock-data.service';
+import { DataStore } from '../../../core/services/data-store.service';
 import { DebtRow, DebtService } from '../../../core/services/debt.service';
 import { CashAllocation, VoucherKind } from '../../../core/models/domain.models';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
@@ -36,7 +36,7 @@ interface Partner {
 export class CashVoucherFormComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly data = inject(MockDataService);
+  private readonly data = inject(DataStore);
   private readonly debt = inject(DebtService);
   private readonly svc = inject(CashVoucherService);
 

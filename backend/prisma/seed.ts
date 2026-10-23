@@ -154,6 +154,9 @@ const PERMISSION_MODULES: { key: string; permissions: { code: string; label: str
     { code: 'report.delivery', label: 'Báo cáo giao hàng' },
     { code: 'report.view_profit', label: 'Xem lợi nhuận, lãi gộp' },
   ]},
+  { key: 'audit', permissions: [
+    { code: 'audit.view', label: 'Xem nhật ký hoạt động' },
+  ]},
 ];
 
 const ALL_PERMISSION_CODES = PERMISSION_MODULES.flatMap((m) => m.permissions.map((p) => p.code));

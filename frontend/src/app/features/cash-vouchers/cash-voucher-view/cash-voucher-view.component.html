@@ -90,6 +90,11 @@
       </section>
     }
 
+    <section class="card voucher-grid-card">
+      <h2 class="form-section-title">Nhật ký</h2>
+      <app-audit-history entityType="CashVoucher" [entityId]="v.id" [code]="v.code" />
+    </section>
+
     <footer class="voucher-actions">
       <p class="actions-hint">
         {{ v.isCancelled ? 'Phiếu đã huỷ — không tính vào số dư quỹ, báo cáo và công nợ.' : 'Muốn sửa: huỷ phiếu rồi lập lại để giữ dấu vết.' }}

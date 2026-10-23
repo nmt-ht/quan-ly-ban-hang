@@ -1,8 +1,6 @@
 import { Supplier } from '../../core/models/domain.models';
 import { foldVi } from '../../shared/format.util';
 
-export const SUPPLIER_CODE_PREFIX = 'NCC';
-
 export type SupplierSort = 'name-asc' | 'name-desc' | 'code-asc' | 'newest';
 
 export const SUPPLIER_SORTS: { value: SupplierSort; label: string }[] = [

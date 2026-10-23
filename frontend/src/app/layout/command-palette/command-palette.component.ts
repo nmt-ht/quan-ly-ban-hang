@@ -1,7 +1,7 @@
 import { Component, ElementRef, HostListener, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommandPaletteService } from '../../core/services/command-palette.service';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { DataStore } from '../../core/services/data-store.service';
 import { AuthService } from '../../core/services/auth.service';
 import { foldVi } from '../../shared/format.util';
 import {
@@ -46,7 +46,7 @@ const CREATE: { label: string; path: string; icon: NavIconName; words: string }[
 })
 export class CommandPaletteComponent {
   private readonly palette = inject(CommandPaletteService);
-  private readonly data = inject(MockDataService);
+  private readonly data = inject(DataStore);
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
 

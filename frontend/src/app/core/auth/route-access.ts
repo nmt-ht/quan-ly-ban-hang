@@ -47,6 +47,7 @@ const RULES: [RegExp, string[]][] = [
   [/^\/thiet-lap\/the$/, ['tag.view']],
   [/^\/thiet-lap\/nguoi-dung(\/|$)/, ['user.view']],
   [/^\/thiet-lap\/chuc-vu$/, ['position.view']],
+  [/^\/thiet-lap\/nhat-ky$/, ['audit.view']],
 ];
 
 /** Permissions that open `url` (any one is enough), or null when the page is open to everyone signed in. */

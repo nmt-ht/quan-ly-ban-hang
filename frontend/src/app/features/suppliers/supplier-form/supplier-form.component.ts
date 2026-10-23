@@ -2,7 +2,7 @@ import { Component, HostListener, computed, inject, signal } from '@angular/core
 import { toSignal } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { MockDataService } from '../../../core/services/mock-data.service';
+import { DataStore } from '../../../core/services/data-store.service';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { PHONE_PATTERN, TAX_CODE_PATTERN, duplicateOf } from '../supplier.rules';
 import { SupplierDraft, SupplierService } from '../supplier.service';
@@ -19,7 +19,7 @@ import { errorText } from '../../../core/api/api.service';
 export class SupplierFormComponent implements HasUnsavedChanges {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
-  private readonly data = inject(MockDataService);
+  private readonly data = inject(DataStore);
   private readonly svc = inject(SupplierService);
 
   private readonly id = inject(ActivatedRoute).snapshot.paramMap.get('id');

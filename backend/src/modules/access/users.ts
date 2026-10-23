@@ -10,6 +10,8 @@ import { CurrentUser, RequirePermissions } from '../../auth/permissions.decorato
 import type { AuthUser } from '../../auth/auth.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { OptionalText, Text } from '../../common/dto.js';
+import { AuditService } from '../../audit/audit.service.js';
+import { diff } from '../../audit/audit.diff.js';
 
 export const SYSTEM_ROLE = 'role-ceo';
 const TOKEN_HOURS = 12; // keep in step with signOptions.expiresIn in auth.module.ts
@@ -43,6 +45,8 @@ function checkPassword(pw: string): void {
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const USER_FIELDS = { name: 'Họ tên', email: 'Email', role: 'Chức vụ', phone: 'Điện thoại', note: 'Ghi chú' };
+
 /**
  * The frontend's AppUser. Tokens are stateless, so "phiên mở" is an estimate: 1 when the last
  * sign-in is younger than a token's lifetime and was not revoked since, else 0.
@@ -56,7 +60,25 @@ function toApi(u: User) {
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
+
+  /** Writes one change of an account and its Nhật ký line in one transaction. */
+  private save(id: string, data: Parameters<PrismaService['user']['update']>[0]['data'], action: string, summary: (u: User) => string) {
+    return this.prisma.$transaction(async (tx) => {
+      const u = await tx.user.update({ where: { id }, data });
+      await this.audit.log(tx, { action, entityType: 'User', entityId: u.id, entityCode: u.email, summary: summary(u) });
+      return toApi(u);
+    });
+  }
+
+  /** The fields Sửa người dùng compares, with the chức vụ by name. */
+  private async described(u: Pick<User, 'name' | 'email' | 'roleId' | 'phone' | 'note'>) {
+    const role = await this.prisma.role.findUnique({ where: { id: u.roleId }, select: { name: true } });
+    return { name: u.name, email: u.email, role: role?.name ?? u.roleId, phone: u.phone, note: u.note };
+  }
 
   async findAll() {
     return (await this.prisma.user.findMany({ orderBy: { name: 'asc' } })).map(toApi);
@@ -93,17 +115,28 @@ export class UsersService {
     checkPassword(dto.password);
     const data = await this.clean(dto, null);
     const now = new Date();
-    const u = await this.prisma.user.create({
-      data: { ...data, passwordHash: await bcrypt.hash(dto.password, 10), passwordUpdatedAt: now, mustChangePassword: true },
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const { role } = await this.described(data);
+    return this.prisma.$transaction(async (tx) => {
+      const u = await tx.user.create({ data: { ...data, passwordHash, passwordUpdatedAt: now, mustChangePassword: true } });
+      await this.audit.log(tx, {
+        action: 'user.create', entityType: 'User', entityId: u.id, entityCode: u.email,
+        summary: `Tạo người dùng ${u.name} (${u.email}), chức vụ ${role}`,
+      });
+      return toApi(u);
     });
-    return toApi(u);
   }
 
   async update(id: string, dto: UserDto) {
     const u = await this.find(id);
     const data = await this.clean(dto, id);
     if (data.roleId !== u.roleId && (await this.isLastAdmin(u))) throw new BadRequestException('Đây là tài khoản CEO cuối cùng — không đổi chức vụ được.');
-    return toApi(await this.prisma.user.update({ where: { id }, data }));
+    const changes = diff(await this.described(u), await this.described(data), USER_FIELDS);
+    return this.prisma.$transaction(async (tx) => {
+      const saved = await tx.user.update({ where: { id }, data });
+      await this.audit.log(tx, { action: 'user.update', entityType: 'User', entityId: id, entityCode: saved.email, summary: `Sửa người dùng ${saved.name}`, changes });
+      return toApi(saved);
+    });
   }
 
   /** Khoá: the account stays (vouchers keep its name), every session ends, it cannot sign in. */
@@ -112,14 +145,13 @@ export class UsersService {
     if (u.id === me.id) throw new BadRequestException('Không tự khoá tài khoản của mình.');
     if (await this.isLastAdmin(u)) throw new BadRequestException('Đây là tài khoản CEO cuối cùng — không khoá được.');
     const now = new Date();
-    return toApi(await this.prisma.user.update({
-      where: { id }, data: { status: 'DISABLED', lockedAt: now, lockedReason: reason ?? null, sessionsRevokedAt: now },
-    }));
+    return this.save(id, { status: 'DISABLED', lockedAt: now, lockedReason: reason ?? null, sessionsRevokedAt: now },
+      'user.lock', (x) => `Khoá tài khoản ${x.name}${reason ? `: ${reason}` : ''}`);
   }
 
   async unlock(id: string) {
     await this.find(id);
-    return toApi(await this.prisma.user.update({ where: { id }, data: { status: 'ACTIVE', lockedAt: null, lockedReason: null } }));
+    return this.save(id, { status: 'ACTIVE', lockedAt: null, lockedReason: null }, 'user.unlock', (x) => `Mở khoá tài khoản ${x.name}`);
   }
 
   /** Đặt lại mật khẩu: every session ends; optionally the user must pick a new one at next sign-in. */
@@ -127,15 +159,14 @@ export class UsersService {
     checkPassword(password);
     await this.find(id);
     const now = new Date();
-    return toApi(await this.prisma.user.update({
-      where: { id },
-      data: { passwordHash: await bcrypt.hash(password, 10), passwordUpdatedAt: now, mustChangePassword: mustChange, sessionsRevokedAt: now },
-    }));
+    const passwordHash = await bcrypt.hash(password, 10);
+    return this.save(id, { passwordHash, passwordUpdatedAt: now, mustChangePassword: mustChange, sessionsRevokedAt: now },
+      'user.reset_password', (x) => `Đặt lại mật khẩu cho ${x.name}${mustChange ? ', bắt đổi ở lần đăng nhập tới' : ''}`);
   }
 
   async endSessions(id: string) {
     await this.find(id);
-    return toApi(await this.prisma.user.update({ where: { id }, data: { sessionsRevokedAt: new Date() } }));
+    return this.save(id, { sessionsRevokedAt: new Date() }, 'user.end_sessions', (x) => `Đăng xuất mọi phiên của ${x.name}`);
   }
 }
 

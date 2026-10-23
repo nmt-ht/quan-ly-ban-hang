@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { DataStore } from '../../core/services/data-store.service';
 import { SalesOrder, SalesOrderStatus } from '../../core/models/domain.models';
 import { DataTableColumn, DataTableComponent } from '../../shared/data-table/data-table.component';
 import { FilterMultiSelectComponent, FilterOption } from '../../shared/filter-multi-select/filter-multi-select.component';
@@ -47,7 +47,7 @@ const STATUS_ALIASES: Record<string, SalesOrderStatus> = { PENDING: 'CHO_SAN_XUA
   templateUrl: './sales-orders.component.html',
 })
 export class SalesOrdersComponent {
-  readonly data = inject(MockDataService);
+  readonly data = inject(DataStore);
 
   readonly search = signal('');
   readonly statuses = signal<string[]>([]);

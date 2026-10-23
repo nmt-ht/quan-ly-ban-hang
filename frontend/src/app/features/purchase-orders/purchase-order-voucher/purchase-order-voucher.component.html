@@ -132,6 +132,7 @@
         <button type="button" role="tab" [attr.aria-selected]="tab() === 'phieu'" (click)="tab.set('phieu')">
           Phiếu nhập kho @if (receipts().length) { <span class="tab-count num">{{ receipts().length }}</span> }
         </button>
+        <button type="button" role="tab" [attr.aria-selected]="tab() === 'nhat-ky'" (click)="tab.set('nhat-ky')">Nhật ký</button>
       }
     </div>
 
@@ -263,6 +264,10 @@
           <app-pagination [total]="rows().length" unit="dòng" [pageSizeOptions]="[10, 20, 50]" [(page)]="page" [(pageSize)]="pageSize" />
         }
       </section>
+    } @else if (tab() === 'nhat-ky') {
+      @if (order(); as o) {
+        <section class="card voucher-grid-card"><app-audit-history entityType="PurchaseOrder" [entityId]="o.id" [code]="o.code" /></section>
+      }
     } @else {
       <section class="card voucher-grid-card">
         @if (receipts().length) {

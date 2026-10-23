@@ -2,7 +2,7 @@ import { Component, HostListener, computed, inject, signal } from '@angular/core
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { MockDataService } from '../../../core/services/mock-data.service';
+import { DataStore } from '../../../core/services/data-store.service';
 import { CustomerAddress, CustomerType } from '../../../core/models/domain.models';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { FilterMultiSelectComponent, FilterOption } from '../../../shared/filter-multi-select/filter-multi-select.component';
@@ -28,7 +28,7 @@ interface AddressDraft extends CustomerAddress {
 export class CustomerFormComponent implements HasUnsavedChanges {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
-  readonly data = inject(MockDataService);
+  readonly data = inject(DataStore);
   private readonly svc = inject(CustomerService);
 
   private readonly id = inject(ActivatedRoute).snapshot.paramMap.get('id');

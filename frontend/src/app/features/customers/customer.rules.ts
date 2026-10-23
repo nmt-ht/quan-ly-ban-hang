@@ -1,8 +1,6 @@
 import { Customer, CustomerType } from '../../core/models/domain.models';
 import { foldVi } from '../../shared/format.util';
 
-export const CUSTOMER_CODE_PREFIX = 'KH';
-
 export const CUSTOMER_TYPES: { value: CustomerType; label: string; hint: string }[] = [
   { value: 'LE', label: 'Lẻ', hint: 'Áp giá lẻ' },
   { value: 'SI', label: 'Sỉ', hint: 'Áp giá sỉ' },

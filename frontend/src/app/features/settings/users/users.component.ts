@@ -2,7 +2,7 @@ import { Component, computed, effect, inject, signal, untracked, viewChild } fro
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { MockDataService } from '../../../core/services/mock-data.service';
+import { DataStore } from '../../../core/services/data-store.service';
 import { AppUser } from '../../../core/models/domain.models';
 import { DataTableColumn, DataTableComponent } from '../../../shared/data-table/data-table.component';
 import { FilterMultiSelectComponent, FilterOption } from '../../../shared/filter-multi-select/filter-multi-select.component';
@@ -10,7 +10,7 @@ import { PaginationComponent } from '../../../shared/pagination/pagination.compo
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { ColumnFilters, applyColumnFilters } from '../../../shared/column-filter';
 import { ColumnSort, sortByColumn } from '../../../shared/column-sort';
-import { foldVi } from '../../../shared/format.util';
+import { foldVi, formatDateTime } from '../../../shared/format.util';
 import { tagClass } from '../../../shared/tag-class';
 import { downloadWorkbook, exportFileName } from '../../../shared/excel.util';
 import { UserService } from './user.service';
@@ -22,14 +22,6 @@ import { errorText } from '../../../core/api/api.service';
 export const USER_STATUS_LABEL = { ACTIVE: 'Đang hoạt động', DISABLED: 'Đã khoá' } as const;
 const IDLE_DAYS = 30;
 
-/** dd/mm/yyyy hh:mm, local time. */
-export function formatDateTime(iso: string | undefined): string {
-  if (!iso) return '—';
-  const d = new Date(/[zZ]|[+-]\d\d:\d\d$/.test(iso) ? iso : iso.replace('T', ' '));
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
 @Component({
   selector: 'app-users',
   standalone: true,
@@ -40,7 +32,7 @@ export function formatDateTime(iso: string | undefined): string {
   templateUrl: './users.component.html',
 })
 export class UsersComponent {
-  readonly data = inject(MockDataService);
+  readonly data = inject(DataStore);
   readonly svc = inject(UserService);
   private readonly userDialog = viewChild.required<UserDialogComponent>('userDialog');
   private readonly passwordDialog = viewChild.required<PasswordDialogComponent>('passwordDialog');

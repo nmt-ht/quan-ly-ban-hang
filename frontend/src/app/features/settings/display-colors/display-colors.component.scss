@@ -233,6 +233,12 @@
   transform: scale(0.96);
 }
 
+// Chỉ xem: the swatches stay as a legend, without the press feedback.
+.dc-swatch:disabled {
+  cursor: default;
+  transform: none;
+}
+
 .dc-swatch[aria-checked='true'] {
   border-color: var(--color-surface);
   box-shadow: 0 0 0 2px var(--color-ink);

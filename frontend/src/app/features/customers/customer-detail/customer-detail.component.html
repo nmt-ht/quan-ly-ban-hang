@@ -289,6 +289,9 @@
           </div>
         </section>
       }
+      @case ('nhat-ky') {
+        <section class="card"><app-audit-history entityType="Customer" [entityId]="c.id" [code]="c.code" /></section>
+      }
     }
   </div>
 } @else {

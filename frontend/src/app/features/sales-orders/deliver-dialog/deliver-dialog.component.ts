@@ -1,6 +1,6 @@
 import { Component, ElementRef, computed, input, output, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MockDataService } from '../../../core/services/mock-data.service';
+import { DataStore } from '../../../core/services/data-store.service';
 import { SalesOrder } from '../../../core/models/domain.models';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { isoDay } from '../../../shared/period';
@@ -49,7 +49,7 @@ export class DeliverDialogComponent {
   readonly money = formatVnd;
 
   constructor(
-    readonly data: MockDataService,
+    readonly data: DataStore,
     private readonly orders: SalesOrderService,
   ) {}
 

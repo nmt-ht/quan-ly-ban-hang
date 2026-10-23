@@ -1,58 +1,4 @@
-import { ALL_PERMISSION_CODES } from '../../../core/data/permission-catalog';
 import { PermissionModule } from '../../../core/models/domain.models';
-
-// Quyền mặc định của 7 chức vụ có sẵn (theo mô tả chức vụ). Số quyền: CEO 98 · Quản lý 89 ·
-// Kế toán 47 · Sale 16 · Thủ kho 19 · NV giao hàng 6 · NV xưởng 5.
-
-const WITHOUT_ADMIN = [
-  'user.create', 'user.update', 'user.delete', 'user.reset_password',
-  'position.create', 'position.update', 'position.delete', 'position.assign_permission',
-  'company.update',
-];
-
-const ACCOUNTANT = [
-  'company.view', 'category.view', 'warehouse.view', 'tag.view',
-  'product.view', 'product.export', 'product.view_cost_price', 'bom.view',
-  'customer.view', 'customer.create', 'customer.update', 'customer.delete',
-  'supplier.view', 'supplier.create', 'supplier.update', 'supplier.manage_product',
-  'stock.view', 'stock.view_value',
-  'purchase.view', 'purchase.create', 'purchase.update', 'purchase.approve', 'purchase.cancel',
-  'order.view', 'order.view_all', 'vehicle.view', 'vehicle.manage_cost', 'trip.view', 'production.view',
-  'debt.view', 'debt.settle', 'debt.adjust',
-  'voucher.view', 'voucher.create_receipt', 'voucher.create_payment', 'voucher.cancel', 'voucher.manage_category', 'voucher.manage_account',
-  'report.dashboard', 'report.sales', 'report.stock', 'report.purchase', 'report.debt', 'report.cashflow', 'report.production', 'report.delivery',
-  'report.view_profit',
-];
-
-const SALE = [
-  'customer.view', 'customer.create', 'customer.update', 'customer.delete',
-  'order.view', 'order.create', 'order.update', 'order.cancel', 'order.update_price',
-  'product.view', 'stock.view', 'tag.view', 'production.view', 'trip.view', 'report.dashboard', 'report.sales',
-];
-
-const STOREKEEPER = [
-  'warehouse.view', 'category.view', 'product.view', 'bom.view', 'supplier.view', 'order.view',
-  'stock.view', 'stock.import', 'stock.export', 'stock.transfer', 'stock.adjust', 'stock.cancel', 'stock.stocktake',
-  'purchase.view', 'purchase.receive', 'production.view', 'trip.view', 'trip.ship', 'trip.return',
-];
-
-const DELIVERY = ['order.view', 'customer.view', 'product.view', 'vehicle.view', 'trip.view', 'trip.deliver'];
-
-const WORKSHOP = ['production.view', 'production.update_progress', 'bom.view', 'product.view', 'stock.view'];
-
-/** Permission codes a built-in role starts with. Unknown (user-created) roles start empty. */
-export function grantsFor(roleId: string): string[] {
-  switch (roleId) {
-    case 'role-ceo': return [...ALL_PERMISSION_CODES];
-    case 'role-manager': return ALL_PERMISSION_CODES.filter((c) => !WITHOUT_ADMIN.includes(c));
-    case 'role-accountant': return ACCOUNTANT;
-    case 'role-sale': return SALE;
-    case 'role-thukho': return STOREKEEPER;
-    case 'role-giaohang': return DELIVERY;
-    case 'role-xuong': return WORKSHOP;
-    default: return [];
-  }
-}
 
 /** The "Xem …" permission of a group, if it has one: every other permission in the group needs it. */
 export function viewCodeOf(module: PermissionModule): string | undefined {
@@ -90,7 +36,7 @@ export function roleNameTaken(names: { id: string; name: string }[], id: string 
 
 // ---------- areas (tabs) and per-group access level ----------
 
-/** Business areas the permission groups are sorted into, so 23 groups read as 7 tabs. */
+/** Business areas the permission groups are sorted into, so 24 groups read as 7 tabs. */
 export const AREAS: { key: string; label: string; modules: string[] }[] = [
   { key: 'sell', label: 'Bán hàng', modules: ['customer', 'order', 'trip', 'vehicle'] },
   { key: 'buy', label: 'Mua hàng', modules: ['supplier', 'purchase'] },
@@ -98,7 +44,7 @@ export const AREAS: { key: string; label: string; modules: string[] }[] = [
   { key: 'make', label: 'Sản xuất', modules: ['production'] },
   { key: 'money', label: 'Tiền & công nợ', modules: ['debt', 'voucher'] },
   { key: 'report', label: 'Báo cáo', modules: ['dashboard', 'report'] },
-  { key: 'admin', label: 'Hệ thống', modules: ['user', 'position', 'company', 'tag'] },
+  { key: 'admin', label: 'Hệ thống', modules: ['user', 'position', 'company', 'tag', 'audit'] },
 ];
 
 export type AccessLevel = 'none' | 'view' | 'full' | 'custom';

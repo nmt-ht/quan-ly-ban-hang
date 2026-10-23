@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import { MockDataService } from '../../../core/services/mock-data.service';
+import { DataStore } from '../../../core/services/data-store.service';
 import { Product, WarehouseVoucherType } from '../../../core/models/domain.models';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { CopyButtonComponent } from '../../../shared/copy-button/copy-button.component';
@@ -20,6 +20,7 @@ import { WarehouseVoucherService } from '../warehouse-voucher.service';
 import { PrintDocumentComponent, PrintSigner } from '../../../shared/print/print-document.component';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { errorText } from '../../../core/api/api.service';
+import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
 
 interface Line {
   key: string;
@@ -42,14 +43,14 @@ const emptyLine = (): Line => ({ key: crypto.randomUUID(), productId: '', unitNa
 @Component({
   selector: 'app-warehouse-voucher-form',
   standalone: true,
-  imports: [NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent, PrintDocumentComponent],
+  imports: [NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent, PrintDocumentComponent, AuditHistoryComponent],
   templateUrl: './warehouse-voucher-form.component.html',
   styleUrls: ['../../../shared/voucher/voucher.scss', './warehouse-voucher-form.component.scss'],
 })
 export class WarehouseVoucherFormComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  readonly data = inject(MockDataService);
+  readonly data = inject(DataStore);
   private readonly svc = inject(WarehouseVoucherService);
 
   private readonly params = toSignal(this.route.paramMap.pipe(map((p) => ({ id: p.get('id'), kind: p.get('kind') }))), {

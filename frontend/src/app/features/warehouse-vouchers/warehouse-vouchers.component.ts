@@ -1,7 +1,7 @@
 import { Component, HostListener, computed, effect, inject, signal, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { DataStore } from '../../core/services/data-store.service';
 import { WarehouseVoucher, WarehouseVoucherType } from '../../core/models/domain.models';
 import { DataTableColumn, DataTableComponent } from '../../shared/data-table/data-table.component';
 import { FilterMultiSelectComponent, FilterOption } from '../../shared/filter-multi-select/filter-multi-select.component';
@@ -29,7 +29,7 @@ interface ActiveChip {
   templateUrl: './warehouse-vouchers.component.html',
 })
 export class WarehouseVouchersComponent {
-  readonly data = inject(MockDataService);
+  readonly data = inject(DataStore);
 
   readonly menuOpen = signal(false);
   readonly createMenu: { type: WarehouseVoucherType; label: string; slug: string }[] = [

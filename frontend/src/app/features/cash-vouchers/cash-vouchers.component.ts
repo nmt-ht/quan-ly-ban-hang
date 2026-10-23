@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { DataStore } from '../../core/services/data-store.service';
 import { DebtService } from '../../core/services/debt.service';
 import { CashVoucher } from '../../core/models/domain.models';
 import { DataTableColumn, DataTableComponent } from '../../shared/data-table/data-table.component';
@@ -37,7 +37,7 @@ const KIND_LABEL = { THU: 'Phiếu thu', CHI: 'Phiếu chi' } as const;
   styleUrl: './cash-vouchers.component.scss',
 })
 export class CashVouchersComponent {
-  readonly data = inject(MockDataService);
+  readonly data = inject(DataStore);
   private readonly debt = inject(DebtService);
   private readonly svc = inject(CashVoucherService);
 

@@ -1,6 +1,6 @@
 import { Component, ElementRef, computed, output, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MockDataService } from '../../../../core/services/mock-data.service';
+import { DataStore } from '../../../../core/services/data-store.service';
 import { AppUser } from '../../../../core/models/domain.models';
 import { NavIconComponent } from '../../../../layout/nav-icon/nav-icon.component';
 import { CopyButtonComponent } from '../../../../shared/copy-button/copy-button.component';
@@ -36,7 +36,7 @@ export class UserDialogComponent {
   readonly error = signal('');
 
   constructor(
-    readonly data: MockDataService,
+    readonly data: DataStore,
     private readonly svc: UserService,
   ) {}
 

@@ -7,6 +7,10 @@ import { SalesService } from '../sales/sales.service.js';
 import { SaleLine, deriveStatus, lineRemaining, orderTotals, receivedValueOf, round4 } from '../sales/sales-order.rules.js';
 import type { AuthUser } from '../../auth/auth.service.js';
 import { fromDay, toDay } from '../../common/text.js';
+import { AuditService } from '../../audit/audit.service.js';
+import { diff, vnd } from '../../audit/audit.diff.js';
+
+const STATUS_AFTER: Record<string, string> = { HOAN_THANH: 'nhận đủ', GIAO_MOT_PHAN: 'nhận một phần', TRA_TOAN_BO: 'không nhận gì' };
 
 type Tx = Prisma.TransactionClient;
 
@@ -100,7 +104,13 @@ export class TripsService {
     private readonly sequences: SequenceService,
     private readonly inventory: InventoryService,
     private readonly sales: SalesService,
+    private readonly audit: AuditService,
   ) {}
+
+  /** One Nhật ký line on the chuyến; `related` (order and voucher codes) shows it on those documents too. */
+  private log(tx: Tx, t: { id: string; code: string }, action: string, summary: string, related: string[] = [], changes?: ReturnType<typeof diff>) {
+    return this.audit.log(tx, { action, entityType: 'DeliveryTrip', entityId: t.id, entityCode: t.code, summary, related, changes });
+  }
 
   async trips() {
     const rows = await this.prisma.deliveryTrip.findMany({ include: TRIP_INCLUDE, orderBy: [{ date: 'desc' }, { code: 'desc' }] });
@@ -119,19 +129,28 @@ export class TripsService {
       const t = await tx.deliveryTrip.create({
         data: { ...(await this.header(tx, h)), code: await this.sequences.nextCode('CH', tx), status: 'GOM_DON', createdById: user.id },
       });
+      await this.log(tx, t, 'delivery_trip.create', `Tạo chuyến giao hàng ${t.code} · ${t.plateNumber ?? 'chưa chọn xe'}${t.driverName ? ` · ${t.driverName}` : ''}`);
       return this.trip(t.id, tx);
     });
   }
 
   updateHeader(id: string, h: TripHeaderInput) {
-    return this.step(id, ['GOM_DON', 'DA_XUAT_KHO'], 'Chuyến đã về kho — không sửa thông tin xe được.', async (tx) => {
-      await tx.deliveryTrip.update({ where: { id }, data: await this.header(tx, h) });
+    return this.step(id, ['GOM_DON', 'DA_XUAT_KHO'], 'Chuyến đã về kho — không sửa thông tin xe được.', async (tx, t) => {
+      const data = await this.header(tx, h);
+      await tx.deliveryTrip.update({ where: { id }, data });
+      await this.log(tx, t, 'delivery_trip.update', `Sửa thông tin chuyến ${t.code}`, [], diff(t, data, {
+        date: 'Ngày chuyến', plateNumber: 'Biển số', driverName: 'Tài xế', driverPhone: 'Điện thoại tài xế', note: 'Ghi chú',
+      }));
     });
   }
 
   saveCosts(id: string, c: TripCostsInput) {
-    return this.step(id, ['GOM_DON', 'DA_XUAT_KHO', 'XE_VE_KHO', 'HOAN_TAT'], 'Chuyến đã huỷ.', async (tx) => {
-      await tx.deliveryTrip.update({ where: { id }, data: { fuelCost: c.fuel || 0, tollCost: c.toll || 0, otherCost: c.other || 0, costNote: c.note ?? null } });
+    return this.step(id, ['GOM_DON', 'DA_XUAT_KHO', 'XE_VE_KHO', 'HOAN_TAT'], 'Chuyến đã huỷ.', async (tx, t) => {
+      const data = { fuelCost: c.fuel || 0, tollCost: c.toll || 0, otherCost: c.other || 0, costNote: c.note ?? null };
+      await tx.deliveryTrip.update({ where: { id }, data });
+      await this.log(tx, t, 'delivery_trip.costs', `Ghi chi phí chuyến ${t.code}: ${vnd(data.fuelCost + data.tollCost + data.otherCost)}`, [], diff(t, data, {
+        fuelCost: 'Tiền dầu', tollCost: 'Cầu đường bến bãi', otherCost: 'Chi phí khác', costNote: 'Ghi chú chi phí',
+      }));
     });
   }
 
@@ -153,12 +172,15 @@ export class TripsService {
         added.push(o.code);
       }
       if (!added.length) throw new BadRequestException('Không có đơn nào xếp được — đơn phải chờ giao, còn hàng và chưa nằm trên chuyến khác.');
+      await this.log(tx, t, 'delivery_trip.add_orders', `Xếp ${added.length} đơn lên chuyến ${t.code}: ${added.join(', ')}`, added);
     });
   }
 
   removeOrder(id: string, orderId: string) {
-    return this.step(id, ['GOM_DON'], 'Chỉ bỏ đơn khi chuyến đang gom đơn.', async (tx) => {
-      await tx.deliveryTripOrder.deleteMany({ where: { tripId: id, orderId } });
+    return this.step(id, ['GOM_DON'], 'Chỉ bỏ đơn khi chuyến đang gom đơn.', async (tx, t) => {
+      const { count } = await tx.deliveryTripOrder.deleteMany({ where: { tripId: id, orderId } });
+      const code = (await tx.salesOrder.findUnique({ where: { id: orderId }, select: { code: true } }))?.code ?? orderId;
+      await this.log(tx, t, 'delivery_trip.remove_order', count ? `Bỏ đơn ${code} khỏi chuyến ${t.code}` : `Đơn ${code} không có trên chuyến ${t.code}`, [code]);
     });
   }
 
@@ -171,8 +193,10 @@ export class TripsService {
       const today = new Date().toISOString().slice(0, 10);
       const fallback = (await tx.warehouse.findFirst({ orderBy: { name: 'asc' }, select: { id: true } }))?.id;
       const byWarehouse = new Map<string, Map<string, number>>();
+      const orderCodes: string[] = [];
       for (const link of t.orders) {
         const o = await this.sales.locked(tx, link.orderId);
+        orderCodes.push(o.code);
         const products = new Map((await tx.product.findMany({ where: { id: { in: o.lines.map((l) => l.productId) } } })).map((p) => [p.id, p]));
         for (const line of o.lines) {
           const q = lineRemaining(saleLine(line));
@@ -189,13 +213,17 @@ export class TripsService {
         }
         if (o.status !== 'HUY') await tx.salesOrder.update({ where: { id: o.id }, data: { status: 'DANG_GIAO' } });
       }
+      const voucherIds: string[] = [];
       for (const [warehouseId, m] of byWarehouse) {
-        await this.inventory.post(tx, {
+        voucherIds.push(await this.inventory.post(tx, {
           type: 'XUAT', date: today, warehouseId, deliveryTripId: id, reason: `Xuất kho giao hàng — chuyến ${t.code}`,
           lines: [...m].map(([productId, quantity]) => ({ productId, quantity })),
-        }, user.id);
+        }, user.id));
       }
       await tx.deliveryTrip.update({ where: { id }, data: { status: 'DA_XUAT_KHO', shippedAt: new Date() } });
+      const codes = await this.inventory.codes(tx, voucherIds);
+      await this.log(tx, t, 'delivery_trip.ship', `Xuất kho chuyến ${t.code}: ${orderCodes.length} đơn chuyển sang Đang giao${codes.length ? ` · ${codes.join(', ')}` : ''}`,
+        [...orderCodes, ...codes]);
     });
   }
 
@@ -220,7 +248,13 @@ export class TripsService {
         if (received > 0) await tx.salesOrderLine.update({ where: { id: load.orderLineId }, data: { receivedQuantity: { increment: received } } });
       }
       await tx.deliveryTripOrder.update({ where: { tripId_orderId: { tripId: id, orderId } }, data: { confirmedAt: new Date(), confirmNote: note ?? null } });
-      const receipts = await this.afterReceipt(tx, orderId, before, today, user, false);
+      const receipts = (await this.afterReceipt(tx, orderId, before, today, user, false)) as Awaited<ReturnType<SalesService['syncPayNow']>>['receipts'];
+      const after = (await this.ordersOf(tx, [orderId])).get(orderId)!;
+      const got = receivedValueOf(after.lines.map(saleLine), after.discountAmount.toNumber()) - before;
+      await this.log(tx, t, 'delivery_trip.confirm',
+        `Chốt giao đơn ${o.code} trên chuyến ${t.code}: khách ${STATUS_AFTER[after.status] ?? 'nhận'} (${vnd(got)})`
+          + (receipts.length ? ` · thu tiền ngay ${receipts.map((r) => r.code).join(', ')}` : '') + (note ? ` · ${note}` : ''),
+        [o.code, ...receipts.map((r) => r.code)]);
       return { receipts };
     });
   }
@@ -238,7 +272,14 @@ export class TripsService {
         await tx.deliveryTripLoad.update({ where: { id: load.id }, data: { receivedQuantity: null } });
       }
       await tx.deliveryTripOrder.update({ where: { tripId_orderId: { tripId: id, orderId } }, data: { confirmedAt: null, confirmNote: null } });
-      const cancelled = await this.afterReceipt(tx, orderId, before, new Date().toISOString().slice(0, 10), user, true);
+      const cancelled = (await this.afterReceipt(tx, orderId, before, new Date().toISOString().slice(0, 10), user, true)) as string[];
+      const voided = cancelled.length ? (await tx.cashVoucher.findMany({ where: { id: { in: cancelled } }, select: { code: true } })).map((v) => v.code) : [];
+      const after = (await this.ordersOf(tx, [orderId])).get(orderId)!;
+      const back = before - receivedValueOf(after.lines.map(saleLine), after.discountAmount.toNumber());
+      await this.log(tx, t, 'delivery_trip.unconfirm',
+        `Bỏ chốt giao đơn ${o.code} trên chuyến ${t.code}: bớt ${vnd(back)} công nợ, đơn về Đang giao`
+          + (voided.length ? ` · huỷ phiếu thu ${voided.join(', ')}` : ''),
+        [o.code, ...voided]);
       return { cancelledReceipts: cancelled };
     });
   }
@@ -279,26 +320,35 @@ export class TripsService {
         refs.add(o.code);
       }
       const today = new Date().toISOString().slice(0, 10);
+      const voucherIds: string[] = [];
       for (const [warehouseId, m] of byWarehouse) {
-        await this.inventory.post(tx, {
+        voucherIds.push(await this.inventory.post(tx, {
           type: 'NHAP', date: today, warehouseId, deliveryTripId: id, reason: `Nhập trả về — chuyến ${t.code} (${[...refs].join(', ')})`,
           lines: [...m].map(([productId, quantity]) => ({ productId, quantity })),
-        }, user.id);
+        }, user.id));
       }
       await tx.deliveryTrip.update({ where: { id }, data: { status: 'XE_VE_KHO', returnedAt: new Date() } });
+      const codes = await this.inventory.codes(tx, voucherIds);
+      await this.log(tx, t, 'delivery_trip.return',
+        `Xe về kho, chuyến ${t.code}: ${codes.length ? `nhập lại hàng khách không nhận (${codes.join(', ')})` : 'khách nhận đủ, không có hàng nhập lại'}`,
+        [...refs, ...codes]);
     });
   }
 
   complete(id: string) {
-    return this.step(id, ['XE_VE_KHO'], 'Chỉ hoàn tất khi xe đã về kho.', async (tx) => {
+    return this.step(id, ['XE_VE_KHO'], 'Chỉ hoàn tất khi xe đã về kho.', async (tx, t) => {
       await tx.deliveryTrip.update({ where: { id }, data: { status: 'HOAN_TAT', completedAt: new Date() } });
+      await this.log(tx, t, 'delivery_trip.complete', `Hoàn tất chuyến ${t.code}`);
     });
   }
 
   cancel(id: string, reason: string | undefined) {
-    return this.step(id, ['GOM_DON'], 'Chuyến đã xuất kho — không huỷ được.', async (tx) => {
+    return this.step(id, ['GOM_DON'], 'Chuyến đã xuất kho — không huỷ được.', async (tx, t) => {
+      const codes = (await tx.salesOrder.findMany({ where: { id: { in: t.orders.map((x) => x.orderId) } }, select: { code: true } })).map((o) => o.code);
       await tx.deliveryTripOrder.deleteMany({ where: { tripId: id } });
       await tx.deliveryTrip.update({ where: { id }, data: { status: 'HUY', cancelReason: reason ?? null } });
+      await this.log(tx, t, 'delivery_trip.cancel',
+        `Huỷ chuyến ${t.code}${codes.length ? `, giải phóng ${codes.length} đơn` : ''}${reason ? `: ${reason}` : ''}`, codes);
     });
   }
 

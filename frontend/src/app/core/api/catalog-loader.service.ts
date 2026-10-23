@@ -1,34 +1,32 @@
 import { Injectable, inject, signal } from '@angular/core';
 import {
   AppUser, BomLine, CashVoucher, DeliveryTrip, ProductionOrder, PurchaseOrder, SalesOrder, StockLevel, WarehouseVoucher, CashAccount, CashCategory, CompanyInfo, Customer, Product, ProductCategory, Role, Supplier, SupplierProduct, Tag, Vehicle,
-  Warehouse,
+  TagColors, Warehouse,
 } from '../models/domain.models';
-import { MockDataService } from '../services/mock-data.service';
+import { DataStore } from '../services/data-store.service';
 import { AuthService } from '../services/auth.service';
 import { ApiService, errorText } from './api.service';
-import { CASH_FROM_API, CATALOG_FROM_API, DELIVERY_FROM_API, INVENTORY_FROM_API, PURCHASING_FROM_API, SALES_FROM_API } from './api.config';
 
 type DirectoryUser = Pick<AppUser, 'id' | 'name' | 'email' | 'roleId' | 'status'>;
 
 /**
- * Loads every danh mục (and, from Đợt 2, tồn kho and phiếu kho) from the API into MockDataService's
+ * Loads every danh mục, tồn kho and chứng từ from the API into DataStore's
  * signals once per signed-in user, so the screens keep reading `data.products()` etc. unchanged.
  * Lists a role may not read come back empty.
  */
 @Injectable({ providedIn: 'root' })
 export class CatalogLoader {
   private readonly api = inject(ApiService);
-  private readonly data = inject(MockDataService);
+  private readonly data = inject(DataStore);
   private readonly auth = inject(AuthService);
 
-  readonly status = signal<'idle' | 'loading' | 'ready' | 'error'>(CATALOG_FROM_API || INVENTORY_FROM_API ? 'idle' : 'ready');
+  readonly status = signal<'idle' | 'loading' | 'ready' | 'error'>('idle');
   readonly error = signal('');
   private pending: Promise<void> | null = null;
   private loadedFor: string | null = null;
 
   /** Resolves when the catalog of the current user is in place; never rejects (see `status`). */
   ensureLoaded(): Promise<void> {
-    if (!CATALOG_FROM_API && !INVENTORY_FROM_API) return Promise.resolve();
     const userId = this.auth.user()?.userId ?? null;
     if (userId && userId === this.loadedFor && this.status() === 'ready') return Promise.resolve();
     if (this.pending && userId === this.loadedFor) return this.pending;
@@ -58,29 +56,21 @@ export class CatalogLoader {
     this.error.set('');
     const can = (c: string) => this.auth.can(c);
     try {
-      if (INVENTORY_FROM_API) await this.loadInventory();
-      if (PURCHASING_FROM_API) this.data.purchaseOrders.set(await this.api.get<PurchaseOrder[]>('/purchase-orders'));
-      if (SALES_FROM_API) {
-        const [orders, lsx] = await Promise.all([
-          this.api.get<SalesOrder[]>('/sales-orders'),
-          this.api.get<ProductionOrder[]>('/production-orders'),
-        ]);
-        this.data.salesOrders.set(orders);
-        this.data.productionOrders.set(lsx);
-      }
-      if (DELIVERY_FROM_API) this.data.deliveryTrips.set(await this.api.get<DeliveryTrip[]>('/delivery-trips'));
-      if (CASH_FROM_API) {
-        // Công nợ, the dashboard and the cash-flow report read them too (same rule as the server).
-        const canRead = ['voucher.view', 'debt.view', 'report.cashflow', 'report.dashboard'].some((c) => can(c));
-        this.data.cashVouchers.set(canRead ? await this.api.get<CashVoucher[]>('/cash-vouchers') : []);
-      }
-      if (!CATALOG_FROM_API) {
-        this.status.set('ready');
-        return;
-      }
+      await this.loadInventory();
+      this.data.purchaseOrders.set(await this.api.get<PurchaseOrder[]>('/purchase-orders'));
+      const [orders, lsx] = await Promise.all([
+        this.api.get<SalesOrder[]>('/sales-orders'),
+        this.api.get<ProductionOrder[]>('/production-orders'),
+      ]);
+      this.data.salesOrders.set(orders);
+      this.data.productionOrders.set(lsx);
+      this.data.deliveryTrips.set(await this.api.get<DeliveryTrip[]>('/delivery-trips'));
+      // Công nợ, the dashboard and the cash-flow report read them too (same rule as the server).
+      const canRead = ['voucher.view', 'debt.view', 'report.cashflow', 'report.dashboard'].some((c) => can(c));
+      this.data.cashVouchers.set(canRead ? await this.api.get<CashVoucher[]>('/cash-vouchers') : []);
       const [
         products, bomLines, categories, warehouses, customers, suppliers, supplierProducts, vehicles,
-        cashAccounts, cashCategories, tags, company, users, roles,
+        cashAccounts, cashCategories, tags, company, tagColors, users, roles,
       ] = await Promise.all([
         this.api.get<Product[]>('/products'),
         this.api.get<BomLine[]>('/bom-lines'),
@@ -94,6 +84,7 @@ export class CatalogLoader {
         this.api.get<CashCategory[]>('/cash-categories'),
         this.api.get<Tag[]>('/tags'),
         this.api.get<CompanyInfo>('/company'),
+        this.api.get<TagColors>('/company/display-colors'),
         // Full accounts for Thiết lập › Người dùng; everyone else gets names only.
         can('user.view')
           ? this.api.get<AppUser[]>('/users')
@@ -113,6 +104,7 @@ export class CatalogLoader {
       d.cashCategories.set(cashCategories);
       d.tags.set(tags);
       d.companyInfo.set(company);
+      d.tagColors.set(tagColors);
       d.users.set(users);
       d.roles.set(roles);
       this.status.set('ready');

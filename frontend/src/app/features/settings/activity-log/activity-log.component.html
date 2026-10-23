@@ -1,0 +1,130 @@
+<div class="page-header">
+  <div>
+    <h1>Nhật ký hoạt động</h1>
+    <p class="subtitle">Ai đã làm gì, với chứng từ nào, lúc nào. Nhật ký chỉ được thêm, không ai sửa hay xoá được.</p>
+  </div>
+  <div class="toolbar">
+    <button type="button" class="btn" [disabled]="exporting() || !rows().length" (click)="exportExcel()">
+      <app-nav-icon name="download" />{{ exporting() ? 'Đang xuất…' : 'Xuất Excel' }}
+    </button>
+  </div>
+</div>
+
+<div class="filters-bar">
+  <input
+    id="al-search"
+    type="text"
+    class="filter-search"
+    placeholder="Tìm mã chứng từ, nội dung, người thực hiện…"
+    aria-label="Tìm trong nhật ký"
+    [value]="search()"
+    (input)="search.set($any($event.target).value)"
+  />
+  <select id="al-user" aria-label="Người thực hiện" [value]="userId()" (change)="userId.set($any($event.target).value)">
+    <option value="">Mọi người dùng</option>
+    @for (u of users(); track u.id) { <option [value]="u.id">{{ u.name }}</option> }
+  </select>
+  <select id="al-type" aria-label="Loại đối tượng" [value]="entityType()" (change)="entityType.set($any($event.target).value)">
+    <option value="">Mọi đối tượng</option>
+    @for (t of entityTypes; track t[0]) { <option [value]="t[0]">{{ t[1] }}</option> }
+  </select>
+  <select id="al-action" aria-label="Thao tác" [value]="action()" (change)="action.set($any($event.target).value)">
+    <option value="">Mọi thao tác</option>
+    @for (a of actions; track a.value) { <option [value]="a.value">{{ a.label }}</option> }
+  </select>
+  <app-period-filter [(value)]="period" />
+  @if (filtered()) {
+    <button type="button" class="filter-clear-all" (click)="clearAll()"><app-nav-icon name="x" />Xoá bộ lọc</button>
+  }
+</div>
+
+@if (error()) {
+  <div class="notice is-error" role="alert">
+    <span>{{ error() }}</span>
+    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="error.set('')"><app-nav-icon name="x" /></button>
+  </div>
+}
+
+<div class="card al-card">
+  @if (!rows().length) {
+    <div class="empty-state" aria-live="polite">
+      @if (loading()) {
+        <p>Đang tải nhật ký…</p>
+      } @else {
+        <h3>Không có dòng nhật ký nào</h3>
+        <p>{{ filtered() ? 'Thử bỏ bớt bộ lọc.' : 'Mọi thao tác ghi dữ liệu sẽ hiện ở đây.' }}</p>
+      }
+    </div>
+  } @else {
+    <div class="table-scroll">
+      <table class="al-table">
+        <thead>
+          <tr>
+            <th scope="col">Thời gian</th>
+            <th scope="col">Người thực hiện</th>
+            <th scope="col">Thao tác</th>
+            <th scope="col">Đối tượng</th>
+            <th scope="col">Nội dung</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of rows(); track r.id) {
+            @let v = verb(r.action);
+            <tr>
+              <td class="num al-when">{{ when(r.at) }}</td>
+              <td class="al-who">{{ r.userName }}@if (r.ip) { <span class="al-ip mono">{{ r.ip }}</span> }</td>
+              <td>
+                <span class="badge" [class.badge-success]="v.tone === 'ok'" [class.badge-danger]="v.tone === 'bad'"
+                  [class.badge-warning]="v.tone === 'warn'" [class.badge-muted]="v.tone === 'plain'">{{ v.label }}</span>
+              </td>
+              <td class="al-entity">
+                <span class="al-type">{{ entityName(r.entityType) }}</span>
+                @if (r.entityCode) {
+                  @if (link(r); as l) { <a class="code-link" [routerLink]="l">{{ r.entityCode }}</a> } @else { <span class="mono">{{ r.entityCode }}</span> }
+                }
+              </td>
+              <td class="al-summary">
+                <p>{{ r.summary }}</p>
+                @if (r.related?.length) {
+                  <p class="al-related">Chứng từ kèm:
+                    @for (c of r.related; track c) {
+                      @if (codeRoute(c); as l) { <a class="code-link" [routerLink]="l">{{ c }}</a> } @else { <span class="mono">{{ c }}</span> }
+                    }
+                  </p>
+                }
+                @if (r.changes?.length) {
+                  <button type="button" class="link-btn" [attr.aria-expanded]="open().has(r.id)" (click)="toggle(r.id)">
+                    {{ open().has(r.id) ? 'Ẩn' : 'Xem' }} {{ r.changes!.length }} thay đổi
+                  </button>
+                  @if (open().has(r.id)) {
+                    <dl class="al-changes">
+                      @for (c of r.changes; track c.field) {
+                        <div>
+                          <dt>{{ c.label }}</dt>
+                          @if (delta(c.from, c.to); as d) {
+                            <dd>
+                              @for (x of d.added; track x) { <span class="al-add">+ {{ x }}</span> }
+                              @for (x of d.removed; track x) { <span class="al-del">− {{ x }}</span> }
+                            </dd>
+                          } @else {
+                            <dd><span class="al-from">{{ fmt(c.from) }}</span> → <strong>{{ fmt(c.to) }}</strong></dd>
+                          }
+                        </div>
+                      }
+                    </dl>
+                  }
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="al-foot">
+      <span class="num">{{ rows().length }} dòng{{ nextCursor() ? ' · còn nữa' : '' }}</span>
+      @if (nextCursor()) {
+        <button type="button" class="btn" [disabled]="loading()" (click)="loadMore()">{{ loading() ? 'Đang tải…' : 'Tải thêm 100 dòng' }}</button>
+      }
+    </div>
+  }
+</div>

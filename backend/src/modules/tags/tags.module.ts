@@ -8,6 +8,10 @@ import { RequirePermissions } from '../../auth/permissions.decorator.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { Text } from '../../common/dto.js';
 import { foldVi } from '../../common/text.js';
+import { AuditService } from '../../audit/audit.service.js';
+import { diff } from '../../audit/audit.diff.js';
+
+const TAG_FIELDS = { name: 'Tên thẻ', color: 'Màu', sortOrder: 'Thứ tự', isActive: 'Đang dùng' };
 
 // Same keys as the frontend's TagColorKey (shared/tag-colors.ts).
 const COLORS = ['gray', 'red', 'orange', 'amber', 'lime', 'emerald', 'teal', 'cyan', 'blue', 'indigo', 'violet', 'pink'];
@@ -28,22 +32,40 @@ const SELECT = { id: true, name: true, color: true, sortOrder: true, isActive: t
 // Thẻ đánh dấu: one list shared by đơn hàng bán and khách hàng.
 @Injectable()
 export class TagsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   findAll() {
     return this.prisma.tag.findMany({ select: SELECT, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] });
   }
 
   async save(dto: TagDto, id?: string) {
-    const all = await this.prisma.tag.findMany({ select: { id: true, name: true } });
-    if (id && !all.some((t) => t.id === id)) throw new NotFoundException('Không tìm thấy thẻ');
+    const all = await this.prisma.tag.findMany({ select: SELECT });
+    const before = id ? all.find((t) => t.id === id) : undefined;
+    if (id && !before) throw new NotFoundException('Không tìm thấy thẻ');
     if (all.some((t) => t.id !== id && foldVi(t.name) === foldVi(dto.name))) throw new ConflictException(`Đã có thẻ "${dto.name}".`);
     const data = { name: dto.name, color: dto.color ?? null, sortOrder: dto.sortOrder, isActive: dto.isActive };
-    return id ? this.prisma.tag.update({ where: { id }, data, select: SELECT }) : this.prisma.tag.create({ data, select: SELECT });
+    return this.prisma.$transaction(async (tx) => {
+      const t = id ? await tx.tag.update({ where: { id }, data, select: SELECT }) : await tx.tag.create({ data, select: SELECT });
+      await this.audit.log(tx, {
+        action: id ? 'tag.update' : 'tag.create', entityType: 'Tag', entityId: t.id, entityCode: t.name,
+        summary: `${id ? 'Sửa' : 'Tạo'} thẻ ${t.name}`, changes: id ? diff(before, data, TAG_FIELDS) : undefined,
+      });
+      return t;
+    });
   }
 
   setActive(id: string, isActive: boolean) {
-    return this.prisma.tag.update({ where: { id }, data: { isActive }, select: SELECT });
+    return this.prisma.$transaction(async (tx) => {
+      const t = await tx.tag.update({ where: { id }, data: { isActive }, select: SELECT });
+      await this.audit.log(tx, {
+        action: isActive ? 'tag.activate' : 'tag.deactivate', entityType: 'Tag', entityId: id, entityCode: t.name,
+        summary: `${isActive ? 'Dùng lại' : 'Ngừng dùng'} thẻ ${t.name}`,
+      });
+      return t;
+    });
   }
 
   /** Only a tag nobody uses can go; one in use is switched off (Ngừng dùng) to keep history. */
@@ -53,7 +75,10 @@ export class TagsService {
       this.prisma.customerTag.count({ where: { tagId: id } }),
     ]);
     if (orders || customers) throw new ConflictException('Thẻ đang được dùng — chọn Ngừng dùng thay vì xoá.');
-    await this.prisma.tag.delete({ where: { id } });
+    await this.prisma.$transaction(async (tx) => {
+      const t = await tx.tag.delete({ where: { id } });
+      await this.audit.log(tx, { action: 'tag.delete', entityType: 'Tag', entityId: id, entityCode: t.name, summary: `Xoá thẻ ${t.name} (chưa dùng ở đâu)` });
+    });
   }
 }
 

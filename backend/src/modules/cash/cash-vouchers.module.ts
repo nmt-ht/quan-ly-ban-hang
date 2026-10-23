@@ -13,6 +13,8 @@ import { SequenceService } from '../../prisma/sequence.service.js';
 import { OptionalText, Text } from '../../common/dto.js';
 import { fromDay } from '../../common/text.js';
 import { CASH_INCLUDE, cashToApi } from './cash-voucher.mapper.js';
+import { AuditService } from '../../audit/audit.service.js';
+import { vnd } from '../../audit/audit.diff.js';
 
 export class AllocationDto {
   @Text(30) ref!: string; // mã chứng từ công nợ (DN…/DH…, or a phiếu hoàn tiền)
@@ -50,6 +52,7 @@ export class CashVouchersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly sequences: SequenceService,
+    private readonly audit: AuditService,
   ) {}
 
   async findAll() {
@@ -102,6 +105,16 @@ export class CashVouchersService {
         },
         include: CASH_INCLUDE,
       });
+      const partner = customerId
+        ? (await tx.customer.findUnique({ where: { id: customerId }, select: { code: true, name: true } }))
+        : supplierId ? (await tx.supplier.findUnique({ where: { id: supplierId }, select: { code: true, name: true } })) : null;
+      await this.audit.log(tx, {
+        action: 'cash_voucher.create', entityType: 'CashVoucher', entityId: v.id, entityCode: v.code,
+        summary: `Lập ${dto.kind === 'THU' ? 'phiếu thu' : 'phiếu chi'} ${v.code}: ${vnd(dto.amount)} · ${category.name}`
+          + (partner ? ` · ${partner.code} ${partner.name}` : '') + ` · ${account.name}`
+          + (merged.size ? ` · đối trừ chọn tay ${[...merged].map(([r, a]) => `${r} ${vnd(a)}`).join(', ')}` : ''),
+        related: [...merged.keys(), ...(partner ? [partner.code] : [])],
+      });
       return cashToApi(v);
     });
   }
@@ -111,8 +124,15 @@ export class CashVouchersService {
     const v = await this.prisma.cashVoucher.findUnique({ where: { id } });
     if (!v) throw new NotFoundException('Không tìm thấy phiếu thu chi');
     if (v.isCancelled) throw new BadRequestException(`${v.code} đã huỷ rồi.`);
-    const saved = await this.prisma.cashVoucher.update({
-      where: { id }, data: { isCancelled: true, cancelReason: reason ?? null, cancelledAt: new Date() }, include: CASH_INCLUDE,
+    const saved = await this.prisma.$transaction(async (tx) => {
+      const s = await tx.cashVoucher.update({
+        where: { id }, data: { isCancelled: true, cancelReason: reason ?? null, cancelledAt: new Date() }, include: CASH_INCLUDE,
+      });
+      await this.audit.log(tx, {
+        action: 'cash_voucher.cancel', entityType: 'CashVoucher', entityId: id, entityCode: v.code,
+        summary: `Huỷ ${v.kind === 'THU' ? 'phiếu thu' : 'phiếu chi'} ${v.code} (${vnd(v.amount)})${reason ? `: ${reason}` : ''}`,
+      });
+      return s;
     });
     return cashToApi(saved);
   }

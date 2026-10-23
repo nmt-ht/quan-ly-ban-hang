@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ALL_PERMISSION_CODES } from '../../../core/data/permission-catalog';
 import { PermissionModule, Role } from '../../../core/models/domain.models';
-import { MockDataService } from '../../../core/services/mock-data.service';
+import { DataStore } from '../../../core/services/data-store.service';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { foldVi } from '../../../shared/format.util';
 import { AREAS, AccessLevel, hasViewLevel, initialsOf, levelOf, sameSet, setLevel, togglePermission } from './role.rules';
@@ -28,7 +28,7 @@ const LEVEL_LABEL: Record<AccessLevel, string> = { none: 'Không có quyền', v
   ],
 })
 export class RolesPermissionsComponent {
-  readonly data = inject(MockDataService);
+  readonly data = inject(DataStore);
   private readonly svc = inject(RoleService);
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
 

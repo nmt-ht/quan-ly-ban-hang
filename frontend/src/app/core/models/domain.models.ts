@@ -432,6 +432,13 @@ export interface CompanyInfo {
   logo?: string; // data: URL, PNG/JPEG đã thu nhỏ (giữ trong trình duyệt tới khi có backend upload)
 }
 
+// A tag colour is a hue (0–360) or 'neutral' (grey). Lightness and chroma are fixed by the
+// design tokens (--tag-*), so every choice stays readable in light and dark mode.
+export type TagColor = number | 'neutral';
+
+/** Màu hiển thị the company changed, `${groupId}:${key}` → colour (GET /company/display-colors). */
+export type TagColors = Record<string, TagColor>;
+
 export interface Role {
   id: string;
   name: string;

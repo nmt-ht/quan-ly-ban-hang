@@ -2,7 +2,7 @@ import { Component, computed, effect, inject, signal, untracked } from '@angular
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { DataStore } from '../../core/services/data-store.service';
 import { DebtRow, DebtService } from '../../core/services/debt.service';
 import { CustomerType } from '../../core/models/domain.models';
 import { DataTableColumn, DataTableComponent } from '../../shared/data-table/data-table.component';
@@ -37,7 +37,7 @@ const SORTS: { value: ReceivableSort; label: string }[] = [
   templateUrl: './receivables.component.html',
 })
 export class ReceivablesComponent {
-  private readonly data = inject(MockDataService);
+  private readonly data = inject(DataStore);
   private readonly debt = inject(DebtService);
   readonly partnerId = toSignal(inject(ActivatedRoute).queryParamMap.pipe(map((q) => q.get('partnerId'))), { initialValue: null });
 

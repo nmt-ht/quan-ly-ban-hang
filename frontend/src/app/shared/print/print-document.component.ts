@@ -1,6 +1,6 @@
 import { Component, HostListener, ViewEncapsulation, computed, inject, input, signal } from '@angular/core';
 import { AuthService } from '../../core/services/auth.service';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { DataStore } from '../../core/services/data-store.service';
 import { CompanyLetterheadComponent } from '../company-letterhead/company-letterhead.component';
 import { formatDay } from '../period';
 
@@ -72,7 +72,7 @@ export interface PrintSigner {
 })
 export class PrintDocumentComponent {
   private readonly auth = inject(AuthService);
-  private readonly data = inject(MockDataService);
+  private readonly data = inject(DataStore);
 
   readonly title = input.required<string>();
   readonly no = input<string | undefined>();

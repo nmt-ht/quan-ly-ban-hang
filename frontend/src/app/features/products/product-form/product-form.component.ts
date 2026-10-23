@@ -6,7 +6,7 @@ import {
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { merge } from 'rxjs';
-import { MockDataService } from '../../../core/services/mock-data.service';
+import { DataStore } from '../../../core/services/data-store.service';
 import {
   MeasureMode, Product, ProductImage, ProductType, UnitConversion, UnitOperation,
 } from '../../../core/models/domain.models';
@@ -114,7 +114,7 @@ export class ProductFormComponent implements HasUnsavedChanges {
   readonly notFound: boolean;
 
   constructor(
-    readonly data: MockDataService,
+    readonly data: DataStore,
     private readonly router: Router,
     route: ActivatedRoute,
   ) {

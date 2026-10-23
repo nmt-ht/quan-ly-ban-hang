@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import { MockDataService } from '../../../core/services/mock-data.service';
+import { DataStore } from '../../../core/services/data-store.service';
 import { DebtEntry, DebtService } from '../../../core/services/debt.service';
 import { CustomerAddress, SalesOrder } from '../../../core/models/domain.models';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
@@ -20,20 +20,21 @@ import { PHONE_PATTERN, creditLabel } from '../customer.rules';
 import { CustomerService } from '../customer.service';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { errorText } from '../../../core/api/api.service';
+import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
 
-export type CustomerTab = 'chung' | 'dia-chi' | 'don-hang' | 'cong-no';
+export type CustomerTab = 'chung' | 'dia-chi' | 'don-hang' | 'cong-no' | 'nhat-ky';
 
 @Component({
   selector: 'app-customer-detail',
   standalone: true,
-  imports: [NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent],
+  imports: [NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, AuditHistoryComponent],
   templateUrl: './customer-detail.component.html',
   styleUrls: ['../../suppliers/supplier-detail/supplier-detail.component.scss', './customer-detail.component.scss'],
 })
 export class CustomerDetailComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  readonly data = inject(MockDataService);
+  readonly data = inject(DataStore);
   private readonly debt = inject(DebtService);
   private readonly svc = inject(CustomerService);
 
@@ -87,6 +88,7 @@ export class CustomerDetailComponent {
     { id: 'dia-chi' as CustomerTab, label: 'Địa chỉ giao hàng', count: this.customer()?.addresses?.length ?? 0 },
     { id: 'don-hang' as CustomerTab, label: 'Đơn hàng', count: this.orders().length },
     { id: 'cong-no' as CustomerTab, label: 'Sổ công nợ' },
+    { id: 'nhat-ky' as CustomerTab, label: 'Nhật ký' },
   ]);
 
   readonly tab = computed<CustomerTab>(() => {

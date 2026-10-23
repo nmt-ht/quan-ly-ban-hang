@@ -44,5 +44,6 @@ export const NAV_GROUPS: NavGroup[] = [
     { label: 'Người dùng', path: '/thiet-lap/nguoi-dung', icon: 'user' },
     { label: 'Chức vụ & phân quyền', path: '/thiet-lap/chuc-vu', icon: 'shield' },
     { label: 'Màu hiển thị', path: '/thiet-lap/mau-hien-thi', icon: 'palette' },
+    { label: 'Nhật ký hoạt động', path: '/thiet-lap/nhat-ky', icon: 'clock' },
   ]},
 ];

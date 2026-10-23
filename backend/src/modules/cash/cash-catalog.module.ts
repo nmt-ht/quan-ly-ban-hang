@@ -7,6 +7,14 @@ import { JwtAuthGuard } from '../../auth/jwt-auth.guard.js';
 import { PermissionsGuard } from '../../auth/permissions.guard.js';
 import { RequirePermissions } from '../../auth/permissions.decorator.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { AuditService } from '../../audit/audit.service.js';
+import { diff } from '../../audit/audit.diff.js';
+
+const ACCOUNT_FIELDS = {
+  name: 'Tên', type: 'Tính chất', code: 'Mã', bankName: 'Ngân hàng', accountNumber: 'Số tài khoản', accountHolder: 'Chủ tài khoản',
+  branch: 'Chi nhánh', openingBalance: 'Số dư đầu kỳ', sortOrder: 'Thứ tự', note: 'Ghi chú', isDefault: 'Mặc định', isActive: 'Đang dùng',
+};
+const CATEGORY_FIELDS = { name: 'Tên', partnerType: 'Đối tác', isDefault: 'Mặc định', isActive: 'Đang dùng' };
 import { OptionalText, Text } from '../../common/dto.js';
 import { foldVi } from '../../common/text.js';
 
@@ -44,7 +52,10 @@ export async function cashBalances(db: Pick<PrismaService, 'cashVoucher'>): Prom
 
 @Injectable()
 export class CashAccountsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   async findAll() {
     const [accounts, moved] = await Promise.all([
@@ -79,14 +90,25 @@ export class CashAccountsService {
       // "Chọn sẵn khi lập phiếu": one default account at most.
       // (No NOT: { id: undefined } on create — Prisma reads that as NOT {} and matches nothing.)
       if (isDefault) await tx.cashAccount.updateMany({ where: id ? { isDefault: true, NOT: { id } } : { isDefault: true }, data: { isDefault: false } });
-      return old ? tx.cashAccount.update({ where: { id }, data }) : tx.cashAccount.create({ data });
+      const a = old ? await tx.cashAccount.update({ where: { id }, data }) : await tx.cashAccount.create({ data });
+      await this.audit.log(tx, {
+        action: old ? 'cash_account.update' : 'cash_account.create', entityType: 'CashAccount', entityId: a.id, entityCode: a.code ?? a.name,
+        summary: `${old ? 'Sửa' : 'Thêm'} tài khoản tiền ${a.name}`, changes: old ? diff(old, data, ACCOUNT_FIELDS) : undefined,
+      });
+      return a;
     });
     return this.one(saved.id);
   }
 
   /** Ngừng dùng, never deleted: old vouchers keep it, new ones cannot pick it. */
   async setActive(id: string, isActive: boolean) {
-    await this.prisma.cashAccount.update({ where: { id }, data: isActive ? { isActive } : { isActive, isDefault: false } });
+    await this.prisma.$transaction(async (tx) => {
+      const a = await tx.cashAccount.update({ where: { id }, data: isActive ? { isActive } : { isActive, isDefault: false } });
+      await this.audit.log(tx, {
+        action: isActive ? 'cash_account.activate' : 'cash_account.deactivate', entityType: 'CashAccount', entityId: id, entityCode: a.code ?? a.name,
+        summary: `${isActive ? 'Dùng lại' : 'Ngừng dùng'} tài khoản tiền ${a.name}`,
+      });
+    });
     return this.one(id);
   }
 }
@@ -134,7 +156,10 @@ const CODE = /^[A-Z0-9_]{2,40}$/;
 
 @Injectable()
 export class CashCategoriesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   findAll() {
     return this.prisma.cashCategory.findMany({ orderBy: [{ kind: 'desc' }, { sortOrder: 'asc' }, { name: 'asc' }] });
@@ -159,14 +184,27 @@ export class CashCategoriesService {
         await tx.cashVoucher.updateMany({ where: { kind: old.kind, category: old.name }, data: { category: dto.name } });
       }
       const data = { name: dto.name, kind: dto.kind, partnerType: dto.partnerType, isDefault, isActive };
-      return old
-        ? tx.cashCategory.update({ where: { code }, data })
-        : tx.cashCategory.create({ data: { code, ...data, sortOrder: all.length } });
+      const c = old
+        ? await tx.cashCategory.update({ where: { code }, data })
+        : await tx.cashCategory.create({ data: { code, ...data, sortOrder: all.length } });
+      await this.audit.log(tx, {
+        action: old ? 'cash_category.update' : 'cash_category.create', entityType: 'CashCategory', entityId: code, entityCode: code,
+        summary: `${old ? 'Sửa' : 'Thêm'} loại ${c.kind === 'THU' ? 'thu' : 'chi'} ${c.name}` + (old && old.name !== c.name ? ' (phiếu cũ đổi tên theo)' : ''),
+        changes: old ? diff(old, data, CATEGORY_FIELDS) : undefined,
+      });
+      return c;
     });
   }
 
   setActive(code: string, isActive: boolean) {
-    return this.prisma.cashCategory.update({ where: { code }, data: isActive ? { isActive } : { isActive, isDefault: false } });
+    return this.prisma.$transaction(async (tx) => {
+      const c = await tx.cashCategory.update({ where: { code }, data: isActive ? { isActive } : { isActive, isDefault: false } });
+      await this.audit.log(tx, {
+        action: isActive ? 'cash_category.activate' : 'cash_category.deactivate', entityType: 'CashCategory', entityId: code, entityCode: code,
+        summary: `${isActive ? 'Dùng lại' : 'Ngừng dùng'} loại thu chi ${c.name}`,
+      });
+      return c;
+    });
   }
 }
 

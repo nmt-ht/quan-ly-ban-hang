@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { DataStore } from '../../core/services/data-store.service';
 import { CostService } from '../../core/services/cost.service';
 import { Product, ProductType } from '../../core/models/domain.models';
 import { DataTableColumn, DataTableComponent } from '../../shared/data-table/data-table.component';
@@ -46,7 +46,7 @@ const r4 = (n: number) => Math.round(n * 10000) / 10000;
   templateUrl: './inventory.component.html',
 })
 export class InventoryComponent {
-  readonly data = inject(MockDataService);
+  readonly data = inject(DataStore);
   private readonly cost = inject(CostService);
 
   readonly search = signal('');

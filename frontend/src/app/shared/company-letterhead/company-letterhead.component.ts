@@ -1,6 +1,6 @@
 import { Component, computed, inject, input } from '@angular/core';
 import { CompanyInfo } from '../../core/models/domain.models';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { DataStore } from '../../core/services/data-store.service';
 import { companyContactRows } from './company-lines';
 
 // Tiêu đề công ty ở đầu mọi bản in (phiếu kho, phiếu thu chi, chuyến giao hàng, công nợ, tuổi nợ):
@@ -64,7 +64,7 @@ import { companyContactRows } from './company-lines';
   `,
 })
 export class CompanyLetterheadComponent {
-  private readonly data = inject(MockDataService);
+  private readonly data = inject(DataStore);
 
   readonly draft = input<CompanyInfo | null>(null, { alias: 'info' });
   readonly info = computed(() => this.draft() ?? this.data.companyInfo());

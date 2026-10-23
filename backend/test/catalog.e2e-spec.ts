@@ -154,6 +154,22 @@ describe('Danh mục (e2e)', () => {
     await manager.delete(`/api/tags/${t.id}`).expect(204);
   });
 
+  it('màu hiển thị: one set per company, read by everyone, changed only with company.update', async () => {
+    const before = (await admin.get('/api/company/display-colors').expect(200)).body;
+    try {
+      const colors = { 'sales-order:HUY': 25, 'product-type:VAT_TU': 'neutral' };
+      await manager.put('/api/company/display-colors', { colors }).expect(403);
+      expect((await admin.put('/api/company/display-colors', { colors }).expect(200)).body).toEqual(colors);
+      expect((await storekeeper.get('/api/company/display-colors').expect(200)).body).toEqual(colors);
+      expect((await storekeeper.get('/api/company').expect(200)).body).not.toHaveProperty('tagColors');
+      await admin.put('/api/company/display-colors', { colors: { 'sales-order:HUY': 360 } }).expect(400);
+      await admin.put('/api/company/display-colors', { colors: { 'sales-order:HUY': 'red' } }).expect(400);
+      await admin.put('/api/company/display-colors', { colors: { '<script>': 10 } }).expect(400);
+    } finally {
+      await admin.put('/api/company/display-colors', { colors: before }).expect(200);
+    }
+  });
+
   it('người dùng: locking and ending sessions revoke tokens at once; the last CEO is protected', async () => {
     const role = (await admin.get('/api/roles').expect(200)).body.find((r: any) => r.id === 'role-sale');
     expect(role.permissionCount).toBe(16);

@@ -1,6 +1,6 @@
 import { PermissionModule } from '../models/domain.models';
 
-// Danh mục quyền của hệ thống (98 quyền, 23 nhóm). Mã quyền chỉ dùng trong code và backend — giao diện chỉ hiện nhãn.
+// Danh mục quyền của hệ thống (99 quyền, 24 nhóm). Mã quyền chỉ dùng trong code và backend — giao diện chỉ hiện nhãn.
 export const PERMISSION_MODULES: PermissionModule[] = [
   { key: 'user', label: 'Người dùng', permissions: [
     { code: 'user.view', label: 'Xem người dùng' },
@@ -145,6 +145,9 @@ export const PERMISSION_MODULES: PermissionModule[] = [
     { code: 'report.production', label: 'Báo cáo sản xuất' },
     { code: 'report.delivery', label: 'Báo cáo giao hàng' },
     { code: 'report.view_profit', label: 'Xem lợi nhuận, lãi gộp' },
+  ]},
+  { key: 'audit', label: 'Nhật ký hoạt động', permissions: [
+    { code: 'audit.view', label: 'Xem nhật ký hoạt động' },
   ]},
 ];
 

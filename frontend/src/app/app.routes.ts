@@ -68,6 +68,7 @@ export const routes: Routes = [
       { path: 'thiet-lap/nguoi-dung/:id', loadComponent: () => import('./features/settings/users/user-detail/user-detail.component').then((m) => m.UserDetailComponent) },
       { path: 'thiet-lap/chuc-vu', loadComponent: () => import('./features/settings/roles-permissions/roles-permissions.component').then((m) => m.RolesPermissionsComponent) },
       { path: 'thiet-lap/mau-hien-thi', loadComponent: () => import('./features/settings/display-colors/display-colors.component').then((m) => m.DisplayColorsComponent) },
+      { path: 'thiet-lap/nhat-ky', loadComponent: () => import('./features/settings/activity-log/activity-log.component').then((m) => m.ActivityLogComponent) },
     ],
   },
   { path: '**', redirectTo: '' },

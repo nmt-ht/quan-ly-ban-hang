@@ -1,7 +1,7 @@
 import { Component, computed, effect, signal, untracked, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { DataStore } from '../../core/services/data-store.service';
 import { DataTableComponent, DataTableColumn } from '../../shared/data-table/data-table.component';
 import { FilterMultiSelectComponent, FilterOption } from '../../shared/filter-multi-select/filter-multi-select.component';
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
@@ -212,7 +212,7 @@ export class ProductsComponent {
 
   private readonly categoryName = computed(() => new Map(this.data.categories().map((c) => [c.id, c.name])));
 
-  constructor(readonly data: MockDataService) {
+  constructor(readonly data: DataStore) {
     // Any change to the result set (filters, sort, imports) starts again from page 1.
     effect(() => {
       this.products();

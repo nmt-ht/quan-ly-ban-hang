@@ -4,7 +4,7 @@ import { map } from 'rxjs';
 import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { MockDataService } from '../../../core/services/mock-data.service';
+import { DataStore } from '../../../core/services/data-store.service';
 import { Product, PurchaseOrder, PurchaseOrderLine } from '../../../core/models/domain.models';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { CopyButtonComponent } from '../../../shared/copy-button/copy-button.component';
@@ -25,6 +25,7 @@ import { PurchaseOrderService } from '../purchase-order.service';
 import { ReceiveGoodsDialogComponent } from '../receive-goods-dialog/receive-goods-dialog.component';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { errorText } from '../../../core/api/api.service';
+import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
 
 type Mode = 'create' | 'edit' | 'view';
 
@@ -58,7 +59,7 @@ const emptyLine = (): DraftLine => ({
   standalone: true,
   imports: [
     NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
-    ReceiveGoodsDialogComponent, PaginationComponent, PrintDocumentComponent,
+    ReceiveGoodsDialogComponent, PaginationComponent, PrintDocumentComponent, AuditHistoryComponent,
   ],
   templateUrl: './purchase-order-voucher.component.html',
   styleUrl: '../../../shared/voucher/voucher.scss',
@@ -66,7 +67,7 @@ const emptyLine = (): DraftLine => ({
 export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  readonly data = inject(MockDataService);
+  readonly data = inject(DataStore);
   private readonly orders = inject(PurchaseOrderService);
   private readonly receiveDialog = viewChild<ReceiveGoodsDialogComponent>('receiveDialog');
 
@@ -93,7 +94,7 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
   readonly note = signal('');
   readonly lines = signal<DraftLine[]>([emptyLine()]);
   readonly attempted = signal(false);
-  readonly tab = signal<'hang' | 'phieu'>('hang');
+  readonly tab = signal<'hang' | 'phieu' | 'nhat-ky'>('hang');
   readonly notice = signal('');
   /** A save or status change the server refused (or that could not reach it). */
   readonly failure = signal('');

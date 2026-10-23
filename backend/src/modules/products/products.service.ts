@@ -5,6 +5,18 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import { SequenceService } from '../../prisma/sequence.service.js';
 import type { AuthUser } from '../../auth/auth.service.js';
 import { BomReplacementDto, CreateProductDto, ProductImageDto, ProductUpdateRowDto, UnitConversionDto } from './dto/create-product.dto.js';
+import { AuditService } from '../../audit/audit.service.js';
+import { diff } from '../../audit/audit.diff.js';
+
+const PRODUCT_FIELDS = {
+  name: 'Tên', baseUnit: 'ĐVT chính', measureMode: 'Cách tính', crossRefCode: 'Mã đối chiếu', category: 'Nhóm hàng',
+  defaultWarehouse: 'Kho ngầm định', minStock: 'Tồn tối thiểu', vatRate: 'Thuế GTGT (%)', warrantyMonths: 'Bảo hành (tháng)',
+  origin: 'Nguồn gốc', retailPrice: 'Giá lẻ', wholesalePrice: 'Giá sỉ', dropshipPrice: 'Giá dropship', purchaseNote: 'Diễn giải khi mua',
+  saleNote: 'Diễn giải khi bán', description: 'Mô tả', isSellable: 'Được phép bán', isActive: 'Đang kinh doanh',
+  units: 'Đơn vị quy đổi', images: 'Số ảnh',
+};
+
+const unitText = (u: { unitName: string; ratioToBaseUnit: unknown; price: unknown }) => `${u.unitName} = ${Number(u.ratioToBaseUnit)} · ${Number(u.price)}`;
 
 type Tx = Prisma.TransactionClient;
 
@@ -56,7 +68,23 @@ export class ProductsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly sequences: SequenceService,
+    private readonly audit: AuditService,
   ) {}
+
+  /** A product as the diff compares it: nhóm hàng and kho by name, units as text, images as a count. */
+  private async described(tx: Tx, p: {
+    categoryId: string | null; defaultWarehouseId: string | null;
+    unitConversions?: { unitName: string; ratioToBaseUnit: unknown; price: unknown }[]; images?: unknown[];
+  }) {
+    const [category, warehouse] = await Promise.all([
+      p.categoryId ? tx.productCategory.findUnique({ where: { id: p.categoryId }, select: { name: true } }) : null,
+      p.defaultWarehouseId ? tx.warehouse.findUnique({ where: { id: p.defaultWarehouseId }, select: { name: true } }) : null,
+    ]);
+    return {
+      ...p, category: category?.name ?? null, defaultWarehouse: warehouse?.name ?? null,
+      units: p.unitConversions?.map(unitText), images: p.images?.length,
+    };
+  }
 
   async findAll() {
     return (await this.prisma.product.findMany({ include: INCLUDE, orderBy: { name: 'asc' } })).map(toApi);
@@ -69,7 +97,7 @@ export class ProductsService {
   }
 
   create(dto: CreateProductDto) {
-    return this.prisma.$transaction(async (tx) => toApi(await this.insert(tx, dto)));
+    return this.prisma.$transaction(async (tx) => toApi(await this.insert(tx, dto, 'form')));
   }
 
   // The code prefix (VT/SP/DV) is fixed at creation, so the type cannot change.
@@ -80,7 +108,14 @@ export class ProductsService {
   /** Ngừng kinh doanh / kinh doanh lại: products are never hard-deleted. */
   async setActive(id: string, isActive: boolean) {
     await this.findOne(id);
-    return toApi(await this.prisma.product.update({ where: { id }, data: { isActive }, include: INCLUDE }));
+    return this.prisma.$transaction(async (tx) => {
+      const p = await tx.product.update({ where: { id }, data: { isActive }, include: INCLUDE });
+      await this.audit.log(tx, {
+        action: isActive ? 'product.activate' : 'product.deactivate', entityType: 'Product', entityId: id, entityCode: p.code,
+        summary: `${isActive ? 'Kinh doanh lại' : 'Ngừng kinh doanh'} ${p.code} · ${p.name}`,
+      });
+      return toApi(p);
+    });
   }
 
   /** Nhập hàng hoá từ Excel, all or nothing. Images are not part of the sheet and stay as they are. */
@@ -88,7 +123,7 @@ export class ProductsService {
     return this.prisma.$transaction(
       async (tx) => {
         const created = [];
-        for (const dto of creates) created.push(toApi(await this.insert(tx, dto)));
+        for (const dto of creates) created.push(toApi(await this.insert(tx, dto, 'excel')));
         const updated = [];
         for (const { id, ...dto } of updates) updated.push(toApi(await this.replace(tx, id, dto, user, false)));
         return { created, updated };
@@ -97,8 +132,8 @@ export class ProductsService {
     );
   }
 
-  private async insert(tx: Tx, dto: CreateProductDto) {
-    return tx.product.create({
+  private async insert(tx: Tx, dto: CreateProductDto, source: 'form' | 'excel') {
+    const p = await tx.product.create({
       data: {
         ...fields(dto),
         type: dto.type,
@@ -108,10 +143,15 @@ export class ProductsService {
       },
       include: INCLUDE,
     });
+    await this.audit.log(tx, {
+      action: 'product.create', entityType: 'Product', entityId: p.id, entityCode: p.code,
+      summary: `Thêm hàng hoá ${p.code} · ${p.name}${source === 'excel' ? ' (nhập Excel)' : ''}`,
+    });
+    return p;
   }
 
   private async replace(tx: Tx, id: string, dto: CreateProductDto, user: AuthUser, withImages: boolean) {
-    const old = await tx.product.findUnique({ where: { id }, include: { unitConversions: true } });
+    const old = await tx.product.findUnique({ where: { id }, include: { unitConversions: { orderBy: { sortOrder: 'asc' } }, images: true } });
     if (!old) throw new NotFoundException(`Không tìm thấy hàng hoá ${id}`);
     if (old.type !== dto.type) throw new BadRequestException(`${old.code}: không đổi được tính chất hàng hoá (mã ${PREFIX[old.type]}… gắn với tính chất).`);
     const units = dto.unitConversions ?? old.unitConversions.map((u) => ({ ...u, price: u.price.toNumber() }));
@@ -127,7 +167,13 @@ export class ProductsService {
       await tx.productImage.deleteMany({ where: { productId: id } });
       await tx.productImage.createMany({ data: imageRows(dto.images).map((r) => ({ ...r, productId: id })) });
     }
-    return tx.product.update({ where: { id }, data: next, include: INCLUDE });
+    const saved = await tx.product.update({ where: { id }, data: next, include: INCLUDE });
+    const changes = diff(await this.described(tx, old), await this.described(tx, saved), PRODUCT_FIELDS);
+    await this.audit.log(tx, {
+      action: changes.some((c) => /Price$/.test(c.field)) ? 'product.update_price' : 'product.update', entityType: 'Product', entityId: id,
+      entityCode: saved.code, summary: `Sửa hàng hoá ${saved.code} · ${saved.name}${withImages ? '' : ' (nhập Excel)'}`, changes,
+    });
+    return saved;
   }
 
   // ---------- Định mức ----------
@@ -137,11 +183,20 @@ export class ProductsService {
   }
 
   async replaceBoms(replacements: BomReplacementDto[]) {
+    const ids = [...new Set(replacements.flatMap((r) => [r.finishedProductId, ...r.lines.map((l) => l.componentId)]))];
+    const code = new Map((await this.prisma.product.findMany({ where: { id: { in: ids } }, select: { id: true, code: true } })).map((p) => [p.id, p.code]));
+    const lineText = (l: { componentId: string; quantityPerUnit: unknown }) => `${code.get(l.componentId) ?? l.componentId} × ${Number(l.quantityPerUnit)}`;
     await this.prisma.$transaction(async (tx) => {
       for (const r of replacements) {
+        const before = await tx.bomLine.findMany({ where: { finishedProductId: r.finishedProductId } });
         await tx.bomLine.deleteMany({ where: { finishedProductId: r.finishedProductId } });
         await tx.bomLine.createMany({
           data: r.lines.map((l) => ({ finishedProductId: r.finishedProductId, componentId: l.componentId, quantityPerUnit: l.quantityPerUnit })),
+        });
+        await this.audit.log(tx, {
+          action: 'product.bom', entityType: 'Product', entityId: r.finishedProductId, entityCode: code.get(r.finishedProductId),
+          summary: `Nhập định mức cho ${code.get(r.finishedProductId) ?? r.finishedProductId}: ${r.lines.length} dòng vật tư`,
+          changes: diff({ lines: before.map(lineText) }, { lines: r.lines.map(lineText) }, { lines: 'Định mức' }),
         });
       }
     });

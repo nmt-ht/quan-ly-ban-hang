@@ -100,6 +100,7 @@
       <button type="button" role="tab" [attr.aria-selected]="tab() === 'chi-phi'" (click)="tab.set('chi-phi')">
         Chi phí chuyến @if (savedCost()) { <span class="tab-count num">{{ money(savedCost()) }}</span> }
       </button>
+      <button type="button" role="tab" [attr.aria-selected]="tab() === 'nhat-ky'" (click)="tab.set('nhat-ky')">Nhật ký</button>
     </div>
 
     @switch (tab()) {
@@ -307,6 +308,9 @@
             </div>
           }
         </section>
+      }
+      @case ('nhat-ky') {
+        <section class="card voucher-grid-card"><app-audit-history entityType="DeliveryTrip" [entityId]="t.id" [code]="t.code" /></section>
       }
     }
 

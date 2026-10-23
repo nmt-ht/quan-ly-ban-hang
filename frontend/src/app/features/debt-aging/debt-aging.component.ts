@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { DataStore } from '../../core/services/data-store.service';
 import { DebtRow, DebtService } from '../../core/services/debt.service';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { foldVi, formatVnd } from '../../shared/format.util';
@@ -58,7 +58,7 @@ export function bucketOf(days: number): Bucket {
 })
 export class DebtAgingComponent {
   private readonly debt = inject(DebtService);
-  private readonly data = inject(MockDataService);
+  private readonly data = inject(DataStore);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 

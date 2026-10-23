@@ -121,6 +121,11 @@
     </div>
   }
 
+  <section class="card section-block">
+    <h3>Nhật ký</h3>
+    <app-audit-history entityType="User" [entityId]="u.id" [code]="u.email" />
+  </section>
+
   <app-user-dialog #userDialog (saved)="notice.set($event.message)" />
   <app-password-dialog #passwordDialog (done)="notice.set($event)" />
 } @else {

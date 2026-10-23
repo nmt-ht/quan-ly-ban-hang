@@ -3,7 +3,7 @@ import { NgClass } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import { MockDataService } from '../../../core/services/mock-data.service';
+import { DataStore } from '../../../core/services/data-store.service';
 import { Vehicle, VehicleStatus } from '../../../core/models/domain.models';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { CopyButtonComponent } from '../../../shared/copy-button/copy-button.component';
@@ -17,16 +17,17 @@ import { VehicleService } from '../vehicle.service';
 import { VehicleDialogComponent } from '../vehicle-dialog/vehicle-dialog.component';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { errorText } from '../../../core/api/api.service';
+import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
 
 @Component({
   selector: 'app-vehicle-detail',
   standalone: true,
-  imports: [NgClass, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, VehicleDialogComponent],
+  imports: [NgClass, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, VehicleDialogComponent, AuditHistoryComponent],
   templateUrl: './vehicle-detail.component.html',
   styleUrl: '../../suppliers/supplier-detail/supplier-detail.component.scss',
 })
 export class VehicleDetailComponent {
-  readonly data = inject(MockDataService);
+  readonly data = inject(DataStore);
   private readonly svc = inject(VehicleService);
   private readonly dialog = viewChild.required<VehicleDialogComponent>('dialog');
 

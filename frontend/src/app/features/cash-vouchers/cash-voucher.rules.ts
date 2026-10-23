@@ -2,14 +2,6 @@ import { CashAccountType, CashCategory, CashVoucher, VoucherKind } from '../../c
 
 export type PartnerType = CashVoucher['partnerType'];
 
-/** Loại thu chi của production (/thu-chi/loai). The first default of each kind is pre-selected. */
-export const DEFAULT_CASH_CATEGORIES: CashCategory[] = [
-  { code: 'THU_KH', name: 'Thu tiền khách hàng', kind: 'THU', partnerType: 'KHACH_HANG', isDefault: true, isActive: true, isSystem: true },
-  { code: 'THU_KHAC', name: 'Thu khác', kind: 'THU', partnerType: 'KHAC', isActive: true, isSystem: true },
-  { code: 'CHI_NCC', name: 'Chi trả nhà cung cấp', kind: 'CHI', partnerType: 'NHA_CUNG_CAP', isDefault: true, isActive: true, isSystem: true },
-  { code: 'CHI_KHAC', name: 'Chi khác', kind: 'CHI', partnerType: 'KHAC', isActive: true, isSystem: true },
-];
-
 export const PARTNER_LABEL: Record<PartnerType, string> = { KHACH_HANG: 'Khách hàng', NHA_CUNG_CAP: 'Nhà cung cấp', KHAC: 'Không gắn' };
 
 export function categoryHint(c: Pick<CashCategory, 'partnerType'>): string {
@@ -17,8 +9,6 @@ export function categoryHint(c: Pick<CashCategory, 'partnerType'>): string {
   if (c.partnerType === 'NHA_CUNG_CAP') return 'Gắn với nhà cung cấp và làm giảm công nợ.';
   return 'Không gắn đối tác, chỉ ghi sổ quỹ.';
 }
-
-export const VOUCHER_PREFIX: Record<VoucherKind, string> = { THU: 'PT', CHI: 'PC' };
 
 export const ACCOUNT_TYPE_LABEL: Record<CashAccountType, string> = { TIEN_MAT: 'Tiền mặt', NGAN_HANG: 'Chuyển khoản' };
 
