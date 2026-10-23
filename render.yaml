@@ -1,0 +1,33 @@
+# Render Blueprint: one free web service that builds the Angular app and serves it from the NestJS
+# API (same origin). PostgreSQL lives on Neon (free); paste its connection string as DATABASE_URL.
+# Each start runs `prisma migrate deploy`, then seeds once if the database is empty (prisma/bootstrap.ts).
+services:
+  - type: web
+    name: ninh-trang-erp
+    runtime: node
+    plan: free
+    region: singapore
+    branch: master
+    autoDeploy: true
+    buildCommand: >-
+      cd frontend && npm ci && npm run build &&
+      cd ../backend && npm ci && npx prisma generate && npm run build
+    startCommand: cd backend && npm run start:render
+    healthCheckPath: /api
+    envVars:
+      - key: NODE_VERSION
+        value: 24.22.1
+      # Neon › Connection string (direct, not pooled), e.g. postgresql://…neon.tech/neondb?sslmode=require
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      # Password of admin@ninhtrang.local, used only when the database is still empty (≥ 10 characters).
+      - key: SEED_ADMIN_PASSWORD
+        sync: false
+      # Load the demo data on the first start; set to "false" for a database meant for real data.
+      - key: SEED_DEMO
+        value: "true"
+      # Password of the demo accounts (quan.ly@, ke.toan@, sale1@, thu.kho@ …ninhtrang.local), ≥ 8 characters.
+      - key: DEMO_USER_PASSWORD
+        sync: false

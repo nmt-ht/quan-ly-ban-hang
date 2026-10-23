@@ -6,12 +6,23 @@ An Angular + NestJS rebuild of the Ninh Trang business-management app, covering 
 
 ```
 ninh-trang-erp/
-  frontend/    — Angular 22 app, all 20 pages from the source sitemap, mock in-memory data
-  backend/     — NestJS 12 + Prisma + PostgreSQL, auth + RBAC + 2 reference CRUD modules
+  frontend/    — Angular 22 app (every screen reads and writes through the API)
+  backend/     — NestJS 12 + Prisma + PostgreSQL: auth, RBAC, every business module, reports, audit log
+  render.yaml  — Render Blueprint (free web service; database on Neon)
   docs/
-    backend-plan.md        — backend architecture, module pattern, business rules to enforce
-    deployment-plan.md     — Railway deployment topology and checklist
+    atlas/                 — one Word document per screen
+    bao-gia/               — features & quotation document
 ```
+
+## Deploy (Render + Neon, free)
+
+One Render web service builds the Angular app and serves it from the NestJS API (`backend/src/main.ts` serves `frontend/dist/frontend/browser` and sends `index.html` for client routes), so screens and `/api` share one address. The database is a free Neon PostgreSQL.
+
+1. Neon: create a project (region Singapore), copy the **direct** connection string (`…neon.tech/neondb?sslmode=require`).
+2. Render: New › Blueprint › this repository. Fill `DATABASE_URL` (from Neon), `SEED_ADMIN_PASSWORD` (≥ 10 characters) and `DEMO_USER_PASSWORD` (≥ 8); `JWT_SECRET` is generated.
+3. Every start runs `npm run start:render`: `prisma migrate deploy`, then `prisma/bootstrap.ts` seeds only if the database has no user (with `SEED_DEMO=true` also the demo data), then the app with `NODE_ENV=production`, which refuses to start without a real `JWT_SECRET`.
+
+The free instance sleeps after 15 minutes without traffic; the first request after that waits about a minute. Pushing to `master` redeploys.
 
 ## Frontend
 
@@ -43,7 +54,7 @@ npm run start:dev          # http://localhost:3000/api
 
 API conventions (Đợt 0): Decimal columns come back as JSON numbers (`common/decimal.interceptor.ts`); document codes come from `prisma/sequence.service.ts` (atomic, synced with existing codes on boot); duplicate / missing / referenced rows answer 409 / 404 / 409 with a Vietnamese message (`common/prisma-exception.filter.ts`); `GET /api/auth/me` returns the user and the role's permissions, read from the database on every request, so role edits and locked accounts apply at once. Date-only fields are `@db.Date`: send them as `YYYY-MM-DD`.
 
-Seeded login: `admin@ninhtrang.local` / value of `SEED_ADMIN_PASSWORD` in `.env` (defaults to `ChangeMe123!` — rotate immediately, see `docs/deployment-plan.md`).
+Seeded login: `admin@ninhtrang.local` / value of `SEED_ADMIN_PASSWORD` in `.env` (defaults to `ChangeMe123!` locally — never on a server: `prisma/bootstrap.ts` refuses it).
 
 Wired end to end (Đợt 1): users, roles, company, tags, warehouses, categories, products (+ units, images, import, định mức), customers (+ addresses, tags), suppliers (+ danh mục hàng theo NCC), vehicles, cash accounts, cash categories — under `src/modules/`. Danh mục reads are open to every signed-in user (other screens show those names); writes need the matching permission. Full user accounts need `user.view`, roles need `position.view` or `user.view`, supplier purchase prices need `supplier.view`.
 
