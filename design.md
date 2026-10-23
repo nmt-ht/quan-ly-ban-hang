@@ -216,8 +216,27 @@ mix in a second icon library or emoji.
   > income). Plain progress counts (waiting for production, shipping, waiting for goods) are NOT problems.
 - Area cards take their chip (Ổn / Cần theo dõi / Có vấn đề) from the same list, so the two can never disagree.
   Rows that are a problem turn danger / warning colour; everything else stays ink. No decoration without a meaning.
-- Headline numbers carry a delta line coloured good / bad (success / danger tokens) and a muted note line; a number
-  the reader should act on links to the report or ledger behind it.
+- Area card anatomy: title + chip (dot + word) → **one headline figure** (20 px mono, muted label after it) →
+  detail rows → one "Xem …" link pinned to the foot. A card that is warn / bad also carries a 3 px top rule in that
+  colour. Detail rows are whole-row links (label ink-2, value ink, `›` at the end, paper-2 on hover); a problem row
+  gets a dot before its label plus the coloured value — never colour alone. Công nợ shows Phải thu and Phải trả side
+  by side; Dòng tiền compares thu and chi as two bars on one scale.
+- Area grid: cards in a row share one height (no ragged holes). < 720 px one column · 720–1359 px two columns with
+  Công nợ full width · ≥ 1360 px three cards then Công nợ + Dòng tiền (Dòng tiền full width when công nợ is hidden).
+- Headline number tile: label (ink-2, `›` at the right — the whole tile opens the report / ledger behind it) →
+  figure (24 px mono) → **one comparison chip** (success / danger tint + arrow or word; neutral paper-2 when flat)
+  followed by muted context → note pinned to the foot above a hairline, so the notes line up across the row. Each
+  tile says one thing: phải trả NCC lives in the Công nợ card, not under "Khách còn nợ". Lãi gộp compares tỷ suất
+  in percentage points ("▲ +3,7 điểm"). Text pieces sit in their own spans inside a flex row — never rely on a
+  space between an element and an `@if` block (Angular drops it).
+- Revenue chart: four plain figures first (Tổng kỳ · Trung bình / ngày · Cao nhất + its day · Ngày có doanh thu), so
+  reading it never depends on hover. Axis top is rounded to a "nice" number (1 · 1.2 · 1.5 · 2 · 2.5 · 3 · 4 · 5 · 6 ·
+  8 × 10ⁿ) with gridlines at top / half / 0 labelled compactly (12 tr, 850 k); a zero day draws no bar; a dashed
+  average line appears once ≥ 2 days have sales. ≤ 8 x labels, every other one hidden when the plot is < 28 rem
+  wide (container query). Hover shows date + amount just above the bar, opening inward at the edges; the same data
+  sits in a visually-hidden table for screen readers (the drawn chart is `aria-hidden`).
+- Bán chạy: rank disc (first one moss-tinted) → product name on its own line (full width, wraps, never truncated) →
+  qty · share on the left with the amount right → share bar. No link-coloured names; the name links on hover.
 - New check = push one `Issue` in `issues()`; no template change.
 
 ## Toggle filters (bộ lọc bật / tắt)

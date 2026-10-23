@@ -120,6 +120,17 @@ export class DashboardComponent {
     return c > 0 ? `▲ +${v}%` : c < 0 ? `▼ −${v}%` : '0%';
   }
 
+  /** Change of tỷ suất lãi gộp in percentage points, one decimal. */
+  points(now: number | undefined, before: number | undefined): number {
+    return Math.round(((now ?? 0) - (before ?? 0)) * 10) / 10;
+  }
+
+  /** "▲ +3,6 điểm" / "▼ −2,1 điểm" / "Không đổi". */
+  pointsLabel(d: number): string {
+    const v = Math.abs(d).toLocaleString('vi-VN', { maximumFractionDigits: 1 });
+    return d > 0 ? `▲ +${v} điểm` : d < 0 ? `▼ −${v} điểm` : 'Không đổi';
+  }
+
   percent(n: number | undefined): string {
     return (n ?? 0).toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
   }
@@ -168,5 +179,79 @@ export class DashboardComponent {
   readonly areaName: Record<IssueArea, string> = { sell: 'Bán hàng', stock: 'Kho', profit: 'Lợi nhuận', debt: 'Công nợ', cash: 'Dòng tiền' };
   readonly levelName = { bad: 'Có vấn đề', warn: 'Cần theo dõi', ok: 'Ổn' };
 
-  readonly chartMax = computed(() => Math.max(0, ...this.byDay().bars.map((b) => b.value)));
+  /** Phải trả due within 7 days but not overdue yet (payableDue counts both). */
+  dueSoon(dt: { payableDue: number; payableOverdue: number }): number {
+    return Math.max(0, dt.payableDue - dt.payableOverdue);
+  }
+
+  /** Width of a Thu / Chi bar: share of the larger of the two, so the bars compare at a glance. */
+  flowPct(value: number, c: { thu: number; chi: number }): number {
+    const max = Math.max(c.thu, c.chi);
+    return max > 0 ? Math.round((Math.max(0, value) / max) * 100) : 0;
+  }
+
+  // ---------- biểu đồ doanh thu ----------
+  // A "nice" axis top (12 tr, not 11.242.000) with gridlines at top / half / 0, at most ~8 x labels,
+  // an average line, and per-bar tooltip text. The same figures go to a visually-hidden table for screen readers.
+  readonly chart = computed(() => {
+    const { unit, bars } = this.byDay();
+    const byMonth = unit === 'tháng';
+    const max = Math.max(0, ...bars.map((b) => b.value));
+    const top = niceCeil(max);
+    const total = bars.reduce((s, b) => s + b.value, 0);
+    const avg = bars.length ? Math.round(total / bars.length) : 0;
+    const step = Math.max(1, Math.ceil(bars.length / 8));
+    const peak = max > 0 ? bars.findIndex((b) => b.value === max) : -1;
+    const n = bars.length;
+    return {
+      unit,
+      total,
+      avg,
+      max,
+      peakLabel: peak >= 0 ? (byMonth ? bars[peak].label : shortDay(bars[peak].key)) : '',
+      active: bars.filter((b) => b.value > 0).length,
+      ticks: top ? [top, top / 2, 0].map((v) => ({ value: v, label: compactVnd(v), pct: (v / top) * 100 })) : [],
+      avgPct: top ? (avg / top) * 100 : 0,
+      bars: bars.map((b, i) => ({
+        key: b.key,
+        value: b.value,
+        h: top ? (b.value / top) * 100 : 0,
+        axis: i % step === 0 ? (byMonth ? b.label : shortDay(b.key)) : '',
+        // Every other label drops out on a narrow plot (see .db-axis) so they never run together.
+        minor: i % (step * 2) !== 0,
+        tip: byMonth ? `Tháng ${b.label}` : formatDay(b.key),
+        peak: i === peak,
+        // Tooltips near the edges open inward so they never leave the card.
+        edge: i < n * 0.2 ? 'start' : i >= n * 0.8 ? 'end' : '',
+      })),
+    };
+  });
+
+  compact(n: number): string {
+    return compactVnd(n);
+  }
+}
+
+/** Round an axis maximum up to 1 · 1.2 · 1.5 · 2 · 2.5 · 3 · 4 · 5 · 6 · 8 × 10ⁿ. */
+function niceCeil(v: number): number {
+  if (v <= 0) return 0;
+  const exp = 10 ** Math.floor(Math.log10(v));
+  const f = v / exp;
+  const step = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].find((s) => f <= s + 1e-9) ?? 10;
+  return step * exp;
+}
+
+/** Axis-size money: 1,2 tỷ · 12 tr · 850 k · 0. */
+function compactVnd(v: number): string {
+  const f = (x: number) => x.toLocaleString('vi-VN', { maximumFractionDigits: 1 });
+  const a = Math.abs(v);
+  if (a >= 1e9) return `${f(v / 1e9)} tỷ`;
+  if (a >= 1e6) return `${f(v / 1e6)} tr`;
+  if (a >= 1e3) return `${f(Math.round(v / 1e3))} k`;
+  return f(v);
+}
+
+/** "2026-10-05" → "5/10". */
+function shortDay(iso: string): string {
+  return `${+iso.slice(8, 10)}/${+iso.slice(5, 7)}`;
 }
