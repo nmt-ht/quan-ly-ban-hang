@@ -1,10 +1,19 @@
 <a class="skip-link" href="#main-content" (click)="$event.preventDefault(); mainEl.focus()">Bỏ qua đến nội dung chính</a>
 <div class="shell" [class.collapsed]="collapsed()" [class.menu-open]="menuOpen()">
   <aside class="sidebar" id="app-sidebar">
-    <a class="brand" [routerLink]="homeUrl()" aria-label="Ninh Trang — về trang đầu" title="Về trang đầu" (click)="closeMenu()">
-      <span class="brand-mark" aria-hidden="true">NT</span>
+    <!-- The company's logo (Thiết lập › Thông tin công ty) when one is uploaded, else the NT monogram.
+         Under the name: the running version. -->
+    <a class="brand" [routerLink]="homeUrl()" [attr.aria-label]="'Ninh Trang, ' + versionLabel + ' — về trang đầu'" title="Về trang đầu" (click)="closeMenu()">
+      @if (logo(); as src) {
+        <span class="brand-mark has-logo" aria-hidden="true"><img [src]="src" alt="" /></span>
+      } @else {
+        <span class="brand-mark" aria-hidden="true">NT</span>
+      }
       @if (!collapsed()) {
-        <span class="brand-name">Ninh Trang</span>
+        <span class="brand-text">
+          <span class="brand-name">Ninh Trang</span>
+          <span class="brand-version num">{{ versionLabel }}</span>
+        </span>
       }
     </a>
 

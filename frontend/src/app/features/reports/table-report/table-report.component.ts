@@ -1,4 +1,4 @@
-import { Component, computed, effect, input, signal, untracked } from '@angular/core';
+import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { apiQuery, queryString } from '../../../core/api/api-query';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
@@ -7,6 +7,7 @@ import { downloadWorkbook, exportFileName } from '../../../shared/excel.util';
 import { PERIOD_PRESETS, formatDay, isoDay, presetRange } from '../../../shared/period';
 import { PeriodFilterComponent, PeriodValue } from '../../../shared/period-filter/period-filter.component';
 import { ReportCol, ReportDef, ReportResult, ReportRow } from '../report.types';
+import { DataStore } from '../../../core/services/data-store.service';
 
 const PAGE = 100;
 type Sort = { key: string; dir: 1 | -1 } | null;
@@ -25,11 +26,17 @@ export class TableReportComponent {
   readonly def = input.required<ReportDef>();
   /** Open on "the last N days" instead of this month (the dashboard's 60-day alert links here). */
   readonly startDays = input<number | null>(null);
+  /** The record a pick report opens on (?sp= — Thẻ kho of this mặt hàng). */
+  readonly startItem = input<string | null>(null);
+
+  private readonly data = inject(DataStore);
 
   readonly today = isoDay(new Date());
   readonly period = signal<PeriodValue>({ preset: 'thisMonth', range: presetRange('thisMonth') });
   readonly group = signal('');
   readonly search = signal('');
+  /** Picked record for a pick report ('' = none yet). */
+  readonly item = signal('');
   readonly sort = signal<Sort>(null);
   readonly limit = signal(PAGE);
   readonly exporting = signal(false);
@@ -43,8 +50,10 @@ export class TableReportComponent {
     effect(() => {
       const d = this.def();
       const n = this.startDays();
+      const start = this.startItem();
       untracked(() => {
         this.group.set(d.groups?.[0]?.value ?? '');
+        this.item.set(d.pick ? start ?? '' : '');
         this.search.set('');
         this.sort.set(null);
         this.limit.set(PAGE);
@@ -53,7 +62,8 @@ export class TableReportComponent {
           from.setDate(from.getDate() - n);
           this.period.set({ preset: 'custom', range: { from: isoDay(from), to: this.today } });
         } else {
-          this.period.set({ preset: 'thisMonth', range: presetRange('thisMonth') });
+          const preset = d.defaultPeriod ?? 'thisMonth';
+          this.period.set({ preset, range: presetRange(preset) });
         }
       });
     });
@@ -62,6 +72,7 @@ export class TableReportComponent {
       this.sort();
       this.period();
       this.group();
+      this.item();
       untracked(() => this.limit.set(PAGE));
     });
   }
@@ -80,10 +91,19 @@ export class TableReportComponent {
   private readonly query = apiQuery<ReportResult>(() => {
     const d = this.def();
     if (d.kind !== 'period' && d.kind !== 'snapshot') return null;
+    if (d.pick && !this.item()) return null; // nothing to ask until a record is picked
     const r = this.range();
     const period = d.kind === 'period';
-    return `/reports/${d.slug}` + queryString({ from: period ? r.from : null, to: period ? r.to : null, group: this.group() || null });
+    return `/reports/${d.slug}` + queryString({ from: period ? r.from : null, to: period ? r.to : null, group: this.group() || null, item: this.item() || null });
   }, { columns: [], rows: [] });
+
+  /** Choices of a pick report: mặt hàng with stock (not dịch vụ), by mã. */
+  readonly pickItems = computed(() =>
+    this.def().pick === 'product'
+      ? this.data.products().filter((p) => p.type !== 'DICH_VU').sort((a, b) => a.code.localeCompare(b.code))
+      : [],
+  );
+  readonly needsPick = computed(() => !!this.def().pick && !this.item());
 
   readonly result = this.query.value;
   readonly loading = this.query.loading;
@@ -151,7 +171,8 @@ export class TableReportComponent {
   }
 
   toneClass(c: ReportCol, v: unknown): string {
-    return c.tone && typeof v === 'number' ? amountTone(v) : '';
+    if (!c.tone || typeof v !== 'number') return '';
+    return amountTone(c.tone === 'inverse' ? -v : v);
   }
 
   async exportExcel(): Promise<void> {

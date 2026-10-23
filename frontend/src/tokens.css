@@ -10,6 +10,7 @@
   /* ---------- colour · light ---------- */
   --color-paper:        oklch(97.6% 0.008 90);   /* page ground — ledger paper */
   --color-surface:      oklch(99.3% 0.004 90);   /* cards, sidebar, inputs */
+  --color-logo-tile:    oklch(99.3% 0.004 90);   /* behind an uploaded logo — stays light in dark mode, logos are drawn for white */
   --color-paper-2:      oklch(95.2% 0.010 90);   /* row hover, quiet fills */
   --color-paper-3:      oklch(92.4% 0.012 90);   /* pressed, track */
   --color-rule:         oklch(89% 0.010 95);     /* hairline dividers */

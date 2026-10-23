@@ -43,14 +43,14 @@ export const REPORTS: ReportDef[] = [
   byslug(SALES_DEFS, 'ban-duoi-gia-von'),
   // ---- Kho
   byslug(STOCK_DEFS, 'nhap-xuat-ton'),
-  soon('hang-nam-im', 'Hàng không phát sinh lâu ngày', 'stock', 'Mặt hàng còn tồn nhưng không có chứng từ kho trong nhiều ngày.'),
+  byslug(STOCK_DEFS, 'hang-nam-im'),
   byslug(STOCK_DEFS, 'ton-kho'),
   byslug(STOCK_DEFS, 'duoi-ton-toi-thieu'),
-  soon('the-kho', 'Thẻ kho', 'stock', 'Sổ chi tiết nhập xuất của một mặt hàng theo từng chứng từ.'),
-  soon('vong-quay-ton-kho', 'Vòng quay tồn kho', 'stock', 'Số ngày tồn so với lượng bán bình quân mỗi ngày.'),
+  byslug(STOCK_DEFS, 'the-kho'),
+  byslug(STOCK_DEFS, 'vong-quay-ton-kho'),
   // ---- Mua hàng
   byslug(OPS_DEFS, 'mua-hang'),
-  soon('gia-mua', 'Giá mua biến động', 'buy', 'Đơn giá mua đã quy về ĐVT chính qua các lần nhập, xếp theo biên độ.'),
+  byslug(OPS_DEFS, 'gia-mua'),
   // ---- Sản xuất
   byslug(OPS_DEFS, 'san-xuat'),
   // ---- Giao hàng

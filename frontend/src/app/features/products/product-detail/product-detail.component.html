@@ -241,6 +241,7 @@
               <option [value]="w.id">{{ w.name }}</option>
             }
           </select>
+          <a class="link-btn" routerLink="/bao-cao" [queryParams]="{ name: 'the-kho', sp: p.id }">Xem thẻ kho (tồn sau từng phiếu) →</a>
         </div>
         <section class="card section-block history-card">
           @if (movements().length) {
@@ -283,7 +284,7 @@
         </section>
       }
       @case ('nhat-ky') {
-        <section class="card"><app-audit-history entityType="Product" [entityId]="p.id" [code]="p.code" /></section>
+        <section class="card history-card"><app-audit-history entityType="Product" [entityId]="p.id" [code]="p.code" /></section>
       }
     }
   </div>

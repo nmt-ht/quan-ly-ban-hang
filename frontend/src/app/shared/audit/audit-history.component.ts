@@ -74,19 +74,20 @@ import { formatDateTime } from '../format.util';
   `,
   styles: [`
     :host { display: block; }
-    .ah-state { color: var(--color-muted); margin: 0; padding: var(--space-s, 12px) 0; }
+    .ah-state { color: var(--color-muted); margin: 0; padding: var(--space-xs) 0; font-size: var(--text-sm); }
     .ah-list { list-style: none; margin: 0; padding: 0; display: grid; }
-    .ah-item { display: grid; grid-template-columns: minmax(9.5rem, 11rem) 1fr; gap: var(--space-s, 12px);
-      padding: var(--space-s, 12px) 0; border-bottom: 1px solid var(--color-rule); }
-    .ah-item:last-child { border-bottom: 0; }
-    .ah-when { display: grid; align-content: start; gap: 2px; font-size: var(--text-xs, 0.8125rem); color: var(--color-muted); }
+    .ah-item { display: grid; grid-template-columns: minmax(9.5rem, 11rem) 1fr; gap: var(--space-xs);
+      padding: var(--space-xs) 0; border-bottom: var(--rule-hair) solid var(--color-rule); }
+    .ah-item:last-child { border-bottom: 0; padding-bottom: 0; }
+    .ah-item:first-child { padding-top: var(--space-2xs); }
+    .ah-when { display: grid; align-content: start; gap: 2px; font-size: var(--text-xs); color: var(--color-muted); }
     .ah-who { color: var(--color-ink); font-weight: 600; overflow-wrap: anywhere; }
     .ah-what { min-width: 0; display: grid; gap: 6px; }
     .ah-summary { margin: 0; overflow-wrap: anywhere; }
     .ah-summary .badge { margin-right: 6px; }
-    .ah-meta { margin: 0; font-size: var(--text-xs, 0.8125rem); color: var(--color-muted); display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
-    .ah-changes { margin: 0; display: grid; gap: 4px; font-size: var(--text-xs, 0.8125rem);
-      border-left: 2px solid var(--color-rule); padding-left: var(--space-s, 12px); }
+    .ah-meta { margin: 0; font-size: var(--text-xs); color: var(--color-muted); display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
+    .ah-changes { margin: 0; display: grid; gap: 4px; font-size: var(--text-xs);
+      border-left: 2px solid var(--color-rule); padding-left: var(--space-xs); }
     .ah-changes > div { display: grid; grid-template-columns: minmax(7rem, 10rem) 1fr; gap: 8px; }
     .ah-changes dt { color: var(--color-muted); }
     .ah-changes dd { margin: 0; min-width: 0; overflow-wrap: anywhere; display: grid; gap: 2px; }

@@ -1,11 +1,14 @@
 {
   "name": "frontend",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "scripts": {
     "ng": "ng",
+    "prestart": "node scripts/write-version.mjs",
     "start": "ng serve",
+    "prebuild": "node scripts/write-version.mjs",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
+    "pretest": "node scripts/write-version.mjs",
     "test": "ng test"
   },
   "private": true,

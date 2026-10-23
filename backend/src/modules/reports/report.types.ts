@@ -8,8 +8,9 @@ export interface ReportCol {
   key: string;
   label: string;
   kind?: ColKind; // default text
-  /** Colour by sign (+ green / − red). */
-  tone?: boolean;
+  /** Colour by sign (+ green / − red).
+   * 'inverse': + red / − green, for figures where up is bad (giá mua tăng). */
+  tone?: boolean | 'inverse';
   /** Row field holding the router link of the cell (null on a row = plain text). */
   link?: string;
 }
@@ -29,6 +30,8 @@ export interface ReportResult {
 export interface ReportOptions {
   range: { from: string; to: string };
   group: string;
+  /** The one record a report is about (Thẻ kho: a mặt hàng id); '' when none is picked. */
+  item: string;
 }
 
 export interface ReportEnv {

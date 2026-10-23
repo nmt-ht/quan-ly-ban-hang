@@ -143,6 +143,17 @@
   overflow: hidden;
 }
 
+// The grid card has no padding so its table runs edge to edge; a title or note placed straight inside it
+// gets the card's inner spacing back here (otherwise it sits flush against the border).
+.voucher-grid-card > .form-section-title {
+  margin: 0;
+  padding: var(--space-sm) var(--space-md) var(--space-xs);
+}
+
+.voucher-grid-card > .form-note {
+  margin: var(--space-xs) var(--space-md) var(--space-sm);
+}
+
 .voucher-grid-scroll {
   position: relative; // keeps .visually-hidden cells inside the scroller
   overflow-x: auto;

@@ -31,6 +31,8 @@ export class ReportsComponent {
 
   private readonly name = toSignal(inject(ActivatedRoute).queryParamMap.pipe(map((q) => q.get('name'))), { initialValue: null });
   readonly days = toSignal(inject(ActivatedRoute).queryParamMap.pipe(map((q) => Number(q.get('ngay')) || null)), { initialValue: null });
+  /** ?sp=<mặt hàng> opens Thẻ kho on that item (link from the product page). */
+  readonly item = toSignal(inject(ActivatedRoute).queryParamMap.pipe(map((q) => q.get('sp'))), { initialValue: null });
   readonly query = signal('');
 
   /** The open report, or null for the hub (also for an unknown ?name=). */

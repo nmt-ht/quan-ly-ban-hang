@@ -48,4 +48,54 @@ const movement: ReportDef = {
   ],
 };
 
-export const STOCK_DEFS: ReportDef[] = [stockNow, belowMin, movement];
+// ---------------------------------------------------------------- Hàng không phát sinh lâu ngày
+const idle: ReportDef = {
+  slug: 'hang-nam-im',
+  label: 'Hàng không phát sinh lâu ngày',
+  group: 'stock',
+  summary: 'Mặt hàng còn tồn nhưng không có chứng từ kho trong nhiều ngày — vốn đang nằm im.',
+  kind: 'snapshot',
+  groups: [
+    { value: '60', label: 'Nằm im từ 60 ngày' },
+    { value: '90', label: 'Nằm im từ 90 ngày' },
+    { value: '180', label: 'Nằm im từ 180 ngày' },
+    { value: '365', label: 'Nằm im từ 1 năm' },
+  ],
+  searchHint: 'Tìm mã hoặc tên mặt hàng…',
+  notes: [
+    'Chỉ mặt hàng còn tồn dương (không gồm dịch vụ). Số ngày nằm im tính từ chứng từ kho gần nhất (nhập, xuất hoặc kiểm kê) đến hôm nay; chuyển kho không tính là phát sinh. Mặt hàng chưa từng có chứng từ đứng đầu danh sách.',
+    'Giá trị tồn = tồn × giá vốn ước tính (xem Lãi gộp).',
+  ],
+};
+
+// ---------------------------------------------------------------- Thẻ kho
+const stockCard: ReportDef = {
+  slug: 'the-kho',
+  label: 'Thẻ kho',
+  group: 'stock',
+  summary: 'Sổ chi tiết nhập xuất của một mặt hàng theo từng chứng từ, kèm tồn sau mỗi lần.',
+  kind: 'period',
+  pick: 'product',
+  searchHint: 'Tìm số phiếu, kho hoặc diễn giải…',
+  notes: [
+    'Cộng tất cả các kho, quy về ĐVT chính. Chuyển kho giữa các kho không đổi tổng tồn nên không hiện; kiểm kê thừa ghi vào Nhập, thiếu ghi vào Xuất. Phiếu đã huỷ không tính.',
+    'Tồn đầu kỳ được suy ra từ tồn hiện tại và các chứng từ; cột Tồn là tồn sau mỗi chứng từ.',
+  ],
+};
+
+// ---------------------------------------------------------------- Vòng quay tồn kho
+const turnover: ReportDef = {
+  slug: 'vong-quay-ton-kho',
+  label: 'Vòng quay tồn kho',
+  group: 'stock',
+  summary: 'Số ngày tồn so với lượng xuất bình quân mỗi ngày, và số vòng quay trong kỳ.',
+  kind: 'period',
+  searchHint: 'Tìm mã hoặc tên mặt hàng…',
+  notes: [
+    'Xuất trong kỳ = mọi phiếu xuất kho: giao cho khách và xuất vật tư cho sản xuất. Xuất / ngày = xuất trong kỳ ÷ số ngày của kỳ.',
+    'Số ngày tồn = tồn cuối kỳ ÷ xuất / ngày — tồn còn đủ dùng bao nhiêu ngày với nhịp hiện tại; mặt hàng không xuất hiện "—". Vòng quay = xuất trong kỳ ÷ tồn bình quân (đầu kỳ và cuối kỳ).',
+    'Số ngày tồn toàn kho = giá trị tồn ÷ giá trị xuất bình quân mỗi ngày (theo giá vốn ước tính). Xếp mặt hàng quay chậm nhất lên đầu.',
+  ],
+};
+
+export const STOCK_DEFS: ReportDef[] = [stockNow, belowMin, movement, idle, stockCard, turnover];

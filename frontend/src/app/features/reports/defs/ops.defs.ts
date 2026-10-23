@@ -20,6 +20,25 @@ const purchase: ReportDef = {
   ],
 };
 
+// ---------------------------------------------------------------- Giá mua biến động
+const priceDrift: ReportDef = {
+  slug: 'gia-mua',
+  label: 'Giá mua biến động',
+  group: 'buy',
+  summary: 'Đơn giá mua quy về ĐVT chính qua các lần nhập: lần đầu, gần nhất, thấp, cao — xếp theo biên độ.',
+  kind: 'period',
+  groups: [
+    { value: 'product', label: 'Theo mặt hàng' },
+    { value: 'line', label: 'Từng lần nhập' },
+  ],
+  searchHint: 'Tìm mặt hàng, nhà cung cấp hoặc số phiếu…',
+  defaultPeriod: 'thisYear',
+  notes: [
+    'Mỗi dòng của PHIẾU NHẬP KHO lập từ đơn nhập là một lần mua (cùng nguồn với báo cáo Nhập hàng), theo ngày nhập. Đơn giá chưa thuế GTGT, quy về ĐVT chính; phiếu chưa ghi đơn giá lấy giá của đơn nhập. Phiếu đã huỷ không tính.',
+    'Biên độ = (cao nhất − thấp nhất) ÷ thấp nhất. Thay đổi = (giá gần nhất − giá lần đầu) ÷ giá lần đầu, trong kỳ đang xem. Bình quân tính theo số lượng nhập. Tăng giá tô đỏ, giảm giá tô xanh.',
+  ],
+};
+
 // ---------------------------------------------------------------- Sản xuất
 const production: ReportDef = {
   slug: 'san-xuat',
@@ -81,4 +100,4 @@ const cashbook: ReportDef = {
   ],
 };
 
-export const OPS_DEFS: ReportDef[] = [purchase, production, vehicleCost, cashflow, cashbook];
+export const OPS_DEFS: ReportDef[] = [purchase, priceDrift, production, vehicleCost, cashflow, cashbook];

@@ -37,6 +37,8 @@ Demo accounts (after `prisma:seed:demo` with `DEMO_USER_PASSWORD=demo1234`): `qu
 
 Phân quyền trên giao diện: the role's permissions decide which menu links, Ctrl K entries, "Thêm / Lập …" buttons and routes a user gets. One table drives all of it: `src/app/core/auth/route-access.ts`. Buttons that act in place (Duyệt, Huỷ, Xoá…) and cost-price columns are not gated yet, and the backend must still check every call.
 
+Version: the sidebar shows `v<version>` from `package.json` under the name. `npm start` / `npm run build` regenerate the git-ignored `src/app/version.ts` via `scripts/write-version.mjs`. Bump the number for a release in `frontend/` with `npm version patch --no-git-tag-version` (fixes), `minor` (new features) or `major`. The sidebar mark shows the company logo once one is uploaded in Thiết lập › Thông tin công ty, else "NT".
+
 Fonts are self-hosted from `@fontsource/be-vietnam-pro` and `@fontsource/jetbrains-mono` (wired in `angular.json`), so the app works offline / behind a firewall.
 
 ## Backend

@@ -239,6 +239,18 @@ mix in a second icon library or emoji.
   qty · share on the left with the amount right → share bar. No link-coloured names; the name links on hover.
 - New check = push one `Issue` in `issues()`; no template change.
 
+## Totals strip (`dl.list-totals`)
+- The few numbers over a list (or inside a record tab) are small tiles: label on top (12 px muted), the number
+  under it (16 px, 600). Mark a problem number with `.text-warning` / `.text-danger` on its `dd` and the tile turns
+  tinted with a dot before the label — no per-page CSS. Inside a card the tiles sit on paper. Phones: two per row.
+
+## Nhật ký on a record page
+- `app-audit-history` always sits in `section.card.history-card` (padded). On a page section it gets an
+  `h2.history-title` "Nhật ký" over a hairline; inside a "Nhật ký" tab the heading is left out (the tab names it).
+  Never put it in a `.voucher-grid-card` — that card is padding 0 so tables run edge to edge.
+- A title or note placed straight inside a `.voucher-grid-card` (`.form-section-title`, `.form-note`) gets the
+  card's inner spacing back from `shared/voucher/voucher.scss`; don't hand-pad it per page.
+
 ## Nhật ký hoạt động
 - Always a real table (never cards). Every row shows the exact moment to the second in giờ Việt Nam
   (`dd/mm/yyyy` over a bold `HH:mm:ss`, then "x phút / giờ trước" within a day) — Asia/Ho_Chi_Minh regardless of

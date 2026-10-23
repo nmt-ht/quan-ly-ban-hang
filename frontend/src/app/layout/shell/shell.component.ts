@@ -1,4 +1,4 @@
-import { Component, HostListener, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, computed, effect, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { NAV_GROUPS, NavGroup } from '../nav-items';
@@ -8,6 +8,9 @@ import { CommandPaletteComponent } from '../command-palette/command-palette.comp
 import { CommandPaletteService } from '../../core/services/command-palette.service';
 import { AuthService } from '../../core/services/auth.service';
 import { CatalogLoader } from '../../core/api/catalog-loader.service';
+import { DataStore } from '../../core/services/data-store.service';
+import { APP_VERSION } from '../../version';
+import { trimLogo } from '../../shared/company-letterhead/logo-image';
 
 const CLOSED_KEY = 'nt.navClosed';
 
@@ -31,12 +34,26 @@ export class ShellComponent {
   readonly palette = inject(CommandPaletteService);
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
+  private readonly data = inject(DataStore);
   readonly catalog = inject(CatalogLoader);
   /** Only the pages the role may open; a group with none left disappears. */
   readonly navGroups = computed<NavGroup[]>(() =>
     NAV_GROUPS.map((g) => ({ ...g, links: g.links.filter((l) => this.auth.canVisit(l.path)) })).filter((g) => g.links.length),
   );
   readonly homeUrl = computed(() => this.auth.homeUrl());
+  /** Company logo from Thông tin công ty with its empty margin trimmed; the NT monogram stands in until one exists. */
+  readonly logo = signal<string | null>(null);
+  private readonly trimLogoEffect = effect(() => {
+    const src = this.data.companyInfo().logo || null;
+    this.logo.set(src); // the logo as uploaded right away; the trimmed copy replaces it when ready
+    if (!src) return;
+    void trimLogo(src).then((url) => {
+      if ((this.data.companyInfo().logo || null) === src) this.logo.set(url);
+    });
+  });
+
+  /** Running version under the name (package.json, via scripts/write-version.mjs). */
+  readonly versionLabel = `v${APP_VERSION}`;
   readonly collapsed = signal(false);
   readonly menuOpen = signal(false);
   /** Labels of the sub menus the user folded; remembered per browser. */

@@ -27,7 +27,7 @@
   <div class="rc-body">
       @switch (r.kind) {
         @case ('custom') { <app-revenue-report /> }
-        @case ('period') { <app-table-report [def]="r" [startDays]="days()" /> }
+        @case ('period') { <app-table-report [def]="r" [startDays]="days()" [startItem]="item()" /> }
         @case ('snapshot') { <app-table-report [def]="r" /> }
         @case ('link') {
           <div class="card">

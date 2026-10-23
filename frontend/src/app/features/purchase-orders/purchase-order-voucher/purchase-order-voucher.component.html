@@ -266,7 +266,7 @@
       </section>
     } @else if (tab() === 'nhat-ky') {
       @if (order(); as o) {
-        <section class="card voucher-grid-card"><app-audit-history entityType="PurchaseOrder" [entityId]="o.id" [code]="o.code" /></section>
+        <section class="card history-card"><app-audit-history entityType="PurchaseOrder" [entityId]="o.id" [code]="o.code" /></section>
       }
     } @else {
       <section class="card voucher-grid-card">

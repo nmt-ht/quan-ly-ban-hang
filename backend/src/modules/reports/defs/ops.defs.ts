@@ -239,4 +239,117 @@ const cashbook: ReportDef = {
   },
 };
 
-export const OPS_DEFS: ReportDef[] = [purchase, production, vehicleCost, cashflow, cashbook];
+// ---------------------------------------------------------------- Giá mua biến động
+const priceDrift: ReportDef = {
+  slug: 'gia-mua',
+  group: 'buy',
+  groups: ['product', 'line'],
+  run(env, { range, group }): ReportResult {
+    const orders = env.data.purchaseOrders();
+    const byId = new Map(orders.map((o) => [o.id, o]));
+    const suppliers = new Map(env.data.suppliers().map((s) => [s.id, s]));
+    const products = new Map(env.data.products().map((p) => [p.id, p]));
+    interface Buy { id: string; date: string; voucherId: string; voucher: string; orderId: string; order: string; supplierId: string; productId: string; qty: number; price: number }
+    const buys: Buy[] = [];
+    // Each receipt line from an đơn nhập is one purchase — the same receipts the Nhập hàng report counts.
+    for (const v of env.data.warehouseVouchers()) {
+      if (v.isCancelled || v.type !== 'NHAP' || !inRange(v.date, range)) continue;
+      const o = v.purchaseOrderId ? byId.get(v.purchaseOrderId) : orders.find((x) => (v.reason ?? '').includes(x.code));
+      if (!o) continue;
+      (v.lines ?? []).forEach((l, i) => {
+        const ol = o.lines.find((x) => x.productId === l.productId);
+        const price = l.unitPrice || (ol ? ol.unitPrice / (ol.ratioToBase || 1) : 0); // per main unit
+        if (!price || !l.quantity) return;
+        buys.push({
+          id: `${v.id}-${i}`, date: v.date.slice(0, 10), voucherId: v.id, voucher: v.code, orderId: o.id, order: o.code,
+          supplierId: o.supplierId, productId: l.productId, qty: l.quantity, price: Math.round(price * 100) / 100,
+        });
+      });
+    }
+    buys.sort((a, b) => a.date.localeCompare(b.date) || a.voucher.localeCompare(b.voucher));
+    const change = (now: number, before: number) => (before ? Math.round(((now - before) / before) * 1000) / 10 : 0);
+
+    // Per mặt hàng: first / latest / min / max price over the kỳ, oldest purchase first.
+    const per = new Map<string, Buy[]>();
+    for (const b of buys) per.set(b.productId, [...(per.get(b.productId) ?? []), b]);
+    const summary = [...per].map(([pid, bs]) => {
+      const p = products.get(pid);
+      const prices = bs.map((b) => b.price);
+      const min = Math.min(...prices);
+      const max = Math.max(...prices);
+      const qty = bs.reduce((s, b) => s + b.qty, 0);
+      const last = bs[bs.length - 1];
+      return {
+        id: pid, code: p?.code ?? '', name: p?.name ?? '—', link: p ? ['/hang-hoa', pid] : null, unit: p?.baseUnit ?? '',
+        times: bs.length, first: bs[0].price, last: last.price, min, max,
+        avg: Math.round(bs.reduce((s, b) => s + b.price * b.qty, 0) / (qty || 1)),
+        spread: change(max, min), change: change(last.price, bs[0].price),
+        supplier: suppliers.get(last.supplierId)?.name ?? '',
+      };
+    });
+    const up = summary.filter((r) => r.change > 0).sort((a, b) => b.change - a.change);
+    const down = summary.filter((r) => r.change < 0);
+    const kpis: ReportResult['kpis'] = [
+      { label: 'Mặt hàng mua từ 2 lần', value: String(summary.filter((r) => r.times > 1).length), sub: `${summary.length} mặt hàng có nhập trong kỳ` },
+      { label: 'Tăng giá', value: String(up.length), sub: up[0] ? `mạnh nhất: ${up[0].name} +${up[0].change.toLocaleString('vi-VN')}%` : undefined, tone: up.length ? 'neg' : undefined },
+      { label: 'Giảm giá', value: String(down.length), tone: down.length ? 'pos' : undefined },
+    ];
+    const emptyHint = 'Không có lần nhập theo đơn nhập nào trong kỳ này.';
+
+    if (group === 'line') {
+      const prev = new Map<string, number>();
+      const rows = buys.map((b) => {
+        const p = products.get(b.productId);
+        const before = prev.get(b.productId);
+        prev.set(b.productId, b.price);
+        return {
+          id: b.id, date: b.date, voucher: b.voucher, voucherLink: ['/kho/phieu', b.voucherId], order: b.order, orderLink: ['/mua-hang', b.orderId],
+          supplier: suppliers.get(b.supplierId)?.name ?? '', code: p?.code ?? '', name: p?.name ?? '—', link: p ? ['/hang-hoa', b.productId] : null,
+          unit: p?.baseUnit ?? '', qty: b.qty, price: b.price,
+          // First purchase of the item in the kỳ has nothing to compare with.
+          vsPrev: before === undefined ? null : change(b.price, before),
+        };
+      }).reverse(); // newest first to read
+      return {
+        kpis,
+        columns: [
+          { key: 'date', label: 'Ngày nhập', kind: 'date' },
+          { key: 'voucher', label: 'Phiếu nhập', link: 'voucherLink' },
+          { key: 'order', label: 'Đơn nhập', link: 'orderLink' },
+          { key: 'supplier', label: 'Nhà cung cấp' },
+          { key: 'code', label: 'Mã hàng' },
+          { key: 'name', label: 'Mặt hàng', link: 'link' },
+          { key: 'unit', label: 'ĐVT' },
+          { key: 'qty', label: 'Số lượng', kind: 'qty' },
+          { key: 'price', label: 'Đơn giá', kind: 'money' },
+          { key: 'vsPrev', label: 'So với lần trước', kind: 'pct', tone: 'inverse' },
+        ],
+        rows,
+        emptyHint,
+      };
+    }
+
+    const rows = summary.sort((a, b) => b.spread - a.spread || Math.abs(b.change) - Math.abs(a.change) || a.code.localeCompare(b.code));
+    return {
+      kpis,
+      columns: [
+        { key: 'code', label: 'Mã hàng' },
+        { key: 'name', label: 'Mặt hàng', link: 'link' },
+        { key: 'unit', label: 'ĐVT' },
+        { key: 'times', label: 'Số lần nhập', kind: 'int' },
+        { key: 'first', label: 'Giá lần đầu', kind: 'money' },
+        { key: 'last', label: 'Giá gần nhất', kind: 'money' },
+        { key: 'min', label: 'Thấp nhất', kind: 'money' },
+        { key: 'max', label: 'Cao nhất', kind: 'money' },
+        { key: 'avg', label: 'Bình quân', kind: 'money' },
+        { key: 'spread', label: 'Biên độ', kind: 'pct' },
+        { key: 'change', label: 'Thay đổi', kind: 'pct', tone: 'inverse' },
+        { key: 'supplier', label: 'NCC gần nhất' },
+      ],
+      rows,
+      emptyHint,
+    };
+  },
+};
+
+export const OPS_DEFS: ReportDef[] = [purchase, priceDrift, production, vehicleCost, cashflow, cashbook];

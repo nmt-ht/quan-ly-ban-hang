@@ -46,14 +46,14 @@ export class ReportsService {
     private readonly payables: PayablesService,
   ) {}
 
-  async run(def: ReportDef, from: string | undefined, to: string | undefined, group: string | undefined) {
+  async run(def: ReportDef, from: string | undefined, to: string | undefined, group: string | undefined, item?: string) {
     const data = await this.source.load();
     const cost = unitCosts(data);
     const today = isoDay();
     // Open start = from the beginning; the end is never later than today.
     const range = { from: from ?? '1970-01-01', to: !to || to > today ? today : to };
     const g = group && def.groups?.includes(group) ? group : def.groups?.[0] ?? '';
-    return def.run({ data, cost: { costOf: (id) => cost.get(id) ?? 0 } }, { range, group: g });
+    return def.run({ data, cost: { costOf: (id) => cost.get(id) ?? 0 } }, { range, group: g, item: item?.trim() ?? '' });
   }
 
   /** Doanh thu lines of [from, to] (the screen groups them); `first` = the first day with revenue. */
@@ -93,13 +93,13 @@ export class ReportsController {
   @Get('reports/:slug')
   run(
     @Param('slug') slug: string, @CurrentUser() user: AuthUser,
-    @Query('from') from?: string, @Query('to') to?: string, @Query('group') group?: string,
+    @Query('from') from?: string, @Query('to') to?: string, @Query('group') group?: string, @Query('item') item?: string,
   ) {
     const def = DEFS.find((d) => d.slug === slug);
     if (!def) throw new NotFoundException('Không có báo cáo này');
     const need = GROUP_PERMISSION[def.group];
     if (!user.permissions.includes(need)) throw new ForbiddenException(`Chức vụ của bạn chưa có quyền: ${need}`);
-    return this.reports.run(def, day(from, 'from'), day(to, 'to'), group);
+    return this.reports.run(def, day(from, 'from'), day(to, 'to'), group, item);
   }
 }
 

@@ -197,8 +197,8 @@
     </section>
 
     @if (voucher(); as wv) {
-      <section class="card voucher-grid-card">
-        <h2 class="form-section-title">Nhật ký</h2>
+      <section class="card history-card">
+        <h2 class="history-title">Nhật ký</h2>
         <app-audit-history entityType="WarehouseVoucher" [entityId]="wv.id" [code]="wv.code" />
       </section>
     }

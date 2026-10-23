@@ -2,6 +2,12 @@
 <!-- One toolbar: how to slice it · which period · search, Xuất Excel at the far right. The range line under it
      says exactly which days the numbers cover (the period control may show a whole month that is not over yet). -->
 <div class="filters-bar rp-toolbar">
+  @if (d.pick === 'product') {
+    <select class="rp-pick" aria-label="Mặt hàng" [value]="item()" (change)="item.set($any($event.target).value)">
+      <option value="">Chọn mặt hàng…</option>
+      @for (p of pickItems(); track p.id) { <option [value]="p.id" [selected]="p.id === item()">{{ p.code }} · {{ p.name }}</option> }
+    </select>
+  }
   @if (d.groups) {
     <select aria-label="Cách nhóm" [value]="group()" (change)="group.set($any($event.target).value)">
       @for (g of d.groups; track g.value) { <option [value]="g.value">{{ g.label }}</option> }
@@ -25,6 +31,12 @@
   <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div>
 }
 
+@if (needsPick()) {
+  <div class="empty-state">
+    <h3>Chọn một mặt hàng</h3>
+    <p>Thẻ kho liệt kê từng phiếu nhập, xuất, kiểm kê của một mặt hàng trong kỳ, kèm tồn sau mỗi phiếu.</p>
+  </div>
+} @else {
 @if (result().kpis; as kpis) {
   <div class="rp-kpis">
     @for (k of kpis; track k.label) {
@@ -113,6 +125,8 @@
       <button type="button" class="btn" (click)="limit.set(limit() + 100)">Hiện thêm 100 dòng</button>
     }
   </footer>
+}
+
 }
 
 @if (d.notes?.length) {
