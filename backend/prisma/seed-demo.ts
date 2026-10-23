@@ -26,8 +26,9 @@ async function main() {
   if (!password || password.length < 8) {
     throw new Error('Cần đặt biến môi trường DEMO_USER_PASSWORD (tối thiểu 8 ký tự) cho các user demo.');
   }
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('Từ chối chạy seed dữ liệu giả khi NODE_ENV=production.');
+  // Hosts such as Render set NODE_ENV=production everywhere; a demo server opts in with SEED_DEMO=true.
+  if (process.env.NODE_ENV === 'production' && process.env.SEED_DEMO !== 'true') {
+    throw new Error('Từ chối chạy seed dữ liệu giả khi NODE_ENV=production (đặt SEED_DEMO=true nếu đây là server demo).');
   }
 
   const data: any = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'demo-data.json'), 'utf8'));
