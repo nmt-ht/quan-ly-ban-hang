@@ -1,19 +1,7 @@
 @let d = def();
-<header class="tr-head">
-  <div>
-    <p class="tr-summary">{{ d.summary }}</p>
-    @if (d.kind === 'period') {
-      <p class="subtitle">@if (periodLabel()) { {{ periodLabel() }} · }<span class="num">{{ day(range().from) }} – {{ day(range().to) }}</span></p>
-    } @else {
-      <p class="subtitle">Tính tại thời điểm xem · {{ day(today) }}</p>
-    }
-  </div>
-  <button type="button" class="btn" [disabled]="exporting() || !filtered().length" (click)="exportExcel()">
-    <app-nav-icon name="download" />{{ exporting() ? 'Đang xuất…' : 'Xuất Excel' }}
-  </button>
-</header>
-
-<div class="filters-bar">
+<!-- One toolbar: how to slice it · which period · search, Xuất Excel at the far right. The range line under it
+     says exactly which days the numbers cover (the period control may show a whole month that is not over yet). -->
+<div class="filters-bar rp-toolbar">
   @if (d.groups) {
     <select aria-label="Cách nhóm" [value]="group()" (change)="group.set($any($event.target).value)">
       @for (g of d.groups; track g.value) { <option [value]="g.value">{{ g.label }}</option> }
@@ -21,14 +9,24 @@
   }
   @if (d.kind === 'period') { <app-period-filter [(value)]="period" /> }
   <input type="search" class="filter-search" [placeholder]="d.searchHint ?? 'Tìm trong báo cáo…'" aria-label="Tìm trong báo cáo" [value]="search()" (input)="search.set($any($event.target).value)" />
+  <button type="button" class="btn rp-export" [disabled]="exporting() || !filtered().length" (click)="exportExcel()">
+    <app-nav-icon name="download" />{{ exporting() ? 'Đang xuất…' : 'Xuất Excel' }}
+  </button>
 </div>
+<p class="rp-range">
+  @if (d.kind === 'period') {
+    Số liệu từ <span class="num">{{ day(range().from) }}</span> đến <span class="num">{{ day(range().to) }}</span>@if (periodLabel()) { · {{ periodLabel() }} }
+  } @else {
+    Tính tại thời điểm xem · <span class="num">{{ day(today) }}</span>
+  }
+</p>
 
 @if (failure()) {
   <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div>
 }
 
 @if (result().kpis; as kpis) {
-  <div class="tr-kpis">
+  <div class="rp-kpis">
     @for (k of kpis; track k.label) {
       <div class="tr-kpi">
         <span class="tr-kpi-label">{{ k.label }}</span>
@@ -51,7 +49,7 @@
 } @else {
   @if (result().chart; as ch) {
     @if (ch.items.length) {
-      <section class="tr-chart" [attr.aria-label]="ch.title">
+      <section class="tr-chart rp-surface" [attr.aria-label]="ch.title">
         <h3>{{ ch.title }}</h3>
         <ol class="tr-bars">
           @for (b of ch.items; track b.label) {
@@ -66,7 +64,7 @@
     }
   }
 
-  <div class="tr-table-wrap">
+  <div class="tr-table-wrap rp-surface">
     <table class="tr-table">
       <thead>
         <tr>
@@ -118,7 +116,8 @@
 }
 
 @if (d.notes?.length) {
-  <footer class="tr-notes">
+  <details class="rp-notes">
+    <summary>Cách tính số liệu</summary>
     @for (n of d.notes; track n) { <p>{{ n }}</p> }
-  </footer>
+  </details>
 }

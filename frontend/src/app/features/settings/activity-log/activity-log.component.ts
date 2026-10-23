@@ -5,7 +5,6 @@ import { DataStore } from '../../../core/services/data-store.service';
 import { errorText } from '../../../core/api/api.service';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { NO_PERIOD, PeriodFilterComponent, PeriodValue } from '../../../shared/period-filter/period-filter.component';
-import { formatDateTime } from '../../../shared/format.util';
 import { downloadWorkbook, exportFileName } from '../../../shared/excel.util';
 import { actionVerb, codeLink, ENTITY_LABEL, entityLink, formatAuditValue, listDelta } from '../../../shared/audit/audit-labels';
 
@@ -108,7 +107,23 @@ export class ActivityLogComponent {
     this.open.set(next);
   }
 
-  readonly when = formatDateTime;
+  /** A click anywhere on the row opens it — except on a link or the ⌄ button, which do their own thing. */
+  onRow(e: MouseEvent, id: string): void {
+    if ((e.target as HTMLElement).closest('a, button')) return;
+    if (window.getSelection()?.toString()) return; // selecting text to copy is not a click
+    this.toggle(id);
+  }
+
+  /** Date and time to the second in giờ Việt Nam, plus "x phút trước" for the last day. */
+  stamp(iso: string): { date: string; time: string; ago: string } {
+    const [date, time] = fullStamp(iso).split(' ');
+    return { date, time, ago: ago(iso) };
+  }
+
+  tone(t: string): string {
+    return t === 'ok' ? 'badge-success' : t === 'bad' ? 'badge-danger' : t === 'warn' ? 'badge-warning' : 'badge-muted';
+  }
+
   readonly verb = actionVerb;
   readonly fmt = formatAuditValue;
   readonly delta = listDelta;
@@ -124,12 +139,12 @@ export class ActivityLogComponent {
       await downloadWorkbook(exportFileName('Nhật ký hoạt động'), [{
         name: 'Nhật ký',
         columns: [
-          { header: 'Thời gian', width: 17 }, { header: 'Người thực hiện', width: 22 }, { header: 'Thao tác', width: 14 },
+          { header: 'Thời điểm (GMT+7)', width: 20 }, { header: 'Người thực hiện', width: 22 }, { header: 'Thao tác', width: 14 },
           { header: 'Đối tượng', width: 18 }, { header: 'Mã', width: 14 }, { header: 'Nội dung', width: 70 },
           { header: 'Thay đổi', width: 60 }, { header: 'Chứng từ kèm', width: 24 }, { header: 'IP', width: 16 },
         ],
         rows: this.rows().map((r) => [
-          formatDateTime(r.at), r.userName, actionVerb(r.action).label, this.entityName(r.entityType), r.entityCode ?? '', r.summary,
+          fullStamp(r.at), r.userName, actionVerb(r.action).label, this.entityName(r.entityType), r.entityCode ?? '', r.summary,
           (r.changes ?? []).map((c) => `${c.label}: ${formatAuditValue(c.from)} → ${formatAuditValue(c.to)}`).join('\n'),
           (r.related ?? []).join(', '), r.ip ?? '',
         ]),
@@ -138,4 +153,27 @@ export class ActivityLogComponent {
       this.exporting.set(false);
     }
   }
+}
+
+// The log is read in giờ Việt Nam whatever the viewer's computer is set to (the server's day filters use +07:00 too).
+const VN_STAMP = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Asia/Ho_Chi_Minh',
+  day: '2-digit', month: '2-digit', year: 'numeric',
+  hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+});
+
+/** '23/10/2026 09:55:45' in giờ Việt Nam. */
+function fullStamp(iso: string): string {
+  const p = Object.fromEntries(VN_STAMP.formatToParts(new Date(iso)).map((x) => [x.type, x.value]));
+  return `${p['day']}/${p['month']}/${p['year']} ${p['hour']}:${p['minute']}:${p['second']}`;
+}
+
+/** 'vừa xong' · '12 phút trước' · '5 giờ trước' within a day; '' after that (the date says it). */
+function ago(iso: string): string {
+  const s = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (s < 0) return '';
+  if (s < 60) return 'vừa xong';
+  if (s < 3600) return `${Math.floor(s / 60)} phút trước`;
+  if (s < 86400) return `${Math.floor(s / 3600)} giờ trước`;
+  return '';
 }

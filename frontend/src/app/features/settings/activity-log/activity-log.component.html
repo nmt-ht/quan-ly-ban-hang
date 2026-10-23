@@ -10,11 +10,12 @@
   </div>
 </div>
 
-<div class="filters-bar">
+<!-- Search on its own line, the four narrowing controls in an even grid under it. -->
+<div class="filters-bar al-filters">
   <input
     id="al-search"
-    type="text"
-    class="filter-search"
+    type="search"
+    class="filter-search al-search"
     placeholder="Tìm mã chứng từ, nội dung, người thực hiện…"
     aria-label="Tìm trong nhật ký"
     [value]="search()"
@@ -32,7 +33,7 @@
     <option value="">Mọi thao tác</option>
     @for (a of actions; track a.value) { <option [value]="a.value">{{ a.label }}</option> }
   </select>
-  <app-period-filter [(value)]="period" />
+  <div class="al-period"><app-period-filter [(value)]="period" /></div>
   @if (filtered()) {
     <button type="button" class="filter-clear-all" (click)="clearAll()"><app-nav-icon name="x" />Xoá bộ lọc</button>
   }
@@ -56,72 +57,118 @@
       }
     </div>
   } @else {
-    <div class="table-scroll">
-      <table class="al-table">
-        <thead>
-          <tr>
-            <th scope="col">Thời gian</th>
-            <th scope="col">Người thực hiện</th>
-            <th scope="col">Thao tác</th>
-            <th scope="col">Đối tượng</th>
-            <th scope="col">Nội dung</th>
+    <!-- A real table at every width: on a narrow list the Thao tác / Đối tượng (and then Người thực hiện) columns fold
+         into the Nội dung cell instead of turning rows into cards. Click a row (or its ⌄ button) for the full record. -->
+    <table class="al-table">
+      <thead>
+        <tr>
+          <th scope="col" class="al-c-when">Thời điểm</th>
+          <th scope="col" class="al-c-who">Người thực hiện</th>
+          <th scope="col" class="al-c-verb">Thao tác</th>
+          <th scope="col" class="al-c-entity">Đối tượng</th>
+          <th scope="col">Nội dung</th>
+          <th scope="col" class="al-c-go"><span class="visually-hidden">Chi tiết</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (r of rows(); track r.id) {
+          @let v = verb(r.action);
+          @let s = stamp(r.at);
+          @let isOpen = open().has(r.id);
+          <tr class="al-row" [class.is-open]="isOpen" (click)="onRow($event, r.id)">
+            <td class="al-c-when">
+              <time class="al-time" [attr.datetime]="r.at">
+                <span class="num">{{ s.date }}</span>
+                <span class="num al-clock">{{ s.time }}</span>
+              </time>
+              @if (s.ago) { <span class="al-ago">{{ s.ago }}</span> }
+            </td>
+            <td class="al-c-who">
+              <span class="al-name">{{ r.userName }}</span>
+              @if (r.ip) { <span class="al-sub num">{{ r.ip }}</span> }
+            </td>
+            <td class="al-c-verb"><span class="badge" [class]="'badge ' + tone(v.tone)">{{ v.label }}</span></td>
+            <td class="al-c-entity">
+              <span class="al-sub">{{ entityName(r.entityType) }}</span>
+              @if (r.entityCode) {
+                @if (link(r); as l) { <a class="code-link al-code" [routerLink]="l">{{ r.entityCode }}</a> } @else { <span class="mono al-code">{{ r.entityCode }}</span> }
+              }
+            </td>
+            <td class="al-c-summary">
+              <!-- Shown only when the side columns are folded away (see the container queries). -->
+              <span class="al-fold">
+                <span class="badge" [class]="'badge ' + tone(v.tone)">{{ v.label }}</span>
+                <span class="al-fold-who">{{ r.userName }}</span>
+                <span class="al-sub">{{ entityName(r.entityType) }}@if (r.entityCode) { <span class="mono"> {{ r.entityCode }}</span> }</span>
+              </span>
+              <span class="al-summary">{{ r.summary }}</span>
+              @if (r.changes?.length || r.related?.length) {
+                <span class="al-hints">
+                  @if (r.changes?.length) { <span>{{ r.changes!.length }} trường thay đổi</span> }
+                  @if (r.related?.length) { <span>{{ r.related!.length }} chứng từ kèm</span> }
+                </span>
+              }
+            </td>
+            <td class="al-c-go">
+              <button type="button" class="icon-action al-toggle" [attr.aria-expanded]="isOpen" [attr.aria-controls]="'al-d-' + r.id"
+                [attr.aria-label]="(isOpen ? 'Ẩn' : 'Xem') + ' chi tiết dòng nhật ký #' + r.id" (click)="toggle(r.id)">
+                <app-nav-icon name="chevron-down" />
+              </button>
+            </td>
           </tr>
-        </thead>
-        <tbody>
-          @for (r of rows(); track r.id) {
-            @let v = verb(r.action);
-            <tr>
-              <td class="num al-when">{{ when(r.at) }}</td>
-              <td class="al-who">{{ r.userName }}@if (r.ip) { <span class="al-ip mono">{{ r.ip }}</span> }</td>
-              <td>
-                <span class="badge" [class.badge-success]="v.tone === 'ok'" [class.badge-danger]="v.tone === 'bad'"
-                  [class.badge-warning]="v.tone === 'warn'" [class.badge-muted]="v.tone === 'plain'">{{ v.label }}</span>
-              </td>
-              <td class="al-entity">
-                <span class="al-type">{{ entityName(r.entityType) }}</span>
-                @if (r.entityCode) {
-                  @if (link(r); as l) { <a class="code-link" [routerLink]="l">{{ r.entityCode }}</a> } @else { <span class="mono">{{ r.entityCode }}</span> }
-                }
-              </td>
-              <td class="al-summary">
-                <p>{{ r.summary }}</p>
-                @if (r.related?.length) {
-                  <p class="al-related">Chứng từ kèm:
-                    @for (c of r.related; track c) {
-                      @if (codeRoute(c); as l) { <a class="code-link" [routerLink]="l">{{ c }}</a> } @else { <span class="mono">{{ c }}</span> }
+          @if (isOpen) {
+            <tr class="al-detail" [id]="'al-d-' + r.id">
+              <td colspan="6">
+                <dl class="al-facts">
+                  <div><dt>Thời điểm</dt><dd><span class="num">{{ s.date }} {{ s.time }}</span> <span class="al-sub">· giờ Việt Nam (GMT+7){{ s.ago ? ' · ' + s.ago : '' }}</span></dd></div>
+                  <div><dt>Người thực hiện</dt><dd>{{ r.userName }}</dd></div>
+                  <div><dt>Địa chỉ IP</dt><dd class="num">{{ r.ip || '—' }}</dd></div>
+                  <div><dt>Thao tác</dt><dd>{{ v.label }} <span class="al-sub mono">{{ r.action }}</span></dd></div>
+                  <div><dt>Đối tượng</dt><dd>{{ entityName(r.entityType) }}
+                    @if (r.entityCode) {
+                      @if (link(r); as l) { <a class="code-link" [routerLink]="l">{{ r.entityCode }}</a> } @else { <span class="mono">{{ r.entityCode }}</span> }
                     }
-                  </p>
-                }
-                @if (r.changes?.length) {
-                  <button type="button" class="link-btn" [attr.aria-expanded]="open().has(r.id)" (click)="toggle(r.id)">
-                    {{ open().has(r.id) ? 'Ẩn' : 'Xem' }} {{ r.changes!.length }} thay đổi
-                  </button>
-                  @if (open().has(r.id)) {
-                    <dl class="al-changes">
-                      @for (c of r.changes; track c.field) {
-                        <div>
-                          <dt>{{ c.label }}</dt>
-                          @if (delta(c.from, c.to); as d) {
-                            <dd>
-                              @for (x of d.added; track x) { <span class="al-add">+ {{ x }}</span> }
-                              @for (x of d.removed; track x) { <span class="al-del">− {{ x }}</span> }
-                            </dd>
-                          } @else {
-                            <dd><span class="al-from">{{ fmt(c.from) }}</span> → <strong>{{ fmt(c.to) }}</strong></dd>
-                          }
-                        </div>
+                  </dd></div>
+                  @if (r.related?.length) {
+                    <div><dt>Chứng từ kèm</dt><dd class="al-related">
+                      @for (c of r.related; track c) {
+                        @if (codeRoute(c); as l) { <a class="code-link" [routerLink]="l">{{ c }}</a> } @else { <span class="mono">{{ c }}</span> }
                       }
-                    </dl>
+                    </dd></div>
                   }
+                  <div><dt>Mã yêu cầu</dt><dd class="mono al-sub">{{ r.requestId || '—' }} · dòng #{{ r.id }}</dd></div>
+                </dl>
+
+                @if (r.changes?.length) {
+                  <table class="al-changes">
+                    <caption>Các trường đã thay đổi</caption>
+                    <thead><tr><th scope="col">Trường</th><th scope="col">Trước</th><th scope="col">Sau</th></tr></thead>
+                    <tbody>
+                      @for (c of r.changes; track c.field) {
+                        <tr>
+                          <th scope="row">{{ c.label }}</th>
+                          @if (delta(c.from, c.to); as d) {
+                            <td>@for (x of d.removed; track x) { <span class="al-del">− {{ x }}</span> } @empty { <span class="al-sub">—</span> }</td>
+                            <td>@for (x of d.added; track x) { <span class="al-add">+ {{ x }}</span> } @empty { <span class="al-sub">—</span> }</td>
+                          } @else {
+                            <td class="al-from">{{ fmt(c.from) }}</td>
+                            <td class="al-to">{{ fmt(c.to) }}</td>
+                          }
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                } @else {
+                  <p class="al-sub al-nochange">Dòng này không ghi lại trường nào thay đổi.</p>
                 }
               </td>
             </tr>
           }
-        </tbody>
-      </table>
-    </div>
+        }
+      </tbody>
+    </table>
     <div class="al-foot">
-      <span class="num">{{ rows().length }} dòng{{ nextCursor() ? ' · còn nữa' : '' }}</span>
+      <span><span class="num">{{ rows().length }}</span> dòng{{ nextCursor() ? ' · còn nữa' : '' }} · mới nhất ở trên · giờ Việt Nam (GMT+7)</span>
       @if (nextCursor()) {
         <button type="button" class="btn" [disabled]="loading()" (click)="loadMore()">{{ loading() ? 'Đang tải…' : 'Tải thêm 100 dòng' }}</button>
       }

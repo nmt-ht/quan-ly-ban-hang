@@ -1,14 +1,5 @@
-<header class="rr-head">
-  <div>
-    <h2>{{ title() }}</h2>
-    <p class="subtitle">{{ periodLabel() }} · <span class="num">{{ day(range().from) }} – {{ day(range().to) }}</span></p>
-  </div>
-  <button type="button" class="btn" [disabled]="exporting() || !lines().length" (click)="exportExcel()">
-    <app-nav-icon name="download" />{{ exporting() ? 'Đang xuất…' : 'Xuất Excel' }}
-  </button>
-</header>
-
-<div class="filters-bar">
+<!-- Same toolbar as every report: grouping · unit · period · search, Xuất Excel far right; one range line under it. -->
+<div class="filters-bar rp-toolbar">
   <select aria-label="Cách nhóm" [value]="group()" (change)="group.set($any($event.target).value)">
     @for (g of groups; track g[0]) { <option [value]="g[0]">{{ g[1] }}</option> }
   </select>
@@ -23,7 +14,11 @@
     <input type="text" class="filter-search" [placeholder]="group() === 'customer' ? 'Tìm khách hàng…' : group() === 'product' ? 'Tìm mặt hàng…' : 'Tìm…'"
       aria-label="Tìm trong báo cáo" [value]="search()" (input)="search.set($any($event.target).value)" />
   }
+  <button type="button" class="btn rp-export" [disabled]="exporting() || !lines().length" (click)="exportExcel()">
+    <app-nav-icon name="download" />{{ exporting() ? 'Đang xuất…' : 'Xuất Excel' }}
+  </button>
 </div>
+<p class="rp-range">Số liệu từ <span class="num">{{ day(range().from) }}</span> đến <span class="num">{{ day(range().to) }}</span> · {{ periodLabel() }}@if (hasPrevious()) { · so với <span class="num">{{ day(prevRange().from) }} – {{ day(prevRange().to) }}</span> }</p>
 
 @if (failure()) {
   <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div>
@@ -41,7 +36,7 @@
 } @else {
   @let t = totals();
   @let p = prevTotals();
-  <div class="rr-kpis">
+  <div class="rp-kpis">
     <div class="rr-kpi">
       <span class="rr-kpi-label">Doanh thu (tổng thanh toán)</span>
       <span class="rr-kpi-value num">{{ money(t.total) }}</span>
@@ -70,7 +65,7 @@
     </div>
   </div>
 
-  <section class="rr-chart-card" aria-labelledby="rr-chart-title">
+  <section class="rr-chart-card rp-surface" aria-labelledby="rr-chart-title">
     <header class="rr-chart-head">
       <h3 id="rr-chart-title">{{ group() === 'time' ? 'Doanh thu theo ' + unitWord() : 'Top ' + chart().bars.length + ' ' + (group() === 'customer' ? 'khách hàng' : group() === 'product' ? 'mặt hàng' : group() === 'category' ? 'nhóm hàng' : 'nhân viên') }}</h3>
       @if (best(); as b) { <span class="subtitle">Cao nhất: {{ b.label }} — <span class="num">{{ money(b.total) }}</span></span> }
@@ -97,7 +92,7 @@
     }
   </section>
 
-  <div class="rr-table-wrap">
+  <div class="rr-table-wrap rp-surface">
     <table class="rr-table">
       <thead>
         <tr>
@@ -187,8 +182,9 @@
   </div>
 }
 
-<footer class="rr-notes">
+<details class="rp-notes">
+  <summary>Cách tính số liệu</summary>
   <p><strong>Doanh thu</strong> ghi nhận khi khách THỰC NHẬN hàng, đúng bằng số đã vào công nợ phải thu, vào ngày giao hàng. Đơn chưa giao hoặc đã huỷ không tính.</p>
   <p>Chiết khấu của đơn phân bổ về từng dòng theo tỷ lệ giá trị. Doanh thu thuần = tiền hàng − chiết khấu; tổng thanh toán = doanh thu thuần + thuế GTGT.</p>
   @if (hasPrevious()) { <p>So sánh với kỳ trước cùng độ dài: <span class="num">{{ day(prevRange().from) }} – {{ day(prevRange().to) }}</span>.</p> }
-</footer>
+</details>

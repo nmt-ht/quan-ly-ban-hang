@@ -18,7 +18,7 @@ modern-minimal (ERP / B2B app)
 ## Macrostructure family
 - App pages (every route under the shell): **Workbench** — page header
   (title + count/date left, actions right, hairline under), filters bar, then
-  one data surface (table, form cards, or report rail + panel).
+  one data surface (table, form cards, or a report under its group tabs).
 - Dashboard: Workbench with stacked sections, ordered by what the reader must do first (see
   "Dashboard (Tổng quan)" below); the single "needs action" block carries a 3 px ink left rule.
 - Marketing / content pages: none yet. Add a family here before building one.
@@ -239,6 +239,16 @@ mix in a second icon library or emoji.
   qty · share on the left with the amount right → share bar. No link-coloured names; the name links on hover.
 - New check = push one `Issue` in `issues()`; no template change.
 
+## Nhật ký hoạt động
+- Always a real table (never cards). Every row shows the exact moment to the second in giờ Việt Nam
+  (`dd/mm/yyyy` over a bold `HH:mm:ss`, then "x phút / giờ trước" within a day) — Asia/Ho_Chi_Minh regardless of
+  the viewer's clock, same as the server's day filters. Excel export carries the same stamp.
+- Columns: Thời điểm · Người thực hiện (+ IP) · Thao tác (badge) · Đối tượng (type + code link) · Nội dung · ⌄.
+  On a narrow list (container query on the card) Thao tác + Đối tượng, then Người thực hiện, fold into the Nội dung
+  cell. Folded columns keep zero-width cells (never `display: none` on a cell) so the detail row's colspan matches.
+- Click a row (or ⌄) to open the record under it: thời điểm with time zone, người, IP, thao tác + action code,
+  đối tượng, chứng từ kèm, mã yêu cầu + dòng #, and a Trường · Trước · Sau table of changes.
+
 ## Toggle filters (bộ lọc bật / tắt)
 - Anything in a filters bar that switches ONE condition on or off ("Chỉ quá hạn", "Chỉ đối tác còn nợ", "Dưới tồn tối thiểu",
   "Hiện phiếu đã huỷ") is a `.filter-toggle` `<button aria-pressed>`: a **pill with a tick box in front**. It must not look like a
@@ -256,17 +266,26 @@ mix in a second icon library or emoji.
 - Search boxes in a filters bar are 22rem wide; global CSS ends an over-long placeholder with an ellipsis, but treat that as a safety net, not a layout.
 
 ## Reports (reference: Báo cáo)
-- `/bao-cao` is a **hub**: "Tìm báo cáo…" box, then the 8 groups (icon + one-line description) as card grids; every
-  card = report name + one-sentence summary. Not-built reports stay visible as dashed cards tagged "Sắp có" — never
-  hide them. `/bao-cao?name=<slug>` is one report in a **frame**: breadcrumb "Báo cáo › Nhóm", h1 = report name, the
-  report list on the left (≤ 900 px: a select), the report in a `.card` on the right. Slugs are production's.
+- `/bao-cao` is a **hub**: "Tìm báo cáo…" box, then one card per group in masonry columns (2 × ≥ 26 rem, else 1):
+  head = tinted icon + group name + one-line description + count of ready reports; body = whole-row links
+  (name bold · one-sentence summary muted · `›`). Not-built reports stay visible, listed last in a quieter row tagged
+  "Sắp có" — never hide them.
+- `/bao-cao?name=<slug>` is one report in a **frame** of four layers, each said once: (1) title block — breadcrumb
+  "Báo cáo › Nhóm", h1 = report name, the report's one-sentence summary; (2) the reports of the same group as an
+  underline tab row (scrolls sideways on a phone, the open tab is scrolled into view; its line is the only rule under
+  the title); (3) the report's toolbar; (4) the numbers. One way to move between reports (tabs + breadcrumb) — no
+  "Đổi báo cáo" select, no second list beside the report. Slugs are production's.
+- Report parts (`.rp-*` in styles.scss, shared by both report components) sit straight on the page — never a card
+  around cards: toolbar = filters left, Xuất Excel far right · one muted range line "Số liệu từ … đến …" (the period
+  control can show a whole month that is not over) · KPI strip = one surface split by hairlines · chart card ·
+  table card · "Cách tính số liệu" folded in a `<details>` at the end.
 - Reports are **declarations**, not components: `features/reports/defs/*.defs.ts` export `ReportDef`
   (`slug, label, group, summary, kind, groups?, notes?, run(env, {range, group})`) registered in
   `report.registry.ts`; `run` returns `{ columns, rows, totals?, kpis?, chart?, emptyHint? }`. A new report = one def.
   `kind`: `period` (has the kỳ filter), `snapshot` (as of now), `custom` (own component — Doanh thu),
   `link` (points at an existing page — Số dư công nợ, Tuổi nợ), `soon`.
-- `app-table-report` draws every table report: Xuất Excel (top right) · filters bar (Cách nhóm, Chọn kỳ, search) ·
-  KPI strip (3–4 tiles, sub-line explains) · top-10 bar chart · sortable table (click header: desc → asc → off) with a
+- `app-table-report` draws every table report: toolbar (Cách nhóm, Chọn kỳ, search · Xuất Excel) · range line ·
+  KPI strip (3–4 figures, sub-line explains) · top-10 bar chart · sortable table (click header: desc → asc → off) with a
   sticky header, numeric columns right-aligned + `nowrap`, a TỔNG CỘNG footer that re-sums when you search ·
   "Hiện thêm 100 dòng" paging · definition notes. Default kỳ = Tháng này, end date capped at today.
 - Report numbers must tie to each other and to the ledgers (Doanh thu = Chiết khấu + Lãi gộp over all time = receivedValue;
@@ -365,7 +384,7 @@ mix in a second icon library or emoji.
   `frontend/src/styles.scss`) — new code uses `--color-*` directly.
 
 ## What pages MAY differ on
-- Table vs form vs report-rail layout inside the Workbench frame.
+- Table vs form vs report (group tabs + full-width card) layout inside the Workbench frame.
 - Per-column mono via `DataTableColumn.mono`.
 
 ## Excel exports

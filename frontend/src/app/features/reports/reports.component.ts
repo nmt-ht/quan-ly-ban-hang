@@ -1,6 +1,6 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, afterRenderEffect, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { foldVi } from '../../shared/format.util';
@@ -29,7 +29,6 @@ export class ReportsComponent {
   readonly total = this.mine.length;
   readonly ready = this.mine.filter((r) => r.kind !== 'soon').length;
 
-  private readonly router = inject(Router);
   private readonly name = toSignal(inject(ActivatedRoute).queryParamMap.pipe(map((q) => q.get('name'))), { initialValue: null });
   readonly days = toSignal(inject(ActivatedRoute).queryParamMap.pipe(map((q) => Number(q.get('ngay')) || null)), { initialValue: null });
   readonly query = signal('');
@@ -44,16 +43,26 @@ export class ReportsComponent {
   /** Hub content: groups with the reports that match the search box. */
   readonly sections = computed(() => {
     const q = foldVi(this.query().trim());
-    return REPORT_GROUPS.map((g: ReportGroup) => ({
-      group: g,
-      items: this.mine.filter((r) => r.group === g.key && (!q || foldVi(r.label + ' ' + r.summary).includes(q))),
-    })).filter((s) => s.items.length);
+    return REPORT_GROUPS.map((g: ReportGroup) => {
+      const items = this.mine.filter((r) => r.group === g.key && (!q || foldVi(r.label + ' ' + r.summary).includes(q)));
+      return { group: g, ready: items.filter((r) => r.kind !== 'soon'), soon: items.filter((r) => r.kind === 'soon') };
+    }).filter((s) => s.ready.length + s.soon.length);
   });
 
-  /** The list beside an open report is never filtered. */
-  readonly frameSections = REPORT_GROUPS.map((g) => ({ group: g, items: this.mine.filter((r) => r.group === g.key) })).filter((s) => s.items.length);
+  /** Tabs under an open report: the reports of its group, ready ones first. */
+  readonly siblings = computed(() => {
+    const r = this.active();
+    if (!r) return [];
+    const items = this.mine.filter((x) => x.group === r.group);
+    return [...items.filter((x) => x.kind !== 'soon'), ...items.filter((x) => x.kind === 'soon')];
+  });
 
-  open(slug: string): void {
-    this.router.navigate(['/bao-cao'], { queryParams: slug ? { name: slug } : {} });
+  constructor() {
+    // On a phone the tab row scrolls sideways: bring the open report's tab into view.
+    const host = inject(ElementRef<HTMLElement>).nativeElement as HTMLElement;
+    afterRenderEffect(() => {
+      if (!this.active()) return;
+      host.querySelector('.rc-tab.is-active')?.scrollIntoView({ block: 'nearest', inline: 'center' });
+    });
   }
 }
