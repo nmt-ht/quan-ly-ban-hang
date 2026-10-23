@@ -1,10 +1,11 @@
 import { Component, HostListener, computed, effect, inject, signal, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DataStore } from '../../core/services/data-store.service';
 import { WarehouseVoucher, WarehouseVoucherType } from '../../core/models/domain.models';
 import { DataTableColumn, DataTableComponent } from '../../shared/data-table/data-table.component';
 import { FilterMultiSelectComponent, FilterOption } from '../../shared/filter-multi-select/filter-multi-select.component';
+import { DivideItem, ListRailComponent, ListTabsComponent, syncSliceToUrl } from '../../shared/list-divide/list-divide';
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
 import { PeriodFilterComponent, PeriodValue, NO_PERIOD } from '../../shared/period-filter/period-filter.component';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
@@ -17,6 +18,11 @@ import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { KIND_SLUG, VOUCHER_KIND_LABEL, VoucherKindKey, kindOf, sourceOf } from './warehouse-voucher.rules';
 import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 
+type KindTab = 'all' | VoucherKindKey;
+const KINDS: VoucherKindKey[] = ['NHAP', 'TRA_VE', 'XUAT', 'CHUYEN', 'KIEM_KE'];
+/** ?loai= in the address. */
+const KIND_PARAM: Record<VoucherKindKey, string> = { NHAP: 'nhap', TRA_VE: 'tra-ve', XUAT: 'xuat', CHUYEN: 'chuyen', KIEM_KE: 'kiem-ke' };
+
 interface ActiveChip {
   label: string;
   clear: () => void;
@@ -25,7 +31,10 @@ interface ActiveChip {
 @Component({
   selector: 'app-warehouse-vouchers',
   standalone: true,
-  imports: [CommonModule, RouterLink, AllowedLinkDirective, DataTableComponent, FilterMultiSelectComponent, PaginationComponent, PeriodFilterComponent, NavIconComponent],
+  imports: [
+    CommonModule, RouterLink, AllowedLinkDirective, DataTableComponent, FilterMultiSelectComponent, PaginationComponent, PeriodFilterComponent,
+    NavIconComponent, ListTabsComponent, ListRailComponent,
+  ],
   templateUrl: './warehouse-vouchers.component.html',
 })
 export class WarehouseVouchersComponent {
@@ -41,8 +50,10 @@ export class WarehouseVouchersComponent {
 
   readonly notice = signal((history.state as { notice?: string } | null)?.notice ?? '');
   readonly search = signal('');
-  readonly kinds = signal<string[]>([]);
-  readonly warehouseId = signal('all');
+  private readonly query = inject(ActivatedRoute).snapshot.queryParamMap;
+  /** Divided by Loại phiếu (tabs) and Kho (rail): ?loai=nhap|tra-ve|xuat|chuyen|kiem-ke · ?kho=<id>. */
+  readonly kindTab = signal<KindTab>(KINDS.find((k) => KIND_PARAM[k] === this.query.get('loai')) ?? 'all');
+  readonly warehouseId = signal(this.query.get('kho') ?? 'all');
   readonly period = signal<PeriodValue>(NO_PERIOD);
   readonly createdBy = signal<string[]>([]);
   readonly showCancelled = signal(false);
@@ -67,33 +78,49 @@ export class WarehouseVouchersComponent {
     return this.data.users().map((u) => ({ value: u.email, label: `${u.name} — ${roles.get(u.roleId) ?? ''}` }));
   });
 
-  private readonly matchedExceptKind = computed(() => {
+  // Every filter except Loại phiếu and Kho — the tab and rail counts are taken from it.
+  private readonly matchedBase = computed(() => {
     const q = foldVi(this.search().trim());
-    const wh = this.warehouseId();
     const by = this.createdBy();
     return this.data.warehouseVouchers().filter((v) => {
       if (!this.showCancelled() && v.isCancelled) return false;
       if (q && !this.searchText(v).includes(q)) return false;
-      if (wh !== 'all' && v.warehouseId !== wh && v.targetWarehouseId !== wh) return false;
       if (!inRange(v.date, this.period().range)) return false;
       if (by.length && !by.includes(v.createdBy)) return false;
       return true;
     });
   });
 
-  readonly kindOptions = computed<FilterOption[]>(() => {
-    const counts = new Map<string, number>();
-    for (const v of this.matchedExceptKind()) counts.set(kindOf(v), (counts.get(kindOf(v)) ?? 0) + 1);
-    return (Object.keys(VOUCHER_KIND_LABEL) as VoucherKindKey[]).map((k) => ({
-      value: k, label: VOUCHER_KIND_LABEL[k], count: counts.get(k) ?? 0, dotClass: tagClass('warehouse-voucher', k),
-    }));
+  /** A chuyển kho belongs to both its warehouses. */
+  private inWarehouse(v: WarehouseVoucher, wh = this.warehouseId()): boolean {
+    return wh === 'all' || v.warehouseId === wh || v.targetWarehouseId === wh;
+  }
+
+  private ofTab(v: WarehouseVoucher): boolean {
+    const k = this.kindTab();
+    return k === 'all' || kindOf(v) === k;
+  }
+
+  readonly kindTabs = computed<DivideItem<KindTab>[]>(() => {
+    const rows = this.matchedBase().filter((v) => this.inWarehouse(v));
+    return [
+      { value: 'all', label: 'Tất cả', count: rows.length },
+      ...KINDS.map((k) => ({ value: k, label: VOUCHER_KIND_LABEL[k], count: rows.filter((v) => kindOf(v) === k).length })),
+    ];
+  });
+
+  readonly warehouseRail = computed<DivideItem[]>(() => {
+    const rows = this.matchedBase().filter((v) => this.ofTab(v));
+    return [
+      { value: 'all', label: 'Tất cả kho', count: rows.length },
+      ...this.data.warehouses().map((w) => ({ value: w.id, label: w.name, count: rows.filter((v) => this.inWarehouse(v, w.id)).length })),
+    ];
   });
 
   readonly vouchers = computed(() => {
-    const ks = this.kinds();
-    const rows = this.matchedExceptKind()
-      .filter((v) => !ks.length || ks.includes(kindOf(v)))
-      .sort((a, b) => b.date.localeCompare(a.date) || b.code.localeCompare(a.code));
+    const rows = this.matchedBase()
+      .filter((v) => this.inWarehouse(v) && this.ofTab(v))
+      .sort((a, b) => a.code.localeCompare(b.code, 'vi', { numeric: true })); // default: Mã tăng dần
     return sortByColumn(applyColumnFilters(rows, this.columns, this.columnFilters()), this.columns, this.headerSort());
   });
 
@@ -128,8 +155,6 @@ export class WarehouseVouchersComponent {
 
   readonly chips = computed<ActiveChip[]>(() => {
     const chips: ActiveChip[] = [];
-    for (const k of this.kinds()) chips.push({ label: VOUCHER_KIND_LABEL[k as VoucherKindKey], clear: () => this.kinds.update((v) => v.filter((x) => x !== k)) });
-    if (this.warehouseId() !== 'all') chips.push({ label: this.whName().get(this.warehouseId()) ?? '', clear: () => this.warehouseId.set('all') });
     const p = this.period();
     if (p.preset !== null) {
       const label = p.preset === 'custom' ? rangeLabel(p.range) : PERIOD_PRESETS.find((x) => x.value === p.preset)?.label;
@@ -165,12 +190,15 @@ export class WarehouseVouchersComponent {
       this.vouchers();
       untracked(() => this.page.set(1));
     });
+    syncSliceToUrl(() => {
+      const k = this.kindTab();
+      const w = this.warehouseId();
+      return { loai: k === 'all' ? null : KIND_PARAM[k], kho: w === 'all' ? null : w };
+    });
   }
 
   clearAll(): void {
     this.search.set('');
-    this.kinds.set([]);
-    this.warehouseId.set('all');
     this.period.set(NO_PERIOD);
     this.createdBy.set([]);
     this.showCancelled.set(false);

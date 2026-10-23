@@ -49,6 +49,32 @@ export async function trimLogo(src: string): Promise<string> {
   }
 }
 
+/**
+ * A square browser-tab icon from a logo: the drawing centred on a light rounded tile (`tile`, a CSS colour), so a
+ * wide logo is not squeezed and a dark one still shows on a dark tab strip. Null when the image cannot be read.
+ */
+export async function squareIcon(src: string, tile: string, size = 64): Promise<string | null> {
+  try {
+    const img = await createImageBitmap(await (await fetch(src)).blob());
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = tile || 'white';
+    ctx.beginPath();
+    ctx.roundRect(0, 0, size, size, size * 0.2);
+    ctx.fill();
+    const pad = size * 0.08;
+    const scale = Math.min((size - 2 * pad) / img.width, (size - 2 * pad) / img.height);
+    const w = img.width * scale, h = img.height * scale;
+    ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+    img.close();
+    return canvas.toDataURL('image/png');
+  } catch {
+    return null;
+  }
+}
+
 /** Validates a picked file and returns it downscaled as a data URL (PNG keeps transparency, JPEG stays JPEG). */
 export async function readLogo(file: File): Promise<LogoResult> {
   if (!ACCEPTED.includes(file.type)) return { error: 'Chỉ nhận ảnh PNG, JPG hoặc WebP.' };

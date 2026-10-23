@@ -92,7 +92,7 @@ export class PurchaseOrdersComponent {
     const st = this.statuses();
     const rows = this.matchedExceptStatus().filter((o) => !st.length || st.includes(o.status));
     // Newest first, then by code.
-    const sorted = [...rows].sort((a, b) => b.date.localeCompare(a.date) || b.code.localeCompare(a.code));
+    const sorted = [...rows].sort((a, b) => a.code.localeCompare(b.code, 'vi', { numeric: true })); // default: Mã tăng dần
     return sortByColumn(applyColumnFilters(sorted, this.columns, this.columnFilters()), this.columns, this.headerSort());
   });
 

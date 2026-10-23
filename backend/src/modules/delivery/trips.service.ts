@@ -191,7 +191,7 @@ export class TripsService {
     return this.step(id, ['GOM_DON'], 'Chuyến đã xuất kho.', async (tx, t) => {
       if (!t.orders.length) throw new BadRequestException('Chuyến chưa có đơn nào.');
       const today = new Date().toISOString().slice(0, 10);
-      const fallback = (await tx.warehouse.findFirst({ orderBy: { name: 'asc' }, select: { id: true } }))?.id;
+      const fallback = (await tx.warehouse.findFirst({ orderBy: [{ isActive: 'desc' }, { name: 'asc' }], select: { id: true } }))?.id;
       const byWarehouse = new Map<string, Map<string, number>>();
       const orderCodes: string[] = [];
       for (const link of t.orders) {

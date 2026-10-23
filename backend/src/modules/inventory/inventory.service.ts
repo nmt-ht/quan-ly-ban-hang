@@ -93,7 +93,13 @@ export class InventoryService {
 
   /** Lập phiếu on its own (manual vouchers). Other modules call `post` inside their own transaction. */
   create(input: VoucherInput, userId: string) {
-    return this.prisma.$transaction(async (tx) => this.voucher(await this.post(tx, input, userId), tx));
+    return this.prisma.$transaction(async (tx) => {
+      // A kho put out of use takes no new phiếu lập tay (vouchers other chứng từ write keep working for old lines).
+      const ids = [input.warehouseId, ...(input.type === 'CHUYEN' && input.targetWarehouseId ? [input.targetWarehouseId] : [])];
+      const off = await tx.warehouse.findFirst({ where: { id: { in: ids }, isActive: false }, select: { name: true } });
+      if (off) throw new BadRequestException(`Kho "${off.name}" đã ngừng dùng — chọn kho khác, hoặc dùng lại kho ở Thiết lập › Kho.`);
+      return this.voucher(await this.post(tx, input, userId), tx);
+    });
   }
 
   /** Number, store and apply one voucher; returns its id. Runs inside the caller's transaction. */

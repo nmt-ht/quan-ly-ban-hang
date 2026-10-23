@@ -52,43 +52,48 @@
       }
   </div>
 } @else {
-  <div class="page-header">
+  <!-- The hub is an index, laid out the way accounting suites list their reports: the groups flow down newspaper
+       columns (3–4 on a wide screen), each a plain heading over its report links — no card, icon tile or badge per
+       group, so a one-report group costs one heading and one line. Search sits in the title row. -->
+  <div class="page-header rc-hub-head">
     <div>
       <h1>Báo cáo</h1>
       <p class="subtitle">{{ ready }} báo cáo sẵn sàng · {{ total - ready }} sắp có</p>
     </div>
+    <input type="search" class="rc-search" placeholder="Tìm báo cáo…" aria-label="Tìm báo cáo" [value]="query()" (input)="query.set($any($event.target).value)" />
   </div>
 
-  <div class="filters-bar">
-    <input type="search" class="filter-search" placeholder="Tìm báo cáo…" aria-label="Tìm báo cáo" [value]="query()" (input)="query.set($any($event.target).value)" />
-  </div>
+  @if (recent().length && !query()) {
+    <nav class="rc-recent" aria-label="Báo cáo xem gần đây">
+      <span class="rc-recent-label">Xem gần đây</span>
+      @for (r of recent(); track r.slug) {
+        <a class="rc-recent-item" routerLink="/bao-cao" [queryParams]="{ name: r.slug }" [title]="groupLabel(r) + ' › ' + r.label">{{ r.label }}</a>
+      }
+    </nav>
+  }
 
-  <!-- One card per group (masonry columns, so short groups never leave holes); ready reports first as
-       whole-row links, the "sắp có" ones last and quieter. -->
-  <div class="rc-groups">
+  <div class="rc-index">
     @for (s of sections(); track s.group.key) {
-      <section class="card rc-group-card" [attr.aria-labelledby]="'rc-' + s.group.key">
-        <header class="rc-group-head">
-          <span class="rc-group-icon" aria-hidden="true"><app-nav-icon [name]="s.group.icon" /></span>
-          <div>
-            <h2 [id]="'rc-' + s.group.key">{{ s.group.label }}</h2>
-            <p>{{ s.group.description }}</p>
-          </div>
-          <span class="rc-count num">{{ s.ready.length }}</span>
-        </header>
+      <section class="rc-group" [attr.aria-labelledby]="'rc-' + s.group.key">
+        <h2 class="rc-group-head" [id]="'rc-' + s.group.key">
+          <app-nav-icon [name]="s.group.icon" />
+          <span>{{ s.group.label }}</span>
+          <span class="rc-count num" [title]="s.ready.length + ' báo cáo sẵn sàng'">{{ s.ready.length }}</span>
+        </h2>
         <ul class="rc-list">
           @for (item of s.ready; track item.slug) {
             <li>
               <a class="rc-row" routerLink="/bao-cao" [queryParams]="{ name: item.slug }">
-                <span class="rc-row-text"><span class="rc-row-title">{{ item.label }}</span><span class="rc-row-sum">{{ item.summary }}</span></span>
-                <app-nav-icon name="chevron-right" />
+                <span class="rc-row-title">{{ item.label }}</span>
+                <span class="rc-row-sum">{{ item.summary }}</span>
               </a>
             </li>
           }
           @for (item of s.soon; track item.slug) {
             <li>
               <a class="rc-row is-soon" routerLink="/bao-cao" [queryParams]="{ name: item.slug }">
-                <span class="rc-row-text"><span class="rc-row-title">{{ item.label }} <span class="rc-tag">Sắp có</span></span><span class="rc-row-sum">{{ item.summary }}</span></span>
+                <span class="rc-row-title">{{ item.label }}<span class="rc-tag">Sắp có</span></span>
+                <span class="rc-row-sum">{{ item.summary }}</span>
               </a>
             </li>
           }

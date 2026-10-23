@@ -9,6 +9,8 @@ import { round4 } from '../../purchase-orders/purchase-order.rules';
 import { defaultWarehouse, lineRatio, lineRemaining, movesStock, orderTotals } from '../sales-order.rules';
 import { SalesOrderService } from '../sales-order.service';
 import { errorText } from '../../../core/api/api.service';
+import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
+import { PickableWarehousesPipe } from '../../../shared/pickable-warehouses.pipe';
 
 interface DeliverRow {
   lineIndex: number;
@@ -30,7 +32,7 @@ interface DeliverRow {
 @Component({
   selector: 'app-deliver-dialog',
   standalone: true,
-  imports: [FormsModule, NavIconComponent],
+  imports: [PickableWarehousesPipe, FrozenColsDirective, FormsModule, NavIconComponent],
   templateUrl: './deliver-dialog.component.html',
   styleUrl: '../../purchase-orders/receive-goods-dialog/receive-goods-dialog.component.scss',
 })

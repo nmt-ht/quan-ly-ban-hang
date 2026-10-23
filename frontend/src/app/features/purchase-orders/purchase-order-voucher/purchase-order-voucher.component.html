@@ -139,7 +139,7 @@
     @if (tab() === 'hang') {
       <section class="card voucher-grid-card">
         <div class="voucher-grid-scroll">
-          <table class="voucher-grid">
+          <table appFrozenCols="2" class="voucher-grid">
             <thead>
               <tr>
                 <th scope="col" class="c-idx">#</th>
@@ -178,7 +178,7 @@
                     @if (editable()) {
                       <select [ngModel]="l.warehouseId" (ngModelChange)="patch(i, { warehouseId: $event })" [attr.aria-label]="'Kho nhập dòng ' + (i + 1)">
                         <option value="">—</option>
-                        @for (w of data.warehouses(); track w.id) { <option [value]="w.id">{{ w.name }}</option> }
+                        @for (w of data.warehouses() | pickable: l.warehouseId; track w.id) { <option [value]="w.id">{{ w.name }}</option> }
                       </select>
                     } @else { {{ warehouseName(l.warehouseId) }} }
                   </td>

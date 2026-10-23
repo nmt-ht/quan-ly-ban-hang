@@ -33,6 +33,8 @@ import { DeliverDialogComponent } from '../deliver-dialog/deliver-dialog.compone
 import { errorText } from '../../../core/api/api.service';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
+import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
+import { PickableWarehousesPipe } from '../../../shared/pickable-warehouses.pipe';
 
 type Mode = 'create' | 'edit' | 'view';
 type Tab = 'hang' | 'gia-von' | 'lsx' | 'pxk' | 'cong-no' | 'nhat-ky';
@@ -73,7 +75,7 @@ const emptyLine = (): DraftLine => ({
 @Component({
   selector: 'app-sales-order-voucher',
   standalone: true,
-  imports: [
+  imports: [PickableWarehousesPipe, FrozenColsDirective, 
     NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
     PaginationComponent, FilterMultiSelectComponent, DeliverDialogComponent, PrintDocumentComponent, AuditHistoryComponent,
   ],

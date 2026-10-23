@@ -21,6 +21,8 @@ import { PrintDocumentComponent, PrintSigner } from '../../../shared/print/print
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { errorText } from '../../../core/api/api.service';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
+import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
+import { PickableWarehousesPipe } from '../../../shared/pickable-warehouses.pipe';
 
 interface Line {
   key: string;
@@ -43,7 +45,7 @@ const emptyLine = (): Line => ({ key: crypto.randomUUID(), productId: '', unitNa
 @Component({
   selector: 'app-warehouse-voucher-form',
   standalone: true,
-  imports: [NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent, PrintDocumentComponent, AuditHistoryComponent],
+  imports: [PickableWarehousesPipe, FrozenColsDirective, NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent, PrintDocumentComponent, AuditHistoryComponent],
   templateUrl: './warehouse-voucher-form.component.html',
   styleUrls: ['../../../shared/voucher/voucher.scss', './warehouse-voucher-form.component.scss'],
 })
@@ -96,7 +98,9 @@ export class WarehouseVoucherFormComponent {
       this.params();
       untracked(() => {
         this.date.set(isoDay(new Date()));
-        this.warehouseId.set('');
+        // ?kho= (from a kho's page) opens the new phiếu on that kho, if it is still in use.
+        const kho = this.route.snapshot.queryParamMap.get('kho');
+        this.warehouseId.set(kho && this.data.warehouses().some((w) => w.id === kho && w.isActive !== false) ? kho : '');
         this.targetId.set('');
         this.reason.set('');
         this.note.set('');

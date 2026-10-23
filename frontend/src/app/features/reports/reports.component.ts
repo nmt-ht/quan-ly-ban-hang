@@ -1,4 +1,4 @@
-import { Component, ElementRef, afterRenderEffect, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, afterRenderEffect, computed, effect, inject, signal, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
@@ -10,6 +10,17 @@ import { TableReportComponent } from './table-report/table-report.component';
 import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 import { AuthService } from '../../core/services/auth.service';
 import { ReportDef } from './report.types';
+
+const RECENT_KEY = 'nt.reportsRecent';
+
+function loadRecent(): string[] {
+  try {
+    const raw = JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]');
+    return Array.isArray(raw) ? raw.filter((x) => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+}
 
 // /bao-cao is the hub (every report, by group). /bao-cao?name=<slug> is one report inside a frame with
 // the same list beside it. Slugs are production's (docs/crawl/02-bao-cao.md), so old links keep working.
@@ -51,6 +62,13 @@ export class ReportsComponent {
     }).filter((s) => s.ready.length + s.soon.length);
   });
 
+  /** Reports opened last in this browser (newest first, at most four), so the usual ones are one click away. */
+  private readonly recentSlugs = signal<string[]>(loadRecent());
+  readonly recent = computed(() =>
+    this.recentSlugs().map((s) => reportBySlug(s)).filter((r): r is ReportDef => !!r && r.kind !== 'soon' && this.mine.includes(r)).slice(0, 4),
+  );
+  readonly groupLabel = (r: ReportDef) => groupOf(r.group).label;
+
   /** Tabs under an open report: the reports of its group, ready ones first. */
   readonly siblings = computed(() => {
     const r = this.active();
@@ -60,6 +78,16 @@ export class ReportsComponent {
   });
 
   constructor() {
+    effect(() => {
+      const r = this.active();
+      if (!r || r.kind === 'soon') return;
+      const next = [r.slug, ...untracked(this.recentSlugs).filter((s) => s !== r.slug)].slice(0, 8);
+      this.recentSlugs.set(next);
+      try {
+        localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+      } catch { /* storage blocked: the list just is not remembered */ }
+    });
+
     // On a phone the tab row scrolls sideways: bring the open report's tab into view.
     const host = inject(ElementRef<HTMLElement>).nativeElement as HTMLElement;
     afterRenderEffect(() => {

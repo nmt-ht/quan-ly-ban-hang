@@ -122,6 +122,27 @@ mix in a second icon library or emoji.
 - Header actions carry an icon + verb label: Xuất Excel (download), Lưới/Bảng
   `.segmented` toggle (remembered per browser), Nhập … (upload), primary
   "Thêm …" (plus). One primary button per header.
+- **Divide the rows before filtering them** (`shared/list-divide`: `app-list-tabs` + `app-list-rail`, styles in
+  `.list-divided` / `.list-split` / `.ld-*`). The fixed axis is a tab strip above the list (`.detail-tabs` look,
+  `aria-pressed`, each tab with its count); the physical or user-made axis is a rail beside it (13.5 rem, sticky under
+  the topbar): "Tất cả …" first, every entry with its count (empty ones stay, muted, so the rail never jumps). The open
+  entry reads like the sidebar's active link (accent tint + 2 px bar). Tab counts honour the open rail entry and vice
+  versa; both follow the other filters. Both live in the address (`syncSliceToUrl`). Under 52 rem (container) the tabs
+  scroll sideways in one row and the rail becomes a row of chips. A totals strip never repeats a count the tabs show.
+  | Page | Tabs | Rail |
+  | --- | --- | --- |
+  | Hàng hoá | Tính chất (?tc=) | Nhóm hàng + Chưa phân nhóm (?nhom=) |
+  | Tồn kho | Tính chất, no Dịch vụ (?tc=) | Kho (?kho=) — counts use the list's own rules per kho |
+  | Phiếu kho | Loại phiếu (?loai=) | Kho (?kho=) — a chuyển kho counts in both |
+  | Lệnh sản xuất | Trạng thái, lifecycle order (?tt=) | — none: Thành phẩm is a searchable multi-select (?tp=id,id) |
+  **A rail is only for a bounded, curated axis** (Kho, Nhóm hàng — tens, not thousands). An open-ended axis (thành phẩm,
+  khách hàng, nhà cung cấp) is a searchable `app-filter-multi-select` with counts in the filter bar, and the table keeps
+  the full width. A rail with more than 12 entries shows its own search box ("Tất cả" and the open entry always stay);
+  a rail whose entries the user manages ends with a quiet link to that page (`.ld-manage`, e.g. "Quản lý nhóm hàng").
+- **Every grid with a Mã column opens sorted by Mã, ascending** (numeric-aware compare). A page with a "Sắp xếp" select
+  defaults the select to "Mã tăng dần" (added where missing); a page without one uses it as its base order. Exceptions
+  where time order *is* the content: Lịch sử nhập xuất (running stock), sổ công nợ, tuổi nợ, voucher lines (entry order),
+  report tables (their own definition, e.g. "quay chậm nhất lên đầu").
 - Filter bar: search · `app-filter-multi-select` (checkbox dropdown, optional
   search + counts) · native selects · `.filter-toggle` buttons
   (`aria-pressed`, pressed = ink fill) · sort select. Active filters repeat as
@@ -132,6 +153,14 @@ mix in a second icon library or emoji.
   filters, like every other filter, run before pagination.
 - Row actions: icon-only Xem chi tiết (eye) / Sửa (pencil), sticky right,
   each with `aria-label` + `title`.
+- Every grid keeps the row's identity in view: `table[appFrozenCols]` (shared/frozen-cols.directive.ts) freezes the
+  leading columns while the grid scrolls sideways. `app-data-table` and report tables freeze the leading run of
+  `image · code · name · plateNumber` (max 3) on their own; hand-written grids pass a count (voucher lines: # + Hàng
+  hoá). The frozen block ends in a hairline, a 2 px `--color-rule-strong` edge once scrolled. A cell spanning several
+  columns (Cộng, "no rows") never freezes. Phones (≤ 40rem) keep only the first column.
+- Body rows alternate surface / `--color-row-alt` (zero-specificity rule in styles.scss, so hover, an editing row and
+  footers keep their fills). Inserted rows (opened detail, period heading, no-match) do not count, and a sticky cell
+  follows its row's stripe.
 - Grid view: `.product-card` tiles, same actions.
 - `app-pagination` under the list: range "1–20 / 27", pages, 20/50/100 per
   page; any filter/sort change returns to page 1.
@@ -278,10 +307,13 @@ mix in a second icon library or emoji.
 - Search boxes in a filters bar are 22rem wide; global CSS ends an over-long placeholder with an ellipsis, but treat that as a safety net, not a layout.
 
 ## Reports (reference: Báo cáo)
-- `/bao-cao` is a **hub**: "Tìm báo cáo…" box, then one card per group in masonry columns (2 × ≥ 26 rem, else 1):
-  head = tinted icon + group name + one-line description + count of ready reports; body = whole-row links
-  (name bold · one-sentence summary muted · `›`). Not-built reports stay visible, listed last in a quieter row tagged
-  "Sắp có" — never hide them.
+- `/bao-cao` is an **index**, laid out like an accounting suite's report list: title + counts left, "Tìm báo cáo…" right
+  on the same line (full row on a phone); one quiet line "Xem gần đây" of pill links (last 4 opened in this browser,
+  `nt.reportsRecent`, only reports the role may still open; hidden while searching); then the groups flowing down
+  newspaper columns (`columns: 16.5rem 4` → 4 at ~1600 px, 1 on a phone). A group is **not a card**: a 2 px ink rule,
+  muted icon + name + muted count of ready reports, then its reports as hover-filled rows (name 600 sm = the link,
+  one muted xs sentence under it, 2-line clamp; no chevrons). Not-built reports stay listed last, quieter, tagged
+  "Sắp có" — never hide them. The whole index fits one screen on a wide display.
 - `/bao-cao?name=<slug>` is one report in a **frame** of four layers, each said once: (1) title block — breadcrumb
   "Báo cáo › Nhóm", h1 = report name, the report's one-sentence summary; (2) the reports of the same group as an
   underline tab row (scrolls sideways on a phone, the open tab is scrolled into view; its line is the only rule under
@@ -300,9 +332,36 @@ mix in a second icon library or emoji.
   KPI strip (3–4 figures, sub-line explains) · top-10 bar chart · sortable table (click header: desc → asc → off) with a
   sticky header, numeric columns right-aligned + `nowrap`, a TỔNG CỘNG footer that re-sums when you search ·
   "Hiện thêm 100 dòng" paging · definition notes. Default kỳ = Tháng này, end date capped at today.
+- The report table lives in `.rp-grid`: a panel at most one screen tall (`max(22rem, 100dvh − 8rem)`) that scrolls
+  both ways, so the column headings (sticky top), TỔNG CỘNG (sticky bottom), Mã / Tên (frozen) and the sideways
+  scrollbar are always in view. Inside it: names that open a record stay **ink** (accent + underline only on hover — a
+  column of green links spends the whole accent budget); codes (`code · voucher · order`) in mono xs `--color-ink-2`;
+  a numeric 0 is `--color-muted` so the rows that moved stand out.
 - Report numbers must tie to each other and to the ledgers (Doanh thu = Chiết khấu + Lãi gộp over all time = receivedValue;
   Sổ quỹ = Thu chi). Anything estimated (giá vốn) is labelled "ước tính" in the notes.
 - Deep links keep the slug and may add `ngay=N` (open on "last N days"), e.g. the dashboard's Khách ngừng mua tile.
+
+## Thiết lập › Nhóm hàng (reference for plain name lists)
+- One paragraph says where the *system's* axis lives (Tính chất: fixed, it decides stock, định mức, code prefix) and what
+  the page is for. Table: name · Mặt hàng (link to `/hang-hoa?nhom=`) · count per Tính chất · Đổi tên / Xoá; a
+  "Chưa phân nhóm" footer row. Actions follow the role (`category.create|update|delete`).
+- **Deleting is how two groups merge**: a nhóm with products opens the confirm strip with "Chuyển N mặt hàng sang [nhóm |
+  Không thuộc nhóm nào]" — the button stays disabled until a target is chosen. The server moves the products in the same
+  transaction and writes one Nhật ký line per moved product (Nhóm hàng: A → B) plus the `category.delete` line.
+- `.confirm-strip` is global (styles.scss), shared by vouchers and settings lists.
+- **Thiết lập › Kho** is a full record (migration `dot10_warehouse_details`): Mã kho `KHO0000001` (sequence, auto),
+  tên, địa chỉ, điện thoại, **thủ kho**, ghi chú, Đang dùng / Ngừng dùng. The Thủ kho picker lists only active users
+  whose chức vụ does warehouse work (lập phiếu nhập / xuất / chuyển, điều chỉnh tồn, kiểm kê — `KEEPER_PERMISSIONS`,
+  served by `GET /warehouses/manager-candidates`, checked again on save), shown "Tên — Chức vụ"; a current thủ kho who
+  no longer qualifies stays, flagged "không còn quyền kho". List: Mã · Tên · Thủ kho · Địa chỉ
+  (one line) · Mặt hàng còn tồn · Giá trị tồn · Phiếu kho · Trạng thái (business-status colours); Mã tăng dần; a new kho
+  opens on its page. **Detail page** `/thiet-lap/kho/:id` like the other records: Lập phiếu nhập / Kiểm kê (`?kho=`
+  pre-fills the voucher), Ngừng dùng / Dùng lại, Xoá (only never used), Sửa; tabs Thông tin chung · Tồn kho · Phiếu kho
+  (50 rows + a link to the full filtered list) · Nhật ký. One Thêm / Sửa dialog (`app-warehouse-form-dialog`) serves both.
+- **Ngừng dùng ≠ delete**: a kho with history is never deleted. A ngừng dùng kho is left out of every chứng từ picker
+  (`| pickable: current` keeps an old choice visible) and the server refuses it on a phiếu lập tay; filters still list
+  it, its tồn and phiếu stay readable. Fallback kho (none given) prefers đang dùng ones. Unknown facts (e.g. when an old
+  kho was created) are left out, never filled with the migration date.
 
 ## Sidebar groups (menu trái)
 - Each group heading (Nghiệp vụ, Mua hàng, …) is a button with a chevron that folds its links (`aria-expanded`,
@@ -387,7 +446,10 @@ mix in a second icon library or emoji.
 - After saving, go to the detail page with a `history.state.notice`.
 
 ## What pages MUST share
-- The `NT` ink mark + "Ninh Trang" wordmark.
+- The brand from Thông tin công ty (`BrandService`): short company name (legal form such as "Công ty TNHH"
+  dropped, full name on hover), logo tile or the initials ink mark ("NT"). The same name ends every tab title
+  ("Hàng hoá · Ninh Trang") and the tab icon is the logo on a light rounded tile (monogram SVG without one). Saving
+  the company changes them at once; the last brand is remembered per browser for the login page.
 - Moss accent, used ≤ 5 % per viewport: active nav, primary button, links,
   focus, chart bars.
 - Be Vietnam Pro + JetBrains Mono.

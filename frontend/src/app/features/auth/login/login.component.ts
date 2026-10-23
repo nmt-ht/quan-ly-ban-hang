@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService, LoginResult } from '../../../core/services/auth.service';
+import { BrandService } from '../../../core/services/brand.service';
 
 const MESSAGE: Record<Exclude<LoginResult, 'ok'>, string> = {
   invalid: 'Sai email hoặc mật khẩu, hoặc tài khoản đã bị khoá.',
@@ -20,6 +21,8 @@ export class LoginComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  /** The company last seen in this browser (the catalog is read only after login). */
+  readonly brand = inject(BrandService);
 
   email = '';
   password = '';

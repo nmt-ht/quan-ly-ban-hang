@@ -1,0 +1,138 @@
+<div class="page-header">
+  <div>
+    <h1>Nhóm hàng</h1>
+    <p class="subtitle">Cách bạn chia danh mục hàng hoá để lọc và xem tồn nhanh · {{ data.categories().length }} nhóm</p>
+  </div>
+  @if (canCreate) {
+    <div class="toolbar">
+      <button type="button" class="btn btn-primary" (click)="open()"><app-nav-icon name="plus" />Thêm nhóm</button>
+    </div>
+  }
+</div>
+
+<!-- Tính chất is the system's (it decides stock, định mức and the code prefix) — say where it lives, once. -->
+<p class="cg-note">
+  <strong>Tính chất</strong> (Vật tư hàng hoá · Thành phẩm · Dịch vụ) do hệ thống quy định, không sửa ở đây: nó quyết định mặt hàng có
+  tồn kho hay không, có định mức hay không và tiền tố mã VT / SP / DV. <strong>Nhóm hàng</strong> là cách chia riêng của bạn — thêm,
+  đổi tên, hoặc gộp hai nhóm bằng cách xoá một nhóm và chuyển mặt hàng sang nhóm kia.
+</p>
+
+@if (notice()) {
+  <div class="notice" role="status">
+    <span>{{ notice() }}</span>
+    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+  </div>
+}
+@if (error()) { <p class="form-note text-danger" role="alert">{{ error() }}</p> }
+
+<div class="filters-bar">
+  <input type="search" class="filter-search" placeholder="Tìm nhóm hàng…" aria-label="Tìm nhóm hàng" [value]="search()" (input)="search.set($any($event.target).value)" />
+</div>
+
+<section class="card table-wrap">
+  @if (rows().length) {
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Nhóm hàng</th>
+            <th scope="col" class="align-right">Mặt hàng</th>
+            <th scope="col" class="align-right">Vật tư</th>
+            <th scope="col" class="align-right">Thành phẩm</th>
+            <th scope="col" class="align-right">Dịch vụ</th>
+            <th scope="col" class="cg-actions"><span class="visually-hidden">Thao tác</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of rows(); track r.c.id) {
+            <tr>
+              <td class="cg-name">{{ r.c.name }}</td>
+              <td class="num align-right">
+                @if (r.u.total) { <a class="code-link" routerLink="/hang-hoa" [queryParams]="{ nhom: r.c.id }">{{ r.u.total }}</a> } @else { 0 }
+              </td>
+              <td class="num align-right">{{ r.u.byType.VAT_TU }}</td>
+              <td class="num align-right">{{ r.u.byType.THANH_PHAM }}</td>
+              <td class="num align-right">{{ r.u.byType.DICH_VU }}</td>
+              <td class="cg-actions">
+                <span class="row-actions">
+                  @if (canUpdate) {
+                    <button type="button" class="icon-action" (click)="open(r.c)" [attr.aria-label]="'Đổi tên nhóm ' + r.c.name" title="Đổi tên"><app-nav-icon name="pencil" /></button>
+                  }
+                  @if (canDelete) {
+                    <button type="button" class="icon-action" (click)="askDelete(r.c)" [attr.aria-label]="'Xoá nhóm ' + r.c.name"
+                      [title]="r.u.total ? 'Xoá — chuyển mặt hàng sang nhóm khác' : 'Xoá nhóm'"><app-nav-icon name="trash" /></button>
+                  }
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+        @if (!search() && unassigned().total) {
+          <tfoot>
+            <tr class="cg-none">
+              <td>Chưa phân nhóm</td>
+              <td class="num align-right"><a class="code-link" routerLink="/hang-hoa" [queryParams]="{ nhom: 'none' }">{{ unassigned().total }}</a></td>
+              <td class="num align-right">{{ unassigned().byType.VAT_TU }}</td>
+              <td class="num align-right">{{ unassigned().byType.THANH_PHAM }}</td>
+              <td class="num align-right">{{ unassigned().byType.DICH_VU }}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        }
+      </table>
+    </div>
+  } @else {
+    <div class="empty-state">
+      <h3>{{ search() ? 'Không có nhóm phù hợp' : 'Chưa có nhóm hàng nào' }}</h3>
+      <p>Nhóm hàng chia danh mục theo cách của bạn — ví dụ Khung tranh, Kính - Mica, Phụ kiện — để lọc hàng hoá và tồn kho nhanh.</p>
+      @if (canCreate && !search()) { <button type="button" class="btn btn-primary" (click)="open()"><app-nav-icon name="plus" />Thêm nhóm</button> }
+    </div>
+  }
+</section>
+
+@if (deleting(); as c) {
+  <div class="confirm-strip cg-confirm" role="alertdialog" aria-labelledby="cg-del-title">
+    @if (deletingCount()) {
+      <p id="cg-del-title"><strong>Xoá nhóm "{{ c.name }}"?</strong> Nhóm đang có {{ deletingCount() }} mặt hàng — chọn nơi chuyển các mặt hàng này.</p>
+      <label class="cg-move">
+        <span>Chuyển {{ deletingCount() }} mặt hàng sang</span>
+        <select [ngModel]="moveTo()" (ngModelChange)="moveTo.set($event)" aria-label="Nhóm chuyển mặt hàng sang">
+          <option value="" disabled>Chọn nhóm…</option>
+          @for (o of moveOptions(); track o.id) { <option [value]="o.id">{{ o.name }}</option> }
+          <option value="none">— Không thuộc nhóm nào —</option>
+        </select>
+      </label>
+    } @else {
+      <p id="cg-del-title"><strong>Xoá nhóm "{{ c.name }}"?</strong> Nhóm chưa có mặt hàng nào.</p>
+    }
+    <div class="toolbar">
+      <button type="button" class="btn" (click)="deleting.set(null)">Không xoá</button>
+      <button type="button" class="btn btn-danger" [disabled]="deletingCount() > 0 && !moveTo()" (click)="doDelete()">
+        <app-nav-icon name="trash" />{{ deletingCount() ? 'Chuyển và xoá nhóm' : 'Xoá nhóm' }}
+      </button>
+    </div>
+  </div>
+}
+
+<dialog #dialog class="rg-dialog th-dialog" aria-labelledby="cg-title">
+  <header class="rg-head">
+    <div><h2 id="cg-title">{{ editing() ? 'Đổi tên nhóm' : 'Thêm nhóm hàng' }}</h2></div>
+    <button type="button" class="icon-action" aria-label="Đóng" (click)="close()"><app-nav-icon name="x" /></button>
+  </header>
+  <div class="rg-body th-body">
+    <label class="field th-note">
+      <span>Tên nhóm <span class="required-mark">*</span></span>
+      <input id="cg-name" type="text" maxlength="100" placeholder="VD: Khung tranh, Kính - Mica, Phụ kiện" [ngModel]="name()" (ngModelChange)="name.set($event)"
+        (keydown.enter)="save()" [attr.aria-invalid]="attempted() && issue() ? 'true' : null" />
+      @if (duplicate(); as d) { <span class="hint text-danger">Đã có nhóm "{{ d.name }}".</span> }
+      @if (editing(); as e) { <span class="hint">Đổi tên áp cho cả {{ svc.usageOf(e.id).total }} mặt hàng trong nhóm.</span> }
+    </label>
+  </div>
+  <footer class="rg-foot">
+    <p class="rg-summary" [class.text-danger]="attempted() && issue()" role="status">{{ attempted() && issue() ? issue() : '' }}</p>
+    <div class="toolbar">
+      <button type="button" class="btn" (click)="close()">Huỷ</button>
+      <button type="button" class="btn btn-primary" [disabled]="!name().trim()" (click)="save()">Lưu</button>
+    </div>
+  </footer>
+</dialog>

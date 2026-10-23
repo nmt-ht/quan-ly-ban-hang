@@ -29,6 +29,16 @@
   }
 </dl>
 
+<!-- Divided by Tính chất (tabs) and Kho (rail) — design.md › List pages. -->
+<div class="list-divided">
+<app-list-tabs label="Tính chất" [items]="typeTabs()" [(value)]="typeTab" />
+
+<div class="list-split">
+<app-list-rail title="Kho" [items]="warehouseRail()" [(value)]="warehouseId">
+  <a class="ld-manage" allowedLink routerLink="/thiet-lap/kho"><app-nav-icon name="pencil" />Quản lý kho</a>
+</app-list-rail>
+
+<div>
 <div class="filters-bar">
   <input
     type="text"
@@ -38,11 +48,6 @@
     [value]="search()"
     (input)="search.set($any($event.target).value)"
   />
-  <select aria-label="Kho" [value]="warehouseId()" (change)="warehouseId.set($any($event.target).value)">
-    <option value="all">Tất cả kho</option>
-    @for (w of data.warehouses(); track w.id) { <option [value]="w.id">{{ w.name }}</option> }
-  </select>
-  <app-filter-multi-select label="Tính chất" [options]="typeOptions()" [(selected)]="types" />
   <app-filter-multi-select label="Nhóm hàng" [options]="categoryOptions()" [(selected)]="categories" />
   <select aria-label="Sắp xếp" [value]="sort()" (change)="sort.set($any($event.target).value); headerSort.set(null)">
     <option value="name">Tên A → Z</option>
@@ -75,6 +80,9 @@
 />
 
 <app-pagination [total]="rows().length" unit="mặt hàng" [(page)]="page" [(pageSize)]="pageSize" />
+</div>
+</div>
+</div>
 
 <p class="hint inv-hint">
   Tồn luôn quy về ĐVT chính. Khách đã đặt = đơn bán chưa xuất kho; Có thể bán = tồn − khách đã đặt; Sắp về = đơn nhập đã gửi NCC chưa nhận.

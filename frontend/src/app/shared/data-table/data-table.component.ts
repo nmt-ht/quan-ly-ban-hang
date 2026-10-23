@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, Output, TemplateRef } from '@angular/co
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { CopyButtonComponent } from '../copy-button/copy-button.component';
+import { FrozenColsDirective, identityColumns } from '../frozen-cols.directive';
 import { amountTone } from '../format.util';
 import { ColumnFilterKind, ColumnFilters, columnFilterKind, isActiveFilters, numberPredicate, selectOptions } from '../column-filter';
 
@@ -41,10 +42,10 @@ export interface DataTableColumn<T> {
 @Component({
   selector: 'app-data-table',
   standalone: true,
-  imports: [CommonModule, RouterLink, CopyButtonComponent],
+  imports: [CommonModule, RouterLink, CopyButtonComponent, FrozenColsDirective],
   template: `
     <div class="table-wrap card" *ngIf="rows.length || (filterable && hasFilters()); else empty">
-      <table>
+      <table [appFrozenCols]="frozen" [class.fz-thumb]="columns[0]?.key === 'image'">
         <thead>
           <tr>
             <th *ngFor="let col of columns" scope="col" [style.textAlign]="col.align || 'left'" [attr.aria-sort]="isSortable(col) ? ariaSort(col) : null">
@@ -168,6 +169,9 @@ export interface DataTableColumn<T> {
       box-shadow: inset 1px 0 0 var(--color-rule);
     }
     th.actions-cell { background: var(--color-paper-2); }
+    /* …and follows the row's stripe (styles.scss) and hover fill. */
+    tbody tr:nth-child(even of :not(.no-match)) td.actions-cell { background: var(--color-row-alt); }
+    @media (hover: hover) { tbody tr:hover td.actions-cell { background: var(--color-paper-2); } }
     /* Copy button appears on row hover / focus so the column stays quiet. */
     .dt-chips { display: inline-flex; flex-wrap: wrap; gap: 4px; white-space: normal; }
     .dt-none { color: var(--color-muted); }
@@ -276,6 +280,11 @@ export class DataTableComponent<T extends Record<string, any> = any> {
   // Every column is sortable unless it says `sortable: false` or is chips / image / filter: false.
   @Input() sortableColumns = false;
   @Output() sortChange = new EventEmitter<{ key: string; dir: 'asc' | 'desc' } | null>();
+
+  /** Mã / Tên (and the thumbnail before them) stay in view when the list scrolls sideways. */
+  get frozen(): number {
+    return identityColumns(this.columns.map((c) => c.key));
+  }
 
   isSortable(col: DataTableColumn<T>): boolean {
     return col.sortable ?? (this.sortableColumns && !col.chips && !col.image && col.filter !== false);

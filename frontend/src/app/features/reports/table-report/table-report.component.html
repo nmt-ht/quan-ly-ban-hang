@@ -76,8 +76,8 @@
     }
   }
 
-  <div class="tr-table-wrap rp-surface">
-    <table class="tr-table">
+  <div class="tr-table-wrap rp-surface rp-grid">
+    <table class="tr-table" [appFrozenCols]="frozen()">
       <thead>
         <tr>
           @for (c of columns(); track c.key) {
@@ -94,9 +94,9 @@
         @for (r of visible(); track r.id) {
           <tr>
             @for (c of columns(); track c.key) {
-              <td [class.r]="isNumeric(c)" [class.num]="isNumeric(c) || c.kind === 'date'" [class]="toneClass(c, r[c.key])">
+              <td [class.r]="isNumeric(c)" [class.num]="isNumeric(c) || c.kind === 'date'" [class.tr-code]="isCode(c)" [class.is-zero]="isNumeric(c) && r[c.key] === 0" [class]="toneClass(c, r[c.key])">
                 @if (c.link && r[c.link]; as l) {
-                  <a class="code-link" [routerLink]="l">{{ text(c, r[c.key]) }}</a>
+                  <a class="tr-link" [routerLink]="l">{{ text(c, r[c.key]) }}</a>
                 } @else {
                   {{ text(c, r[c.key]) }}
                 }

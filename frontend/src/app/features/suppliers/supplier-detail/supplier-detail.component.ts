@@ -23,6 +23,7 @@ import { SupplierService } from '../supplier.service';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { errorText } from '../../../core/api/api.service';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
+import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 
 export type SupplierTab = 'chung' | 'hang' | 'don-nhap' | 'cong-no' | 'nhat-ky';
 
@@ -37,7 +38,7 @@ interface CatalogRow {
 @Component({
   selector: 'app-supplier-detail',
   standalone: true,
-  imports: [NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, ProductPickerComponent, MoneyInputDirective, AuditHistoryComponent],
+  imports: [FrozenColsDirective, NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, ProductPickerComponent, MoneyInputDirective, AuditHistoryComponent],
   templateUrl: './supplier-detail.component.html',
   styleUrl: './supplier-detail.component.scss',
 })
@@ -133,7 +134,7 @@ export class SupplierDetailComponent {
   readonly orders = computed<PurchaseOrder[]>(() =>
     this.data.purchaseOrders()
       .filter((o) => o.supplierId === this.id())
-      .sort((a, b) => b.date.localeCompare(a.date) || b.code.localeCompare(a.code)),
+      .sort((a, b) => a.code.localeCompare(b.code, 'vi', { numeric: true })), // Mã tăng dần, as every coded grid
   );
 
   readonly orderTotals = computed(() => {
@@ -170,7 +171,7 @@ export class SupplierDetailComponent {
           lastOrderPrice: line ? Math.round(line.unitPrice / (line.ratioToBase ?? 1)) : undefined,
         };
       })
-      .sort((a, b) => (a.product?.name ?? '').localeCompare(b.product?.name ?? '', 'vi'));
+      .sort((a, b) => (a.product?.code ?? '').localeCompare(b.product?.code ?? '', 'vi', { numeric: true }));
   });
 
   // Bought items only (Thành phẩm is made in-house).

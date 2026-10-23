@@ -1,0 +1,42 @@
+/* Hallmark · page: Thiết lập › Nhóm hàng · system: design.md (Sổ cái) · pre-emit critique: P5 H4 E4 S5 R5 V4 */
+
+.table-wrap {
+  padding: 0;
+}
+
+// Where Tính chất lives — one quiet paragraph, not a banner.
+.cg-note {
+  max-width: 62rem;
+  margin: 0 0 var(--space-sm);
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  line-height: 1.5;
+
+  strong {
+    color: var(--color-ink-2);
+    font-weight: 600;
+  }
+}
+
+.cg-name {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.cg-actions {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.cg-none td {
+  color: var(--color-muted);
+}
+
+.cg-move {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xs);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}

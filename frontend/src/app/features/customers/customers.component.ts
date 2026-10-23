@@ -40,7 +40,7 @@ export class CustomersComponent {
   readonly tags = signal<string[]>([]);
   readonly status = signal<StatusFilter>('all');
   readonly owing = signal(false);
-  readonly sort = signal<CustomerSort>('name-asc');
+  readonly sort = signal<CustomerSort>('code-asc'); // default: Mã tăng dần
   readonly columnFilters = signal<ColumnFilters>({});
   // Clicking a column header overrides the "Sắp xếp" select; picking from the select clears it.
   readonly headerSort = signal<ColumnSort | null>(null);

@@ -10,6 +10,10 @@ const TYPE_TAG: Record<Product['type'], string> = { VAT_TU: 'VT', THANH_PHAM: 'S
 // Searchable product combobox (as in production's "Chọn hàng hoá"): type tag, code, name and
 // current stock per option. The list is position:fixed so it is not clipped inside a
 // horizontally scrolling table.
+/** Height of the list (px, = 18 rem) and of the search row above it — used to decide where the panel opens. */
+const LIST_MAX = 288;
+const SEARCH_H = 48;
+
 @Component({
   selector: 'app-product-picker',
   standalone: true,
@@ -41,7 +45,8 @@ const TYPE_TAG: Record<Product['type'], string> = { VAT_TU: 'VT', THANH_PHAM: 'S
     </button>
 
     @if (open()) {
-      <div class="pp-panel" [style.top.px]="pos().top" [style.left.px]="pos().left" [style.width.px]="pos().width">
+      <div class="pp-panel" [class.is-up]="pos().up" [style.top.px]="pos().up ? null : pos().top" [style.bottom.px]="pos().up ? pos().bottom : null"
+        [style.left.px]="pos().left" [style.width.px]="pos().width" [style.--pp-list-max]="pos().listMax + 'px'">
         <div class="pp-search">
           <app-nav-icon name="search" />
           <input
@@ -95,7 +100,7 @@ export class ProductPickerComponent {
   readonly open = signal(false);
   readonly query = signal('');
   readonly active = signal(0);
-  readonly pos = signal({ top: 0, left: 0, width: 0 });
+  readonly pos = signal({ top: 0, bottom: 0, left: 0, width: 0, up: false, listMax: LIST_MAX });
   private readonly trigger = viewChild.required<ElementRef<HTMLButtonElement>>('trigger');
   private readonly search = viewChild<ElementRef<HTMLInputElement>>('search');
 
@@ -127,7 +132,15 @@ export class ProductPickerComponent {
     const r = this.trigger().nativeElement.getBoundingClientRect();
     const width = Math.max(r.width, 360);
     const left = Math.min(r.left, window.innerWidth - width - 8);
-    this.pos.set({ top: r.bottom + 4, left: Math.max(8, left), width: Math.min(width, window.innerWidth - 16) });
+    // Opens below the field; when the room below is short (a row near the bottom, the sticky Lưu bar) and there is more
+    // above, it opens upward. The list shrinks to the room it has, so the panel never runs off the screen.
+    const below = window.innerHeight - r.bottom - 12;
+    const above = r.top - 12;
+    const up = below < LIST_MAX + SEARCH_H && above > below;
+    const listMax = Math.max(120, Math.min(LIST_MAX, (up ? above : below) - SEARCH_H));
+    this.pos.set({
+      top: r.bottom + 4, bottom: window.innerHeight - r.top + 4, left: Math.max(8, left), width: Math.min(width, window.innerWidth - 16), up, listMax,
+    });
     this.query.set('');
     this.active.set(Math.max(0, this.products().findIndex((p) => p.id === this.value())));
     this.open.set(true);

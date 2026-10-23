@@ -20,6 +20,7 @@ import { VOUCHER_KIND_LABEL, kindOf } from '../../warehouse-vouchers/warehouse-v
 import { canCancelLsx, canComplete, canStart, isLate } from '../production-order.rules';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
+import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 
 // Xuất vật tư happens before nhập thành phẩm on the same day.
 const STEP: Record<string, number> = { XUAT: 0, NHAP: 1, CHUYEN: 2, KIEM_KE: 3 };
@@ -28,7 +29,7 @@ const STEP: Record<string, number> = { XUAT: 0, NHAP: 1, CHUYEN: 2, KIEM_KE: 3 }
 @Component({
   selector: 'app-production-order-detail',
   standalone: true,
-  imports: [NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, AuditHistoryComponent],
+  imports: [FrozenColsDirective, NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, AuditHistoryComponent],
   templateUrl: './production-order-detail.component.html',
   styleUrls: ['../../../shared/voucher/voucher.scss', './production-order-detail.component.scss'],
 })

@@ -47,6 +47,12 @@
   line-height: 1.15;
 }
 
+// The short company name (BrandService); a long one ends in … with the full name on hover.
+.brand-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .brand-version {
   margin-top: 2px;
   font-family: var(--font-mono);
@@ -299,7 +305,7 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  height: 52px;
+  height: var(--topbar-h);
   display: flex;
   align-items: center;
   gap: var(--space-sm);

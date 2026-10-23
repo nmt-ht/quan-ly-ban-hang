@@ -54,7 +54,7 @@
             <label for="wv-wh">{{ text().warehouse }} <span class="required-mark">*</span></label>
             <select id="wv-wh" [ngModel]="warehouseId()" (ngModelChange)="warehouseId.set($event)" [attr.aria-invalid]="attempted() && !warehouseId() ? 'true' : null">
               <option value="">— Chọn kho —</option>
-              @for (w of data.warehouses(); track w.id) { <option [value]="w.id">{{ w.name }}</option> }
+              @for (w of data.warehouses() | pickable: warehouseId(); track w.id) { <option [value]="w.id">{{ w.name }}</option> }
             </select>
           </div>
           @if (type() === 'CHUYEN') {
@@ -63,7 +63,7 @@
               <select id="wv-target" [ngModel]="targetId()" (ngModelChange)="targetId.set($event)"
                 [attr.aria-invalid]="attempted() && (!targetId() || targetId() === warehouseId()) ? 'true' : null">
                 <option value="">— Chọn kho —</option>
-                @for (w of data.warehouses(); track w.id) { <option [value]="w.id" [disabled]="w.id === warehouseId()">{{ w.name }}</option> }
+                @for (w of data.warehouses() | pickable: targetId(); track w.id) { <option [value]="w.id" [disabled]="w.id === warehouseId()">{{ w.name }}</option> }
               </select>
             </div>
           } @else {
@@ -103,7 +103,7 @@
 
     <section class="card voucher-grid-card">
       <div class="voucher-grid-scroll">
-        <table class="voucher-grid">
+        <table appFrozenCols="2" class="voucher-grid">
           <thead>
             <tr>
               <th scope="col" class="c-idx">#</th>

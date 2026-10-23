@@ -24,6 +24,7 @@ import { PrintDocumentComponent } from '../../../shared/print/print-document.com
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { errorText } from '../../../core/api/api.service';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
+import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 
 type Tab = 'don' | 'hang' | 'phieu' | 'chi-phi' | 'nhat-ky';
 type PrintMode = 'soan' | 'giao' | null;
@@ -55,7 +56,7 @@ interface ConfirmRow {
 @Component({
   selector: 'app-delivery-trip-voucher',
   standalone: true,
-  imports: [NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, TripHeaderDialogComponent, PrintDocumentComponent, AuditHistoryComponent],
+  imports: [FrozenColsDirective, NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, TripHeaderDialogComponent, PrintDocumentComponent, AuditHistoryComponent],
   templateUrl: './delivery-trip-voucher.component.html',
   styleUrls: [
     '../../../shared/voucher/voucher.scss',

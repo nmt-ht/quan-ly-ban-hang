@@ -46,6 +46,7 @@ model User {
   productionOrders     ProductionOrder[]  @relation("ProductionOrderCreatedBy")
   deliveryTrips        DeliveryTrip[]     @relation("DeliveryTripCreatedBy")
   vehiclesAsDriver     Vehicle[]          @relation("VehicleDriver")
+  managedWarehouses    Warehouse[]        @relation("WarehouseManager")
 }
 
 enum UserStatus {
@@ -125,9 +126,20 @@ model ProductCategory {
   products Product[]
 }
 
+// Kho: a physical place stock sits in. Code KHO0000001 (sequence "KHO"); a kho with history is never deleted —
+// isActive = false hides it from new chứng từ while its past stays readable.
 model Warehouse {
-  id   String @id @default(uuid())
-  name String
+  id        String   @id @default(uuid())
+  code      String?  @unique
+  name      String
+  address   String?
+  phone     String?
+  managerId String? // thủ kho — a user of the system
+  manager   User?    @relation("WarehouseManager", fields: [managerId], references: [id], onDelete: SetNull)
+  note      String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   stockLevels        StockLevel[]
   vouchersFrom       WarehouseVoucher[]     @relation("VoucherWarehouse")

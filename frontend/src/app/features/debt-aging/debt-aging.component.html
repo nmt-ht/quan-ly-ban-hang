@@ -87,7 +87,7 @@
   } @else if (view() === 'doi-tac') {
     <section class="card table-wrap">
       <div class="table-scroll">
-        <table class="ag-table">
+        <table appFrozenCols="2" class="ag-table">
           <thead>
             <tr>
               <th scope="col">Mã</th>
@@ -126,7 +126,7 @@
   } @else {
     <section class="card table-wrap">
       <div class="table-scroll">
-        <table class="ag-table">
+        <table appFrozenCols="2" class="ag-table">
           <thead>
             <tr>
               <th scope="col">{{ t().partner }}</th>

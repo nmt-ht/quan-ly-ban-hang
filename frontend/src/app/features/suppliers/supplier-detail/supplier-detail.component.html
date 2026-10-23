@@ -146,7 +146,7 @@
 
           @if (catalog().length) {
             <div class="table-scroll">
-              <table>
+              <table appFrozenCols="2">
                 <thead>
                   <tr>
                     <th scope="col">Mã hàng</th>
@@ -208,7 +208,7 @@
               <div><dt>Còn chờ nhận</dt><dd class="num">{{ money(orderTotals().value - orderTotals().received) }}</dd></div>
             </dl>
             <div class="table-scroll">
-              <table>
+              <table appFrozenCols="1">
                 <thead>
                   <tr>
                     <th scope="col">Mã đơn</th>

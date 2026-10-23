@@ -24,7 +24,7 @@
     </div>
 
     <div class="rg-scroll">
-      <table class="rg-table">
+      <table appFrozenCols="1" class="rg-table">
         <thead>
           <tr>
             <th scope="col">Hàng hoá</th>
@@ -55,7 +55,7 @@
                 @if (r.stocked) {
                   <select [ngModel]="r.warehouseId" (ngModelChange)="patch(i, { warehouseId: $event })" [attr.aria-label]="'Kho xuất ' + r.productCode">
                     <option value="">— Chọn kho —</option>
-                    @for (w of data.warehouses(); track w.id) { <option [value]="w.id">{{ w.name }}</option> }
+                    @for (w of data.warehouses() | pickable: r.warehouseId; track w.id) { <option [value]="w.id">{{ w.name }}</option> }
                   </select>
                 } @else {
                   <span class="subtitle">Dịch vụ — không xuất kho</span>

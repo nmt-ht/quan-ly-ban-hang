@@ -147,95 +147,143 @@
 // Masonry columns of group cards: each group is one card with whole-row links, so a group with two reports
 // and one with six sit side by side without leaving a hole.
 
-.rc-groups {
-  columns: 2 26rem;
-  column-gap: var(--space-sm);
+// ---------- hub (/bao-cao): an index of reports ----------
+
+// Title left, search right on the same line; the search takes the whole row on a phone.
+.rc-hub-head {
+  align-items: center;
 }
 
-.rc-group-card {
-  break-inside: avoid;
-  margin: 0 0 var(--space-sm);
-  padding: 0;
+.rc-search {
+  flex: 0 1 20rem;
+  min-width: 0;
+  min-height: var(--control-h);
+  padding: 0 var(--space-xs);
+  border: var(--rule-hair) solid var(--color-rule-strong);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-size: var(--text-sm);
+  transition: border-color var(--dur-short) var(--ease-out);
+
+  &::placeholder {
+    color: var(--color-muted);
+  }
+
+  &:focus-visible {
+    border-color: var(--color-focus);
+    outline: 2px solid var(--color-focus);
+    outline-offset: 0;
+  }
+}
+
+@media (max-width: 40rem) {
+  .rc-search {
+    flex-basis: 100%;
+  }
+}
+
+// "Xem gần đây": one quiet line of the last reports opened in this browser.
+.rc-recent {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2xs);
+  margin: calc(var(--space-xs) * -1) 0 var(--space-md);
+}
+
+.rc-recent-label {
+  margin-right: var(--space-3xs);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.rc-recent-item {
+  display: inline-block;
+  max-width: 100%;
+  padding: 3px var(--space-xs);
   overflow: hidden;
+  border: var(--rule-hair) solid var(--color-rule-strong);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: border-color var(--dur-short) var(--ease-out), background-color var(--dur-short) var(--ease-out);
+
+  &:active {
+    background: var(--color-paper-3);
+  }
+}
+
+@media (hover: hover) {
+  .rc-recent-item:hover {
+    border-color: var(--color-ink-2);
+    background: var(--color-paper-2);
+  }
+}
+
+// Groups flow down newspaper columns (≥ 16.5 rem each, at most 4), so the index fills a wide screen and a short
+// group never leaves a hole. Each group: a 2 px ink rule (the ledger's heading line), its name, then its reports.
+.rc-index {
+  columns: 16.5rem 4;
+  column-gap: var(--space-lg);
+
+  > .empty-state {
+    column-span: all;
+  }
+}
+
+.rc-group {
+  break-inside: avoid;
+  margin: 0 0 var(--space-lg);
+  padding-top: var(--space-xs);
+  border-top: 2px solid var(--color-ink);
 }
 
 .rc-group-head {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  display: flex;
   align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-sm) var(--space-sm) var(--space-xs);
+  gap: var(--space-2xs);
+  margin: 0 0 var(--space-3xs);
+  font-size: var(--text-md);
+  font-weight: 600;
 
-  h2 {
-    margin: 0;
-    font-size: var(--text-md);
-  }
-
-  p {
-    margin: 1px 0 0;
-    font-size: var(--text-xs);
+  > app-nav-icon {
+    flex-shrink: 0;
     color: var(--color-muted);
   }
 }
 
-.rc-group-icon {
-  display: grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: var(--radius-control);
-  background: var(--color-accent-tint);
-  color: var(--color-accent);
-}
-
 .rc-count {
-  min-width: 1.5rem;
-  padding: 1px var(--space-2xs);
-  border-radius: 999px;
-  background: var(--color-paper-2);
-  color: var(--color-ink-2);
+  margin-left: auto;
   font-size: var(--text-xs);
-  font-weight: 600;
-  text-align: center;
+  font-weight: 500;
+  color: var(--color-muted);
 }
 
 .rc-list {
   margin: 0;
   padding: 0;
   list-style: none;
-  border-top: var(--rule-hair) solid var(--color-rule);
-
-  li + li {
-    border-top: var(--rule-hair) solid var(--color-rule);
-  }
 }
 
+// A report: its name (the link) over one muted sentence of what it answers. The hover fill bleeds a little past
+// the column edge so the text stays aligned with the group heading.
 .rc-row {
   display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-xs) var(--space-sm);
+  flex-direction: column;
+  gap: 1px;
+  margin: 0 calc(var(--space-xs) * -1);
+  padding: var(--space-2xs) var(--space-xs);
+  border-radius: var(--radius-control);
   color: var(--color-ink);
   text-decoration: none;
   transition: background-color var(--dur-short) var(--ease-out);
-
-  > app-nav-icon {
-    flex-shrink: 0;
-    color: var(--color-muted);
-    transition: color var(--dur-short) var(--ease-out);
-  }
-
-  &:hover {
-    background: var(--color-paper-2);
-
-    > app-nav-icon {
-      color: var(--color-accent);
-    }
-
-    .rc-row-title {
-      color: var(--color-accent);
-    }
-  }
 
   &:active {
     background: var(--color-paper-3);
@@ -247,45 +295,40 @@
   }
 }
 
-.rc-row-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-  min-width: 0;
+@media (hover: hover) {
+  .rc-row:hover {
+    background: var(--color-paper-2);
+
+    .rc-row-title {
+      color: var(--color-accent);
+    }
+  }
 }
 
 .rc-row-title {
+  font-size: var(--text-sm);
   font-weight: 600;
 }
 
 .rc-row-sum {
-  font-size: var(--text-sm);
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: var(--text-xs);
+  line-height: 1.45;
   color: var(--color-muted);
-  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
-// Not built yet: quieter row, word tag instead of the arrow.
-.rc-row.is-soon {
-  background: var(--color-paper);
-
-  .rc-row-title {
-    font-weight: 500;
-    color: var(--color-ink-2);
-  }
-
-  .rc-row-sum {
-    font-size: var(--text-xs);
-  }
-
-  &:hover .rc-row-title {
-    color: var(--color-ink);
-  }
+// Not built yet: still listed (last in the group), quieter, tagged in words.
+.rc-row.is-soon .rc-row-title {
+  font-weight: 500;
+  color: var(--color-ink-2);
 }
 
 .rc-tag {
   display: inline-block;
-  margin-left: var(--space-3xs);
+  margin-left: var(--space-2xs);
   padding: 0 var(--space-2xs);
   border-radius: 999px;
   background: var(--color-paper-3);
@@ -297,7 +340,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .rc-row,
-  .rc-row > app-nav-icon,
+  .rc-recent-item,
+  .rc-search,
   .rc-tab {
     transition: none;
   }

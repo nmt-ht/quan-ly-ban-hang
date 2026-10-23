@@ -12,6 +12,7 @@
   --color-surface:      oklch(99.3% 0.004 90);   /* cards, sidebar, inputs */
   --color-logo-tile:    oklch(99.3% 0.004 90);   /* behind an uploaded logo — stays light in dark mode, logos are drawn for white */
   --color-paper-2:      oklch(95.2% 0.010 90);   /* row hover, quiet fills */
+  --color-row-alt:      oklch(97.4% 0.007 90);   /* every other table row — lighter than hover */
   --color-paper-3:      oklch(92.4% 0.012 90);   /* pressed, track */
   --color-rule:         oklch(89% 0.010 95);     /* hairline dividers */
   --color-rule-strong:  oklch(62% 0.014 100);    /* input + control boundaries (≥3:1) */
@@ -73,6 +74,7 @@
   --space-sm:  1rem;     /* 16 */
   --space-md:  1.5rem;   /* 24 */
   --space-lg:  2rem;     /* 32 */
+  --topbar-h:  52px;     /* sticky topbar (shell) — sticky panels sit under it */
   --space-xl:  3rem;     /* 48 */
 
   /* ---------- shape ---------- */
@@ -114,6 +116,7 @@ body.dark-theme {
   --color-paper:        oklch(16.5% 0.008 150);
   --color-surface:      oklch(20% 0.009 150);
   --color-paper-2:      oklch(23.5% 0.010 150);
+  --color-row-alt:      oklch(21.8% 0.0095 150);
   --color-paper-3:      oklch(27% 0.011 150);
   --color-rule:         oklch(30% 0.010 150);
   --color-rule-strong:  oklch(52% 0.012 140);

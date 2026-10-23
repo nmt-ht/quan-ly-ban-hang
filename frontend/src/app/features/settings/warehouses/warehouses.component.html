@@ -1,0 +1,93 @@
+<div class="page-header">
+  <div>
+    <h1>Kho</h1>
+    <p class="subtitle">{{ data.warehouses().length }} kho · giá trị tồn <span class="num">{{ money(totalValue()) }}</span> (giá vốn ước tính)</p>
+  </div>
+  @if (canCreate) {
+    <div class="toolbar">
+      <button type="button" class="btn btn-primary" (click)="add()"><app-nav-icon name="plus" />Thêm kho</button>
+    </div>
+  }
+</div>
+
+<!-- What this page does and does not do, once. -->
+<p class="cg-note">
+  Mỗi kho là một nơi hàng nằm: mã kho, địa chỉ, thủ kho chịu trách nhiệm. <strong>Hàng chuyển giữa các kho bằng phiếu chuyển kho</strong>,
+  không chuyển ở đây. Kho không dùng nữa thì <strong>Ngừng dùng</strong> — không còn được chọn khi lập chứng từ mới, tồn và phiếu cũ vẫn giữ.
+</p>
+
+@if (notice()) {
+  <div class="notice" role="status">
+    <span>{{ notice() }}</span>
+    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+  </div>
+}
+
+<div class="filters-bar">
+  <input type="search" class="filter-search" placeholder="Tìm mã, tên, địa chỉ hoặc thủ kho…" aria-label="Tìm kho" [value]="search()" (input)="search.set($any($event.target).value)" />
+  @if (inactiveCount()) {
+    <button type="button" class="filter-toggle" [attr.aria-pressed]="showInactive()" (click)="showInactive.set(!showInactive())">
+      Hiện kho ngừng dùng ({{ inactiveCount() }})
+    </button>
+  }
+</div>
+
+<section class="card table-wrap">
+  @if (rows().length) {
+    <div class="table-scroll">
+      <table appFrozenCols="2">
+        <thead>
+          <tr>
+            <th scope="col">Mã kho</th>
+            <th scope="col">Tên kho</th>
+            <th scope="col">Thủ kho</th>
+            <th scope="col">Địa chỉ</th>
+            <th scope="col" class="align-right">Mặt hàng còn tồn</th>
+            <th scope="col" class="align-right">Giá trị tồn</th>
+            <th scope="col" class="align-right">Phiếu kho</th>
+            <th scope="col">Trạng thái</th>
+            <th scope="col" class="cg-actions"><span class="visually-hidden">Thao tác</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of rows(); track r.w.id) {
+            <tr [class.wh-off]="r.w.isActive === false">
+              <td class="wh-code"><a class="code-link num" [routerLink]="['/thiet-lap/kho', r.w.id]">{{ r.w.code ?? '—' }}</a></td>
+              <td class="cg-name"><a class="wh-name" [routerLink]="['/thiet-lap/kho', r.w.id]">{{ r.w.name }}</a></td>
+              <td>{{ r.w.managerName || '—' }}</td>
+              <td class="wh-addr" [title]="r.w.address ?? ''">{{ r.w.address || '—' }}</td>
+              <td class="num align-right">
+                @if (r.u.items) { <a class="code-link" routerLink="/kho/ton-kho" [queryParams]="{ kho: r.w.id }">{{ r.u.items }}</a> } @else { 0 }
+              </td>
+              <td class="num align-right">{{ r.u.value ? money(r.u.value) : '—' }}</td>
+              <td class="num align-right">
+                @if (r.u.vouchers) { <a class="code-link" routerLink="/kho/phieu" [queryParams]="{ kho: r.w.id }">{{ r.u.vouchers }}</a> } @else { 0 }
+              </td>
+              <td>
+                <span [class]="statusClass(r.w)">
+                  {{ r.w.isActive === false ? 'Ngừng dùng' : 'Đang dùng' }}
+                </span>
+              </td>
+              <td class="cg-actions">
+                <span class="row-actions">
+                  <a class="icon-action" [routerLink]="['/thiet-lap/kho', r.w.id]" [attr.aria-label]="'Xem kho ' + r.w.name" title="Xem chi tiết"><app-nav-icon name="eye" /></a>
+                  @if (canUpdate) {
+                    <button type="button" class="icon-action" (click)="edit(r.w)" [attr.aria-label]="'Sửa kho ' + r.w.name" title="Sửa"><app-nav-icon name="pencil" /></button>
+                  }
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <div class="empty-state">
+      <h3>{{ search() ? 'Không có kho phù hợp' : 'Chưa có kho nào' }}</h3>
+      <p>Mỗi kho là một nơi hàng nằm — ví dụ Kho vật tư, Kho thành phẩm. Tồn kho, phiếu nhập / xuất đều tính theo kho.</p>
+      @if (canCreate && !search()) { <button type="button" class="btn btn-primary" (click)="add()"><app-nav-icon name="plus" />Thêm kho</button> }
+    </div>
+  }
+</section>
+
+<app-warehouse-form-dialog (saved)="onSaved($event)" />

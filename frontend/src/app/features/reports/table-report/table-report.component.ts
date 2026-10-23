@@ -6,6 +6,7 @@ import { amountTone, foldVi, formatQty, formatVnd } from '../../../shared/format
 import { downloadWorkbook, exportFileName } from '../../../shared/excel.util';
 import { PERIOD_PRESETS, formatDay, isoDay, presetRange } from '../../../shared/period';
 import { PeriodFilterComponent, PeriodValue } from '../../../shared/period-filter/period-filter.component';
+import { FrozenColsDirective, identityColumns } from '../../../shared/frozen-cols.directive';
 import { ReportCol, ReportDef, ReportResult, ReportRow } from '../report.types';
 import { DataStore } from '../../../core/services/data-store.service';
 
@@ -18,7 +19,7 @@ type Sort = { key: string; dir: 1 | -1 } | null;
 @Component({
   selector: 'app-table-report',
   standalone: true,
-  imports: [RouterLink, NavIconComponent, PeriodFilterComponent],
+  imports: [RouterLink, NavIconComponent, PeriodFilterComponent, FrozenColsDirective],
   templateUrl: './table-report.component.html',
   styleUrl: './table-report.component.scss',
 })
@@ -110,6 +111,8 @@ export class TableReportComponent {
   readonly failure = this.query.error;
 
   readonly columns = computed(() => this.result().columns);
+  /** Mã / Tên stay in view when the table scrolls sideways. */
+  readonly frozen = computed(() => identityColumns(this.columns().map((c) => c.key)));
 
   readonly filtered = computed<ReportRow[]>(() => {
     const q = foldVi(this.search().trim());
@@ -154,6 +157,11 @@ export class TableReportComponent {
     return !s || s.key !== c.key ? 'none' : s.dir === 1 ? 'ascending' : 'descending';
   }
 
+  /** Document and item codes read in mono, as on the list pages. */
+  isCode(c: ReportCol): boolean {
+    return CODE_KEYS.has(c.key);
+  }
+
   isNumeric(c: ReportCol): boolean {
     return c.kind === 'money' || c.kind === 'qty' || c.kind === 'int' || c.kind === 'pct';
   }
@@ -195,3 +203,5 @@ export class TableReportComponent {
     }
   }
 }
+
+const CODE_KEYS = new Set(['code', 'voucher', 'order']);

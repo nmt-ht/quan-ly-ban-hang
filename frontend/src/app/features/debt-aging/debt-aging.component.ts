@@ -10,6 +10,7 @@ import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { AGING_COLUMNS } from '../debts/aging';
 import { PrintDocumentComponent } from '../../shared/print/print-document.component';
 import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
+import { FrozenColsDirective } from '../../shared/frozen-cols.directive';
 
 type Side = 'PHAI_TRA' | 'PHAI_THU';
 type Bucket = (typeof AGING_COLUMNS)[number]['key'];
@@ -52,7 +53,7 @@ export function bucketOf(days: number): Bucket {
 @Component({
   selector: 'app-debt-aging',
   standalone: true,
-  imports: [NgClass, RouterLink, AllowedLinkDirective, NavIconComponent, PrintDocumentComponent],
+  imports: [FrozenColsDirective, NgClass, RouterLink, AllowedLinkDirective, NavIconComponent, PrintDocumentComponent],
   templateUrl: './debt-aging.component.html',
   styleUrl: './debt-aging.component.scss',
 })

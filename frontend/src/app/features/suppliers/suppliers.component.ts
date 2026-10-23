@@ -35,7 +35,7 @@ export class SuppliersComponent {
   readonly status = signal<StatusFilter>('all');
   readonly credit = signal<CreditFilter>('all');
   readonly owing = signal(false);
-  readonly sort = signal<SupplierSort>('name-asc');
+  readonly sort = signal<SupplierSort>('code-asc'); // default: Mã tăng dần
   readonly columnFilters = signal<ColumnFilters>({});
   // Clicking a column header overrides the "Sắp xếp" select; picking from the select clears it.
   readonly headerSort = signal<ColumnSort | null>(null);

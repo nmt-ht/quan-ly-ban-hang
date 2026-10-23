@@ -13,6 +13,7 @@ import { PRODUCT_TYPE_CLASS, PRODUCT_TYPE_LABEL, businessStatusClass } from '../
 import { formatVnd } from '../../../shared/format.util';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
+import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 
 interface BomRow {
   product: Product | undefined;
@@ -42,7 +43,7 @@ const VOUCHER_TYPE_LABEL: Record<WarehouseVoucherType, string> = {
 @Component({
   selector: 'app-product-detail',
   standalone: true,
-  imports: [NgClass, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, AuditHistoryComponent],
+  imports: [FrozenColsDirective, NgClass, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, AuditHistoryComponent],
   templateUrl: './product-detail.component.html',
 })
 export class ProductDetailComponent {

@@ -270,7 +270,7 @@
             <p class="grid-hint">Chọn khách hàng trước — đơn giá tự áp theo loại khách (sỉ / lẻ / dropship), sửa tay được.</p>
           }
           <div class="voucher-grid-scroll">
-            <table class="voucher-grid so-grid">
+            <table appFrozenCols="2" class="voucher-grid so-grid">
               <thead>
                 <tr>
                   <th scope="col" class="c-idx">#</th>
@@ -317,7 +317,7 @@
                       } @else if (editable()) {
                         <select [ngModel]="l.warehouseId" (ngModelChange)="patch(i, { warehouseId: $event })" [attr.aria-label]="'Kho xuất dòng ' + (i + 1)">
                           <option value="">—</option>
-                          @for (w of data.warehouses(); track w.id) { <option [value]="w.id">{{ w.name }}</option> }
+                          @for (w of data.warehouses() | pickable: l.warehouseId; track w.id) { <option [value]="w.id">{{ w.name }}</option> }
                         </select>
                       } @else { {{ l.warehouseId ? warehouseName(l.warehouseId) : '—' }} }
                     </td>

@@ -1,10 +1,11 @@
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DataStore } from '../../core/services/data-store.service';
 import { ProductionOrder, ProductionOrderStatus } from '../../core/models/domain.models';
 import { DataTableColumn, DataTableComponent } from '../../shared/data-table/data-table.component';
 import { FilterMultiSelectComponent, FilterOption } from '../../shared/filter-multi-select/filter-multi-select.component';
+import { DivideItem, ListTabsComponent, syncSliceToUrl } from '../../shared/list-divide/list-divide';
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
 import { PeriodFilterComponent, PeriodValue, NO_PERIOD } from '../../shared/period-filter/period-filter.component';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
@@ -19,6 +20,11 @@ import { canStart, isLate } from './production-order.rules';
 import { errorText } from '../../core/api/api.service';
 import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 
+type StatusTab = 'all' | ProductionOrderStatus;
+const STATUSES = Object.keys(PRODUCTION_ORDER_STATUS_LABEL) as ProductionOrderStatus[];
+/** ?tt= in the address: the status in lower-case words (nhap, dang-san-xuat…). */
+const statusParam = (s: ProductionOrderStatus) => s.toLowerCase().replace(/_/g, '-');
+
 interface ActiveChip {
   label: string;
   clear: () => void;
@@ -27,7 +33,10 @@ interface ActiveChip {
 @Component({
   selector: 'app-production-orders',
   standalone: true,
-  imports: [CommonModule, RouterLink, AllowedLinkDirective, DataTableComponent, FilterMultiSelectComponent, PaginationComponent, PeriodFilterComponent, NavIconComponent],
+  imports: [
+    CommonModule, RouterLink, AllowedLinkDirective, DataTableComponent, PaginationComponent, PeriodFilterComponent, NavIconComponent,
+    FilterMultiSelectComponent, ListTabsComponent,
+  ],
   templateUrl: './production-orders.component.html',
 })
 export class ProductionOrdersComponent {
@@ -36,7 +45,13 @@ export class ProductionOrdersComponent {
 
   readonly today = isoDay(new Date());
   readonly search = signal('');
-  readonly statuses = signal<string[]>([]);
+  private readonly query = inject(ActivatedRoute).snapshot.queryParamMap;
+  /**
+   * Divided by Trạng thái (tabs, lifecycle order, ?tt=). Thành phẩm is NOT a rail: it grows to hundreds of items, so it is
+   * a searchable multi-select with counts in the filter bar (?tp=id,id), and the table keeps the full width.
+   */
+  readonly statusTab = signal<StatusTab>(STATUSES.find((s) => statusParam(s) === this.query.get('tt')) ?? 'all');
+  readonly productIds = signal<string[]>((this.query.get('tp') ?? '').split(',').filter(Boolean));
   readonly period = signal<PeriodValue>(NO_PERIOD);
   readonly lateOnly = signal(false);
   readonly columnFilters = signal<ColumnFilters>({});
@@ -58,7 +73,8 @@ export class ProductionOrdersComponent {
     return isLate(x, this.orderById().get(x.sourceOrderId), this.today);
   }
 
-  private readonly matchedExceptStatus = computed(() => {
+  // Every filter except Trạng thái and Thành phẩm — the tab and rail counts are taken from it.
+  private readonly matchedBase = computed(() => {
     const q = foldVi(this.search().trim());
     return this.data.productionOrders().filter((x) => {
       if (q && !this.searchText(x).includes(q)) return false;
@@ -68,19 +84,39 @@ export class ProductionOrdersComponent {
     });
   });
 
-  readonly statusOptions = computed<FilterOption[]>(() => {
-    const counts = new Map<string, number>();
-    for (const x of this.matchedExceptStatus()) counts.set(x.status, (counts.get(x.status) ?? 0) + 1);
-    return (Object.keys(PRODUCTION_ORDER_STATUS_LABEL) as ProductionOrderStatus[]).map((s) => ({
-      value: s, label: PRODUCTION_ORDER_STATUS_LABEL[s], count: counts.get(s) ?? 0, dotClass: productionOrderStatusClass(s),
-    }));
+  private ofProduct(x: ProductionOrder): boolean {
+    const ids = this.productIds();
+    return !ids.length || ids.includes(x.productId);
+  }
+
+  private ofTab(x: ProductionOrder): boolean {
+    return this.statusTab() === 'all' || x.status === this.statusTab();
+  }
+
+  readonly statusTabs = computed<DivideItem<StatusTab>[]>(() => {
+    const rows = this.matchedBase().filter((x) => this.ofProduct(x));
+    return [
+      { value: 'all', label: 'Tất cả', count: rows.length },
+      ...STATUSES.map((s) => ({ value: s, label: PRODUCTION_ORDER_STATUS_LABEL[s], count: rows.filter((x) => x.status === s).length })),
+    ];
+  });
+
+  /** Thành phẩm filter: every product that has ever had a lệnh, "mã · tên" (searchable), with its count under the open tab. */
+  readonly productOptions = computed<FilterOption[]>(() => {
+    const rows = this.matchedBase().filter((x) => this.ofTab(x));
+    const ids = new Set(this.data.productionOrders().map((x) => x.productId));
+    return [...ids]
+      .map((id) => {
+        const p = this.productById().get(id);
+        return { value: id, label: p ? `${p.code} · ${p.name}` : id, count: rows.filter((x) => x.productId === id).length };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label, 'vi', { numeric: true }));
   });
 
   readonly rows = computed(() => {
-    const st = this.statuses();
-    const rows = this.matchedExceptStatus()
-      .filter((x) => !st.length || st.includes(x.status))
-      .sort((a, b) => b.createdDate.localeCompare(a.createdDate) || b.code.localeCompare(a.code));
+    const rows = this.matchedBase()
+      .filter((x) => this.ofProduct(x) && this.ofTab(x))
+      .sort((a, b) => a.code.localeCompare(b.code, 'vi', { numeric: true })); // default: Mã tăng dần
     return sortByColumn(applyColumnFilters(rows, this.columns, this.columnFilters()), this.columns, this.headerSort());
   });
 
@@ -92,8 +128,6 @@ export class ProductionOrdersComponent {
   readonly totals = computed(() => {
     const all = this.data.productionOrders();
     return {
-      draft: all.filter((x) => x.status === 'NHAP').length,
-      running: all.filter((x) => x.status === 'DANG_SAN_XUAT').length,
       late: all.filter((x) => this.late(x)).length,
       waitingOrders: this.data.salesOrders().filter((o) => o.status === 'CHO_SAN_XUAT').length,
     };
@@ -101,11 +135,14 @@ export class ProductionOrdersComponent {
 
   readonly chips = computed<ActiveChip[]>(() => {
     const chips: ActiveChip[] = [];
-    for (const s of this.statuses()) chips.push({ label: PRODUCTION_ORDER_STATUS_LABEL[s as ProductionOrderStatus], clear: () => this.statuses.update((v) => v.filter((x) => x !== s)) });
     const p = this.period();
     if (p.preset !== null) {
       const label = p.preset === 'custom' ? rangeLabel(p.range) : PERIOD_PRESETS.find((x) => x.value === p.preset)?.label;
       chips.push({ label: `Kỳ: ${label}`, clear: () => this.period.set(NO_PERIOD) });
+    }
+    for (const id of this.productIds()) {
+      const p = this.productById().get(id);
+      chips.push({ label: p ? `${p.code} · ${p.name}` : id, clear: () => this.productIds.update((v) => v.filter((x) => x !== id)) });
     }
     if (this.lateOnly()) chips.push({ label: 'Trễ hạn giao', clear: () => this.lateOnly.set(false) });
     for (const col of this.columns) {
@@ -152,6 +189,11 @@ export class ProductionOrdersComponent {
       this.rows();
       untracked(() => this.page.set(1));
     });
+    syncSliceToUrl(() => {
+      const s = this.statusTab();
+      const p = this.productIds();
+      return { tt: s === 'all' ? null : statusParam(s), tp: p.length ? p.join(',') : null };
+    });
   }
 
   async start(x: ProductionOrder): Promise<void> {
@@ -168,7 +210,7 @@ export class ProductionOrdersComponent {
 
   clearAll(): void {
     this.search.set('');
-    this.statuses.set([]);
+    this.productIds.set([]);
     this.period.set(NO_PERIOD);
     this.lateOnly.set(false);
     this.columnFilters.set({});

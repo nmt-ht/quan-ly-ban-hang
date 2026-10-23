@@ -91,7 +91,7 @@ export class DeliveryTripsComponent {
     const st = this.statuses();
     const rows = this.matchedExceptStatus()
       .filter((t) => !st.length || st.includes(t.status))
-      .sort((a, b) => b.date.localeCompare(a.date) || b.code.localeCompare(a.code));
+      .sort((a, b) => a.code.localeCompare(b.code, 'vi', { numeric: true })); // default: Mã tăng dần
     return sortByColumn(applyColumnFilters(rows, this.columns, this.columnFilters()), this.columns, this.headerSort());
   });
 

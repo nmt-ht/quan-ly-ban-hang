@@ -21,6 +21,7 @@ import { HasUnsavedChanges, isSaveShortcut, warnBeforeUnload } from '../../../co
 import { errorText } from '../../../core/api/api.service';
 import { ProductDraft, ProductService } from '../product.service';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
+import { PickableWarehousesPipe } from '../../../shared/pickable-warehouses.pipe';
 
 // × / ÷ need a positive ratio; + / − accept 0 (same price as the base unit).
 function factorValidator(group: AbstractControl): ValidationErrors | null {
@@ -34,7 +35,7 @@ function factorValidator(group: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-product-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, MoneyInputDirective, ProductImagesComponent],
+  imports: [PickableWarehousesPipe, CommonModule, ReactiveFormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, MoneyInputDirective, ProductImagesComponent],
   templateUrl: './product-form.component.html',
 })
 export class ProductFormComponent implements HasUnsavedChanges {

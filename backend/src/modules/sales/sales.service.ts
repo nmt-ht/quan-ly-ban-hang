@@ -445,7 +445,7 @@ export class SalesService {
       const today = new Date().toISOString().slice(0, 10);
       const bom = await this.bomOf(tx, x);
       const components = await tx.product.findMany({ where: { id: { in: bom.map((b) => b.componentId) } }, select: { id: true, type: true, defaultWarehouseId: true } });
-      const fallback = (await tx.warehouse.findFirst({ orderBy: { name: 'asc' }, select: { id: true } }))?.id;
+      const fallback = (await tx.warehouse.findFirst({ orderBy: [{ isActive: 'desc' }, { name: 'asc' }], select: { id: true } }))?.id;
       const byWarehouse = new Map<string, Map<string, number>>();
       for (const b of bom) {
         const p = components.find((c) => c.id === b.componentId);

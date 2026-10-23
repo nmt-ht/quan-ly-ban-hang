@@ -1,8 +1,8 @@
 <div class="login-screen">
   <form class="login-card" (ngSubmit)="submit()">
     <div class="brand">
-      <span class="brand-mark" aria-hidden="true">NT</span>
-      <span>Ninh Trang</span>
+      <span class="brand-mark" aria-hidden="true">{{ brand.monogram() }}</span>
+      <span>{{ brand.name() }}</span>
     </div>
     <p class="subtitle">Đăng nhập để tiếp tục</p>
     @if (expired && !error()) {

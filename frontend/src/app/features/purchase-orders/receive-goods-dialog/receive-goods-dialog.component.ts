@@ -8,6 +8,8 @@ import { formatVnd } from '../../../shared/format.util';
 import { lineRemaining, round4 } from '../purchase-order.rules';
 import { PurchaseOrderService } from '../purchase-order.service';
 import { errorText } from '../../../core/api/api.service';
+import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
+import { PickableWarehousesPipe } from '../../../shared/pickable-warehouses.pipe';
 
 interface ReceiveRow {
   lineIndex: number;
@@ -28,7 +30,7 @@ interface ReceiveRow {
 @Component({
   selector: 'app-receive-goods-dialog',
   standalone: true,
-  imports: [FormsModule, NavIconComponent],
+  imports: [PickableWarehousesPipe, FrozenColsDirective, FormsModule, NavIconComponent],
   templateUrl: './receive-goods-dialog.component.html',
   styleUrl: './receive-goods-dialog.component.scss',
 })

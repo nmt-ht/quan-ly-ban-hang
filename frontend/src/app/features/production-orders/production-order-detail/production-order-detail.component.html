@@ -80,7 +80,7 @@
       <h2 class="form-section-title lsx-title">Định mức vật tư <span class="lsx-sub">bản chụp lúc lập lệnh — sửa định mức sau đó không đổi lệnh này</span></h2>
       @if (bom().length) {
         <div class="voucher-grid-scroll">
-          <table class="voucher-grid">
+          <table appFrozenCols="2" class="voucher-grid">
             <thead>
               <tr>
                 <th scope="col" class="c-idx">#</th>
@@ -133,7 +133,7 @@
       <h2 class="form-section-title lsx-title">Phiếu kho của lệnh</h2>
       @if (vouchers().length) {
         <div class="voucher-grid-scroll">
-          <table class="voucher-grid">
+          <table appFrozenCols="1" class="voucher-grid">
             <thead>
               <tr><th scope="col">Số phiếu</th><th scope="col">Ngày</th><th scope="col">Loại</th><th scope="col">Kho</th><th scope="col">Lý do</th><th scope="col" class="c-num">Số dòng</th></tr>
             </thead>

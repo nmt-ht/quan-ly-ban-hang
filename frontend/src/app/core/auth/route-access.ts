@@ -44,6 +44,8 @@ const RULES: [RegExp, string[]][] = [
   [/^\/thu-chi(\/|$)/, ['voucher.view']],
 
   [/^\/thiet-lap\/cong-ty$/, ['company.view']],
+  [/^\/thiet-lap\/kho(\/|$)/, ['warehouse.view']],
+  [/^\/thiet-lap\/nhom-hang$/, ['category.view']],
   [/^\/thiet-lap\/the$/, ['tag.view']],
   [/^\/thiet-lap\/nguoi-dung(\/|$)/, ['user.view']],
   [/^\/thiet-lap\/chuc-vu$/, ['position.view']],

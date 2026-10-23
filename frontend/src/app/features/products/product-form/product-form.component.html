@@ -34,7 +34,7 @@
           <option value="DICH_VU">Dịch vụ (không có tồn kho)</option>
         </select>
         <span class="hint">
-          {{ editing ? 'Không đổi được sau khi tạo (mã ' + editing.code + ').' : 'Quyết định tiền tố mã: VT / SP / DV.' }}
+          {{ editing ? 'Không đổi được sau khi tạo (mã ' + editing.code + ').' : 'Do hệ thống quy định: quyết định tồn kho, định mức và tiền tố mã VT / SP / DV.' }}
         </span>
       </div>
 
@@ -58,6 +58,7 @@
           <option value="">— Không thuộc nhóm nào —</option>
           <option *ngFor="let c of data.categories()" [value]="c.id">{{ c.name }}</option>
         </select>
+        <span class="hint">Thêm, đổi tên hoặc gộp nhóm ở <a class="code-link" allowedLink routerLink="/thiet-lap/nhom-hang" target="_blank">Thiết lập › Nhóm hàng</a>.</span>
       </div>
 
       @if (type === 'THANH_PHAM') {
@@ -97,7 +98,7 @@
           <label for="pf-warehouse">Kho ngầm định</label>
           <select id="pf-warehouse" formControlName="defaultWarehouseId">
             <option value="">— Không đặt —</option>
-            <option *ngFor="let w of data.warehouses()" [value]="w.id">{{ w.name }}</option>
+            <option *ngFor="let w of data.warehouses() | pickable: form.get('defaultWarehouseId')?.value" [value]="w.id">{{ w.name }}</option>
           </select>
         </div>
         <div class="field">

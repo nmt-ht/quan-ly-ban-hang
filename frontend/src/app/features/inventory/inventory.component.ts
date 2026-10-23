@@ -6,6 +6,7 @@ import { CostService } from '../../core/services/cost.service';
 import { Product, ProductType } from '../../core/models/domain.models';
 import { DataTableColumn, DataTableComponent } from '../../shared/data-table/data-table.component';
 import { FilterMultiSelectComponent, FilterOption } from '../../shared/filter-multi-select/filter-multi-select.component';
+import { DivideItem, ListRailComponent, ListTabsComponent, syncSliceToUrl } from '../../shared/list-divide/list-divide';
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
@@ -18,6 +19,9 @@ import { lineRemaining as poLineRemaining } from '../purchase-orders/purchase-or
 import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 
 type Sort = 'name' | 'code' | 'qty-desc' | 'qty-asc' | 'value';
+type TypeTab = 'all' | ProductType;
+const STOCK_TYPES: ProductType[] = ['VAT_TU', 'THANH_PHAM'];
+const TYPE_PARAM: Record<string, ProductType> = { 'vat-tu': 'VAT_TU', 'thanh-pham': 'THANH_PHAM' };
 type StockState = 'AM' | 'DUOI_MIN' | 'HET' | 'ZERO' | 'DU';
 
 // HET = tồn 0 mà có định mức tối thiểu (cần nhập thêm); ZERO = tồn 0, không đặt định mức.
@@ -42,21 +46,26 @@ const r4 = (n: number) => Math.round(n * 10000) / 10000;
 @Component({
   selector: 'app-inventory',
   standalone: true,
-  imports: [CommonModule, RouterLink, AllowedLinkDirective, DataTableComponent, FilterMultiSelectComponent, PaginationComponent, NavIconComponent],
+  imports: [
+    CommonModule, RouterLink, AllowedLinkDirective, DataTableComponent, FilterMultiSelectComponent, PaginationComponent, NavIconComponent,
+    ListTabsComponent, ListRailComponent,
+  ],
   templateUrl: './inventory.component.html',
 })
 export class InventoryComponent {
   readonly data = inject(DataStore);
   private readonly cost = inject(CostService);
 
+  private readonly query = inject(ActivatedRoute).snapshot.queryParamMap;
   readonly search = signal('');
-  readonly warehouseId = signal('all');
-  readonly types = signal<string[]>([]);
+  /** Divided by Tính chất (tabs) and Kho (rail): ?tc=vat-tu|thanh-pham · ?kho=<id>. */
+  readonly typeTab = signal<TypeTab>(TYPE_PARAM[this.query.get('tc') ?? ''] ?? 'all');
+  readonly warehouseId = signal(this.query.get('kho') ?? 'all');
   readonly categories = signal<string[]>([]);
   readonly negativeOnly = signal(false);
   readonly belowMinOnly = signal(false);
   readonly showZero = signal(false);
-  readonly sort = signal<Sort>('name');
+  readonly sort = signal<Sort>('code'); // default: Mã tăng dần
   readonly columnFilters = signal<ColumnFilters>({});
   // Clicking a column header overrides the "Sắp xếp" select; picking from the select clears it.
   readonly headerSort = signal<ColumnSort | null>(null);
@@ -67,7 +76,12 @@ export class InventoryComponent {
 
   constructor() {
     // Lối tắt từ Tổng quan: /kho/ton-kho?belowMin=true
-    if (inject(ActivatedRoute).snapshot.queryParamMap.get('belowMin')) this.belowMinOnly.set(true);
+    if (this.query.get('belowMin')) this.belowMinOnly.set(true);
+    syncSliceToUrl(() => {
+      const t = this.typeTab();
+      const w = this.warehouseId();
+      return { tc: t === 'all' ? null : (Object.keys(TYPE_PARAM).find((k) => TYPE_PARAM[k] === t) ?? null), kho: w === 'all' ? null : w };
+    });
     effect(() => {
       this.rows();
       untracked(() => this.page.set(1));
@@ -80,9 +94,6 @@ export class InventoryComponent {
     return this.data.warehouses().filter((w) => used.has(w.id));
   });
 
-  readonly typeOptions = computed<FilterOption[]>(() =>
-    (['VAT_TU', 'THANH_PHAM'] as ProductType[]).map((t) => ({ value: t, label: PRODUCT_TYPE_LABEL[t], dotClass: PRODUCT_TYPE_CLASS[t] })),
-  );
   readonly categoryOptions = computed<FilterOption[]>(() => this.data.categories().map((c) => ({ value: c.id, label: c.name })));
 
   /** Open demand (base units) per product: sales orders not yet shipped. Đang giao đã rời kho nên không tính. */
@@ -105,9 +116,8 @@ export class InventoryComponent {
     return m;
   });
 
-  /** One row per stocked product (dịch vụ không có tồn). */
-  private readonly allRows = computed<StockRow[]>(() => {
-    const wh = this.warehouseId();
+  /** One row per stocked product (dịch vụ không có tồn), as seen from one kho or from all of them. */
+  private rowsFor(wh: string): StockRow[] {
     const levels = this.data.stockLevels();
     return this.data.products()
       .filter((p) => p.type !== 'DICH_VU')
@@ -127,32 +137,55 @@ export class InventoryComponent {
           available: r4(qty - reserved), unitCost, value: Math.round(Math.max(0, qty) * unitCost), state,
         };
       });
+  }
+
+  private readonly allRows = computed(() => this.rowsFor(this.warehouseId()));
+
+  /** Search and Nhóm hàng — the filters every tab and rail count honours. */
+  private matchesSearch(r: StockRow): boolean {
+    const p = r.product;
+    const q = foldVi(this.search().trim());
+    if (q && !foldVi(`${p.code} ${p.crossRefCode ?? ''} ${p.name}`).includes(q)) return false;
+    return !this.categories().length || this.categories().includes(p.categoryId ?? '');
+  }
+
+  /** The toggles under the search (tồn âm, dưới tối thiểu, ẩn tồn 0). */
+  private matchesToggles(r: StockRow): boolean {
+    if (this.negativeOnly() && r.qty >= 0) return false;
+    if (this.belowMinOnly() && !(r.state === 'DUOI_MIN' || r.state === 'HET' || r.state === 'AM')) return false;
+    // Ẩn mặt hàng tồn 0 trừ khi bật "Hiện cả tồn 0" — hàng hết mà có định mức tối thiểu vẫn hiện (cần nhập).
+    return this.showZero() || r.state !== 'ZERO';
+  }
+
+  private ofTab(r: StockRow): boolean {
+    const t = this.typeTab();
+    return t === 'all' || r.product.type === t;
+  }
+
+  readonly typeTabs = computed<DivideItem<TypeTab>[]>(() => {
+    const rows = this.allRows().filter((r) => this.matchesSearch(r) && this.matchesToggles(r));
+    return [
+      { value: 'all', label: 'Tất cả', count: rows.length },
+      ...STOCK_TYPES.map((t) => ({ value: t, label: PRODUCT_TYPE_LABEL[t], count: rows.filter((r) => r.product.type === t).length })),
+    ];
   });
 
-  private readonly baseRows = computed(() => {
-    const q = foldVi(this.search().trim());
-    return this.allRows().filter((r) => {
-      const p = r.product;
-      if (q && !foldVi(`${p.code} ${p.crossRefCode ?? ''} ${p.name}`).includes(q)) return false;
-      if (this.types().length && !this.types().includes(p.type)) return false;
-      if (this.categories().length && !this.categories().includes(p.categoryId ?? '')) return false;
-      return true;
-    });
+  /** Rail: Tất cả kho, then each kho with the products the list would show there. */
+  readonly warehouseRail = computed<DivideItem[]>(() => {
+    const count = (wh: string) => this.rowsFor(wh).filter((r) => this.matchesSearch(r) && this.ofTab(r) && this.matchesToggles(r)).length;
+    return [{ value: 'all', label: 'Tất cả kho', count: count('all') }, ...this.data.warehouses().map((w) => ({ value: w.id, label: w.name, count: count(w.id) }))];
   });
+
+
+  private readonly baseRows = computed(() => this.allRows().filter((r) => this.matchesSearch(r) && this.ofTab(r)));
 
   readonly hiddenZero = computed(() => this.baseRows().filter((r) => r.state === 'ZERO').length);
 
   readonly rows = computed(() => {
-    const rows = this.baseRows().filter((r) => {
-      if (this.negativeOnly() && r.qty >= 0) return false;
-      if (this.belowMinOnly() && !(r.state === 'DUOI_MIN' || r.state === 'HET' || r.state === 'AM')) return false;
-      // Ẩn mặt hàng tồn 0 trừ khi bật "Hiện cả tồn 0" — hàng hết mà có định mức tối thiểu vẫn hiện (cần nhập).
-      if (!this.showZero() && r.state === 'ZERO') return false;
-      return true;
-    });
+    const rows = this.baseRows().filter((r) => this.matchesToggles(r));
     const s = this.sort();
     rows.sort((a, b) =>
-      s === 'code' ? a.product.code.localeCompare(b.product.code)
+      s === 'code' ? a.product.code.localeCompare(b.product.code, 'vi', { numeric: true })
         : s === 'qty-desc' ? b.qty - a.qty
           : s === 'qty-asc' ? a.qty - b.qty
             : s === 'value' ? b.value - a.value
@@ -220,8 +253,6 @@ export class InventoryComponent {
 
   clearAll(): void {
     this.search.set('');
-    this.warehouseId.set('all');
-    this.types.set([]);
     this.categories.set([]);
     this.negativeOnly.set(false);
     this.belowMinOnly.set(false);
@@ -230,7 +261,7 @@ export class InventoryComponent {
   }
 
   readonly hasFilters = computed(
-    () => !!this.search() || this.warehouseId() !== 'all' || this.types().length > 0 || this.categories().length > 0 ||
+    () => !!this.search() || this.categories().length > 0 ||
       this.negativeOnly() || this.belowMinOnly(),
   );
 

@@ -1,0 +1,30 @@
+// Kho list — shares the settings-list look with Nhóm hàng (categories.component.scss).
+
+.wh-code {
+  white-space: nowrap;
+}
+
+.wh-name {
+  color: inherit;
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .wh-name:hover {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+}
+
+// One line, the rest on hover (title).
+.wh-addr {
+  max-width: 18rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wh-off td {
+  color: var(--color-muted);
+}

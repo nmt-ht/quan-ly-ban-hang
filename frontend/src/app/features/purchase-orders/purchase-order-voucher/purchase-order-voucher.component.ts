@@ -26,6 +26,8 @@ import { ReceiveGoodsDialogComponent } from '../receive-goods-dialog/receive-goo
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { errorText } from '../../../core/api/api.service';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
+import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
+import { PickableWarehousesPipe } from '../../../shared/pickable-warehouses.pipe';
 
 type Mode = 'create' | 'edit' | 'view';
 
@@ -57,7 +59,7 @@ const emptyLine = (): DraftLine => ({
 @Component({
   selector: 'app-purchase-order-voucher',
   standalone: true,
-  imports: [
+  imports: [PickableWarehousesPipe, FrozenColsDirective, 
     NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
     ReceiveGoodsDialogComponent, PaginationComponent, PrintDocumentComponent, AuditHistoryComponent,
   ],

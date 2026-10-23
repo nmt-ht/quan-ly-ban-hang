@@ -21,13 +21,14 @@ import { CustomerService } from '../customer.service';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { errorText } from '../../../core/api/api.service';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
+import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 
 export type CustomerTab = 'chung' | 'dia-chi' | 'don-hang' | 'cong-no' | 'nhat-ky';
 
 @Component({
   selector: 'app-customer-detail',
   standalone: true,
-  imports: [NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, AuditHistoryComponent],
+  imports: [FrozenColsDirective, NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, AuditHistoryComponent],
   templateUrl: './customer-detail.component.html',
   styleUrls: ['../../suppliers/supplier-detail/supplier-detail.component.scss', './customer-detail.component.scss'],
 })
@@ -125,7 +126,7 @@ export class CustomerDetailComponent {
   readonly orders = computed<SalesOrder[]>(() =>
     this.data.salesOrders()
       .filter((o) => o.customerId === this.id())
-      .sort((a, b) => b.orderDate.localeCompare(a.orderDate) || b.code.localeCompare(a.code)),
+      .sort((a, b) => a.code.localeCompare(b.code, 'vi', { numeric: true })), // Mã tăng dần, as every coded grid
   );
 
   readonly average = computed(() => (this.stats().receivedOrders ? Math.round(this.stats().revenue / this.stats().receivedOrders) : 0));

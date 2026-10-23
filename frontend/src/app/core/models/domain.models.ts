@@ -69,7 +69,22 @@ export interface ProductCategory {
 
 export interface Warehouse {
   id: string;
+  code?: string; // KHO0000001
   name: string;
+  address?: string;
+  phone?: string;
+  managerId?: string; // thủ kho — a user
+  managerName?: string;
+  note?: string;
+  /** false = ngừng dùng: not offered for new chứng từ, history stays. Missing = đang dùng. */
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/** Kho a new chứng từ may pick: the đang dùng ones, plus the one already chosen (so an old choice still shows). */
+export function pickableWarehouses(all: Warehouse[], current?: string | null): Warehouse[] {
+  return all.filter((w) => w.isActive !== false || w.id === current);
 }
 
 export interface StockLevel {

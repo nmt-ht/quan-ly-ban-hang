@@ -18,11 +18,12 @@ import { VehicleDialogComponent } from '../vehicle-dialog/vehicle-dialog.compone
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { errorText } from '../../../core/api/api.service';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
+import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 
 @Component({
   selector: 'app-vehicle-detail',
   standalone: true,
-  imports: [NgClass, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, VehicleDialogComponent, AuditHistoryComponent],
+  imports: [FrozenColsDirective, NgClass, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, VehicleDialogComponent, AuditHistoryComponent],
   templateUrl: './vehicle-detail.component.html',
   styleUrl: '../../suppliers/supplier-detail/supplier-detail.component.scss',
 })
@@ -54,7 +55,7 @@ export class VehicleDetailComponent {
   readonly trips = computed(() =>
     this.data.deliveryTrips()
       .filter((t) => t.vehicleId === this.id())
-      .sort((a, b) => b.date.localeCompare(a.date) || b.code.localeCompare(a.code)),
+      .sort((a, b) => a.code.localeCompare(b.code, 'vi', { numeric: true })), // Mã tăng dần, as every coded grid
   );
 
   readonly totals = computed(() => {

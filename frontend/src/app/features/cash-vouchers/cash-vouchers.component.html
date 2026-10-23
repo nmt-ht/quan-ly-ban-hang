@@ -34,8 +34,8 @@
         <button type="button" class="cv-bal-item" [attr.aria-pressed]="accountId() === a.id" (click)="accountId.set(accountId() === a.id ? 'all' : a.id)"
           [title]="'Lọc phiếu của ' + a.name">
           <span class="cv-bal-name">{{ a.name }}</span>
-          <span class="subtitle">{{ accountTypeLabel[a.type] }}{{ a.isActive === false ? ' · ngừng dùng' : '' }}</span>
           <span class="num cv-bal-value" [class.amt-neg]="a.balance < 0">{{ money(a.balance) }}</span>
+          <span class="cv-bal-type">{{ accountTypeLabel[a.type] }}{{ a.isActive === false ? ' · ngừng dùng' : '' }}</span>
         </button>
       </li>
     }

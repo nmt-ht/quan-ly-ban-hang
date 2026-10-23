@@ -108,7 +108,7 @@
         <section class="card voucher-grid-card">
           @if (rows().length) {
             <div class="voucher-grid-scroll">
-              <table class="voucher-grid tv-grid">
+              <table appFrozenCols="3" class="voucher-grid tv-grid">
                 <thead>
                   <tr>
                     <th scope="col" class="c-idx">#</th>
@@ -190,7 +190,7 @@
             @for (g of picking(); track g.warehouseId) {
               <h3 class="tv-group">{{ warehouseName(g.warehouseId) }}</h3>
               <div class="voucher-grid-scroll">
-                <table class="voucher-grid">
+                <table appFrozenCols="2" class="voucher-grid">
                   <thead>
                     <tr>
                       <th scope="col">Mã hàng</th>

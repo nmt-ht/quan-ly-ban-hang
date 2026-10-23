@@ -25,18 +25,22 @@
 
 .cv-bal-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr));
   gap: var(--space-2xs);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+// One tile per account, read top to bottom like the KPI tiles: name (one line, full name on hover via title),
+// the balance large, the kind of account under it. Every tile is the same height whatever the name's length.
 .cv-bal-item {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0 var(--space-xs);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   width: 100%;
+  height: 100%;
+  min-width: 0;
   padding: var(--space-xs) var(--space-sm);
   border: var(--rule-hair) solid var(--color-rule);
   border-radius: var(--radius-control);
@@ -48,23 +52,33 @@
 
 .cv-bal-item[aria-pressed='true'] {
   border-color: var(--color-ink);
+  box-shadow: inset 0 0 0 1px var(--color-ink);
+}
+
+@media (hover: hover) {
+  .cv-bal-item:hover {
+    border-color: var(--color-rule-strong);
+    background: var(--color-paper-2);
+  }
 }
 
 .cv-bal-name {
+  overflow: hidden;
+  font-size: var(--text-sm);
   font-weight: 600;
-}
-
-.cv-bal-item .subtitle {
-  grid-column: 1;
-  margin: 0;
-  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .cv-bal-value {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-  align-self: center;
+  font-size: var(--text-lg);
   font-weight: 600;
+  white-space: nowrap;
+}
+
+.cv-bal-type {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
 }
 
 .is-off .cv-bal-item {

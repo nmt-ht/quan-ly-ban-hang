@@ -69,6 +69,11 @@
   color: var(--color-muted);
 }
 
+// Opened upward: the shadow falls above the panel too.
+.pp-panel.is-up {
+  box-shadow: 0 -12px 32px var(--color-shadow);
+}
+
 .pp-panel {
   position: fixed;
   z-index: 60;
@@ -107,7 +112,7 @@
 }
 
 .pp-list {
-  max-height: 18rem;
+  max-height: var(--pp-list-max, 18rem);
   margin: 0;
   padding: var(--space-3xs);
   overflow-y: auto;

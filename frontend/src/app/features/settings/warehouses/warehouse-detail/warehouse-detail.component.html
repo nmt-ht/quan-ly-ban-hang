@@ -1,0 +1,202 @@
+@if (warehouse(); as w) {
+  <p class="subtitle"><a class="crumb" routerLink="/thiet-lap/kho">Kho</a> / {{ w.code ?? w.name }}</p>
+  <div class="page-header">
+    <div>
+      <h1>{{ w.name }}</h1>
+      <p class="subtitle detail-meta">
+        @if (w.code) { <span><span class="num">{{ w.code }}</span><app-copy-button [text]="w.code" label="mã kho" /></span> }
+        <span [class]="statusClass()">{{ w.isActive === false ? 'Ngừng dùng' : 'Đang dùng' }}</span>
+        <span>Thủ kho: {{ w.managerName || 'chưa giao' }}</span>
+      </p>
+    </div>
+    <div class="toolbar">
+      <a class="btn" routerLink="/thiet-lap/kho"><app-nav-icon name="arrow-left" />Danh sách</a>
+      @if (w.isActive !== false) {
+        <a class="btn" routerLink="/kho/phieu/lap/in" [queryParams]="{ kho: w.id }"><app-nav-icon name="plus" />Lập phiếu nhập</a>
+        <a class="btn" routerLink="/kho/phieu/lap/adjust" [queryParams]="{ kho: w.id }"><app-nav-icon name="check" />Kiểm kê</a>
+      }
+      @if (canUpdate) {
+        @if (w.isActive !== false) {
+          <button type="button" class="btn btn-danger-ghost" (click)="toggleActive()">Ngừng dùng</button>
+        } @else {
+          <button type="button" class="btn" (click)="toggleActive()"><app-nav-icon name="refresh" />Dùng lại</button>
+        }
+      }
+      @if (canDelete && !inUse()) {
+        <button type="button" class="btn btn-danger-ghost" (click)="confirmDelete.set(true)"><app-nav-icon name="trash" />Xoá</button>
+      }
+      @if (canUpdate) { <button type="button" class="btn btn-primary" (click)="edit()"><app-nav-icon name="pencil" />Sửa</button> }
+    </div>
+  </div>
+
+  @if (notice()) {
+    <div class="notice" role="status">
+      <span>{{ notice() }}</span>
+      <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+    </div>
+  }
+  @if (failure()) {
+    <div class="notice is-error" role="alert">
+      <span>{{ failure() }}</span>
+      <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="failure.set('')"><app-nav-icon name="x" /></button>
+    </div>
+  }
+
+  <div class="detail-tabs" role="tablist" aria-label="Thông tin kho" (keydown)="onTabKey($event)">
+    @for (t of tabs(); track t.id) {
+      <button type="button" role="tab" [id]="'tab-' + t.id" [attr.aria-selected]="tab() === t.id" [attr.aria-controls]="'panel-' + t.id"
+        [tabIndex]="tab() === t.id ? 0 : -1" (click)="selectTab(t.id)">
+        {{ t.label }}
+        @if (t.count) { <span class="tab-count num">{{ t.count }}</span> }
+      </button>
+    }
+  </div>
+
+  <div class="detail-panel" role="tabpanel" [id]="'panel-' + tab()" [attr.aria-labelledby]="'tab-' + tab()">
+    @switch (tab()) {
+      @case ('chung') {
+        <div class="wd-overview">
+          <section class="card">
+            <dl class="detail-list">
+              <div><dt>Mã kho</dt><dd>@if (w.code) { <span class="num">{{ w.code }}</span><app-copy-button [text]="w.code" label="mã kho" /> } @else { — }</dd></div>
+              <div><dt>Tên kho</dt><dd>{{ w.name }}</dd></div>
+              <div>
+                <dt>Thủ kho</dt>
+                <dd>
+                  {{ w.managerName || '—' }}
+                  @if (manager()?.phone; as p) { · <a class="code-link num" [href]="'tel:' + p">{{ p }}</a> }
+                </dd>
+              </div>
+              <div><dt>Điện thoại kho</dt><dd>@if (w.phone) { <a class="code-link num" [href]="'tel:' + w.phone">{{ w.phone }}</a> } @else { — }</dd></div>
+              <div class="wd-wide"><dt>Địa chỉ</dt><dd>{{ w.address || '—' }}</dd></div>
+              <div class="wd-wide"><dt>Ghi chú</dt><dd class="wd-note">{{ w.note || '—' }}</dd></div>
+              <div><dt>Trạng thái</dt><dd>{{ w.isActive === false ? 'Ngừng dùng — không chọn được khi lập chứng từ mới' : 'Đang dùng' }}</dd></div>
+            </dl>
+          </section>
+
+          <section class="card" aria-labelledby="wd-fig-title">
+            <h3 id="wd-fig-title">Hàng trong kho</h3>
+            <dl class="ledger-dl">
+              <div><dt>Mặt hàng còn tồn</dt><dd class="num">{{ usage().items }}</dd></div>
+              <div><dt>Giá trị tồn (giá vốn ước tính)</dt><dd class="num">{{ money(usage().value) }}</dd></div>
+              <div><dt>Phiếu kho</dt><dd class="num">{{ usage().vouchers }}</dd></div>
+              <div><dt>Kho ngầm định của</dt><dd class="num">{{ usage().defaults }} mặt hàng</dd></div>
+            </dl>
+            <div class="wd-links">
+              <a class="link-btn" routerLink="/kho/ton-kho" [queryParams]="{ kho: w.id }">Xem tồn kho</a>
+              <a class="link-btn" routerLink="/kho/phieu" [queryParams]="{ kho: w.id }">Xem phiếu kho</a>
+            </div>
+          </section>
+        </div>
+      }
+
+      @case ('ton-kho') {
+        <section class="card table-wrap">
+          @if (stockRows().length) {
+            <div class="table-scroll">
+              <table appFrozenCols="2">
+                <thead>
+                  <tr>
+                    <th scope="col">Mã hàng</th>
+                    <th scope="col">Tên hàng</th>
+                    <th scope="col">ĐVT</th>
+                    <th scope="col" class="align-right">Tồn</th>
+                    <th scope="col" class="align-right">Tối thiểu</th>
+                    <th scope="col" class="align-right">Giá trị tồn</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (r of stockRows().slice(0, limit); track r.id) {
+                    <tr>
+                      <td class="wd-code"><a class="code-link num" [routerLink]="['/hang-hoa', r.id]">{{ r.code }}</a></td>
+                      <td>{{ r.name }}</td>
+                      <td>{{ r.unit }}</td>
+                      <td class="num align-right" [class.amt-neg]="r.qty < 0" [class.text-warning]="r.low && r.qty >= 0">{{ qty(r.qty) }}</td>
+                      <td class="num align-right">{{ r.min ? qty(r.min) : '—' }}</td>
+                      <td class="num align-right">{{ r.value ? money(r.value) : '—' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <p class="wd-foot">
+              {{ stockRows().length > limit ? limit + ' / ' + stockRows().length + ' mặt hàng · ' : '' }}
+              <a class="link-btn" routerLink="/kho/ton-kho" [queryParams]="{ kho: w.id }">Mở Tồn kho của kho này (lọc, xuất Excel)</a>
+            </p>
+          } @else {
+            <div class="empty-state">
+              <h3>Kho chưa có hàng</h3>
+              <p>Tồn kho phát sinh từ phiếu nhập, phiếu kiểm kê hoặc phiếu chuyển kho vào kho này.</p>
+              @if (w.isActive !== false) { <a class="btn btn-primary" routerLink="/kho/phieu/lap/in" [queryParams]="{ kho: w.id }"><app-nav-icon name="plus" />Lập phiếu nhập</a> }
+            </div>
+          }
+        </section>
+      }
+
+      @case ('phieu') {
+        <section class="card table-wrap">
+          @if (vouchers().length) {
+            <div class="table-scroll">
+              <table appFrozenCols="1">
+                <thead>
+                  <tr>
+                    <th scope="col">Số phiếu</th>
+                    <th scope="col">Ngày</th>
+                    <th scope="col">Loại</th>
+                    <th scope="col">Lý do</th>
+                    <th scope="col">Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (v of vouchers().slice(0, limit); track v.id) {
+                    <tr [class.wd-off]="v.isCancelled">
+                      <td class="wd-code"><a class="code-link num" [routerLink]="['/kho/phieu', v.id]">{{ v.code }}</a></td>
+                      <td class="num">{{ day(v.date) }}</td>
+                      <td><span [class]="kindClass(v)">{{ kindLabel(v) }}</span> <span class="subtitle">{{ direction(v) }}</span></td>
+                      <td>{{ v.reason || '—' }}</td>
+                      <td>{{ v.isCancelled ? 'Đã huỷ' : 'Đã ghi sổ' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <p class="wd-foot">
+              {{ vouchers().length > limit ? limit + ' / ' + vouchers().length + ' phiếu · ' : '' }}
+              <a class="link-btn" routerLink="/kho/phieu" [queryParams]="{ kho: w.id }">Mở Phiếu kho của kho này (lọc theo loại, kỳ)</a>
+            </p>
+          } @else {
+            <div class="empty-state">
+              <h3>Chưa có phiếu nào</h3>
+              <p>Phiếu nhập, xuất, chuyển và kiểm kê của kho này sẽ hiện ở đây.</p>
+            </div>
+          }
+        </section>
+      }
+
+      @case ('nhat-ky') {
+        <section class="card history-card"><app-audit-history entityType="Warehouse" [entityId]="w.id" [code]="w.code" /></section>
+      }
+    }
+  </div>
+
+  @if (confirmDelete()) {
+    <div class="confirm-strip" role="alertdialog" aria-labelledby="wd-del-title">
+      <p id="wd-del-title">
+        <strong>Xoá kho "{{ w.name }}"?</strong> Kho chưa có phiếu, dòng đơn hay tồn nào.
+        @if (usage().defaults; as n) { {{ n }} mặt hàng đang lấy kho này làm kho ngầm định sẽ để trống ô đó. }
+      </p>
+      <div class="toolbar">
+        <button type="button" class="btn" (click)="confirmDelete.set(false)">Không xoá</button>
+        <button type="button" class="btn btn-danger" (click)="doDelete()"><app-nav-icon name="trash" />Xoá kho</button>
+      </div>
+    </div>
+  }
+
+  <app-warehouse-form-dialog (saved)="onSaved()" />
+} @else {
+  <div class="card empty-state">
+    <h3>Không tìm thấy kho</h3>
+    <p>Kho có thể đã bị xoá, hoặc đường dẫn không đúng.</p>
+    <a class="btn" routerLink="/thiet-lap/kho"><app-nav-icon name="arrow-left" />Về danh sách kho</a>
+  </div>
+}

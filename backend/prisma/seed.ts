@@ -248,10 +248,10 @@ async function main() {
 
   // Stable ids, the same as the frontend demo (wh-…, cat-…, acc-…), so data that refers to them lines up.
   const warehouses = [
-    { id: 'wh-ninhtrang', name: 'Kho Ninh Trang' },
-    { id: 'wh-phukien', name: 'Kho phụ kiện' },
-    { id: 'wh-thanhpham', name: 'Kho thành phẩm' },
-    { id: 'wh-vattu', name: 'Kho vật tư hàng hoá' },
+    { id: 'wh-ninhtrang', code: 'KHO0000001', name: 'Kho Ninh Trang' },
+    { id: 'wh-phukien', code: 'KHO0000002', name: 'Kho phụ kiện' },
+    { id: 'wh-thanhpham', code: 'KHO0000003', name: 'Kho thành phẩm' },
+    { id: 'wh-vattu', code: 'KHO0000004', name: 'Kho vật tư hàng hoá' },
   ];
   for (const w of warehouses) await prisma.warehouse.upsert({ where: { id: w.id }, update: {}, create: w });
 

@@ -154,7 +154,7 @@ export class CashVouchersComponent {
     const k = this.kind();
     const rows = this.matched()
       .filter((v) => (k === 'all' || v.kind === k) && (this.showCancelled() || !v.isCancelled))
-      .sort((a, b) => b.date.localeCompare(a.date) || b.code.localeCompare(a.code));
+      .sort((a, b) => a.code.localeCompare(b.code, 'vi', { numeric: true })); // default: Mã tăng dần
     return sortByColumn(applyColumnFilters(rows, this.columns, this.columnFilters()), this.columns, this.headerSort());
   });
 

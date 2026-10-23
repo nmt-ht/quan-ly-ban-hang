@@ -63,6 +63,9 @@ export const routes: Routes = [
       { path: 'cong-no/tuoi-no', loadComponent: () => import('./features/debt-aging/debt-aging.component').then((m) => m.DebtAgingComponent) },
 
       { path: 'thiet-lap/cong-ty', loadComponent: () => import('./features/settings/company-info/company-info.component').then((m) => m.CompanyInfoComponent) },
+      { path: 'thiet-lap/kho', loadComponent: () => import('./features/settings/warehouses/warehouses.component').then((m) => m.WarehousesComponent) },
+      { path: 'thiet-lap/kho/:id', loadComponent: () => import('./features/settings/warehouses/warehouse-detail/warehouse-detail.component').then((m) => m.WarehouseDetailComponent) },
+      { path: 'thiet-lap/nhom-hang', loadComponent: () => import('./features/settings/categories/categories.component').then((m) => m.CategoriesComponent) },
       { path: 'thiet-lap/the', loadComponent: () => import('./features/settings/tags/tags.component').then((m) => m.TagsComponent) },
       { path: 'thiet-lap/nguoi-dung', loadComponent: () => import('./features/settings/users/users.component').then((m) => m.UsersComponent) },
       { path: 'thiet-lap/nguoi-dung/:id', loadComponent: () => import('./features/settings/users/user-detail/user-detail.component').then((m) => m.UserDetailComponent) },

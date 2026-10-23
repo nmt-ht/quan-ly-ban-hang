@@ -7,6 +7,7 @@ import { amountTone, foldVi, formatQty, formatVnd } from '../../../shared/format
 import { PERIOD_PRESETS, formatDay, inRange, isoDay, presetRange, rangeLabel } from '../../../shared/period';
 import { downloadWorkbook, exportFileName } from '../../../shared/excel.util';
 import { apiQuery, queryString } from '../../../core/api/api-query';
+import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 import { CUSTOMER_TYPE_LABEL } from '../../sales-orders/sales-order.rules';
 import {
   RevenueLine, RevenueSums, TIME_UNIT_LABEL, TimeUnit, autoUnit, bucketLabel, bucketOf, bucketsBetween, previousRange,
@@ -47,7 +48,7 @@ interface OrderDetail {
 @Component({
   selector: 'app-revenue-report',
   standalone: true,
-  imports: [RouterLink, NavIconComponent, PeriodFilterComponent],
+  imports: [RouterLink, NavIconComponent, PeriodFilterComponent, FrozenColsDirective],
   templateUrl: './revenue-report.component.html',
   styleUrl: './revenue-report.component.scss',
 })

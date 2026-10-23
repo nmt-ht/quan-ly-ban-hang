@@ -20,9 +20,10 @@ import { AGING_COLUMNS } from '../debts/aging';
 import { CUSTOMER_TYPES } from '../customers/customer.rules';
 import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 
-type ReceivableSort = 'balance' | 'overdue' | 'due' | 'name';
+type ReceivableSort = 'code' | 'balance' | 'overdue' | 'due' | 'name';
 
 const SORTS: { value: ReceivableSort; label: string }[] = [
+  { value: 'code', label: 'Mã tăng dần' },
   { value: 'balance', label: 'Số dư lớn nhất' },
   { value: 'overdue', label: 'Quá hạn nhiều nhất' },
   { value: 'due', label: 'Hạn gần nhất' },
@@ -45,7 +46,7 @@ export class ReceivablesComponent {
   readonly types = signal<string[]>([]);
   readonly owingOnly = signal(true);
   readonly overdueOnly = signal(false);
-  readonly sort = signal<ReceivableSort>('balance');
+  readonly sort = signal<ReceivableSort>('code'); // default: Mã tăng dần
   readonly columnFilters = signal<ColumnFilters>({});
   // Clicking a column header overrides the "Sắp xếp" select; picking from the select clears it.
   readonly headerSort = signal<ColumnSort | null>(null);
@@ -100,7 +101,8 @@ export class ReceivablesComponent {
     });
     const s = this.sort();
     rows.sort((a, b) =>
-      s === 'balance' ? b.balance - a.balance
+      s === 'code' ? a.code.localeCompare(b.code, 'vi', { numeric: true })
+        : s === 'balance' ? b.balance - a.balance
         : s === 'overdue' ? b.overdue - a.overdue || b.balance - a.balance
           : s === 'due' ? (a.nextDue ?? '9999').localeCompare(b.nextDue ?? '9999')
             : a.name.localeCompare(b.name, 'vi'),

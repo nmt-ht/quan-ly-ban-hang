@@ -1,0 +1,55 @@
+/* Hallmark · page: Thiết lập › Kho › một kho · system: design.md (Sổ cái, Detail pages) · pre-emit critique: P5 H4 E4 S5 R5 V4 */
+
+// Thông tin chung: the record (wide) beside what sits in the kho (narrow); one column under 960 px.
+.wd-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
+  gap: var(--space-sm);
+  align-items: start;
+
+  h3 {
+    margin: 0 0 var(--space-xs);
+    font-size: var(--text-md);
+  }
+}
+
+@media (max-width: 960px) {
+  .wd-overview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.wd-wide {
+  grid-column: 1 / -1;
+}
+
+.wd-note {
+  white-space: pre-line;
+}
+
+.wd-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs) var(--space-sm);
+  margin-top: var(--space-xs);
+}
+
+.table-wrap {
+  padding: 0;
+}
+
+.wd-code {
+  white-space: nowrap;
+}
+
+.wd-off td {
+  color: var(--color-muted);
+}
+
+.wd-foot {
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm);
+  border-top: var(--rule-hair) solid var(--color-rule);
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}

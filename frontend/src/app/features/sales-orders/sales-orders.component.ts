@@ -57,7 +57,7 @@ export class SalesOrdersComponent {
   readonly createdBy = signal<string[]>([]);
   readonly value = signal<NumberRange>({ min: null, max: null });
   readonly lateOnly = signal(false);
-  readonly sort = signal<SalesSort>('newest');
+  readonly sort = signal<SalesSort>('code'); // default: Mã tăng dần
   // Clicking a column header overrides the "Sắp xếp" select; picking from the select clears it.
   readonly headerSort = signal<ColumnSort | null>(null);
   readonly columnFilters = signal<ColumnFilters>({});

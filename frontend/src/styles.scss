@@ -1914,6 +1914,35 @@ textarea {
   background: var(--color-surface);
 }
 
+// The report table scrolls inside a panel at most one screen tall, so on a long report the column headings, the
+// TỔNG CỘNG row and the sideways scrollbar are always in view (frozen Mã / Tên come from appFrozenCols).
+// Header / footer cells sit above the scrolling body; frozen ones above both (--fz-z, see frozen columns).
+.rp-grid {
+  max-height: max(22rem, calc(100dvh - 8rem));
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-rule-strong) transparent;
+
+  > table > :is(thead, tfoot) {
+    --fz-z: 3;
+  }
+
+  > table > thead > tr > th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background-color: var(--color-paper-2);
+    box-shadow: inset 0 -1px 0 var(--color-rule);
+  }
+
+  > table > tfoot > tr > :is(td, th) {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    box-shadow: inset 0 1px 0 var(--color-rule-strong);
+  }
+}
+
 .rp-notes {
   margin-top: var(--space-sm);
   font-size: var(--text-xs);
@@ -2040,6 +2069,92 @@ textarea {
   }
 }
 
+// ---------- frozen columns (shared/frozen-cols.directive.ts) ----------
+// Mã / Tên stay in view while a wide grid scrolls sideways. Column N sits at --fz-(N-1), measured from the
+// header. A cell that spans more columns than are frozen (a totals label, "no rows") must scroll,
+// or it would slide over the numbers; on a phone only the first column is kept (two would fill the screen).
+$fz-rows: ':is(thead, tbody, tfoot) > tr';
+
+table[data-freeze] > #{$fz-rows} > :first-child:is(:not([colspan]), [colspan='1']),
+table[data-freeze='2'] > #{$fz-rows} > :first-child[colspan='2'],
+table[data-freeze='3'] > #{$fz-rows} > :first-child:is([colspan='2'], [colspan='3']) {
+  position: sticky;
+  left: 0;
+  z-index: var(--fz-z, 1); // a sticky header / footer row raises it above the scrolling cells
+}
+
+@media (min-width: 40.01rem) {
+  table:is([data-freeze='2'], [data-freeze='3']) > #{$fz-rows}:not(:has(> :first-child[colspan])) > :nth-child(2):is(:not([colspan]), [colspan='1']) {
+    position: sticky;
+    left: var(--fz-1, 0);
+    z-index: var(--fz-z, 1);
+  }
+
+  table[data-freeze='3'] > #{$fz-rows}:not(:has(> :first-child[colspan])) > :nth-child(3):is(:not([colspan]), [colspan='1']) {
+    position: sticky;
+    left: var(--fz-2, 0);
+    z-index: var(--fz-z, 1);
+  }
+}
+
+// Frozen body cells need a fill so the scrolled columns pass under them (hover / footer fills still win).
+:where(table[data-freeze] > tbody > tr > td) {
+  background-color: var(--color-surface);
+}
+
+// Every other body row is tinted so a long row is easy to follow across. Rows a table inserts under another
+// (an opened detail, a period heading, "no match") do not count, so the pattern never breaks. Zero specificity
+// on purpose: hover, a selected / editing row and footer fills all keep their own colour.
+:where(tbody > tr:nth-child(even of :not(.al-detail, .rr-detail-row, .ledger-period-row, .no-match)) > td) {
+  background-color: var(--color-row-alt);
+}
+
+// A picker open in a frozen cell must float over the rows below it and the sticky action bar (z 15). Set through
+// --fz-z, which every frozen rule reads — a plain z-index here would lose to their higher specificity.
+table[data-freeze] > #{$fz-rows} > :focus-within {
+  --fz-z: 30;
+  z-index: 30;
+}
+
+// Edge of the frozen block: a hairline, firmer once the grid has scrolled.
+table[data-freeze='1'] > #{$fz-rows} > :first-child,
+table[data-freeze='2'] > #{$fz-rows} > :nth-child(2),
+table[data-freeze='3'] > #{$fz-rows} > :nth-child(3) {
+  box-shadow: inset -1px 0 0 var(--color-rule);
+}
+
+table[data-freeze][data-scrolled] > #{$fz-rows} > :is(:first-child, :nth-child(2), :nth-child(3)) {
+  box-shadow: none;
+}
+
+table[data-freeze='1'][data-scrolled] > #{$fz-rows} > :first-child,
+table[data-freeze='2'][data-scrolled] > #{$fz-rows} > :nth-child(2),
+table[data-freeze='3'][data-scrolled] > #{$fz-rows} > :nth-child(3) {
+  box-shadow: inset -2px 0 0 var(--color-rule-strong);
+}
+
+@media (max-width: 40rem) {
+  table[data-freeze][data-scrolled] > #{$fz-rows} > :first-child {
+    box-shadow: inset -2px 0 0 var(--color-rule-strong);
+  }
+
+  // A list that leads with a thumbnail keeps the code next to it on a phone too (the thumb is only ~2 rem).
+  table.fz-thumb:is([data-freeze='2'], [data-freeze='3']) > #{$fz-rows}:not(:has(> :first-child[colspan])) > :nth-child(2) {
+    position: sticky;
+    left: var(--fz-1, 0);
+    z-index: var(--fz-z, 1);
+  }
+
+  table.fz-thumb[data-freeze] > #{$fz-rows} > :first-child,
+  table.fz-thumb[data-freeze][data-scrolled] > #{$fz-rows} > :first-child {
+    box-shadow: none;
+  }
+
+  table.fz-thumb[data-freeze][data-scrolled] > #{$fz-rows} > :nth-child(2) {
+    box-shadow: inset -2px 0 0 var(--color-rule-strong);
+  }
+}
+
 .line-table select,
 .line-table input {
   width: 100%;
@@ -2111,5 +2226,354 @@ input[type='radio'] {
   *::after {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+  }
+}
+
+// ---------- divided lists (shared/list-divide: app-list-tabs + app-list-rail) ----------
+// A list page divides its rows before filtering them: the fixed axis (Tính chất, Loại phiếu, Trạng thái) as a tab
+// strip above, the physical / user-made axis (Kho, Nhóm hàng) as a rail beside the list. Every tab and rail entry
+// carries its count. Under 52 rem the tabs scroll sideways in one row and the rail becomes a row of chips.
+//   <div class="list-divided"> <app-list-tabs/> <div class="list-split"> <app-list-rail/> <div>…list…</div> </div> </div>
+
+.list-divided {
+  container-type: inline-size;
+}
+
+.list-split {
+  display: grid;
+  grid-template-columns: 13.5rem minmax(0, 1fr);
+  gap: var(--space-md);
+  align-items: start;
+}
+
+// Tabs: the detail-tabs strip (paper track, open tab = surface chip).
+.ld-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  max-width: 100%;
+  margin-bottom: var(--space-sm);
+  padding: 3px;
+  border-radius: var(--radius-card);
+  background: var(--color-paper-2);
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2rem;
+    padding: 0 var(--space-xs);
+    border: var(--rule-hair) solid transparent;
+    border-radius: var(--radius-control);
+    background: none;
+    color: var(--color-muted);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color var(--dur-short) var(--ease-out);
+
+    &:focus-visible {
+      outline: 2px solid var(--color-focus);
+      outline-offset: 0;
+    }
+  }
+
+  button[aria-pressed='true'] {
+    border-color: var(--color-rule);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+}
+
+@media (hover: hover) {
+  .ld-tabs button:hover {
+    color: var(--color-ink);
+  }
+}
+
+.ld-count {
+  margin-left: var(--space-2xs);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
+// Rail: stays in view under the topbar while a long list scrolls; scrolls itself when it outgrows the screen.
+// (Sticky on the host: it is the grid item.)
+.list-split > app-list-rail {
+  display: block;
+  position: sticky;
+  top: calc(var(--topbar-h) + var(--space-sm));
+  max-height: calc(100dvh - var(--topbar-h) - var(--space-lg));
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-rule) transparent;
+}
+
+.ld-rail {
+  ul {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+}
+
+.ld-rail-title {
+  margin: 0 0 var(--space-3xs);
+  padding: var(--space-2xs) var(--space-xs) 0;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+// Search box of a long rail (> 12 entries).
+.ld-rail-search {
+  width: 100%;
+  min-height: 2rem;
+  margin: 0 0 var(--space-2xs);
+  padding: 0 var(--space-xs);
+  border: var(--rule-hair) solid var(--color-rule-strong);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-size: var(--text-sm);
+
+  &::placeholder {
+    color: var(--color-muted);
+  }
+
+  &:focus-visible {
+    border-color: var(--color-focus);
+    outline: 2px solid var(--color-focus);
+    outline-offset: 0;
+  }
+}
+
+.ld-none {
+  padding: var(--space-2xs) var(--space-xs);
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+// One entry: name (one line, full name on hover) and its count; the open one reads like the sidebar's active link.
+.ld-cat {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  width: 100%;
+  min-height: 2rem;
+  padding: 0 var(--space-xs);
+  border: none;
+  border-radius: var(--radius-control);
+  background: none;
+  color: var(--color-ink-2);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--dur-short) var(--ease-out), color var(--dur-short) var(--ease-out);
+
+  .ld-count {
+    margin-left: 0;
+  }
+
+  &:active {
+    background: var(--color-paper-3);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: -2px;
+  }
+
+  &.is-muted {
+    color: var(--color-muted);
+  }
+
+  &[aria-pressed='true'] {
+    background: var(--color-accent-tint);
+    color: var(--color-accent);
+    font-weight: 600;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 6px;
+      bottom: 6px;
+      width: 2px;
+      border-radius: 2px;
+      background: var(--color-accent);
+    }
+
+    .ld-count {
+      color: var(--color-accent);
+    }
+  }
+}
+
+@media (hover: hover) {
+  .ld-cat:not([aria-pressed='true']):hover {
+    background: var(--color-paper-2);
+    color: var(--color-ink);
+  }
+}
+
+.ld-cat-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@container (max-width: 52rem) {
+  .ld-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    width: fit-content;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .list-split {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .list-split > app-list-rail {
+    position: static;
+    max-height: none;
+    margin-bottom: var(--space-sm);
+    overflow: visible;
+  }
+
+  .ld-rail {
+    ul {
+      flex-direction: row;
+      gap: var(--space-2xs);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+  }
+
+  .ld-rail-title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .ld-cat {
+    width: auto;
+    flex: none;
+    border: var(--rule-hair) solid var(--color-rule-strong);
+    border-radius: 999px;
+
+    &[aria-pressed='true'] {
+      border-color: var(--color-accent);
+
+      &::before {
+        display: none;
+      }
+    }
+  }
+
+  .ld-cat-name {
+    flex: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ld-tabs button,
+  .ld-cat {
+    transition: none;
+  }
+}
+
+// ---------- confirm strip ---------- (a destructive step asks here, floating above the page: vouchers, settings lists)
+
+.confirm-strip {
+  position: fixed;
+  left: 50%;
+  bottom: 5rem;
+  z-index: 40;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  width: min(32rem, calc(100vw - 2 * var(--space-sm)));
+  padding: var(--space-sm);
+  border: var(--rule-hair) solid var(--color-rule);
+  border-left: 3px solid var(--color-danger);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: 0 16px 40px var(--color-shadow);
+}
+
+.confirm-strip p {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.confirm-strip input {
+  min-height: var(--control-h);
+  padding: 0 var(--space-xs);
+  border: var(--rule-hair) solid var(--color-rule-strong);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+.confirm-strip .toolbar {
+  justify-content: flex-end;
+}
+
+.confirm-strip select {
+  min-height: var(--control-h);
+  padding: 0 var(--space-xs);
+  border: var(--rule-hair) solid var(--color-rule-strong);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+// Link under a rail to where its entries are managed (e.g. Quản lý nhóm hàng).
+.ld-manage {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3xs);
+  margin-top: var(--space-xs);
+  padding: 0 var(--space-xs);
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+  text-decoration: none;
+  --icon-size: 13px;
+
+  &:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
+
+@media (hover: hover) {
+  .ld-manage:hover {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+}
+
+@container (max-width: 52rem) {
+  .ld-manage {
+    margin-top: var(--space-2xs);
   }
 }

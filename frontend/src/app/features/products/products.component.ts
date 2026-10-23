@@ -1,9 +1,8 @@
-import { Component, computed, effect, signal, untracked, viewChild } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DataStore } from '../../core/services/data-store.service';
 import { DataTableComponent, DataTableColumn } from '../../shared/data-table/data-table.component';
-import { FilterMultiSelectComponent, FilterOption } from '../../shared/filter-multi-select/filter-multi-select.component';
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
 import { CopyButtonComponent } from '../../shared/copy-button/copy-button.component';
 import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
@@ -15,6 +14,7 @@ import { foldVi, formatVnd } from '../../shared/format.util';
 import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { productExportSheet } from './product-excel';
 import { ProductImportDialogComponent } from './product-import-dialog/product-import-dialog.component';
+import { DivideItem, ListRailComponent, ListTabsComponent, syncSliceToUrl } from '../../shared/list-divide/list-divide';
 import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 
 type ViewMode = 'grid' | 'table';
@@ -42,13 +42,21 @@ interface ActiveChip {
 }
 
 const ALL = 'all';
+/** Nhóm hàng rail: the products with no category. */
+const NONE = 'none';
+
+type TypeTab = typeof ALL | ProductType;
+const TYPES: ProductType[] = ['VAT_TU', 'THANH_PHAM', 'DICH_VU'];
+/** ?tc= in the address (readable, shareable): the tab of each Tính chất. */
+const TYPE_PARAM: Record<ProductType, string> = { VAT_TU: 'vat-tu', THANH_PHAM: 'thanh-pham', DICH_VU: 'dich-vu' };
+
 
 @Component({
   selector: 'app-products',
   standalone: true,
   imports: [
-    CommonModule, RouterLink, AllowedLinkDirective, DataTableComponent, FilterMultiSelectComponent, PaginationComponent,
-    NavIconComponent, ProductImportDialogComponent, CopyButtonComponent,
+    CommonModule, RouterLink, AllowedLinkDirective, DataTableComponent, PaginationComponent,
+    NavIconComponent, ProductImportDialogComponent, CopyButtonComponent, ListTabsComponent, ListRailComponent,
   ],
   templateUrl: './products.component.html',
 })
@@ -62,22 +70,19 @@ export class ProductsComponent {
   private readonly productImport = viewChild.required<ProductImportDialogComponent>('productImport');
   private readonly bomImport = viewChild.required<ProductImportDialogComponent>('bomImport');
   readonly search = signal('');
-  readonly types = signal<string[]>([]);
-  readonly categoryIds = signal<string[]>([]);
+  private readonly route = inject(ActivatedRoute);
+  /** The two ways the catalogue is divided: Tính chất as tabs over the list, Nhóm hàng as the rail beside it. */
+  readonly typeTab = signal<TypeTab>(typeFromParam(this.route.snapshot.queryParamMap.get('tc')));
+  readonly category = signal<string>(this.route.snapshot.queryParamMap.get('nhom') ?? ALL);
   readonly status = signal<StatusFilter>(ALL);
   readonly warehouseId = signal<string>(ALL);
   readonly negativeOnly = signal(false);
   readonly belowMinOnly = signal(false);
-  readonly sort = signal<SortKey>('name-asc');
+  // Every list with a Mã column opens sorted by it, ascending (design.md › List pages).
+  readonly sort = signal<SortKey>('code-asc');
   readonly columnFilters = signal<ColumnFilters>({});
   // Clicking a column header overrides the "Sắp xếp" select; picking from the select clears it.
   readonly headerSort = signal<ColumnSort | null>(null);
-
-  readonly typeOptions: FilterOption[] = (Object.keys(PRODUCT_TYPE_LABEL) as ProductType[]).map((t) => ({
-    value: t,
-    label: PRODUCT_TYPE_LABEL[t],
-    dotClass: PRODUCT_TYPE_CLASS[t],
-  }));
 
   readonly sortOptions: { value: SortKey; label: string }[] = [
     { value: 'name-asc', label: 'Tên A → Z' },
@@ -113,10 +118,9 @@ export class ProductsComponent {
     return p.type !== 'DICH_VU' && p.isActive && s.min > 0 && s.qty < s.min;
   }
 
-  // Every filter except the category one — feeds both the result and the category counts.
-  private readonly matchedExceptCategory = computed(() => {
+  // Every filter except Tính chất and Nhóm hàng — the tab and rail counts are taken from it.
+  private readonly matchedBase = computed(() => {
     const q = foldVi(this.search().trim());
-    const types = this.types();
     const status = this.status();
     const wh = this.warehouseId();
     const stock = this.stockByProduct();
@@ -124,7 +128,6 @@ export class ProductsComponent {
     const belowMinOnly = this.belowMinOnly();
     return this.data.products().filter((p) => {
       if (q && ![p.code, p.name, p.crossRefCode ?? ''].some((v) => foldVi(v).includes(q))) return false;
-      if (types.length && !types.includes(p.type)) return false;
       if (status === 'active' && !p.isActive) return false;
       if (status === 'inactive' && p.isActive) return false;
       if (wh !== ALL && !stock.has(p.id)) return false;
@@ -134,29 +137,54 @@ export class ProductsComponent {
     });
   });
 
-  readonly categoryOptions = computed<FilterOption[]>(() => {
+  private inCategory(p: Product): boolean {
+    const c = this.category();
+    return c === ALL || (c === NONE ? !p.categoryId : p.categoryId === c);
+  }
+
+  /** Tabs: how many products of each Tính chất match the other filters and the chosen Nhóm hàng. */
+  readonly typeTabs = computed<DivideItem<TypeTab>[]>(() => {
+    const rows = this.matchedBase().filter((p) => this.inCategory(p));
+    return [
+      { value: ALL, label: 'Tất cả', count: rows.length },
+      ...TYPES.map((t) => ({ value: t, label: PRODUCT_TYPE_LABEL[t], count: rows.filter((p) => p.type === t).length })),
+    ];
+  });
+
+  private readonly matchedType = computed(() => {
+    const t = this.typeTab();
+    return t === ALL ? this.matchedBase() : this.matchedBase().filter((p) => p.type === t);
+  });
+
+  /** Rail: every Nhóm hàng (A → Z, empty ones kept so the list never jumps) with its count under the open tab. */
+  readonly categoryRail = computed(() => {
+    const rows = this.matchedType();
     const counts = new Map<string, number>();
-    for (const p of this.matchedExceptCategory()) {
-      if (p.categoryId) counts.set(p.categoryId, (counts.get(p.categoryId) ?? 0) + 1);
-    }
-    return this.data.categories().map((c) => ({ value: c.id, label: c.name, count: counts.get(c.id) ?? 0 }));
+    for (const p of rows) if (p.categoryId) counts.set(p.categoryId, (counts.get(p.categoryId) ?? 0) + 1);
+    const none = rows.filter((p) => !p.categoryId).length;
+    const items: DivideItem[] = [
+      { value: ALL, label: 'Tất cả nhóm', count: rows.length },
+      ...this.data.categories()
+        .map((c) => ({ value: c.id, label: c.name, count: counts.get(c.id) ?? 0 }))
+        .sort((a, b) => a.label.localeCompare(b.label, 'vi')),
+    ];
+    if (none || this.category() === NONE) items.push({ value: NONE, label: 'Chưa phân nhóm', count: none, muted: true });
+    return items;
+  });
+
+  /** The open Nhóm hàng's name (for the empty state); null for Tất cả. */
+  readonly categoryLabel = computed(() => {
+    const c = this.category();
+    return c === ALL ? null : c === NONE ? 'Chưa phân nhóm' : (this.categoryName().get(c) ?? null);
   });
 
   readonly products = computed(() => {
-    const cats = this.categoryIds();
-    const rows = this.matchedExceptCategory().filter((p) => !cats.length || (p.categoryId && cats.includes(p.categoryId)));
+    const rows = this.matchedType().filter((p) => this.inCategory(p));
     return sortByColumn(this.sorted(applyColumnFilters(rows, this.columns, this.columnFilters())), this.columns, this.headerSort());
   });
 
   readonly chips = computed<ActiveChip[]>(() => {
     const chips: ActiveChip[] = [];
-    for (const t of this.types()) {
-      chips.push({ label: PRODUCT_TYPE_LABEL[t as ProductType], clear: () => this.types.update((v) => v.filter((x) => x !== t)) });
-    }
-    const catName = new Map(this.data.categories().map((c) => [c.id, c.name]));
-    for (const id of this.categoryIds()) {
-      chips.push({ label: catName.get(id) ?? id, clear: () => this.categoryIds.update((v) => v.filter((x) => x !== id)) });
-    }
     if (this.status() !== ALL) {
       chips.push({
         label: this.status() === 'active' ? 'Đang kinh doanh' : 'Ngừng kinh doanh',
@@ -184,6 +212,7 @@ export class ProductsComponent {
     { key: 'image', label: 'Ảnh', filter: false, image: (r) => r.images?.[0]?.url },
     { key: 'code', label: 'Mã', copy: true, link: (r) => ['/hang-hoa', r.id] },
     { key: 'name', label: 'Tên hàng hoá' },
+    { key: 'categoryId', sortByText: true, label: 'Nhóm hàng', format: (r) => this.categoryOf(r) || '—' },
     { key: 'type', sortByText: true, label: 'Tính chất', format: (r) => PRODUCT_TYPE_LABEL[r.type], badge: (r) => PRODUCT_TYPE_CLASS[r.type] },
     { key: 'baseUnit', label: 'ĐVT' },
     {
@@ -217,6 +246,11 @@ export class ProductsComponent {
     effect(() => {
       this.products();
       untracked(() => this.page.set(1));
+    });
+    syncSliceToUrl(() => {
+      const t = this.typeTab();
+      const c = this.category();
+      return { tc: t === ALL ? null : TYPE_PARAM[t], nhom: c === ALL ? null : c };
     });
   }
 
@@ -286,8 +320,6 @@ export class ProductsComponent {
   }
 
   clearAll(): void {
-    this.types.set([]);
-    this.categoryIds.set([]);
     this.status.set(ALL);
     this.warehouseId.set(ALL);
     this.negativeOnly.set(false);
@@ -314,4 +346,8 @@ export class ProductsComponent {
     };
     return [...rows].sort(cmp[this.sort()]);
   }
+}
+
+function typeFromParam(v: string | null): TypeTab {
+  return TYPES.find((t) => TYPE_PARAM[t] === v) ?? ALL;
 }

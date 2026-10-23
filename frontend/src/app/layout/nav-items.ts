@@ -40,6 +40,8 @@ export const NAV_GROUPS: NavGroup[] = [
   ]},
   { label: 'Thiết lập', links: [
     { label: 'Thông tin công ty', path: '/thiet-lap/cong-ty', icon: 'company' },
+    { label: 'Kho', path: '/thiet-lap/kho', icon: 'stock' },
+    { label: 'Nhóm hàng', path: '/thiet-lap/nhom-hang', icon: 'grid' },
     { label: 'Thẻ đánh dấu', path: '/thiet-lap/the', icon: 'tag' },
     { label: 'Người dùng', path: '/thiet-lap/nguoi-dung', icon: 'user' },
     { label: 'Chức vụ & phân quyền', path: '/thiet-lap/chuc-vu', icon: 'shield' },
