@@ -35,3 +35,11 @@ export function amountTone(amount: number | null | undefined, flow = true): stri
 export function foldVi(text: string): string {
   return text.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
 }
+
+/** dd/mm/yyyy hh:mm, local time. */
+export function formatDateTime(iso: string | undefined): string {
+  if (!iso) return '—';
+  const d = new Date(/[zZ]|[+-]\d\d:\d\d$/.test(iso) ? iso : iso.replace('T', ' '));
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}

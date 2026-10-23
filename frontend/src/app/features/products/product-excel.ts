@@ -280,11 +280,6 @@ export async function planProductImport(file: File, lk: ProductLookups): Promise
   return { creates, updates, issues, totalRows: rows.length };
 }
 
-export function applyProductImport(products: Product[], plan: ProductImportPlan): Product[] {
-  const updated = new Map(plan.updates.map((p) => [p.id, p]));
-  return [...plan.creates, ...products.map((p) => updated.get(p.id) ?? p)];
-}
-
 // ---------- Định mức ----------
 
 const B = {
@@ -398,7 +393,3 @@ export async function planBomImport(file: File, products: Product[]): Promise<Bo
   return { replacements, lineCount, issues, totalRows: rows.length };
 }
 
-export function applyBomImport(current: BomLine[], plan: BomImportPlan): BomLine[] {
-  const kept = current.filter((l) => !plan.replacements.has(l.finishedProductId));
-  return [...kept, ...[...plan.replacements.values()].flat()];
-}

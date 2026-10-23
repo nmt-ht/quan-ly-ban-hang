@@ -259,6 +259,7 @@
         @if (order()!.receivedValue > 0) {
           <button type="button" role="tab" [attr.aria-selected]="tab() === 'cong-no'" (click)="tab.set('cong-no')">Công nợ</button>
         }
+        <button type="button" role="tab" [attr.aria-selected]="tab() === 'nhat-ky'" (click)="tab.set('nhat-ky')">Nhật ký</button>
       }
     </div>
 
@@ -626,6 +627,11 @@
             }
           </div>
         </section>
+      }
+      @case ('nhat-ky') {
+        @if (order(); as o) {
+          <section class="card voucher-grid-card"><app-audit-history entityType="SalesOrder" [entityId]="o.id" [code]="o.code" /></section>
+        }
       }
     }
 

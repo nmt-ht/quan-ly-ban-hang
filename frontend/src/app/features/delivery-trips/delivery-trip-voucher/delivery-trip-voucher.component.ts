@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import { MockDataService } from '../../../core/services/mock-data.service';
+import { DataStore } from '../../../core/services/data-store.service';
 import { SalesOrder, TripLoad } from '../../../core/models/domain.models';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { CopyButtonComponent } from '../../../shared/copy-button/copy-button.component';
@@ -23,8 +23,9 @@ import { TripHeaderDialogComponent } from '../trip-header-dialog/trip-header-dia
 import { PrintDocumentComponent } from '../../../shared/print/print-document.component';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { errorText } from '../../../core/api/api.service';
+import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
 
-type Tab = 'don' | 'hang' | 'phieu' | 'chi-phi';
+type Tab = 'don' | 'hang' | 'phieu' | 'chi-phi' | 'nhat-ky';
 type PrintMode = 'soan' | 'giao' | null;
 
 interface OrderRow {
@@ -54,7 +55,7 @@ interface ConfirmRow {
 @Component({
   selector: 'app-delivery-trip-voucher',
   standalone: true,
-  imports: [NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, TripHeaderDialogComponent, PrintDocumentComponent],
+  imports: [NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, TripHeaderDialogComponent, PrintDocumentComponent, AuditHistoryComponent],
   templateUrl: './delivery-trip-voucher.component.html',
   styleUrls: [
     '../../../shared/voucher/voucher.scss',
@@ -64,7 +65,7 @@ interface ConfirmRow {
 })
 export class DeliveryTripVoucherComponent {
   private readonly route = inject(ActivatedRoute);
-  readonly data = inject(MockDataService);
+  readonly data = inject(DataStore);
   private readonly svc = inject(DeliveryTripService);
   private readonly headerDialog = viewChild.required<TripHeaderDialogComponent>('headerDialog');
   private readonly addDialog = viewChild.required<ElementRef<HTMLDialogElement>>('addDialog');

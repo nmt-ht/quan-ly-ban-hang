@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import { MockDataService } from '../../../core/services/mock-data.service';
+import { DataStore } from '../../../core/services/data-store.service';
 import { DebtService } from '../../../core/services/debt.service';
 import { errorText } from '../../../core/api/api.service';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
@@ -15,17 +15,18 @@ import { ACCOUNT_TYPE_LABEL } from '../cash-voucher.rules';
 import { CashVoucherService } from '../cash-voucher.service';
 import { PrintDocumentComponent } from '../../../shared/print/print-document.component';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
+import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
 
 // One phiếu thu / phiếu chi: xem, in (mẫu phiếu thu / phiếu chi), huỷ. Sửa = huỷ rồi lập lại (giữ dấu vết).
 @Component({
   selector: 'app-cash-voucher-view',
   standalone: true,
-  imports: [FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, PrintDocumentComponent],
+  imports: [FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, PrintDocumentComponent, AuditHistoryComponent],
   templateUrl: './cash-voucher-view.component.html',
   styleUrls: ['../../../shared/voucher/voucher.scss', './cash-voucher-view.component.scss'],
 })
 export class CashVoucherViewComponent {
-  readonly data = inject(MockDataService);
+  readonly data = inject(DataStore);
   private readonly debt = inject(DebtService);
   private readonly svc = inject(CashVoucherService);
 

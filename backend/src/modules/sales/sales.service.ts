@@ -7,6 +7,8 @@ import { InventoryService, VoucherLineInput } from '../inventory/inventory.servi
 import type { AuthUser } from '../../auth/auth.service.js';
 import { fromDay, toDay } from '../../common/text.js';
 import { CASH_INCLUDE, cashToApi } from '../cash/cash-voucher.mapper.js';
+import { AuditService } from '../../audit/audit.service.js';
+import { diff, vnd } from '../../audit/audit.diff.js';
 import {
   LsxState, PriceSource, STATUS_LABEL, SaleLine, canCancel, canClose, canDeliver, canEdit, deriveStatus, lineDiscount, lineRemaining,
   linesNeedingLsx, orderTotals, priceFor, receivedValueOf, round4,
@@ -66,6 +68,20 @@ const ORDER_INCLUDE = {
 
 const LSX_INCLUDE = { createdBy: { select: { email: true } } } as const satisfies Prisma.ProductionOrderInclude;
 
+const ORDER_FIELDS = {
+  customer: 'Khách hàng', recipientName: 'Người nhận', recipientPhone: 'Điện thoại nhận', deliveryAddress: 'Địa chỉ giao',
+  description: 'Diễn giải', source: 'Nguồn đơn', orderDate: 'Ngày đặt', neededByDate: 'Ngày cần giao', salesRep: 'Người bán',
+  discountAmount: 'Chiết khấu cả đơn', payNow: 'Thu tiền ngay', tags: 'Thẻ', lines: 'Dòng hàng',
+};
+
+/** The parts of an order the Sửa đơn diff compares, before names are looked up. */
+interface OrderShape {
+  customerId: string; recipientName: string | null; recipientPhone: string | null; deliveryAddress: string | null;
+  description: string | null; source: string | null; orderDate: Date | null; neededByDate: Date | null;
+  discountAmount: unknown; payNowAccountId: string | null; salesRepId: string | null; tagIds: string[];
+  lines: { productId: string; quantity: unknown; unitName: string | null; unit: string; unitPrice: unknown; discountAmount: unknown; vatRate: unknown; length?: unknown; width?: unknown }[];
+}
+
 type OrderRow = Prisma.SalesOrderGetPayload<{ include: typeof ORDER_INCLUDE }>;
 type LineRow = OrderRow['lines'][number];
 type LsxRow = Prisma.ProductionOrderGetPayload<{ include: typeof LSX_INCLUDE }>;
@@ -105,7 +121,36 @@ export class SalesService {
     private readonly prisma: PrismaService,
     private readonly sequences: SequenceService,
     private readonly inventory: InventoryService,
+    private readonly audit: AuditService,
   ) {}
+
+  /** An order with names instead of ids, lines as "SP0000003 × 2 m² (120×80) @ 150.000 ₫ · CK 5.000 ₫ · VAT 8%". */
+  private async described(tx: Tx, o: OrderShape) {
+    const [customer, rep, account, tags, products] = await Promise.all([
+      tx.customer.findUnique({ where: { id: o.customerId }, select: { code: true, name: true } }),
+      o.salesRepId ? tx.user.findUnique({ where: { id: o.salesRepId }, select: { name: true } }) : null,
+      o.payNowAccountId ? tx.cashAccount.findUnique({ where: { id: o.payNowAccountId }, select: { name: true } }) : null,
+      o.tagIds.length ? tx.tag.findMany({ where: { id: { in: o.tagIds } }, select: { name: true } }) : [],
+      tx.product.findMany({ where: { id: { in: o.lines.map((l) => l.productId) } }, select: { id: true, code: true } }),
+    ]);
+    const code = new Map(products.map((p) => [p.id, p.code]));
+    return {
+      ...o,
+      customer: customer ? `${customer.code} · ${customer.name}` : o.customerId,
+      salesRep: rep?.name ?? null,
+      payNow: account?.name ?? null,
+      tags: tags.map((t) => t.name),
+      lines: o.lines.map((l) => {
+        const size = l.length && l.width ? ` (${Number(l.length)}×${Number(l.width)})` : '';
+        const ck = Number(l.discountAmount) ? ` · CK ${vnd(l.discountAmount)}` : '';
+        return `${code.get(l.productId) ?? l.productId} × ${Number(l.quantity)} ${l.unitName ?? l.unit}${size} @ ${vnd(l.unitPrice)}${ck} · VAT ${Number(l.vatRate)}%`;
+      }),
+    };
+  }
+
+  private async logLsx(tx: Tx, x: { id: string; code: string }, action: string, summary: string, orderCode: string, related: string[] = []) {
+    await this.audit.log(tx, { action, entityType: 'ProductionOrder', entityId: x.id, entityCode: x.code, summary, related: [orderCode, ...related] });
+  }
 
   // ---------- đọc ----------
 
@@ -167,7 +212,15 @@ export class SalesService {
           lines: { create: lines },
         },
       });
-      return this.order(o.id, tx);
+      const saved = await this.order(o.id, tx);
+      const customer = await tx.customer.findUnique({ where: { id: input.customerId }, select: { code: true, name: true } });
+      await this.audit.log(tx, {
+        action: 'sales_order.create', entityType: 'SalesOrder', entityId: o.id, entityCode: o.code,
+        summary: `Lập đơn hàng bán ${o.code} · ${customer?.code} ${customer?.name} · ${lines.length} dòng · ${vnd(saved.totalOrder)}`
+          + (input.payNowAccountId ? ' · thu tiền ngay' : ''),
+        related: customer ? [customer.code] : undefined,
+      });
+      return saved;
     });
   }
 
@@ -182,6 +235,7 @@ export class SalesService {
       if (!canEdit(this.state(o), lsx)) throw new BadRequestException('Đơn đã sản xuất hoặc đã giao, không sửa được.');
       const refs = await this.checkInput(tx, input, user, o.lines);
       const lines = lineRows(input.lines);
+      const before = await this.described(tx, { ...o, tagIds: o.tags.map((t) => t.tagId) });
 
       // Lệnh SX còn nháp đi theo dòng thành phẩm: dòng bị bỏ thì huỷ lệnh, đổi số lượng thì cập nhật lệnh.
       const baseQty = new Map<string, number>();
@@ -189,6 +243,10 @@ export class SalesService {
       for (const x of lsx.filter((p) => p.status === 'NHAP')) {
         const q = baseQty.get(x.productId);
         await tx.productionOrder.update({ where: { id: x.id }, data: q ? { quantity: q } : { status: 'HUY', cancelReason: 'Dòng hàng đã bỏ khỏi đơn' } });
+        if (!q) await this.logLsx(tx, x, 'production_order.cancel', `Huỷ lệnh sản xuất ${x.code}: dòng hàng đã bỏ khỏi đơn ${o.code}`, o.code);
+        else if (q !== x.quantity.toNumber()) {
+          await this.logLsx(tx, x, 'production_order.update', `Đổi số lượng lệnh ${x.code} từ ${x.quantity.toNumber()} thành ${q} theo đơn ${o.code}`, o.code);
+        }
       }
 
       await tx.salesOrderLine.deleteMany({ where: { orderId: id } });
@@ -202,6 +260,11 @@ export class SalesService {
         },
       });
       await this.refreshStatus(tx, id);
+      const after = await this.described(tx, { ...headerFields(input), salesRepId: refs.salesRepId, tagIds: [...new Set(input.tagIds)], lines });
+      await this.audit.log(tx, {
+        action: 'sales_order.update', entityType: 'SalesOrder', entityId: id, entityCode: o.code, summary: `Sửa đơn hàng bán ${o.code}`,
+        changes: diff(before, after, ORDER_FIELDS),
+      });
       return this.order(id, tx);
     });
   }
@@ -210,11 +273,18 @@ export class SalesService {
     return this.prisma.$transaction(async (tx) => {
       const o = await this.locked(tx, id);
       if (!canCancel(this.state(o))) throw new BadRequestException(`Đơn ${STATUS_LABEL[o.status].toLowerCase()} — không huỷ được.`);
+      const open = await tx.productionOrder.findMany({ where: { sourceOrderId: id, status: { in: ['NHAP', 'DANG_SAN_XUAT'] } } });
       await tx.productionOrder.updateMany({
-        where: { sourceOrderId: id, status: { in: ['NHAP', 'DANG_SAN_XUAT'] } },
+        where: { id: { in: open.map((x) => x.id) } },
         data: { status: 'HUY', cancelReason: `Huỷ theo đơn ${o.code}` },
       });
+      for (const x of open) await this.logLsx(tx, x, 'production_order.cancel', `Huỷ lệnh sản xuất ${x.code} theo đơn ${o.code}`, o.code);
       await tx.salesOrder.update({ where: { id }, data: { status: 'HUY', cancelReason: reason ?? null } });
+      await this.audit.log(tx, {
+        action: 'sales_order.cancel', entityType: 'SalesOrder', entityId: id, entityCode: o.code,
+        summary: `Huỷ đơn hàng bán ${o.code}${reason ? `: ${reason}` : ''}${open.length ? ` (kèm ${open.length} lệnh sản xuất)` : ''}`,
+        related: open.map((x) => x.code),
+      });
       return this.order(id, tx);
     });
   }
@@ -225,6 +295,10 @@ export class SalesService {
       const o = await this.locked(tx, id);
       if (!canClose(this.state(o))) throw new BadRequestException('Chỉ kết thúc được đơn đang giao một phần.');
       await tx.salesOrder.update({ where: { id }, data: { closedDate: fromDay(new Date().toISOString()) } });
+      await this.audit.log(tx, {
+        action: 'sales_order.close', entityType: 'SalesOrder', entityId: id, entityCode: o.code,
+        summary: `Kết thúc đơn ${o.code}: khách không lấy phần còn lại`,
+      });
       return this.order(id, tx);
     });
   }
@@ -259,12 +333,13 @@ export class SalesService {
       }
       if (!moved) throw new BadRequestException('Không có số lượng nào để giao — các dòng đã giao đủ hoặc số giao bằng 0.');
 
+      const voucherIds: string[] = [];
       for (const [warehouseId, m] of byWarehouse) {
-        await this.inventory.post(tx, {
+        voucherIds.push(await this.inventory.post(tx, {
           type: 'XUAT', date: input.date, warehouseId, salesOrderId: o.id,
           reason: `Xuất kho giao đơn ${o.code}${input.note ? ` — ${input.note}` : ''}`,
           lines: [...m].map(([productId, quantity]) => ({ productId, quantity })),
-        }, user.id);
+        }, user.id));
       }
       for (const [i, l] of o.lines.entries()) {
         if (nums[i].receivedQuantity !== l.receivedQuantity.toNumber()) {
@@ -272,10 +347,17 @@ export class SalesService {
         }
       }
       await tx.salesOrder.update({ where: { id }, data: { deliveredDate: fromDay(input.date), dueDate: null } });
-      await this.refreshStatus(tx, id);
+      const status = await this.refreshStatus(tx, id);
 
       const delta = receivedValueOf(nums, o.discountAmount.toNumber()) - before;
       const { receipts } = await this.syncPayNow(tx, o, delta, input.date, user.id);
+      await this.audit.log(tx, {
+        action: 'sales_order.deliver', entityType: 'SalesOrder', entityId: id, entityCode: o.code,
+        summary: `Giao hàng đơn ${o.code}: khách nhận ${vnd(delta)} · ${STATUS_LABEL[status]}`
+          + (receipts.length ? ` · thu tiền ngay ${receipts.map((r) => r.code).join(', ')}` : ' · ghi công nợ phải thu')
+          + (input.note ? ` · ${input.note}` : ''),
+        related: [...(await this.inventory.codes(tx, voucherIds)), ...receipts.map((r) => r.code)],
+      });
       return { order: await this.order(id, tx), receipts };
     });
   }
@@ -300,6 +382,11 @@ export class SalesService {
         },
         include: CASH_INCLUDE,
       });
+      const account = await tx.cashAccount.findUnique({ where: { id: o.payNowAccountId }, select: { name: true } });
+      await this.audit.log(tx, {
+        action: 'cash_voucher.create', entityType: 'CashVoucher', entityId: v.id, entityCode: v.code,
+        summary: `Tự lập phiếu thu ${v.code}: ${vnd(delta)} · ${marker} · ${account?.name ?? ''}`, related: [o.code],
+      });
       return { ...none, receipts: [cashToApi(v)] };
     }
     let left = -delta;
@@ -308,6 +395,10 @@ export class SalesService {
       const amount = v.amount.toNumber();
       if (left <= 0 || amount > left) continue;
       await tx.cashVoucher.update({ where: { id: v.id }, data: { isCancelled: true, cancelReason: 'Khách bỏ nhận hàng — huỷ phiếu thu tự lập', cancelledAt: new Date() } });
+      await this.audit.log(tx, {
+        action: 'cash_voucher.cancel', entityType: 'CashVoucher', entityId: v.id, entityCode: v.code,
+        summary: `Tự huỷ phiếu thu ${v.code} (${vnd(amount)}): khách bỏ nhận hàng đơn ${o.code}`, related: [o.code],
+      });
       none.cancelled.push(v.id);
       left -= amount;
     }
@@ -337,6 +428,8 @@ export class SalesService {
           },
         });
         ids.push(x.id);
+        await this.logLsx(tx, x, 'production_order.create',
+          `Lập lệnh sản xuất ${x.code} từ đơn ${o.code}: ${x.quantity.toNumber()} · định mức ${bom.length} vật tư`, o.code);
       }
       await this.refreshStatus(tx, orderId);
       const created = await tx.productionOrder.findMany({ where: { id: { in: ids } }, include: LSX_INCLUDE, orderBy: { code: 'asc' } });
@@ -363,14 +456,19 @@ export class SalesService {
         m.set(b.componentId, round4((m.get(b.componentId) ?? 0) + b.quantityPerUnit * x.quantity.toNumber()));
         byWarehouse.set(wh, m);
       }
+      const voucherIds: string[] = [];
       for (const [warehouseId, m] of byWarehouse) {
-        await this.inventory.post(tx, {
+        voucherIds.push(await this.inventory.post(tx, {
           type: 'XUAT', date: today, warehouseId, productionOrderId: x.id, reason: `Xuất vật tư cho ${x.code}`,
           lines: [...m].map(([productId, quantity]): VoucherLineInput => ({ productId, quantity })),
-        }, user.id);
+        }, user.id));
       }
       await tx.productionOrder.update({ where: { id: x.id }, data: { status: 'DANG_SAN_XUAT', startDate: fromDay(today) } });
       await this.refreshStatus(tx, x.sourceOrderId);
+      const codes = await this.inventory.codes(tx, voucherIds);
+      await this.logLsx(tx, x, 'production_order.start',
+        `Bắt đầu sản xuất ${x.code}${codes.length ? `, xuất vật tư ${codes.join(', ')}` : ' (không có vật tư để xuất)'}`,
+        await this.orderCode(tx, x.sourceOrderId), codes);
       return { productionOrder: await this.lsx(x.id, tx), order: await this.order(x.sourceOrderId, tx) };
     });
   }
@@ -382,17 +480,23 @@ export class SalesService {
       if (x.status !== 'DANG_SAN_XUAT') throw new BadRequestException('Chỉ nghiệm thu được lệnh đang sản xuất.');
       const qty = round4(Math.max(0, produced ?? x.quantity.toNumber()));
       const today = new Date().toISOString().slice(0, 10);
+      let voucherId: string | null = null;
       if (qty > 0) {
         const target = (await tx.warehouse.findUnique({ where: { id: FINISHED_GOODS_WAREHOUSE } }))?.id
           ?? (await tx.product.findUnique({ where: { id: x.productId } }))?.defaultWarehouseId;
         if (!target) throw new BadRequestException('Chưa có Kho thành phẩm để nhập.');
-        await this.inventory.post(tx, {
+        voucherId = await this.inventory.post(tx, {
           type: 'NHAP', date: today, warehouseId: target, productionOrderId: x.id, reason: `Nhập thành phẩm từ xưởng: ${x.code}`,
           lines: [{ productId: x.productId, quantity: qty }],
         }, user.id);
       }
       await tx.productionOrder.update({ where: { id: x.id }, data: { status: 'HOAN_TAT', completeDate: fromDay(today), producedQuantity: qty } });
       await this.refreshStatus(tx, x.sourceOrderId);
+      const codes = await this.inventory.codes(tx, voucherId ? [voucherId] : []);
+      const ordered = x.quantity.toNumber();
+      await this.logLsx(tx, x, 'production_order.complete',
+        `Nghiệm thu ${x.code}: làm được ${qty} / ${ordered}${qty < ordered ? ` (hỏng ${round4(ordered - qty)})` : ''}${codes.length ? `, nhập kho ${codes[0]}` : ''}`,
+        await this.orderCode(tx, x.sourceOrderId), codes);
       return { productionOrder: await this.lsx(x.id, tx), order: await this.order(x.sourceOrderId, tx) };
     });
   }
@@ -404,6 +508,9 @@ export class SalesService {
       if (x.status !== 'NHAP' && x.status !== 'DANG_SAN_XUAT') throw new BadRequestException('Lệnh này đã xong hoặc đã huỷ.');
       await tx.productionOrder.update({ where: { id: x.id }, data: { status: 'HUY', cancelReason: reason ?? null } });
       await this.refreshStatus(tx, x.sourceOrderId);
+      await this.logLsx(tx, x, 'production_order.cancel',
+        `Huỷ lệnh sản xuất ${x.code}${x.status === 'DANG_SAN_XUAT' ? ' đang chạy (vật tư đã xuất không tự nhập lại)' : ''}${reason ? `: ${reason}` : ''}`,
+        await this.orderCode(tx, x.sourceOrderId));
       return { productionOrder: await this.lsx(x.id, tx), order: await this.order(x.sourceOrderId, tx) };
     });
   }
@@ -416,12 +523,17 @@ export class SalesService {
   }
 
   /** Status follows giao hàng and sản xuất; stored so lists can filter on it. */
-  private async refreshStatus(tx: Tx, orderId: string): Promise<void> {
+  private async refreshStatus(tx: Tx, orderId: string): Promise<SalesOrderStatus> {
     const o = await tx.salesOrder.findUniqueOrThrow({ where: { id: orderId }, include: { lines: { orderBy: { sortOrder: 'asc' } } } });
     const lsx = await tx.productionOrder.findMany({ where: { sourceOrderId: orderId }, select: { productId: true, status: true } });
     const types = await this.productTypes(tx, o.lines.map((l) => l.productId));
     const status = deriveStatus(this.state(o), lsx as LsxState[], (p) => types.get(p) === 'THANH_PHAM');
     if (status !== o.status) await tx.salesOrder.update({ where: { id: orderId }, data: { status } });
+    return status;
+  }
+
+  private async orderCode(tx: Tx, id: string): Promise<string> {
+    return (await tx.salesOrder.findUniqueOrThrow({ where: { id }, select: { code: true } })).code;
   }
 
   private async productTypes(tx: Tx, ids: string[]) {

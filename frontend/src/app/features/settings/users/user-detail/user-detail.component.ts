@@ -4,18 +4,20 @@ import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import { MockDataService } from '../../../../core/services/mock-data.service';
+import { DataStore } from '../../../../core/services/data-store.service';
 import { NavIconComponent } from '../../../../layout/nav-icon/nav-icon.component';
 import { CopyButtonComponent } from '../../../../shared/copy-button/copy-button.component';
 import { formatVnd } from '../../../../shared/format.util';
 import { formatDay } from '../../../../shared/period';
 import { tagClass } from '../../../../shared/tag-class';
-import { USER_STATUS_LABEL, formatDateTime } from '../users.component';
+import { USER_STATUS_LABEL } from '../users.component';
+import { formatDateTime } from '../../../../shared/format.util';
 import { UserService } from '../user.service';
 import { UserDialogComponent } from '../user-dialog/user-dialog.component';
 import { PasswordDialogComponent } from '../password-dialog/password-dialog.component';
 import { AllowedLinkDirective } from '../../../../shared/allowed-link.directive';
 import { errorText } from '../../../../core/api/api.service';
+import { AuditHistoryComponent } from '../../../../shared/audit/audit-history.component';
 
 interface Activity {
   date: string;
@@ -30,12 +32,12 @@ interface Activity {
 @Component({
   selector: 'app-user-detail',
   standalone: true,
-  imports: [NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, UserDialogComponent, PasswordDialogComponent],
+  imports: [NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, UserDialogComponent, PasswordDialogComponent, AuditHistoryComponent],
   templateUrl: './user-detail.component.html',
   styleUrl: '../../../suppliers/supplier-detail/supplier-detail.component.scss',
 })
 export class UserDetailComponent {
-  readonly data = inject(MockDataService);
+  readonly data = inject(DataStore);
   readonly svc = inject(UserService);
   private readonly userDialog = viewChild.required<UserDialogComponent>('userDialog');
   private readonly passwordDialog = viewChild.required<PasswordDialogComponent>('passwordDialog');

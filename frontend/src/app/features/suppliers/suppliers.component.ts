@@ -1,7 +1,7 @@
 import { Component, computed, effect, signal, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { DataStore } from '../../core/services/data-store.service';
 import { Supplier } from '../../core/models/domain.models';
 import { DataTableColumn, DataTableComponent } from '../../shared/data-table/data-table.component';
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
@@ -131,7 +131,7 @@ export class SuppliersComponent {
   ];
 
   constructor(
-    readonly data: MockDataService,
+    readonly data: DataStore,
     private readonly svc: SupplierService,
   ) {
     effect(() => {

@@ -1,11 +1,8 @@
 import { Injectable, computed, inject } from '@angular/core';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { DataStore } from '../../core/services/data-store.service';
 import { DebtService } from '../../core/services/debt.service';
 import { Customer, CustomerAddress } from '../../core/models/domain.models';
-import { nextCode } from '../purchase-orders/purchase-order.rules';
-import { CUSTOMER_CODE_PREFIX } from './customer.rules';
 import { ApiService, upsertById } from '../../core/api/api.service';
-import { CATALOG_FROM_API } from '../../core/api/api.config';
 
 export type CustomerDraft = Omit<Customer, 'id' | 'code' | 'createdAt' | 'updatedAt' | 'orderCount'>;
 
@@ -23,13 +20,13 @@ export interface CustomerStats {
 
 const EMPTY: CustomerStats = { orderCount: 0, receivedOrders: 0, revenue: 0, openOrders: 0, receivable: 0, overdue: 0, prepaid: 0, openItems: 0 };
 
-// All writes for Khách hàng: the API (CATALOG_FROM_API) or, in demo mode, the in-browser store.
+// All writes for Khách hàng go through the API.
 @Injectable({ providedIn: 'root' })
 export class CustomerService {
   private readonly api = inject(ApiService);
 
   constructor(
-    private readonly data: MockDataService,
+    private readonly data: DataStore,
     private readonly debt: DebtService,
   ) {}
 
@@ -65,35 +62,16 @@ export class CustomerService {
   }
 
   async create(draft: CustomerDraft): Promise<Customer> {
-    if (CATALOG_FROM_API) return this.keep(await this.api.post<Customer>('/customers', draft));
-    const now = new Date().toISOString();
-    const c: Customer = {
-      ...draft,
-      addresses: normalizeDefault(draft.addresses ?? []),
-      id: crypto.randomUUID(),
-      code: nextCode(this.data.customers().map((x) => x.code), CUSTOMER_CODE_PREFIX),
-      createdAt: now,
-      updatedAt: now,
-    };
-    this.data.customers.update((list) => [c, ...list]);
-    return c;
+    return this.keep(await this.api.post<Customer>('/customers', draft));
   }
 
   async update(id: string, draft: CustomerDraft): Promise<void> {
-    if (CATALOG_FROM_API) {
-      this.keep(await this.api.put<Customer>(`/customers/${id}`, draft));
-      return;
-    }
-    this.patch(id, { ...draft, addresses: normalizeDefault(draft.addresses ?? []) });
+    this.keep(await this.api.put<Customer>(`/customers/${id}`, draft));
   }
 
   /** Ngừng theo dõi is a status change, not a delete: orders and công nợ stay. */
   async setActive(id: string, isActive: boolean): Promise<void> {
-    if (CATALOG_FROM_API) {
-      this.keep(await this.api.patch<Customer>(`/customers/${id}/active`, { isActive }));
-      return;
-    }
-    this.patch(id, { isActive });
+    this.keep(await this.api.patch<Customer>(`/customers/${id}/active`, { isActive }));
   }
 
   saveAddress(customerId: string, a: CustomerAddress): Promise<void> {
@@ -113,11 +91,7 @@ export class CustomerService {
   }
 
   private async setAddresses(customerId: string, addresses: CustomerAddress[]): Promise<void> {
-    if (CATALOG_FROM_API) {
-      this.keep(await this.api.put<Customer>(`/customers/${customerId}/addresses`, { addresses }));
-      return;
-    }
-    this.patch(customerId, { addresses });
+    this.keep(await this.api.put<Customer>(`/customers/${customerId}/addresses`, { addresses }));
   }
 
   /** The saved customer as the server returned it replaces the local copy. */
@@ -130,12 +104,6 @@ export class CustomerService {
     const c = this.data.customers().find((x) => x.id === id);
     if (!c) throw new Error(`Không tìm thấy khách hàng ${id}`);
     return c;
-  }
-
-  private patch(id: string, changes: Partial<Customer>): void {
-    this.find(id);
-    const updatedAt = new Date().toISOString();
-    this.data.customers.update((list) => list.map((c) => (c.id === id ? { ...c, ...changes, updatedAt } : c)));
   }
 }
 

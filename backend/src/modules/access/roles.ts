@@ -6,6 +6,8 @@ import { RequireAnyPermission, RequirePermissions } from '../../auth/permissions
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { OptionalText, Text } from '../../common/dto.js';
 import { foldVi } from '../../common/text.js';
+import { AuditService } from '../../audit/audit.service.js';
+import { diff } from '../../audit/audit.diff.js';
 
 export class RoleDto {
   @Text(60) name!: string;
@@ -30,7 +32,10 @@ const INCLUDE = { permissions: { select: { permissionCode: true } }, _count: { s
 // never deleted, so accounts and history keep their meaning.
 @Injectable()
 export class RolesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   /** The frontend's Role: permission codes plus the counts the list shows. */
   async findAll() {
@@ -69,34 +74,67 @@ export class RolesService {
     const codes = dto.copyFromId
       ? (await this.prisma.rolePermission.findMany({ where: { roleId: dto.copyFromId }, select: { permissionCode: true } })).map((p) => p.permissionCode)
       : [];
-    const role = await this.prisma.role.create({
-      data: { name: dto.name, description: dto.description ?? null, permissions: { create: codes.map((permissionCode) => ({ permissionCode })) } },
+    const from = dto.copyFromId ? await this.prisma.role.findUnique({ where: { id: dto.copyFromId }, select: { name: true } }) : null;
+    const role = await this.prisma.$transaction(async (tx) => {
+      const r = await tx.role.create({
+        data: { name: dto.name, description: dto.description ?? null, permissions: { create: codes.map((permissionCode) => ({ permissionCode })) } },
+      });
+      await this.audit.log(tx, {
+        action: 'role.create', entityType: 'Role', entityId: r.id, entityCode: r.name,
+        summary: `Tạo chức vụ ${r.name}` + (from ? `, lấy ${codes.length} quyền từ ${from.name}` : ''),
+      });
+      return r;
     });
     return this.one(role.id);
   }
 
   async update(id: string, dto: RoleDto) {
-    await this.editable(id);
+    const before = await this.editable(id);
     await this.checkName(dto.name, id);
-    await this.prisma.role.update({ where: { id }, data: { name: dto.name, description: dto.description ?? null } });
+    const data = { name: dto.name, description: dto.description ?? null };
+    await this.prisma.$transaction(async (tx) => {
+      await tx.role.update({ where: { id }, data });
+      await this.audit.log(tx, {
+        action: 'role.update', entityType: 'Role', entityId: id, entityCode: dto.name, summary: `Sửa chức vụ ${dto.name}`,
+        changes: diff(before, data, { name: 'Tên chức vụ', description: 'Mô tả' }),
+      });
+    });
     return this.one(id);
   }
 
   /** Unknown codes are dropped; the change applies to signed-in users on their next request. */
   async setPermissions(id: string, codes: string[]) {
-    await this.editable(id);
-    const known = new Set((await this.prisma.permission.findMany({ select: { code: true } })).map((p) => p.code));
-    const granted = [...new Set(codes)].filter((c) => known.has(c));
-    await this.prisma.$transaction([
-      this.prisma.rolePermission.deleteMany({ where: { roleId: id } }),
-      this.prisma.rolePermission.createMany({ data: granted.map((permissionCode) => ({ roleId: id, permissionCode })) }),
-    ]);
+    const role = await this.editable(id);
+    const catalog = await this.prisma.permission.findMany({ select: { code: true, label: true } });
+    const label = new Map(catalog.map((p) => [p.code, p.label]));
+    const granted = [...new Set(codes)].filter((c) => label.has(c));
+    const had = new Set((await this.prisma.rolePermission.findMany({ where: { roleId: id }, select: { permissionCode: true } })).map((p) => p.permissionCode));
+    const added = granted.filter((c) => !had.has(c));
+    const removed = [...had].filter((c) => !granted.includes(c));
+    await this.prisma.$transaction(async (tx) => {
+      await tx.rolePermission.deleteMany({ where: { roleId: id } });
+      await tx.rolePermission.createMany({ data: granted.map((permissionCode) => ({ roleId: id, permissionCode })) });
+      await this.audit.log(tx, {
+        action: 'role.set_permissions', entityType: 'Role', entityId: id, entityCode: role.name,
+        summary: `Phân quyền chức vụ ${role.name}: thêm ${added.length}, bỏ ${removed.length} quyền`,
+        changes: [
+          ...(added.length ? [{ field: 'added', label: 'Thêm quyền', from: null, to: added.map((c) => label.get(c)!) }] : []),
+          ...(removed.length ? [{ field: 'removed', label: 'Bỏ quyền', from: removed.map((c) => label.get(c) ?? c), to: null }] : []),
+        ],
+      });
+    });
     return this.one(id);
   }
 
   async setActive(id: string, isActive: boolean) {
-    await this.editable(id);
-    await this.prisma.role.update({ where: { id }, data: { isActive } });
+    const role = await this.editable(id);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.role.update({ where: { id }, data: { isActive } });
+      await this.audit.log(tx, {
+        action: isActive ? 'role.activate' : 'role.deactivate', entityType: 'Role', entityId: id, entityCode: role.name,
+        summary: `${isActive ? 'Dùng lại' : 'Ngừng dùng'} chức vụ ${role.name}`,
+      });
+    });
     return this.one(id);
   }
 }

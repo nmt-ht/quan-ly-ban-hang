@@ -1,7 +1,7 @@
 import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { MockDataService } from '../../../core/services/mock-data.service';
+import { DataStore } from '../../../core/services/data-store.service';
 import { CashCategory, VoucherKind } from '../../../core/models/domain.models';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { foldVi } from '../../../shared/format.util';
@@ -23,7 +23,7 @@ import { errorText } from '../../../core/api/api.service';
   ],
 })
 export class CashCategoriesComponent {
-  readonly data = inject(MockDataService);
+  readonly data = inject(DataStore);
   private readonly svc = inject(CashVoucherService);
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
 

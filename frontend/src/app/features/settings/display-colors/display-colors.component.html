@@ -4,14 +4,26 @@
     <p class="subtitle">Màu của nhãn tính chất và trạng thái trên mọi trang. Đổi là áp dụng ngay; mỗi màu có bản sáng và tối, luôn đọc rõ.</p>
   </div>
   <div class="toolbar">
-    <button type="button" class="btn" [disabled]="!colors.changedCount()" (click)="colors.resetAll()">
+    <button type="button" class="btn" [disabled]="!colors.canEdit() || !colors.changedCount()" (click)="colors.resetAll()">
       <app-nav-icon name="refresh" />Khôi phục tất cả mặc định
     </button>
   </div>
 </div>
 
-<p class="form-note dc-note">
-  <strong>Lưu trên trình duyệt này.</strong> Khi có máy chủ, màu sẽ lưu theo công ty và chỉ người có quyền sửa thông tin công ty được đổi.
+@if (colors.error()) {
+  <div class="notice is-error" role="alert">
+    <span>Chưa lưu được màu: {{ colors.error() }}</span>
+    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="colors.error.set('')"><app-nav-icon name="x" /></button>
+  </div>
+}
+
+<p class="form-note dc-note" aria-live="polite">
+  @if (colors.canEdit()) {
+    <strong>Áp dụng cho cả công ty.</strong> Mọi người dùng thấy cùng bộ màu này.
+    @if (colors.saving()) { Đang lưu… }
+  } @else {
+    <strong>Chỉ xem.</strong> Màu áp dụng cho cả công ty; chỉ người có quyền sửa thông tin công ty được đổi.
+  }
 </p>
 
 <div class="dc-layout">
@@ -40,7 +52,7 @@
         <h2 class="dc-title">{{ g.label }}</h2>
         <p class="dc-hint">{{ g.hint }}</p>
       </div>
-      @if (changedIn(g)) {
+      @if (changedIn(g) && colors.canEdit()) {
         <button type="button" class="btn" (click)="colors.resetGroup(g.id)"><app-nav-icon name="refresh" />Khôi phục mặc định</button>
       }
 
@@ -82,10 +94,13 @@
                 [title]="p.name"
                 [style.--tag-h]="swatchH(p.color)"
                 [style.--tag-c]="swatchC(p.color)"
+                [disabled]="!colors.canEdit()"
                 (click)="pick(g, i, p.color)"
               ></button>
             }
-            <button type="button" class="link-btn dc-custom" [attr.aria-expanded]="isSliderOpen(g, i)" (click)="toggleSlider(g, i)">Tuỳ chỉnh sắc độ</button>
+            @if (colors.canEdit()) {
+              <button type="button" class="link-btn dc-custom" [attr.aria-expanded]="isSliderOpen(g, i)" (click)="toggleSlider(g, i)">Tuỳ chỉnh sắc độ</button>
+            }
           </div>
 
           @if (isSliderOpen(g, i)) {

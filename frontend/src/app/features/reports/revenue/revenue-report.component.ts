@@ -1,6 +1,6 @@
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { MockDataService } from '../../../core/services/mock-data.service';
+import { DataStore } from '../../../core/services/data-store.service';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { PeriodFilterComponent, PeriodValue } from '../../../shared/period-filter/period-filter.component';
 import { amountTone, foldVi, formatQty, formatVnd } from '../../../shared/format.util';
@@ -52,7 +52,7 @@ interface OrderDetail {
   styleUrl: './revenue-report.component.scss',
 })
 export class RevenueReportComponent {
-  readonly data = inject(MockDataService);
+  readonly data = inject(DataStore);
 
   readonly groups = Object.entries(REVENUE_GROUP_LABEL) as [RevenueGroup, string][];
   readonly units = Object.entries(TIME_UNIT_LABEL) as [TimeUnit, string][];

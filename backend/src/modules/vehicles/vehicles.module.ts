@@ -8,6 +8,8 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import { SequenceService } from '../../prisma/sequence.service.js';
 import { OptionalDay, OptionalText, Text } from '../../common/dto.js';
 import { fromDay, toDay } from '../../common/text.js';
+import { AuditService } from '../../audit/audit.service.js';
+import { diff } from '../../audit/audit.diff.js';
 
 export class VehicleDto {
   @Text(20) plateNumber!: string;
@@ -27,6 +29,12 @@ export class StatusDto {
   @IsEnum(VehicleStatus) status!: VehicleStatus;
 }
 
+const VEHICLE_FIELDS = {
+  plateNumber: 'Biển số', name: 'Tên gọi', type: 'Loại xe', loadCapacity: 'Tải trọng', status: 'Tình trạng',
+  registrationExpiry: 'Hạn đăng kiểm', insuranceExpiry: 'Hạn bảo hiểm', usualDriver: 'Tài xế', driverPhone: 'Điện thoại tài xế', note: 'Ghi chú',
+};
+const STATUS_LABEL: Record<VehicleStatus, string> = { DANG_DUNG: 'Đang dùng', BAO_TRI: 'Bảo trì', NGUNG_DUNG: 'Ngừng dùng' };
+
 /** Biển số so khớp không phân biệt dấu chấm, gạch, khoảng trắng, hoa thường (as the frontend). */
 const plateKey = (p: string) => p.replace(/[\s.\-]/g, '').toUpperCase();
 
@@ -39,6 +47,7 @@ export class VehiclesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly sequences: SequenceService,
+    private readonly audit: AuditService,
   ) {}
 
   async findAll() {
@@ -62,15 +71,29 @@ export class VehiclesService {
       note: dto.note ?? null,
     } satisfies Prisma.VehicleUncheckedUpdateInput;
 
-    if (id) return toApi(await this.prisma.vehicle.update({ where: { id }, data }));
-    return this.prisma.$transaction(async (tx) =>
-      toApi(await tx.vehicle.create({ data: { ...data, code: await this.sequences.nextCode('XE', tx) } })),
-    );
+    const before = id ? await this.prisma.vehicle.findUnique({ where: { id } }) : null;
+    return this.prisma.$transaction(async (tx) => {
+      const v = id
+        ? await tx.vehicle.update({ where: { id }, data })
+        : await tx.vehicle.create({ data: { ...data, code: await this.sequences.nextCode('XE', tx) } });
+      await this.audit.log(tx, {
+        action: id ? 'vehicle.update' : 'vehicle.create', entityType: 'Vehicle', entityId: v.id, entityCode: v.code,
+        summary: `${id ? 'Sửa' : 'Thêm'} xe ${v.code} · ${v.plateNumber}`, changes: id ? diff(before, data, VEHICLE_FIELDS) : undefined,
+      });
+      return toApi(v);
+    });
   }
 
   /** Bảo trì / Ngừng dùng is a status, not a delete: trips and costs keep the vehicle. */
   async setStatus(id: string, status: VehicleStatus) {
-    return toApi(await this.prisma.vehicle.update({ where: { id }, data: { status } }));
+    return this.prisma.$transaction(async (tx) => {
+      const v = await tx.vehicle.update({ where: { id }, data: { status } });
+      await this.audit.log(tx, {
+        action: 'vehicle.set_status', entityType: 'Vehicle', entityId: id, entityCode: v.code,
+        summary: `Chuyển xe ${v.code} · ${v.plateNumber} sang ${STATUS_LABEL[status]}`,
+      });
+      return toApi(v);
+    });
   }
 }
 

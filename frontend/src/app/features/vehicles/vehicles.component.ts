@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { DataStore } from '../../core/services/data-store.service';
 import { Vehicle } from '../../core/models/domain.models';
 import { DataTableColumn, DataTableComponent } from '../../shared/data-table/data-table.component';
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
@@ -24,7 +24,7 @@ import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
   templateUrl: './vehicles.component.html',
 })
 export class VehiclesComponent {
-  readonly data = inject(MockDataService);
+  readonly data = inject(DataStore);
   private readonly router = inject(Router);
   private readonly dialog = viewChild.required<VehicleDialogComponent>('dialog');
 

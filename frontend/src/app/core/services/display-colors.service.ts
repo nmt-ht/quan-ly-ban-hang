@@ -1,12 +1,14 @@
-import { Injectable, computed, effect, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { TagColor, TagColors } from '../models/domain.models';
+import { DataStore } from './data-store.service';
+import { AuthService } from './auth.service';
+import { ApiService, errorText } from '../api/api.service';
 import {
   DELIVERY_TRIP_STATUS_LABEL, PRODUCT_TYPE_LABEL, PRODUCTION_ORDER_STATUS_LABEL, PURCHASE_ORDER_STATUS_LABEL,
   SALES_ORDER_STATUS_LABEL,
 } from '../../shared/status-labels';
 
-// A tag colour is a hue (0–360) or 'neutral' (grey). Lightness and chroma are fixed by the
-// design tokens (--tag-*), so every choice stays readable in light and dark mode.
-export type TagColor = number | 'neutral';
+export type { TagColor } from '../models/domain.models';
 
 export interface TagItem {
   key: string;
@@ -124,25 +126,26 @@ export const TAG_PRESETS: { color: TagColor; name: string }[] = [
   { color: 340, name: 'Hồng' },
 ];
 
-const STORAGE_KEY = 'nt.tagColors.v1';
+/** Wait this long after the last change (a dragged slider fires on every step) before saving. */
+const SAVE_DELAY_MS = 400;
 
-type Overrides = Record<string, TagColor>; // `${groupId}:${key}` -> colour
-
-function load(): Overrides {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Overrides) : {};
-  } catch {
-    return {};
-  }
-}
-
-// Company display colours for tags. Until the backend has a settings endpoint the choice is
-// kept in this browser (localStorage); the API is shaped so swapping the storage is local.
+// Company display colours for tags: one set per company (GET / PUT /company/display-colors), loaded
+// with the danh mục. Everyone sees them; changing them needs company.update. A change shows at once
+// and is saved shortly after; if the save fails the colours go back to what the server has.
 @Injectable({ providedIn: 'root' })
 export class DisplayColorsService {
-  private readonly overrides = signal<Overrides>(load());
+  private readonly data = inject(DataStore);
+  private readonly auth = inject(AuthService);
+  private readonly api = inject(ApiService);
+  private readonly overrides = this.data.tagColors;
+  private saveTimer: ReturnType<typeof setTimeout> | undefined;
+  private saves = Promise.resolve();
+  private changeSeq = 0;
+
   readonly groups = TAG_GROUPS;
+  readonly canEdit = computed(() => this.auth.can('company.update'));
+  readonly saving = signal(false);
+  readonly error = signal('');
 
   readonly changedCount = computed(() => Object.keys(this.overrides()).length);
 
@@ -150,14 +153,7 @@ export class DisplayColorsService {
     const style = document.createElement('style');
     style.id = 'nt-tag-colors';
     document.head.appendChild(style);
-    effect(() => {
-      style.textContent = this.css();
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.overrides()));
-      } catch {
-        /* storage blocked: colours still apply for this session */
-      }
-    });
+    effect(() => (style.textContent = this.css()));
   }
 
   colorOf(groupId: string, key: string): TagColor {
@@ -172,7 +168,7 @@ export class DisplayColorsService {
 
   set(groupId: string, key: string, color: TagColor): void {
     const item = this.groups.find((g) => g.id === groupId)?.items.find((i) => i.key === key);
-    this.overrides.update((o) => {
+    this.change((o) => {
       const next = { ...o };
       if (item && item.default === color) delete next[`${groupId}:${key}`];
       else next[`${groupId}:${key}`] = color;
@@ -181,11 +177,38 @@ export class DisplayColorsService {
   }
 
   resetGroup(groupId: string): void {
-    this.overrides.update((o) => Object.fromEntries(Object.entries(o).filter(([k]) => !k.startsWith(`${groupId}:`))));
+    this.change((o) => Object.fromEntries(Object.entries(o).filter(([k]) => !k.startsWith(`${groupId}:`))));
   }
 
   resetAll(): void {
-    this.overrides.set({});
+    this.change(() => ({}));
+  }
+
+  private change(fn: (o: TagColors) => TagColors): void {
+    if (!this.canEdit()) return;
+    this.overrides.update(fn);
+    this.error.set('');
+    this.saving.set(true);
+    clearTimeout(this.saveTimer);
+    const seq = ++this.changeSeq;
+    this.saveTimer = setTimeout(() => (this.saves = this.saves.then(() => this.save(seq))), SAVE_DELAY_MS);
+  }
+
+  /** Saves run one after another, each sending the colours as they are by then. */
+  private async save(seq: number): Promise<void> {
+    try {
+      await this.api.put<TagColors>('/company/display-colors', { colors: this.overrides() });
+    } catch (e) {
+      if (seq !== this.changeSeq) return; // a newer change saves again
+      this.error.set(errorText(e));
+      try {
+        this.overrides.set(await this.api.get<TagColors>('/company/display-colors'));
+      } catch {
+        /* keep what is shown; the error says the change was not saved */
+      }
+    } finally {
+      if (seq === this.changeSeq) this.saving.set(false);
+    }
   }
 
   private css(): string {

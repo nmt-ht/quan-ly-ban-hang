@@ -9,5 +9,7 @@ export default defineConfig({
     include: ['**/*.e2e-spec.ts'],
     // The suites share one database (and `prisma dev` serves one connection): run files one after another.
     fileParallelism: false,
+    // Fails a file whose API writes left no Nhật ký line (see test/audit-coverage.setup.ts).
+    setupFiles: ['./test/audit-coverage.setup.ts'],
   },
 });

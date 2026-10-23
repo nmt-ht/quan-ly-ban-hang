@@ -4,7 +4,7 @@ import { map } from 'rxjs';
 import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { MockDataService } from '../../../core/services/mock-data.service';
+import { DataStore } from '../../../core/services/data-store.service';
 import { DebtService } from '../../../core/services/debt.service';
 import { CostService } from '../../../core/services/cost.service';
 import { Product, SalesOrder, SalesOrderLine } from '../../../core/models/domain.models';
@@ -32,9 +32,10 @@ import { HasUnsavedChanges, isSaveShortcut, warnBeforeUnload } from '../../../co
 import { DeliverDialogComponent } from '../deliver-dialog/deliver-dialog.component';
 import { errorText } from '../../../core/api/api.service';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
+import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
 
 type Mode = 'create' | 'edit' | 'view';
-type Tab = 'hang' | 'gia-von' | 'lsx' | 'pxk' | 'cong-no';
+type Tab = 'hang' | 'gia-von' | 'lsx' | 'pxk' | 'cong-no' | 'nhat-ky';
 
 interface DraftLine {
   key: string;
@@ -74,7 +75,7 @@ const emptyLine = (): DraftLine => ({
   standalone: true,
   imports: [
     NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
-    PaginationComponent, FilterMultiSelectComponent, DeliverDialogComponent, PrintDocumentComponent,
+    PaginationComponent, FilterMultiSelectComponent, DeliverDialogComponent, PrintDocumentComponent, AuditHistoryComponent,
   ],
   templateUrl: './sales-order-voucher.component.html',
   styleUrls: ['../../../shared/voucher/voucher.scss', './sales-order-voucher.component.scss'],
@@ -82,7 +83,7 @@ const emptyLine = (): DraftLine => ({
 export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  readonly data = inject(MockDataService);
+  readonly data = inject(DataStore);
   private readonly debt = inject(DebtService);
   private readonly orders = inject(SalesOrderService);
   private readonly cost = inject(CostService);

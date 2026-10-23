@@ -5,6 +5,7 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { AuthModule } from './auth/auth.module.js';
+import { AuditModule } from './audit/audit.module.js';
 import { AccessModule } from './modules/access/access.module.js';
 import { CashCatalogModule } from './modules/cash/cash-catalog.module.js';
 import { CompanyModule } from './modules/company/company.module.js';
@@ -27,6 +28,7 @@ import { PrismaExceptionFilter } from './common/prisma-exception.filter.js';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    AuditModule,
     AuthModule,
     // Đợt 1 — danh mục
     AccessModule,

@@ -47,10 +47,4 @@ export function statusAfterReceipt(lines: PurchaseOrderLine[]): PurchaseOrderSta
   return allReceived ? 'DA_NHAN_DU' : anyReceived ? 'NHAN_MOT_PHAN' : 'DA_GUI_NCC';
 }
 
-export function nextCode(codes: string[], prefix: string): string {
-  const re = new RegExp(`^${prefix}(\\d+)$`);
-  const max = codes.reduce((m, c) => Math.max(m, Number(re.exec(c)?.[1] ?? 0)), 0);
-  return prefix + String(max + 1).padStart(7, '0');
-}
-
 export const VAT_RATES = [0, 5, 8, 10];

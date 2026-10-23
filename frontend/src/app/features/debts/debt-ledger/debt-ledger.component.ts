@@ -1,6 +1,6 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { MockDataService } from '../../../core/services/mock-data.service';
+import { DataStore } from '../../../core/services/data-store.service';
 import { DebtEntry, DebtService } from '../../../core/services/debt.service';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { CopyButtonComponent } from '../../../shared/copy-button/copy-button.component';
@@ -54,7 +54,7 @@ export class DebtLedgerComponent {
   readonly partnerId = input.required<string>();
   readonly side = input.required<DebtSide>();
 
-  private readonly data = inject(MockDataService);
+  private readonly data = inject(DataStore);
   private readonly debt = inject(DebtService);
 
   readonly money = formatVnd;

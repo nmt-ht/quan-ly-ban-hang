@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import { MockDataService } from '../../../core/services/mock-data.service';
+import { DataStore } from '../../../core/services/data-store.service';
 import { CostService } from '../../../core/services/cost.service';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { CopyButtonComponent } from '../../../shared/copy-button/copy-button.component';
@@ -19,6 +19,7 @@ import { errorText } from '../../../core/api/api.service';
 import { VOUCHER_KIND_LABEL, kindOf } from '../../warehouse-vouchers/warehouse-voucher.rules';
 import { canCancelLsx, canComplete, canStart, isLate } from '../production-order.rules';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
+import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
 
 // Xuất vật tư happens before nhập thành phẩm on the same day.
 const STEP: Record<string, number> = { XUAT: 0, NHAP: 1, CHUYEN: 2, KIEM_KE: 3 };
@@ -27,13 +28,13 @@ const STEP: Record<string, number> = { XUAT: 0, NHAP: 1, CHUYEN: 2, KIEM_KE: 3 }
 @Component({
   selector: 'app-production-order-detail',
   standalone: true,
-  imports: [NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent],
+  imports: [NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, AuditHistoryComponent],
   templateUrl: './production-order-detail.component.html',
   styleUrls: ['../../../shared/voucher/voucher.scss', './production-order-detail.component.scss'],
 })
 export class ProductionOrderDetailComponent {
   private readonly route = inject(ActivatedRoute);
-  readonly data = inject(MockDataService);
+  readonly data = inject(DataStore);
   private readonly orders = inject(SalesOrderService);
   private readonly stock = inject(WarehouseVoucherService);
   private readonly cost = inject(CostService);

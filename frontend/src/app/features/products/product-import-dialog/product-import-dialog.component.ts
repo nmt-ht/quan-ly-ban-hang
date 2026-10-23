@@ -1,5 +1,5 @@
 import { Component, ElementRef, computed, inject, input, output, signal, viewChild } from '@angular/core';
-import { MockDataService } from '../../../core/services/mock-data.service';
+import { DataStore } from '../../../core/services/data-store.service';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { downloadWorkbook } from '../../../shared/excel.util';
 import {
@@ -44,7 +44,7 @@ export class ProductImportDialogComponent {
   });
   readonly hasPlan = computed(() => !!this.productPlan() || !!this.bomPlan());
 
-  constructor(private readonly data: MockDataService) {}
+  constructor(private readonly data: DataStore) {}
 
   open(): void {
     this.reset();

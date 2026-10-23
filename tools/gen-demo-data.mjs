@@ -3,7 +3,6 @@
 // Chạy:  node tools/gen-demo-data.mjs
 // Ghi ra:
 //   backend/prisma/demo-data.json                    (cho prisma/seed-demo.ts)
-//   frontend/src/app/core/data/demo-data.ts          (cho MockDataService)
 // Dữ liệu cố định (seeded PRNG) nên chạy lại cho cùng kết quả.
 // Toàn bộ tên, số điện thoại, mã số thuế, biển số bên dưới đều là GIẢ.
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -32,7 +31,7 @@ const code = (prefix, n) => prefix + String(n).padStart(7, '0');
 const iso = (d, t = '02:00:00') => `${d}T${t}.000Z`; // 09:00 giờ Việt Nam
 const clean = (o) => JSON.parse(JSON.stringify(o)); // bỏ undefined
 
-// ---------- danh mục cố định (khớp seed gốc & MockDataService) ----------
+// ---------- danh mục cố định (khớp seed gốc) ----------
 const WAREHOUSES = [
   { id: 'wh-ninhtrang', name: 'Kho Ninh Trang' },
   { id: 'wh-phukien', name: 'Kho phụ kiện' },
@@ -512,7 +511,7 @@ const ROLE_FE = { CEO: 'role-ceo', 'Quản lý': 'role-manager', 'Kế toán': '
 const desc = (arr, f) => [...arr].sort((a, b) => f(b).localeCompare(f(a)));
 const vnPhoneDate = (d) => d; // ngày dạng YYYY-MM-DD
 
-// ---- frontend ----
+// ---- dạng như API trả về (seed bên dưới dùng lại) ----
 const feProducts = PRODUCTS.map((p) => clean({
   id: p.id, code: p.code, name: p.name, type: p.type, baseUnit: p.baseUnit, categoryId: p.categoryId, defaultWarehouseId: p.defaultWarehouseId,
   minStock: p.minStock, vatRate: p.vatRate, warrantyMonths: p.warrantyMonths, origin: p.origin, retailPrice: p.retailPrice,
@@ -610,40 +609,10 @@ const feUsers = USERS.map((u) => ({ id: u.id, name: u.name, email: u.email, role
 const roleUserCount = {};
 for (const u of feUsers) roleUserCount[u.roleId] = (roleUserCount[u.roleId] ?? 0) + 1;
 
-const J = (x) => JSON.stringify(x, null, 2);
-const tsOut = `/* eslint-disable */
-// prettier-ignore
-// FILE SINH TỰ ĐỘNG bởi tools/gen-demo-data.mjs — KHÔNG SỬA TAY (chạy lại: node tools/gen-demo-data.mjs).
-// Toàn bộ dữ liệu là GIẢ, chỉ để thử giao diện.
-import type {
-  Product, StockLevel, WarehouseVoucher, ProductionOrder, Supplier, PurchaseOrder, Customer, SalesOrder,
-  DeliveryTrip, Vehicle, CashAccount, CashVoucher, Tag, AppUser, BomLine, SupplierProduct,
-} from '../models/domain.models';
-
-export const DEMO_TODAY = '${TODAY}';
-export const DEMO_PRODUCTS: Product[] = ${J(feProducts)};
-export const DEMO_BOM_LINES: BomLine[] = ${J(Object.entries(BOM).flatMap(([finishedProductId, ls]) => ls.map((l) => ({ finishedProductId, componentId: l.componentId, quantityPerUnit: l.quantityPerUnit }))))};
-export const DEMO_STOCK_LEVELS: StockLevel[] = ${J(stockLevels)};
-export const DEMO_WAREHOUSE_VOUCHERS: WarehouseVoucher[] = ${J(feWarehouseVouchers)};
-export const DEMO_PRODUCTION_ORDERS: ProductionOrder[] = ${J(feProduction)};
-export const DEMO_SUPPLIERS: Supplier[] = ${J(feSuppliers)};
-export const DEMO_SUPPLIER_PRODUCTS: SupplierProduct[] = ${J(feSupplierProducts)};
-export const DEMO_PURCHASE_ORDERS: PurchaseOrder[] = ${J(fePurchaseOrders)};
-export const DEMO_CUSTOMERS: Customer[] = ${J(feCustomers)};
-export const DEMO_SALES_ORDERS: SalesOrder[] = ${J(feSalesOrders)};
-export const DEMO_DELIVERY_TRIPS: DeliveryTrip[] = ${J(feTrips)};
-export const DEMO_VEHICLES: Vehicle[] = ${J(feVehicles)};
-export const DEMO_CASH_ACCOUNTS: CashAccount[] = ${J(feCashAccounts)};
-export const DEMO_CASH_VOUCHERS: CashVoucher[] = ${J(feCashVouchers)};
-export const DEMO_TAGS: Tag[] = ${J(feTags)};
-export const DEMO_USERS: AppUser[] = ${J(feUsers)};
-export const DEMO_ROLE_USER_COUNT: Record<string, number> = ${J(roleUserCount)};
-`;
-
 // ---- backend ----
 const be = clean({
   meta: { generatedFor: TODAY, note: 'Dữ liệu GIẢ do tools/gen-demo-data.mjs sinh ra. Đừng sửa tay.' },
-  // Danh mục: same objects (and ids) as the frontend demo, so both sides show the same catalog.
+  // Danh mục: built in the frontend's shapes above, then mapped to the seed's.
   warehouses: WAREHOUSES, categories: CATEGORIES, tags: TAGS,
   accounts: feCashAccounts.map(({ balance: _b, ...a }) => a),
   users: USERS.map((u) => ({ key: u.id, name: u.name, email: u.email, roleName: u.role, status: u.status, lastLoginAt: `${u.lastLogin}+07:00` })),
@@ -687,7 +656,6 @@ const be = clean({
 
 const w = (rel, content) => { const p = resolve(ROOT, rel); mkdirSync(dirname(p), { recursive: true }); writeFileSync(p, content, 'utf8'); return p; };
 w('backend/prisma/demo-data.json', JSON.stringify(be, null, 2) + '\n');
-w('frontend/src/app/core/data/demo-data.ts', tsOut);
 
 // ---- tóm tắt kiểm tra ----
 const count = (arr, f) => arr.reduce((m, x) => { const k = f(x); m[k] = (m[k] ?? 0) + 1; return m; }, {});

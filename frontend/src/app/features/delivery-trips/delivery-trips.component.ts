@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { DataStore } from '../../core/services/data-store.service';
 import { DeliveryTrip, DeliveryTripStatus } from '../../core/models/domain.models';
 import { DataTableColumn, DataTableComponent } from '../../shared/data-table/data-table.component';
 import { FilterMultiSelectComponent, FilterOption } from '../../shared/filter-multi-select/filter-multi-select.component';
@@ -36,7 +36,7 @@ const HIRED = 'hired';
   templateUrl: './delivery-trips.component.html',
 })
 export class DeliveryTripsComponent {
-  readonly data = inject(MockDataService);
+  readonly data = inject(DataStore);
   private readonly router = inject(Router);
   private readonly headerDialog = viewChild.required<TripHeaderDialogComponent>('headerDialog');
 

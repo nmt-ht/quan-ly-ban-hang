@@ -196,6 +196,13 @@
       </div>
     </section>
 
+    @if (voucher(); as wv) {
+      <section class="card voucher-grid-card">
+        <h2 class="form-section-title">Nhật ký</h2>
+        <app-audit-history entityType="WarehouseVoucher" [entityId]="wv.id" [code]="wv.code" />
+      </section>
+    }
+
     <footer class="voucher-actions">
       <p class="actions-hint" [class.text-danger]="!viewing() && attempted() && issues().length" role="status">
         @if (!viewing()) {

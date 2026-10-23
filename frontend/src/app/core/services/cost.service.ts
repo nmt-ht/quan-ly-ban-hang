@@ -1,5 +1,5 @@
 import { Injectable, computed } from '@angular/core';
-import { MockDataService } from './mock-data.service';
+import { DataStore } from './data-store.service';
 
 /**
  * Giá vốn ước tính theo ĐVT chính — there is no costing engine yet:
@@ -8,7 +8,7 @@ import { MockDataService } from './mock-data.service';
  */
 @Injectable({ providedIn: 'root' })
 export class CostService {
-  constructor(private readonly data: MockDataService) {}
+  constructor(private readonly data: DataStore) {}
 
   readonly unitCost = computed(() => {
     const last = new Map<string, { date: string; price: number }>();

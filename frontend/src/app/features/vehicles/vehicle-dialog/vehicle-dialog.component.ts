@@ -1,6 +1,6 @@
 import { Component, ElementRef, computed, output, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MockDataService } from '../../../core/services/mock-data.service';
+import { DataStore } from '../../../core/services/data-store.service';
 import { Vehicle, VehicleStatus, VehicleType } from '../../../core/models/domain.models';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { PHONE_PATTERN } from '../../customers/customer.rules';
@@ -42,7 +42,7 @@ export class VehicleDialogComponent {
   readonly attempted = signal(false);
 
   constructor(
-    readonly data: MockDataService,
+    readonly data: DataStore,
     private readonly svc: VehicleService,
   ) {}
 

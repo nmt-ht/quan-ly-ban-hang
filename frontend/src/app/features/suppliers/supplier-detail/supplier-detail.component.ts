@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import { MockDataService } from '../../../core/services/mock-data.service';
+import { DataStore } from '../../../core/services/data-store.service';
 import { DebtService } from '../../../core/services/debt.service';
 import { Product, PurchaseOrder } from '../../../core/models/domain.models';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
@@ -22,8 +22,9 @@ import { creditLabel } from '../supplier.rules';
 import { SupplierService } from '../supplier.service';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { errorText } from '../../../core/api/api.service';
+import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
 
-export type SupplierTab = 'chung' | 'hang' | 'don-nhap' | 'cong-no';
+export type SupplierTab = 'chung' | 'hang' | 'don-nhap' | 'cong-no' | 'nhat-ky';
 
 interface CatalogRow {
   productId: string;
@@ -36,14 +37,14 @@ interface CatalogRow {
 @Component({
   selector: 'app-supplier-detail',
   standalone: true,
-  imports: [NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, ProductPickerComponent, MoneyInputDirective],
+  imports: [NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, ProductPickerComponent, MoneyInputDirective, AuditHistoryComponent],
   templateUrl: './supplier-detail.component.html',
   styleUrl: './supplier-detail.component.scss',
 })
 export class SupplierDetailComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  readonly data = inject(MockDataService);
+  readonly data = inject(DataStore);
   private readonly debt = inject(DebtService);
   private readonly svc = inject(SupplierService);
 
@@ -89,6 +90,7 @@ export class SupplierDetailComponent {
     { id: 'hang' as SupplierTab, label: 'Danh mục hàng', count: this.catalog().length },
     { id: 'don-nhap' as SupplierTab, label: 'Đơn nhập', count: this.orders().length },
     { id: 'cong-no' as SupplierTab, label: 'Công nợ' },
+    { id: 'nhat-ky' as SupplierTab, label: 'Nhật ký' },
   ]);
 
   readonly tab = computed<SupplierTab>(() => {

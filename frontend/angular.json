@@ -2,7 +2,8 @@
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
   "cli": {
-    "packageManager": "npm"
+    "packageManager": "npm",
+    "analytics": "3cb2bc78-aa33-4f12-a6a6-1a34f2fe3bfc"
   },
   "newProjectRoot": "projects",
   "projects": {
@@ -66,7 +67,10 @@
         "serve": {
           "builder": "@angular/build:dev-server",
           "options": {
-            "proxyConfig": "proxy.conf.json"
+            "proxyConfig": "proxy.conf.json",
+            "prebundle": {
+              "exclude": ["exceljs"]
+            }
           },
           "configurations": {
             "production": {

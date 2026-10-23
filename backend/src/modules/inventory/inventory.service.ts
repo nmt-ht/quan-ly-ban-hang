@@ -3,6 +3,9 @@ import { Prisma, WarehouseVoucherType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { SequenceService } from '../../prisma/sequence.service.js';
 import { fromDay, toDay } from '../../common/text.js';
+import { AuditService } from '../../audit/audit.service.js';
+
+const TYPE_LABEL: Record<WarehouseVoucherType, string> = { NHAP: 'phiếu nhập kho', XUAT: 'phiếu xuất kho', CHUYEN: 'phiếu chuyển kho', KIEM_KE: 'phiếu kiểm kê' };
 
 type Tx = Prisma.TransactionClient;
 
@@ -62,7 +65,15 @@ export class InventoryService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly sequences: SequenceService,
+    private readonly audit: AuditService,
   ) {}
+
+  /** Mã of vouchers just posted, for the source document's Nhật ký line. */
+  async codes(tx: Tx, ids: string[]): Promise<string[]> {
+    if (!ids.length) return [];
+    const rows = await tx.warehouseVoucher.findMany({ where: { id: { in: ids } }, select: { code: true }, orderBy: { code: 'asc' } });
+    return rows.map((r) => r.code);
+  }
 
   async stockLevels() {
     const rows = await this.prisma.stockLevel.findMany({ include: { product: { select: { minStock: true } } } });
@@ -90,7 +101,7 @@ export class InventoryService {
     const { type, warehouseId } = input;
     const target = type === 'CHUYEN' ? input.targetWarehouseId : undefined;
     if (type === 'CHUYEN' && (!target || target === warehouseId)) throw new BadRequestException('Kho nhận phải khác kho xuất');
-    const warehouses = await tx.warehouse.findMany({ where: { id: { in: [warehouseId, ...(target ? [target] : [])] } }, select: { id: true } });
+    const warehouses = await tx.warehouse.findMany({ where: { id: { in: [warehouseId, ...(target ? [target] : [])] } }, select: { id: true, name: true } });
     if (warehouses.length !== (target ? 2 : 1)) throw new BadRequestException('Kho không tồn tại');
 
     const lines = input.lines.filter((l) => (type === 'KIEM_KE' ? l.quantity >= 0 : l.quantity > 0));
@@ -131,6 +142,11 @@ export class InventoryService {
       },
     });
     await this.applyStock(tx, type, warehouseId, target, rows, 1);
+    const where = warehouses.find((w) => w.id === warehouseId)?.name + (target ? ` → ${warehouses.find((w) => w.id === target)?.name}` : '');
+    await this.audit.log(tx, {
+      action: 'warehouse_voucher.create', entityType: 'WarehouseVoucher', entityId: v.id, entityCode: v.code,
+      summary: `Lập ${TYPE_LABEL[type]} ${v.code} · ${where} · ${rows.length} dòng${input.reason ? ` · ${input.reason}` : ''}`,
+    });
     return v.id;
   }
 
@@ -146,6 +162,10 @@ export class InventoryService {
       const lines = v.lines.map((l) => ({ productId: l.productId, delta: l.delta.toNumber() }));
       await this.applyStock(tx, v.type, v.warehouseId, v.targetWarehouseId ?? undefined, lines, -1);
       await tx.warehouseVoucher.update({ where: { id }, data: { isCancelled: true, cancelReason: reason ?? null, cancelledAt: new Date() } });
+      await this.audit.log(tx, {
+        action: 'warehouse_voucher.cancel', entityType: 'WarehouseVoucher', entityId: id, entityCode: v.code,
+        summary: `Huỷ ${TYPE_LABEL[v.type]} ${v.code}, tồn kho trả về như trước${reason ? `: ${reason}` : ''}`,
+      });
       return this.voucher(id, tx);
     });
   }

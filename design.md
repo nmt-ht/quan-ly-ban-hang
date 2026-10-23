@@ -151,8 +151,8 @@ mix in a second icon library or emoji.
 - Defaults: Vật tư 250 · Thành phẩm 50 · Dịch vụ 330; Đang kinh doanh 150,
   Ngừng/Huỷ = Xám. Moss (accent) is never a tag colour by default.
 - New status sets: add a group to TAG_GROUPS, then use `tagClass` — no CSS.
-- Storage: localStorage for now; move to a company setting (backend) with the
-  `company.update` permission.
+- Storage: a company setting on the server (`GET/PUT /api/company/display-colors`,
+  `CompanyInfo.tagColors`); everyone reads it, changing needs `company.update`.
 
 ## Topbar
 - Right side = one account menu (`layout/account-menu`, WAI-ARIA menu button):
