@@ -29,6 +29,52 @@ export interface SalesOrderDraft {
   lines: SalesOrderLine[];
 }
 
+/** Bộ lọc của danh sách đơn theo trang (Pha 1.1) — the server's SalesOrderPageQuery. */
+export interface SalesOrderPageQuery {
+  page?: number;
+  pageSize?: number;
+  q?: string;
+  status?: string[];
+  tags?: string[];
+  reps?: string[];
+  createdBy?: string[];
+  customerId?: string;
+  from?: string;
+  to?: string;
+  min?: number;
+  max?: number;
+  late?: boolean;
+  sort?: string;
+  dir?: 'asc' | 'desc';
+}
+
+export interface SalesOrderPage {
+  rows: SalesOrder[];
+  total: number;
+  page: number;
+  pageSize: number;
+  statusCounts: Partial<Record<string, number>>;
+  totals: { value: number; received: number; pending: number; late: number };
+}
+
+export interface CustomerOrderStats {
+  orderCount: number;
+  receivedOrders: number;
+  revenue: number;
+  lastPurchase: string | null;
+  openOrders: number;
+}
+
+/** "?a=1&b=x,y" from the set fields; arrays as comma lists. */
+export function queryString(q: object): string {
+  const parts: string[] = [];
+  for (const [k, v] of Object.entries(q)) {
+    if (v === undefined || v === null || v === '' || (Array.isArray(v) && !v.length) || v === false) continue;
+    parts.push(`${k}=${encodeURIComponent(Array.isArray(v) ? v.join(',') : String(v))}`);
+  }
+  return parts.length ? `?${parts.join('&')}` : '';
+}
+
 export interface DeliveryItem {
   lineIndex: number;
   quantity: number; // theo ĐVT của dòng
@@ -72,6 +118,49 @@ export class SalesOrderService {
 
   lsxOf(orderId: string): ProductionOrder[] {
     return this.data.productionOrders().filter((x) => x.sourceOrderId === orderId);
+  }
+
+  // ---------- Pha 1.1: đơn không nạp sẵn ----------
+
+  /** One page of the list, filtered, sorted and totalled on the server. */
+  page(q: SalesOrderPageQuery): Promise<SalesOrderPage> {
+    return this.api.get<SalesOrderPage>(`/sales-orders/page${queryString(q)}`);
+  }
+
+  /**
+   * An order the app did not load at sign-in (older than 90 days and closed): read it and keep it, so its screens and
+   * links work. Resolves undefined when it does not exist or this user may not see it.
+   */
+  async ensure(id: string): Promise<SalesOrder | undefined> {
+    const have = this.data.salesOrders().find((x) => x.id === id);
+    if (have) return have;
+    try {
+      return this.keepOrder(await this.api.get<SalesOrder>(`/sales-orders/${id}`));
+    } catch {
+      return undefined;
+    }
+  }
+
+  private readonly asked = new Set<string>();
+
+  /** Several at once (the orders of chuyến, lệnh, phiếu thu…), by id or by mã — one request for those missing. */
+  async ensureMany(ids: string[], codes: string[] = []): Promise<void> {
+    const have = this.data.salesOrders();
+    // Each id / mã is asked once: one the server does not return (gone, or another seller's) is not asked again.
+    const missingIds = [...new Set(ids.filter(Boolean))].filter((id) => !have.some((o) => o.id === id) && !this.asked.has(id));
+    const missingCodes = [...new Set(codes.filter(Boolean))].filter((c) => !have.some((o) => o.code === c) && !this.asked.has(c));
+    if (!missingIds.length && !missingCodes.length) return;
+    for (const k of [...missingIds, ...missingCodes]) this.asked.add(k);
+    try {
+      const rows = await this.api.get<SalesOrder[]>(`/sales-orders${queryString({ ids: missingIds, codes: missingCodes })}`);
+      if (rows.length) this.data.salesOrders.update((list) => rows.reduce((acc, o) => upsertById(acc, o, true), list));
+    } catch {
+      /* the screen shows what it has */
+    }
+  }
+
+  customerStats(): Promise<Record<string, CustomerOrderStats>> {
+    return this.api.get<Record<string, CustomerOrderStats>>('/sales-orders/customer-stats');
   }
 
   find(id: string): SalesOrder {

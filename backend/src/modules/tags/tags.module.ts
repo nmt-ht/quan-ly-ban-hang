@@ -68,6 +68,17 @@ export class TagsService {
     });
   }
 
+  async usage(): Promise<Record<string, { orders: number; customers: number }>> {
+    const [orders, customers] = await Promise.all([
+      this.prisma.salesOrderTag.groupBy({ by: ['tagId'], _count: { _all: true } }),
+      this.prisma.customerTag.groupBy({ by: ['tagId'], _count: { _all: true } }),
+    ]);
+    const out: Record<string, { orders: number; customers: number }> = {};
+    for (const o of orders) (out[o.tagId] ??= { orders: 0, customers: 0 }).orders = o._count._all;
+    for (const c of customers) (out[c.tagId] ??= { orders: 0, customers: 0 }).customers = c._count._all;
+    return out;
+  }
+
   /** Only a tag nobody uses can go; one in use is switched off (Ngừng dùng) to keep history. */
   async remove(id: string): Promise<void> {
     const [orders, customers] = await Promise.all([
@@ -90,6 +101,12 @@ export class TagsController {
   @Get()
   findAll() {
     return this.tags.findAll();
+  }
+
+  /** Số đơn hàng / khách hàng gắn mỗi thẻ, trên toàn bộ dữ liệu (the app no longer holds every order — Pha 1.1). */
+  @Get('usage')
+  usage() {
+    return this.tags.usage();
   }
 
   @RequirePermissions('tag.manage')

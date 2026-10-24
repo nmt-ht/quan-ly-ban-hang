@@ -2,6 +2,7 @@ import { Component, computed, effect, inject, signal, untracked } from '@angular
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DataStore } from '../../core/services/data-store.service';
+import { ApiService, errorText } from '../../core/api/api.service';
 import { SalesOrder, SalesOrderStatus } from '../../core/models/domain.models';
 import { DataTableColumn, DataTableComponent } from '../../shared/data-table/data-table.component';
 import { FilterMultiSelectComponent, FilterOption } from '../../shared/filter-multi-select/filter-multi-select.component';
@@ -9,16 +10,16 @@ import { PaginationComponent } from '../../shared/pagination/pagination.componen
 import { PeriodFilterComponent, PeriodValue, NO_PERIOD } from '../../shared/period-filter/period-filter.component';
 import { NumberRange, RangeFilterComponent } from '../../shared/range-filter/range-filter.component';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
-import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
-import { ColumnSort, sortByColumn } from '../../shared/column-sort';
-import { foldVi, formatVnd } from '../../shared/format.util';
-import { PERIOD_PRESETS, formatDay, inRange, isoDay, rangeLabel } from '../../shared/period';
+import { ColumnSort } from '../../shared/column-sort';
+import { formatVnd } from '../../shared/format.util';
+import { PERIOD_PRESETS, formatDay, isoDay, rangeLabel } from '../../shared/period';
 import { SALES_ORDER_STATUS_LABEL, salesOrderStatusClass } from '../../shared/status-labels';
 import { tagClass } from '../../shared/tag-class';
 import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { tagStyle } from '../../shared/tag-colors';
 import { canEdit, deliveredPercent, lineRemaining } from './sales-order.rules';
 import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
+import { SalesOrderPage, SalesOrderPageQuery, SalesOrderService } from './sales-order.service';
 
 interface ActiveChip {
   label: string;
@@ -34,9 +35,27 @@ const SORTS: { value: SalesSort; label: string }[] = [
   { value: 'code', label: 'Mã tăng dần' },
 ];
 
+/** The "Sắp xếp" choices as the server's sort key + direction. */
+const SORT_QUERY: Record<SalesSort, Pick<SalesOrderPageQuery, 'sort' | 'dir'>> = {
+  newest: { sort: 'orderDate', dir: 'desc' },
+  oldest: { sort: 'orderDate', dir: 'asc' },
+  value: { sort: 'totalOrder', dir: 'desc' },
+  code: { sort: 'code', dir: 'asc' },
+};
+
+/** Column header → server sort key. */
+const COLUMN_SORT: Record<string, string> = {
+  code: 'code', orderDate: 'orderDate', customerId: 'customer', lines: 'lines', totalOrder: 'totalOrder',
+  receivedValue: 'receivedValue', neededByDate: 'neededByDate', status: 'status', salesRep: 'salesRep',
+};
+
 // Links from Trang chủ / Lệnh sản xuất use production's English status keys.
 const STATUS_ALIASES: Record<string, SalesOrderStatus> = { PENDING: 'CHO_SAN_XUAT', SHIPPING: 'DANG_GIAO' };
 
+const EMPTY_PAGE: SalesOrderPage = { rows: [], total: 0, page: 1, pageSize: 20, statusCounts: {}, totals: { value: 0, received: 0, pending: 0, late: 0 } };
+
+// Đơn hàng bán (Pha 1.1): every order, page by page from the server — search, filters, sort and the totals cover all
+// orders, not only those the app loaded at sign-in.
 @Component({
   selector: 'app-sales-orders',
   standalone: true,
@@ -48,6 +67,8 @@ const STATUS_ALIASES: Record<string, SalesOrderStatus> = { PENDING: 'CHO_SAN_XUA
 })
 export class SalesOrdersComponent {
   readonly data = inject(DataStore);
+  private readonly orders = inject(SalesOrderService);
+  private readonly api = inject(ApiService);
 
   readonly search = signal('');
   readonly statuses = signal<string[]>([]);
@@ -60,15 +81,22 @@ export class SalesOrdersComponent {
   readonly sort = signal<SalesSort>('code'); // default: Mã tăng dần
   // Clicking a column header overrides the "Sắp xếp" select; picking from the select clears it.
   readonly headerSort = signal<ColumnSort | null>(null);
-  readonly columnFilters = signal<ColumnFilters>({});
   readonly page = signal(1);
   readonly pageSize = signal(20);
   readonly exporting = signal(false);
   readonly sorts = SORTS;
   readonly today = isoDay(new Date());
 
+  readonly result = signal<SalesOrderPage>(EMPTY_PAGE);
+  readonly loading = signal(false);
+  readonly error = signal('');
+  private readonly tagUsage = signal<Record<string, { orders: number }>>({});
+  /** The search box waits for typing to pause before asking the server. */
+  private readonly searchQuery = signal('');
+  private searchTimer: ReturnType<typeof setTimeout> | undefined;
+  private requestSeq = 0;
+
   private readonly customerById = computed(() => new Map(this.data.customers().map((c) => [c.id, c])));
-  private readonly productById = computed(() => new Map(this.data.products().map((p) => [p.id, p])));
   private readonly userByEmail = computed(() => new Map(this.data.users().map((u) => [u.email, u.name])));
   private readonly tagById = computed(() => new Map(this.data.tags().map((t) => [t.id, t.name])));
 
@@ -77,11 +105,9 @@ export class SalesOrdersComponent {
     return this.data.users().map((u) => ({ value: u.email, label: `${u.name} — ${roleName.get(u.roleId) ?? ''}` }));
   });
 
-  readonly tagOptions = computed<FilterOption[]>(() => {
-    const counts = new Map<string, number>();
-    for (const o of this.data.salesOrders()) for (const t of o.tagIds) counts.set(t, (counts.get(t) ?? 0) + 1);
-    return this.data.tags().map((t) => ({ value: t.id, label: t.name, count: counts.get(t.id) ?? 0 }));
-  });
+  readonly tagOptions = computed<FilterOption[]>(() =>
+    this.data.tags().map((t) => ({ value: t.id, label: t.name, count: this.tagUsage()[t.id]?.orders ?? 0 })),
+  );
 
   /** Chưa giao xong mà đã quá ngày cần giao. */
   isLate(o: SalesOrder): boolean {
@@ -89,61 +115,28 @@ export class SalesOrdersComponent {
       o.status !== 'HUY' && o.status !== 'HOAN_THANH' && o.status !== 'TRA_TOAN_BO' && o.lines.some((l) => lineRemaining(l) > 0);
   }
 
-  private readonly matchedExceptStatus = computed(() => {
-    const q = foldVi(this.search().trim());
-    const range = this.period().range;
-    const tags = this.tags();
-    const reps = this.reps();
-    const by = this.createdBy();
-    const { min, max } = this.value();
-    const late = this.lateOnly();
-    return this.data.salesOrders().filter((o) => {
-      if (q && !this.searchText(o).includes(q)) return false;
-      if (!inRange(o.orderDate, range)) return false;
-      if (tags.length && !o.tagIds.some((t) => tags.includes(t))) return false;
-      if (reps.length && !reps.includes(o.salesRep)) return false;
-      if (by.length && !by.includes(o.createdBy)) return false;
-      if (min !== null && o.totalOrder < min) return false;
-      if (max !== null && o.totalOrder > max) return false;
-      if (late && !this.isLate(o)) return false;
-      return true;
-    });
-  });
+  readonly statusOptions = computed<FilterOption[]>(() =>
+    (Object.keys(SALES_ORDER_STATUS_LABEL) as SalesOrderStatus[]).map((s) => ({
+      value: s, label: SALES_ORDER_STATUS_LABEL[s], count: this.result().statusCounts[s] ?? 0, dotClass: tagClass('sales-order', s),
+    })),
+  );
 
-  readonly statusOptions = computed<FilterOption[]>(() => {
-    const counts = new Map<string, number>();
-    for (const o of this.matchedExceptStatus()) counts.set(o.status, (counts.get(o.status) ?? 0) + 1);
-    return (Object.keys(SALES_ORDER_STATUS_LABEL) as SalesOrderStatus[]).map((s) => ({
-      value: s, label: SALES_ORDER_STATUS_LABEL[s], count: counts.get(s) ?? 0, dotClass: tagClass('sales-order', s),
-    }));
-  });
+  readonly rows = computed(() => this.result().rows);
+  readonly total = computed(() => this.result().total);
+  readonly totals = computed(() => this.result().totals);
 
-  readonly orders = computed(() => {
-    const st = this.statuses();
-    const rows = this.matchedExceptStatus().filter((o) => !st.length || st.includes(o.status));
-    const s = this.sort();
+  /** Everything the server needs for the current view (all pages). */
+  private readonly filters = computed<SalesOrderPageQuery>(() => {
     const hs = this.headerSort();
-    const sorted = hs ? sortByColumn(rows, this.columns, hs) : [...rows].sort((a, b) =>
-      s === 'oldest' ? a.orderDate.localeCompare(b.orderDate) || a.code.localeCompare(b.code)
-        : s === 'value' ? b.totalOrder - a.totalOrder
-          : s === 'code' ? a.code.localeCompare(b.code)
-            : b.orderDate.localeCompare(a.orderDate) || b.code.localeCompare(a.code),
-    );
-    return applyColumnFilters(sorted, this.columns, this.columnFilters());
-  });
-
-  readonly pagedOrders = computed(() => {
-    const start = (this.page() - 1) * this.pageSize();
-    return this.orders().slice(start, start + this.pageSize());
-  });
-
-  readonly totals = computed(() => {
-    const rows = this.orders().filter((o) => o.status !== 'HUY');
-    const value = rows.reduce((s, o) => s + o.totalOrder, 0);
-    const received = rows.reduce((s, o) => s + o.receivedValue, 0);
-    // Phần đã kết thúc (khách không lấy) không còn là "chờ giao".
-    const pending = rows.filter((o) => !o.closedDate).reduce((s, o) => s + Math.max(0, o.totalOrder - o.receivedValue), 0);
-    return { value, received, pending, late: this.orders().filter((o) => this.isLate(o)).length };
+    const { min, max } = this.value();
+    const range = this.period().range;
+    return {
+      q: this.searchQuery().trim() || undefined,
+      status: this.statuses(), tags: this.tags(), reps: this.reps(), createdBy: this.createdBy(),
+      from: range.from || undefined, to: range.to || undefined,
+      min: min ?? undefined, max: max ?? undefined, late: this.lateOnly() || undefined,
+      ...(hs ? { sort: COLUMN_SORT[hs.key] ?? 'code', dir: hs.dir } : SORT_QUERY[this.sort()]),
+    };
   });
 
   readonly chips = computed<ActiveChip[]>(() => {
@@ -167,30 +160,25 @@ export class SalesOrdersComponent {
       chips.push({ label: `Giá trị: ${t}`, clear: () => this.value.set({ min: null, max: null }) });
     }
     if (this.lateOnly()) chips.push({ label: 'Trễ hẹn giao', clear: () => this.lateOnly.set(false) });
-    for (const col of this.columns) {
-      const v = (this.columnFilters()[col.key] ?? '').trim();
-      if (v) chips.push({ label: `${col.label}: ${v}`, clear: () => this.columnFilters.update((f) => ({ ...f, [col.key]: '' })) });
-    }
     return chips;
   });
 
   readonly columns: DataTableColumn<SalesOrder>[] = [
     { key: 'code', label: 'Mã đơn', sortable: true, copy: true, link: (r) => ['/don-hang', r.id] },
     { key: 'orderDate', label: 'Ngày đặt', sortable: true, format: (r) => formatDay(r.orderDate), mono: true },
-    { key: 'customerId', label: 'Khách hàng', sortable: true, sortValue: (r) => this.customerName(r), format: (r) => this.customerName(r) },
-    { key: 'lines', label: 'Mặt hàng', sortable: true, align: 'right', format: (r) => String(r.lines.length), filterValue: (r) => r.lines.length },
-    { key: 'totalOrder', label: 'Giá trị đơn', sortable: true, align: 'right', format: (r) => formatVnd(r.totalOrder), filterValue: (r) => r.totalOrder },
+    { key: 'customerId', label: 'Khách hàng', sortable: true, format: (r) => this.customerName(r) },
+    { key: 'lines', label: 'Mặt hàng', sortable: true, align: 'right', format: (r) => String(r.lines.length) },
+    { key: 'totalOrder', label: 'Giá trị đơn', sortable: true, align: 'right', format: (r) => formatVnd(r.totalOrder) },
     {
       key: 'receivedValue', label: 'Khách đã nhận', sortable: true, align: 'right',
       format: (r) => (r.receivedValue ? `${formatVnd(r.receivedValue)} · ${deliveredPercent(r)}%` : '—'),
-      filterValue: (r) => r.receivedValue,
     },
     {
-      key: 'neededByDate', label: 'Cần giao', sortable: true, sortValue: (r) => r.neededByDate,
+      key: 'neededByDate', label: 'Cần giao', sortable: true,
       format: (r) => (r.neededByDate ? formatDay(r.neededByDate) + (this.isLate(r) ? ' · trễ' : '') : '—'), mono: true,
     },
-    { key: 'status', label: 'Trạng thái', sortable: true, sortValue: (r) => SALES_ORDER_STATUS_LABEL[r.status], format: (r) => SALES_ORDER_STATUS_LABEL[r.status], badge: (r) => salesOrderStatusClass(r.status) },
-    { key: 'salesRep', label: 'Nhân viên bán', sortable: true, sortValue: (r) => this.userName(r.salesRep), format: (r) => this.userName(r.salesRep) },
+    { key: 'status', label: 'Trạng thái', sortable: true, format: (r) => SALES_ORDER_STATUS_LABEL[r.status], badge: (r) => salesOrderStatusClass(r.status) },
+    { key: 'salesRep', label: 'Nhân viên bán', sortable: true, format: (r) => this.userName(r.salesRep) },
     {
       key: 'tagIds', label: 'Thẻ', format: (r) => r.tagIds.map((t) => this.tagById().get(t) ?? t).join(', ') || '—',
       chips: (r) => r.tagIds.flatMap((id) => {
@@ -211,10 +199,39 @@ export class SalesOrdersComponent {
       const s = STATUS_ALIASES[q] ?? (q in SALES_ORDER_STATUS_LABEL ? (q as SalesOrderStatus) : null);
       if (s) this.statuses.set([s]);
     }
+    // New filters start again from page 1.
     effect(() => {
-      this.orders();
+      this.filters();
       untracked(() => this.page.set(1));
     });
+    // Ask the server whenever the filters, the page or the orders in memory change (a save elsewhere).
+    effect(() => {
+      const query = { ...this.filters(), page: this.page(), pageSize: this.pageSize() };
+      this.data.salesOrders();
+      untracked(() => void this.load(query));
+    });
+    this.api.get<Record<string, { orders: number }>>('/tags/usage').then((u) => this.tagUsage.set(u), () => undefined);
+  }
+
+  setSearch(text: string): void {
+    this.search.set(text);
+    clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => this.searchQuery.set(text), 300);
+  }
+
+  private async load(query: SalesOrderPageQuery): Promise<void> {
+    const seq = ++this.requestSeq;
+    this.loading.set(true);
+    try {
+      const res = await this.orders.page(query);
+      if (seq !== this.requestSeq) return; // a newer request answered first
+      this.result.set(res);
+      this.error.set('');
+    } catch (e) {
+      if (seq === this.requestSeq) this.error.set(errorText(e));
+    } finally {
+      if (seq === this.requestSeq) this.loading.set(false);
+    }
   }
 
   userName(email: string): string {
@@ -238,12 +255,13 @@ export class SalesOrdersComponent {
     this.createdBy.set([]);
     this.value.set({ min: null, max: null });
     this.lateOnly.set(false);
-    this.columnFilters.set({});
   }
 
+  /** Every matching order (not only this page), in the list's order. */
   async exportExcel(): Promise<void> {
     this.exporting.set(true);
     try {
+      const all = (await this.orders.page({ ...this.filters(), page: 1, pageSize: 5000 })).rows;
       await downloadWorkbook(exportFileName('Đơn hàng bán'), [{
         name: 'Đơn hàng bán',
         columns: [
@@ -265,7 +283,7 @@ export class SalesOrdersComponent {
           { header: 'Thẻ', width: 20 },
           { header: 'Diễn giải', width: 30 },
         ],
-        rows: this.orders().map((o) => {
+        rows: all.map((o) => {
           const c = this.customerById().get(o.customerId);
           return [
             o.code, formatDay(o.orderDate), c?.code ?? '', this.customerName(o), o.recipientName ?? '', o.lines.length,
@@ -275,18 +293,10 @@ export class SalesOrdersComponent {
           ];
         }),
       }]);
+    } catch (e) {
+      this.error.set(errorText(e));
     } finally {
       this.exporting.set(false);
     }
-  }
-
-  private searchText(o: SalesOrder): string {
-    const c = this.customerById().get(o.customerId);
-    const items = o.lines.map((l) => {
-      const p = this.productById().get(l.productId);
-      return `${p?.code ?? ''} ${p?.name ?? ''} ${p?.crossRefCode ?? ''}`;
-    });
-    return foldVi([o.code, c?.code ?? '', c?.name ?? '', c?.companyName ?? '', c?.phone ?? '', o.recipientName ?? '',
-      o.recipientPhone ?? '', o.description ?? '', o.source ?? '', ...items].join(' '));
   }
 }

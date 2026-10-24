@@ -17,6 +17,7 @@ import { PrintDocumentComponent } from '../../../shared/print/print-document.com
 import { PrintMenuComponent } from '../../../shared/print/print-menu.component';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
+import { SalesOrderService } from '../../sales-orders/sales-order.service';
 
 // One phiếu thu / phiếu chi: xem, in (mẫu phiếu thu / phiếu chi), huỷ. Sửa = huỷ rồi lập lại (giữ dấu vết).
 @Component({
@@ -28,6 +29,12 @@ import { AuditHistoryComponent } from '../../../shared/audit/audit-history.compo
 })
 export class CashVoucherViewComponent {
   readonly data = inject(DataStore);
+  private readonly salesOrders = inject(SalesOrderService);
+  // Đơn cũ hơn 90 ngày không nạp sẵn (Pha 1.1): đọc các đơn màn hình này cần.
+  private readonly loadOrders = effect(() => {
+    const codes = (this.data.cashVouchers().find((v) => v.id === this.id())?.allocations ?? []).map((a) => a.ref);
+    if (codes.length) untracked(() => void this.salesOrders.ensureMany([], codes));
+  });
   private readonly debt = inject(DebtService);
   private readonly svc = inject(CashVoucherService);
 

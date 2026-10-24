@@ -1,4 +1,4 @@
-import { Injectable, computed, inject } from '@angular/core';
+import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { DataStore } from '../../../core/services/data-store.service';
 import { Tag } from '../../../core/models/domain.models';
 import { foldVi } from '../../../shared/format.util';
@@ -11,13 +11,21 @@ export type TagDraft = Omit<Tag, 'id' | 'orderCount' | 'customerCount'>;
 export class TagService {
   private readonly api = inject(ApiService);
 
-  constructor(private readonly data: DataStore) {}
+  /** Số đơn gắn mỗi thẻ trên toàn bộ dữ liệu, from the server (the app holds only recent orders — Pha 1.1). */
+  private readonly orderUsage = signal<Record<string, { orders: number }>>({});
+
+  constructor(private readonly data: DataStore) {
+    effect(() => {
+      this.data.salesOrders(); // read again after an order is saved
+      untracked(() => this.api.get<Record<string, { orders: number }>>('/tags/usage').then((u) => this.orderUsage.set(u), () => undefined));
+    });
+  }
 
   /** Đơn hàng / khách hàng gắn mỗi thẻ — derived, never stored on the tag. */
   readonly usage = computed(() => {
     const m = new Map<string, { orders: number; customers: number }>();
     const get = (id: string) => m.get(id) ?? (m.set(id, { orders: 0, customers: 0 }), m.get(id)!);
-    for (const o of this.data.salesOrders()) for (const t of o.tagIds) get(t).orders++;
+    for (const [id, u] of Object.entries(this.orderUsage())) get(id).orders = u.orders;
     for (const c of this.data.customers()) for (const t of c.tagIds) get(t).customers++;
     return m;
   });

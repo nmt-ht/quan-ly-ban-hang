@@ -15,6 +15,7 @@ import {
   ListPrice, LsxState, PriceSource, STATUS_LABEL, SaleLine, canCancel, canClose, canDeliver, canEdit, deriveStatus, lineDiscount, lineRemaining,
   linesNeedingLsx, orderTotals, priceFor, receivedValueOf, round4,
 } from './sales-order.rules.js';
+import { SalesOrderPageQuery, orderWhere, pageOf } from './sales-order-page.js';
 
 type Tx = Prisma.TransactionClient;
 
@@ -185,9 +186,59 @@ export class SalesService {
     return { OR: [{ salesRepId: user.id }, { createdById: user.id }] };
   }
 
-  async orders(user: AuthUser) {
-    const rows = await this.prisma.salesOrder.findMany({ where: this.visibleTo(user), include: ORDER_INCLUDE, orderBy: [{ orderDate: 'desc' }, { code: 'desc' }] });
+  /**
+   * The orders the app keeps in memory. With `recentDays` (Pha 1.1, what the app loads at sign-in): every order still
+   * open plus those ordered in the last N days — older closed ones are read page by page (page()) or by id.
+   */
+  async orders(user: AuthUser, recentDays?: number, pick?: { ids?: string[]; codes?: string[] }) {
+    const since = recentDays ? new Date(Date.now() - recentDays * 86_400_000) : null;
+    // `pick`: just these orders (by id or mã), for screens that show an order the app did not load.
+    const window: Prisma.SalesOrderWhereInput = pick?.ids?.length || pick?.codes?.length
+      ? { OR: [...(pick.ids?.length ? [{ id: { in: pick.ids } }] : []), ...(pick.codes?.length ? [{ code: { in: pick.codes } }] : [])] }
+      : since
+      ? { OR: [{ status: { notIn: ['HOAN_THANH', 'HUY', 'TRA_TOAN_BO'] }, closedDate: null }, { orderDate: { gte: fromDay(since.toISOString().slice(0, 10))! } }] }
+      : {};
+    const rows = await this.prisma.salesOrder.findMany({
+      where: { AND: [this.visibleTo(user), window] }, include: ORDER_INCLUDE, orderBy: [{ orderDate: 'desc' }, { code: 'desc' }],
+    });
     return rows.map(orderToApi);
+  }
+
+  /** Danh sách đơn hàng bán theo trang (Pha 1.1), see sales-order-page.ts. */
+  async page(user: AuthUser, q: SalesOrderPageQuery) {
+    const [rows, customers, products, users] = await Promise.all([
+      this.prisma.salesOrder.findMany({ where: { AND: [this.visibleTo(user), orderWhere(q)] }, include: ORDER_INCLUDE }),
+      this.prisma.customer.findMany({ select: { id: true, code: true, name: true, companyName: true, phone: true } }),
+      this.prisma.product.findMany({ select: { id: true, code: true, name: true, crossRefCode: true } }),
+      this.prisma.user.findMany({ select: { email: true, name: true } }),
+    ]);
+    return pageOf(rows.map(orderToApi), q, {
+      customers: new Map(customers.map((c) => [c.id, c])),
+      products: new Map(products.map((p) => [p.id, p])),
+      users: new Map(users.map((u) => [u.email, u.name])),
+    }, new Date().toISOString().slice(0, 10));
+  }
+
+  /**
+   * Đơn hàng and doanh số per khách over their whole history (Pha 1.1: the app no longer holds every order). Counts only
+   * the orders this user may see, as the screens did.
+   */
+  async customerStats(user: AuthUser) {
+    const rows = await this.prisma.salesOrder.findMany({ where: this.visibleTo(user), include: ORDER_INCLUDE });
+    const out: Record<string, { orderCount: number; receivedOrders: number; revenue: number; lastPurchase: string | null; openOrders: number }> = {};
+    for (const o of rows.map(orderToApi)) {
+      const s = (out[o.customerId] ??= { orderCount: 0, receivedOrders: 0, revenue: 0, lastPurchase: null, openOrders: 0 });
+      s.orderCount++;
+      if (o.status === 'HUY') continue;
+      if (o.receivedValue > 0) {
+        s.receivedOrders++;
+        s.revenue += o.receivedValue;
+        const d = o.deliveredDate ?? o.orderDate;
+        if (!s.lastPurchase || d > s.lastPurchase) s.lastPurchase = d;
+      }
+      if (!(o.status === 'HOAN_THANH' || o.status === 'TRA_TOAN_BO' || !!o.closedDate)) s.openOrders++;
+    }
+    return out;
   }
 
   /** Every order, whoever sells it — for báo cáo and tổng quan, which only show totals. */

@@ -1,7 +1,7 @@
 <div class="page-header">
   <div>
     <h1>Đơn hàng bán</h1>
-    <p class="subtitle">{{ orders().length }} đơn</p>
+    <p class="subtitle">{{ total() }} đơn@if (loading()) { · đang tải… }</p>
   </div>
   <div class="toolbar">
     <button type="button" class="btn" [disabled]="exporting()" (click)="exportExcel()">
@@ -18,7 +18,7 @@
     placeholder="Tìm mã đơn, khách, người nhận, mặt hàng…"
     aria-label="Tìm đơn hàng"
     [value]="search()"
-    (input)="search.set($any($event.target).value)"
+    (input)="setSearch($any($event.target).value)"
   />
   <app-filter-multi-select label="Trạng thái" [options]="statusOptions()" [searchable]="true" [(selected)]="statuses" />
   <app-filter-multi-select label="Thẻ" [options]="tagOptions()" [(selected)]="tags" />
@@ -48,7 +48,9 @@
   </div>
 }
 
-@if (orders().length) {
+@if (error()) { <p class="form-note text-danger" role="alert">{{ error() }}</p> }
+
+@if (total()) {
   <dl class="list-totals">
     <div><dt>Tổng giá trị đơn</dt><dd class="num">{{ money(totals().value) }}</dd></div>
     <div><dt>Khách đã nhận</dt><dd class="num">{{ money(totals().received) }}</dd></div>
@@ -61,21 +63,17 @@
 
 <app-data-table
   [columns]="columns"
-  [rows]="pagedOrders()"
+  [rows]="rows()"
   [actions]="rowActions"
-  [filterable]="true"
-  [filters]="columnFilters()"
-  (filtersChange)="columnFilters.set($event)"
   [sortBy]="headerSort()?.key ?? null"
   [sortDir]="headerSort()?.dir ?? 'asc'"
   (sortChange)="headerSort.set($event)"
-  [optionRows]="data.salesOrders()"
   [emptyAction]="chips().length || search() ? clearCta : createCta"
   [emptyTitle]="chips().length || search() ? 'Không tìm thấy đơn nào' : 'Chưa có đơn hàng nào'"
   [emptyHint]="chips().length || search() ? 'Thử bỏ bớt bộ lọc hoặc mở rộng khoảng ngày.' : 'Lập đơn để bắt đầu bán hàng. Công nợ phải thu chỉ ghi khi khách thực nhận hàng.'"
 />
 
-<app-pagination [total]="orders().length" unit="đơn" [(page)]="page" [(pageSize)]="pageSize" />
+<app-pagination [total]="total()" unit="đơn" [(page)]="page" [(pageSize)]="pageSize" />
 
 <ng-template #createCta>
   <a class="btn btn-primary" routerLink="/don-hang/them-moi"><app-nav-icon name="plus" />Lập đơn hàng</a>

@@ -37,6 +37,11 @@ export class ProductionOrderDetailComponent {
   private readonly route = inject(ActivatedRoute);
   readonly data = inject(DataStore);
   private readonly orders = inject(SalesOrderService);
+  // Đơn cũ hơn 90 ngày không nạp sẵn (Pha 1.1): đọc các đơn màn hình này cần.
+  private readonly loadOrders = effect(() => {
+    const id = this.data.productionOrders().find((x) => x.id === this.id())?.sourceOrderId;
+    if (id) untracked(() => void this.orders.ensureMany([id]));
+  });
   private readonly stock = inject(WarehouseVoucherService);
   readonly cost = inject(CostService);
 

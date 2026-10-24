@@ -26,6 +26,7 @@ import { HasUnsavedChanges, isSaveShortcut, warnBeforeUnload } from '../../../co
 import { errorText } from '../../../core/api/api.service';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
+import { SalesOrderService } from '../../sales-orders/sales-order.service';
 
 type Mode = 'create' | 'edit' | 'view';
 type Tab = 'hang' | 'nhat-ky';
@@ -81,6 +82,12 @@ export class QuotationVoucherComponent implements HasUnsavedChanges {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   readonly data = inject(DataStore);
+  private readonly salesOrders = inject(SalesOrderService);
+  // Đơn cũ hơn 90 ngày không nạp sẵn (Pha 1.1): đọc các đơn màn hình này cần.
+  private readonly loadOrders = effect(() => {
+    const id = this.data.quotations().find((q) => q.id === this.id())?.orderId;
+    if (id) untracked(() => void this.salesOrders.ensureMany([id]));
+  });
   private readonly quotes = inject(QuotationService);
   private readonly auth = inject(AuthService);
 

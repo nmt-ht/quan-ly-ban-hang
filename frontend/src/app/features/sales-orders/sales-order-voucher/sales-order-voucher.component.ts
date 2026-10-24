@@ -116,7 +116,16 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
     const id = this.id();
     return id ? this.data.productionOrders().filter((x) => x.sourceOrderId === id).sort((a, b) => a.code.localeCompare(b.code)) : [];
   });
-  readonly notFound = computed(() => !!this.id() && !this.order());
+  /** An order older than what the app loads at sign-in is read on demand (Pha 1.1). */
+  readonly fetching = signal(false);
+  readonly notFound = computed(() => !!this.id() && !this.order() && !this.fetching());
+  private readonly hasOrder = computed(() => !!this.order());
+  private readonly fetchMissing = effect(() => {
+    const id = this.id();
+    if (!id || untracked(() => this.order())) return;
+    this.fetching.set(true);
+    void this.orders.ensure(id).finally(() => this.fetching.set(false));
+  });
   readonly mode = computed<Mode>(() => {
     if (!this.id()) return 'create';
     const o = this.order();
@@ -176,6 +185,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   constructor() {
     effect(() => {
       const id = this.id();
+      this.hasOrder(); // fill the form again once an order read on demand arrives
       untracked(() => {
         const o = this.order();
         const params = this.route.snapshot.queryParamMap;

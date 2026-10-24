@@ -22,6 +22,7 @@ import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { errorText } from '../../../core/api/api.service';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
+import { SalesOrderService } from '../../sales-orders/sales-order.service';
 
 export type CustomerTab = 'chung' | 'dia-chi' | 'don-hang' | 'cong-no' | 'nhat-ky';
 
@@ -38,6 +39,7 @@ export class CustomerDetailComponent {
   readonly data = inject(DataStore);
   private readonly debt = inject(DebtService);
   private readonly svc = inject(CustomerService);
+  private readonly salesOrders = inject(SalesOrderService);
 
   readonly id = toSignal(this.route.paramMap.pipe(map((p) => p.get('id') ?? '')), { initialValue: this.route.snapshot.paramMap.get('id') ?? '' });
   readonly customer = computed(() => this.data.customers().find((c) => c.id === this.id()));
@@ -129,11 +131,16 @@ export class CustomerDetailComponent {
   }
 
   // ---------- đơn hàng & lịch sử mua ----------
-  readonly orders = computed<SalesOrder[]>(() =>
-    this.data.salesOrders()
-      .filter((o) => o.customerId === this.id())
-      .sort((a, b) => a.code.localeCompare(b.code, 'vi', { numeric: true })), // Mã tăng dần, as every coded grid
-  );
+  /** Every order of the customer, older ones included — read from the server (Pha 1.1), Mã tăng dần as every coded grid. */
+  readonly orders = signal<SalesOrder[]>([]);
+  private readonly loadOrders = effect(() => {
+    const id = this.id();
+    this.data.salesOrders(); // read again after a save
+    untracked(() => {
+      if (!id) return;
+      this.salesOrders.page({ customerId: id, pageSize: 5000, sort: 'code', dir: 'asc' }).then((p) => this.orders.set(p.rows), () => undefined);
+    });
+  });
 
   readonly average = computed(() => (this.stats().receivedOrders ? Math.round(this.stats().revenue / this.stats().receivedOrders) : 0));
 

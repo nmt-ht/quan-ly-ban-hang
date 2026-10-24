@@ -1,7 +1,7 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Module, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
-import { Type } from 'class-transformer';
+import { BadRequestException, Body, Controller, Get, HttpCode, HttpStatus, Module, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { Type, plainToInstance } from 'class-transformer';
 import {
-  ArrayMinSize, IsArray, IsISO8601, IsInt, IsNumber, IsOptional, IsPositive, IsString, Matches, Max, Min, ValidateNested, IsBoolean } from 'class-validator';
+  validate, ArrayMinSize, IsArray, IsISO8601, IsInt, IsNumber, IsOptional, IsPositive, IsString, Matches, Max, Min, ValidateNested, IsBoolean } from 'class-validator';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard.js';
 import { PermissionsGuard } from '../../auth/permissions.guard.js';
 import { CurrentUser, RequireAnyPermission, RequirePermissions } from '../../auth/permissions.decorator.js';
@@ -13,6 +13,7 @@ import { ReceivablesService } from './receivables.service.js';
 import { SalesReturnsController, SalesReturnsService } from './returns.js';
 import { QuotationsController, QuotationsService } from './quotations.js';
 import { DebtRemindersController, DebtRemindersService } from './reminders.js';
+import { SalesOrderPageQuery, normaliseListQuery } from './sales-order-page.js';
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const DAY_MESSAGE = { message: 'Ngày phải có dạng YYYY-MM-DD' };
@@ -85,9 +86,29 @@ export class SalesController {
   constructor(private readonly sales: SalesService) {}
 
   // A seller without order.view_all sees only their own orders (SalesService.visibleTo).
+  // `?recentDays=90` (what the app loads at sign-in, Pha 1.1): open orders plus the last 90 days.
+  // `?ids=a,b` / `?codes=DH1,DH2`: just those orders (at most 500), for screens showing older ones.
   @Get('sales-orders')
-  orders(@CurrentUser() user: AuthUser) {
-    return this.sales.orders(user);
+  orders(@CurrentUser() user: AuthUser, @Query('recentDays') recentDays?: string, @Query('ids') ids?: string, @Query('codes') codes?: string) {
+    const days = Number(recentDays);
+    const list = (v?: string) => (v ? v.split(',').map((x) => x.trim()).filter(Boolean).slice(0, 500) : undefined);
+    return this.sales.orders(user, Number.isInteger(days) && days > 0 ? days : undefined, { ids: list(ids), codes: list(codes) });
+  }
+
+  /** Danh sách theo trang: lọc, tìm không dấu, sắp xếp, tổng của mọi đơn khớp (Pha 1.1). Declared before :id. */
+  @Get('sales-orders/page')
+  async page(@Query() raw: Record<string, unknown>, @CurrentUser() user: AuthUser) {
+    const q = plainToInstance(SalesOrderPageQuery, normaliseListQuery(raw));
+    const errors = await validate(q, { whitelist: true });
+    if (errors.length) throw new BadRequestException('Tham số lọc không hợp lệ');
+    return this.sales.page(user, q);
+  }
+
+  /** Số đơn, doanh số, đơn còn mở của từng khách trên toàn bộ lịch sử. */
+  @RequirePermissions('customer.view')
+  @Get('sales-orders/customer-stats')
+  customerStats(@CurrentUser() user: AuthUser) {
+    return this.sales.customerStats(user);
   }
 
   @Get('sales-orders/:id')

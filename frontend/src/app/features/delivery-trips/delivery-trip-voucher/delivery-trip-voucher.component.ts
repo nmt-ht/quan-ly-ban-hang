@@ -26,6 +26,7 @@ import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { errorText } from '../../../core/api/api.service';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
+import { SalesOrderService } from '../../sales-orders/sales-order.service';
 
 type Tab = 'don' | 'hang' | 'phieu' | 'chi-phi' | 'nhat-ky';
 type PrintMode = 'soan' | 'giao' | null;
@@ -68,6 +69,12 @@ interface ConfirmRow {
 export class DeliveryTripVoucherComponent {
   private readonly route = inject(ActivatedRoute);
   readonly data = inject(DataStore);
+  private readonly salesOrders = inject(SalesOrderService);
+  // Đơn cũ hơn 90 ngày không nạp sẵn (Pha 1.1): đọc các đơn màn hình này cần.
+  private readonly loadOrders = effect(() => {
+    const ids = this.data.deliveryTrips().find((t) => t.id === this.id())?.orderIds ?? [];
+    if (ids.length) untracked(() => void this.salesOrders.ensureMany(ids));
+  });
   private readonly svc = inject(DeliveryTripService);
   private readonly headerDialog = viewChild.required<TripHeaderDialogComponent>('headerDialog');
   private readonly addDialog = viewChild.required<ElementRef<HTMLDialogElement>>('addDialog');

@@ -18,6 +18,7 @@ import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { costTotal } from './delivery-trip.rules';
 import { TripHeaderDialogComponent } from './trip-header-dialog/trip-header-dialog.component';
 import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
+import { SalesOrderService } from '../sales-orders/sales-order.service';
 
 interface ActiveChip {
   label: string;
@@ -37,6 +38,12 @@ const HIRED = 'hired';
 })
 export class DeliveryTripsComponent {
   readonly data = inject(DataStore);
+  private readonly salesOrders = inject(SalesOrderService);
+  // Đơn cũ hơn 90 ngày không nạp sẵn (Pha 1.1): đọc các đơn màn hình này cần.
+  private readonly loadOrders = effect(() => {
+    const ids = this.data.deliveryTrips().flatMap((t) => t.orderIds);
+    untracked(() => void this.salesOrders.ensureMany(ids));
+  });
   private readonly router = inject(Router);
   private readonly headerDialog = viewChild.required<TripHeaderDialogComponent>('headerDialog');
 

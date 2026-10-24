@@ -1,8 +1,9 @@
-import { Injectable, computed, inject } from '@angular/core';
+import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { DataStore } from '../../core/services/data-store.service';
 import { DebtService } from '../../core/services/debt.service';
 import { Customer, CustomerAddress } from '../../core/models/domain.models';
 import { ApiService, upsertById } from '../../core/api/api.service';
+import { AuthService } from '../../core/services/auth.service';
 
 export type CustomerDraft = Omit<Customer, 'id' | 'code' | 'createdAt' | 'updatedAt' | 'orderCount'>;
 
@@ -25,27 +26,30 @@ const EMPTY: CustomerStats = { orderCount: 0, receivedOrders: 0, revenue: 0, ope
 export class CustomerService {
   private readonly api = inject(ApiService);
 
+  private readonly auth = inject(AuthService);
+  /** Đơn hàng & doanh số per khách over the whole history, from the server (the app holds only recent orders — Pha 1.1). */
+  private readonly orderStats = signal<Record<string, Omit<CustomerStats, 'receivable' | 'overdue' | 'prepaid' | 'openItems' | 'lastPurchase'> & { lastPurchase: string | null }>>({});
+
   constructor(
     private readonly data: DataStore,
     private readonly debt: DebtService,
-  ) {}
+  ) {
+    // Read again whenever an order is saved here (the list in memory changes).
+    effect(() => {
+      this.data.salesOrders();
+      untracked(() => {
+        if (!this.auth.can('customer.view')) return;
+        this.api.get<Record<string, never>>('/sales-orders/customer-stats').then((x) => this.orderStats.set(x), () => undefined);
+      });
+    });
+  }
 
   /** Đơn hàng, doanh số, công nợ — derived, never stored on the customer. */
   readonly stats = computed(() => {
     const map = new Map<string, CustomerStats>();
     const get = (id: string) => map.get(id) ?? (map.set(id, { ...EMPTY }), map.get(id)!);
-    for (const o of this.data.salesOrders()) {
-      const s = get(o.customerId);
-      s.orderCount++;
-      if (o.status === 'HUY') continue;
-      if (o.receivedValue > 0) {
-        s.receivedOrders++;
-        s.revenue += o.receivedValue;
-        const d = (o.deliveredDate ?? o.orderDate).slice(0, 10);
-        if (!s.lastPurchase || d > s.lastPurchase) s.lastPurchase = d;
-      }
-      const done = o.status === 'HOAN_THANH' || o.status === 'TRA_TOAN_BO' || !!o.closedDate;
-      if (!done) s.openOrders++;
+    for (const [id, o] of Object.entries(this.orderStats())) {
+      Object.assign(get(id), { ...o, lastPurchase: o.lastPurchase ?? undefined });
     }
     for (const r of this.debt.receivables()) {
       const s = get(r.partnerId);
