@@ -101,18 +101,20 @@
           <div class="status-box">
             <span class="badge" [ngClass]="statusClass(o.status)">{{ statusLabel[o.status] }}</span>
             @if (o.sentDate) { <span>Gửi NCC: <span class="num">{{ day(o.sentDate) }}</span></span> }
-            @if (o.receivedValue > 0) {
+            @if (percent() > 0) {
               <span>Đã nhận <strong class="num">{{ percent() }}%</strong></span>
               <span class="progress" aria-hidden="true"><span [style.width.%]="percent()"></span></span>
             }
             @if (o.cancelReason) { <span class="text-danger">Lý do huỷ: {{ o.cancelReason }}</span> }
           </div>
         }
-        <p class="summary-label">Tổng tiền thanh toán</p>
-        <p class="summary-total num">{{ money(totals().total) }}</p>
-        @if (order(); as o) {
-          @if (o.receivedValue > 0) {
-            <p class="summary-sub">Công nợ phải trả (đã nhận): <span class="num">{{ money(o.receivedValue) }}</span></p>
+        @if (prices) {
+          <p class="summary-label">Tổng tiền thanh toán</p>
+          <p class="summary-total num">{{ money(totals().total) }}</p>
+          @if (order(); as o) {
+            @if ((o.receivedValue ?? 0) > 0) {
+              <p class="summary-sub">Công nợ phải trả (đã nhận): <span class="num">{{ money(o.receivedValue!) }}</span></p>
+            }
           }
         }
       </aside>
@@ -147,10 +149,12 @@
                 <th scope="col" class="c-wh">Kho nhập</th>
                 <th scope="col" class="c-unit">ĐVT</th>
                 <th scope="col" class="c-num">Số lượng</th>
-                <th scope="col" class="c-num">Đơn giá</th>
-                <th scope="col" class="c-num">Thành tiền</th>
-                <th scope="col" class="c-vat">% Thuế GTGT</th>
-                <th scope="col" class="c-num">Tiền thuế GTGT</th>
+                @if (prices) {
+                  <th scope="col" class="c-num">Đơn giá</th>
+                  <th scope="col" class="c-num">Thành tiền</th>
+                  <th scope="col" class="c-vat">% Thuế GTGT</th>
+                  <th scope="col" class="c-num">Tiền thuế GTGT</th>
+                }
                 @if (!editable()) {
                   <th scope="col" class="c-num">Đã nhận</th>
                   <th scope="col" class="c-num">Còn lại</th>
@@ -196,6 +200,7 @@
                         [attr.aria-invalid]="attempted() && l.productId && !((l.quantity ?? 0) > 0) ? 'true' : null" />
                     } @else { <span class="num">{{ (l.quantity ?? 0).toLocaleString('vi-VN') }}</span> }
                   </td>
+                  @if (prices) {
                   <td class="c-num">
                     @if (editable()) {
                       <input type="text" appMoney [ngModel]="l.unitPrice" (ngModelChange)="patch(i, { unitPrice: $event })"
@@ -211,6 +216,7 @@
                     } @else { <span class="num">{{ l.vatRate }}%</span> }
                   </td>
                   <td class="c-num num">{{ vat(l).toLocaleString('vi-VN') }}</td>
+                  }
                   @if (!editable()) {
                     <td class="c-num num">{{ l.receivedQuantity.toLocaleString('vi-VN') }}</td>
                     <td class="c-num num" [class.text-danger]="remaining(l) > 0 && order()?.status === 'NHAN_MOT_PHAN'">
@@ -232,10 +238,12 @@
                 <td></td>
                 <td colspan="3" class="foot-label">Cộng</td>
                 <td class="c-num num">{{ totalQuantity().toLocaleString('vi-VN') }}</td>
-                <td></td>
-                <td class="c-num num">{{ totals().goods.toLocaleString('vi-VN') }}</td>
-                <td></td>
-                <td class="c-num num">{{ totals().vat.toLocaleString('vi-VN') }}</td>
+                @if (prices) {
+                  <td></td>
+                  <td class="c-num num">{{ totals().goods.toLocaleString('vi-VN') }}</td>
+                  <td></td>
+                  <td class="c-num num">{{ totals().vat.toLocaleString('vi-VN') }}</td>
+                }
                 @if (!editable()) { <td></td><td></td> }
                 @if (editable()) { <td></td> }
               </tr>
@@ -253,11 +261,13 @@
               </div>
             }
           </div>
-          <dl class="grid-totals">
-            <div><dt>Tổng tiền hàng</dt><dd class="num">{{ money(totals().goods) }}</dd></div>
-            <div><dt>Thuế GTGT</dt><dd class="num">{{ money(totals().vat) }}</dd></div>
-            <div class="grand"><dt>Tổng tiền thanh toán</dt><dd class="num">{{ money(totals().total) }}</dd></div>
-          </dl>
+          @if (prices) {
+            <dl class="grid-totals">
+              <div><dt>Tổng tiền hàng</dt><dd class="num">{{ money(totals().goods) }}</dd></div>
+              <div><dt>Thuế GTGT</dt><dd class="num">{{ money(totals().vat) }}</dd></div>
+              <div class="grand"><dt>Tổng tiền thanh toán</dt><dd class="num">{{ money(totals().total) }}</dd></div>
+            </dl>
+          }
         </div>
 
         @if (rows().length > 10) {
@@ -380,7 +390,7 @@
         <thead>
           <tr>
             <th class="stt">STT</th><th>Mã hàng</th><th>Tên hàng</th><th>ĐVT</th><th class="nw">Số lượng</th>
-            <th class="nw">Đơn giá</th><th class="nw">Thành tiền</th><th class="nw a5-hide">Thuế</th><th class="nw a5-hide">Tiền thuế</th>
+            @if (prices) { <th class="nw">Đơn giá</th><th class="nw">Thành tiền</th><th class="nw a5-hide">Thuế</th><th class="nw a5-hide">Tiền thuế</th> }
           </tr>
         </thead>
         <tbody>
@@ -391,15 +401,17 @@
               <td>{{ r.name }}</td>
               <td class="c">{{ r.unit }}</td>
               <td class="r">{{ r.qty.toLocaleString('vi-VN') }}</td>
-              <td class="r">{{ r.price.toLocaleString('vi-VN') }}</td>
-              <td class="r">{{ r.amount.toLocaleString('vi-VN') }}</td>
-              <td class="r a5-hide">{{ r.vatRate ? r.vatRate + '%' : '' }}</td>
-              <td class="r a5-hide">{{ r.vat ? r.vat.toLocaleString('vi-VN') : '' }}</td>
+              @if (prices) {
+                <td class="r">{{ r.price.toLocaleString('vi-VN') }}</td>
+                <td class="r">{{ r.amount.toLocaleString('vi-VN') }}</td>
+                <td class="r a5-hide">{{ r.vatRate ? r.vatRate + '%' : '' }}</td>
+                <td class="r a5-hide">{{ r.vat ? r.vat.toLocaleString('vi-VN') : '' }}</td>
+              }
             </tr>
           }
         </tbody>
       </table>
-      @if (printTotals(); as pt) {
+      @if (prices && printTotals(); as pt) {
         <div class="pd-totals">
           <div><span>Tiền hàng</span><span>{{ money(pt.goods) }}</span></div>
           <div><span>Thuế GTGT</span><span>{{ money(pt.vat) }}</span></div>

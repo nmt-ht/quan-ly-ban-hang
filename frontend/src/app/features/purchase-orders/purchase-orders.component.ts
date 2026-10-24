@@ -1,4 +1,4 @@
-import { Component, computed, effect, signal, untracked } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { DataStore } from '../../core/services/data-store.service';
@@ -18,6 +18,8 @@ import { tagClass } from '../../shared/tag-class';
 import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { canEdit, receivedPercent } from './purchase-order.rules';
 import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
+import { AuthService } from '../../core/services/auth.service';
+import { seesPurchasePrices } from '../../core/auth/purchase-prices';
 
 interface ActiveChip {
   label: string;
@@ -36,6 +38,9 @@ const ALL = 'all';
   templateUrl: './purchase-orders.component.html',
 })
 export class PurchaseOrdersComponent {
+  /** Giá nhập hidden from roles that only receive goods (the server sends no prices then). */
+  private readonly auth = inject(AuthService);
+  readonly prices = seesPurchasePrices((c) => this.auth.can(c));
   readonly search = signal('');
   readonly statuses = signal<string[]>([]);
   readonly supplierId = signal(ALL);
@@ -71,8 +76,8 @@ export class PurchaseOrdersComponent {
       if (sup !== ALL && o.supplierId !== sup) return false;
       if (!inRange(o.date, range)) return false;
       if (by.length && !by.includes(o.createdBy)) return false;
-      if (min !== null && o.totalValue < min) return false;
-      if (max !== null && o.totalValue > max) return false;
+      if (min !== null && (o.totalValue ?? 0) < min) return false;
+      if (max !== null && (o.totalValue ?? 0) > max) return false;
       return true;
     });
   });
@@ -104,8 +109,8 @@ export class PurchaseOrdersComponent {
   readonly totals = computed(() => {
     const rows = this.orders().filter((o) => o.status !== 'HUY');
     return {
-      value: rows.reduce((s, o) => s + o.totalValue, 0),
-      received: rows.reduce((s, o) => s + o.receivedValue, 0),
+      value: rows.reduce((s, o) => s + (o.totalValue ?? 0), 0),
+      received: rows.reduce((s, o) => s + (o.receivedValue ?? 0), 0),
     };
   });
 
@@ -140,18 +145,18 @@ export class PurchaseOrdersComponent {
     return chips;
   });
 
-  readonly columns: DataTableColumn<PurchaseOrder>[] = [
+  private readonly allColumns: DataTableColumn<PurchaseOrder>[] = [
     { key: 'code', label: 'Mã đơn', copy: true, link: (r) => ['/mua-hang', r.id] },
     { key: 'date', label: 'Ngày đặt', format: (r) => formatDay(r.date), mono: true },
     { key: 'supplierId', sortByText: true, label: 'Nhà cung cấp', format: (r) => this.supplierById().get(r.supplierId)?.name ?? r.supplierId },
     { key: 'lines', label: 'Mặt hàng', align: 'right', format: (r) => String(r.lines.length), filterValue: (r) => r.lines.length },
-    { key: 'totalValue', label: 'Giá trị đơn', align: 'right', format: (r) => formatVnd(r.totalValue), filterValue: (r) => r.totalValue },
+    { key: 'totalValue', label: 'Giá trị đơn', align: 'right', format: (r) => formatVnd(r.totalValue ?? 0), filterValue: (r) => r.totalValue ?? 0 },
     {
       key: 'receivedValue',
       label: 'Đã nhận',
       align: 'right',
       format: (r) => (r.receivedValue ? `${formatVnd(r.receivedValue)} · ${receivedPercent(r)}%` : '—'),
-      filterValue: (r) => r.receivedValue,
+      filterValue: (r) => r.receivedValue ?? 0,
     },
     {
       key: 'status', sortByText: true,
@@ -161,6 +166,9 @@ export class PurchaseOrdersComponent {
     },
     { key: 'createdBy', sortByText: true, label: 'Người lập', format: (r) => this.userName(r.createdBy) },
   ];
+
+  /** Giá trị đơn / Đã nhận only for roles that see giá nhập; others follow receipts by quantity on the order itself. */
+  readonly columns = this.prices ? this.allColumns : this.allColumns.filter((c) => c.key !== 'totalValue' && c.key !== 'receivedValue');
 
   readonly canEdit = canEdit;
 
@@ -199,9 +207,11 @@ export class PurchaseOrdersComponent {
           { header: 'Mã NCC', width: 14 },
           { header: 'Nhà cung cấp', width: 34 },
           { header: 'Số mặt hàng', width: 12 },
-          { header: 'Giá trị đơn', width: 16, numFmt: '#,##0' },
-          { header: 'Đã nhận', width: 16, numFmt: '#,##0' },
-          { header: 'Còn lại', width: 16, numFmt: '#,##0' },
+          ...(this.prices ? [
+            { header: 'Giá trị đơn', width: 16, numFmt: '#,##0' },
+            { header: 'Đã nhận', width: 16, numFmt: '#,##0' },
+            { header: 'Còn lại', width: 16, numFmt: '#,##0' },
+          ] : []),
           { header: 'Trạng thái', width: 16 },
           { header: 'Người lập', width: 22 },
           { header: 'Ghi chú', width: 30 },
@@ -210,7 +220,7 @@ export class PurchaseOrdersComponent {
           const s = this.supplierById().get(o.supplierId);
           return [
             o.code, formatDay(o.date), s?.code ?? '', s?.name ?? o.supplierId, o.lines.length,
-            o.totalValue, o.receivedValue, Math.max(0, o.totalValue - o.receivedValue),
+            ...(this.prices ? [o.totalValue ?? 0, o.receivedValue ?? 0, Math.max(0, (o.totalValue ?? 0) - (o.receivedValue ?? 0))] : []),
             PURCHASE_ORDER_STATUS_LABEL[o.status], this.userName(o.createdBy), o.note ?? '',
           ];
         }),

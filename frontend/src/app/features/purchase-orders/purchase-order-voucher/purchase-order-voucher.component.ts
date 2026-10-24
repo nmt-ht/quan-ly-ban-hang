@@ -22,6 +22,8 @@ import {
   VAT_RATES, canCancel, canComplete, canEdit, canReceive, canSend, lineAmount, lineRemaining, lineVat, orderTotals,
   receivedPercent,
 } from '../purchase-order.rules';
+import { AuthService } from '../../../core/services/auth.service';
+import { seesPurchasePrices } from '../../../core/auth/purchase-prices';
 import { PurchaseOrderService } from '../purchase-order.service';
 import { ReceiveGoodsDialogComponent } from '../receive-goods-dialog/receive-goods-dialog.component';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
@@ -73,6 +75,9 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
   private readonly router = inject(Router);
   readonly data = inject(DataStore);
   private readonly orders = inject(PurchaseOrderService);
+  private readonly auth = inject(AuthService);
+  /** Giá nhập hidden from roles that only receive goods (Thủ kho…): the server sends no prices to them. */
+  readonly prices = seesPurchasePrices((c) => this.auth.can(c));
   private readonly receiveDialog = viewChild<ReceiveGoodsDialogComponent>('receiveDialog');
 
   // The same instance is reused when navigating between orders (/mua-hang/a → /mua-hang/b),

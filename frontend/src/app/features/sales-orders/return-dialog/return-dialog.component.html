@@ -15,7 +15,7 @@
       </label>
       <label class="field">
         <span>Kho nhập lại @if (needsWarehouse()) { <span class="required-mark">*</span> }</span>
-        <select [ngModel]="warehouseId()" (ngModelChange)="warehouseId.set($event)" [attr.aria-invalid]="attempted() && needsWarehouse() && !warehouseId() ? 'true' : null">
+        <select [ngModel]="warehouseId()" (ngModelChange)="pickWarehouse($event)" [attr.aria-invalid]="attempted() && needsWarehouse() && !warehouseId() ? 'true' : null">
           <option value="">— Chọn kho —</option>
           @for (w of data.warehouses() | pickable: warehouseId(); track w.id) { <option [value]="w.id">{{ w.name }}</option> }
         </select>

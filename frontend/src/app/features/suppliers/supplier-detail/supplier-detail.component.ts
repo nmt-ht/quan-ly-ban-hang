@@ -19,6 +19,8 @@ import {
 } from '../../../shared/status-labels';
 import { canReceive, receivedPercent } from '../../purchase-orders/purchase-order.rules';
 import { creditLabel } from '../supplier.rules';
+import { AuthService } from '../../../core/services/auth.service';
+import { seesPurchasePrices } from '../../../core/auth/purchase-prices';
 import { SupplierService } from '../supplier.service';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { errorText } from '../../../core/api/api.service';
@@ -48,6 +50,8 @@ export class SupplierDetailComponent {
   readonly data = inject(DataStore);
   private readonly debt = inject(DebtService);
   private readonly svc = inject(SupplierService);
+  /** Giá mua and giá trị đơn nhập only for roles that see purchase prices (not Thủ kho). */
+  readonly prices = seesPurchasePrices((c) => inject(AuthService).can(c));
 
   readonly id = toSignal(this.route.paramMap.pipe(map((p) => p.get('id') ?? '')), { initialValue: this.route.snapshot.paramMap.get('id') ?? '' });
   readonly supplier = computed(() => this.data.suppliers().find((s) => s.id === this.id()));
@@ -139,7 +143,7 @@ export class SupplierDetailComponent {
 
   readonly orderTotals = computed(() => {
     const rows = this.orders().filter((o) => o.status !== 'HUY');
-    return { value: rows.reduce((s, o) => s + o.totalValue, 0), received: rows.reduce((s, o) => s + o.receivedValue, 0) };
+    return { value: rows.reduce((s, o) => s + (o.totalValue ?? 0), 0), received: rows.reduce((s, o) => s + (o.receivedValue ?? 0), 0) };
   });
 
   // ---------- công nợ ----------

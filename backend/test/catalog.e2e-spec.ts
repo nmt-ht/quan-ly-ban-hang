@@ -107,7 +107,12 @@ describe('Danh mục (e2e)', () => {
     const editor = (await admin.post('/api/users', { name: 'E2E Người sửa', email: 'e2e.sua@ninhtrang.local', roleId: role.id, password: 'E2esua123' }).expect(201)).body;
     created.users.push(editor.id);
     expect(editor).not.toHaveProperty('passwordHash');
-    const asEditor = as(await login('e2e.sua@ninhtrang.local', 'E2esua123'));
+    // A new account must pick its own password before anything else (the server refuses other calls until then).
+    const first = await login('e2e.sua@ninhtrang.local', 'E2esua123');
+    await as(first).get(`/api/products/${p.id}`).expect(403);
+    const changed = await api().post('/api/auth/change-password').set('Authorization', `Bearer ${first}`)
+      .send({ currentPassword: 'E2esua123', newPassword: 'E2esua456' }).expect(200);
+    const asEditor = as(changed.body.accessToken);
 
     const base = { name: 'E2E Hàng', type: 'VAT_TU', baseUnit: 'Cái', retailPrice: 10000, unitConversions: [{ unitName: 'Hộp', ratioToBaseUnit: 10, price: 95000 }] };
     await asEditor.put(`/api/products/${p.id}`, { ...base, retailPrice: 12000 }).expect(403);

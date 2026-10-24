@@ -95,6 +95,13 @@ export class SalesController {
     return this.sales.orderFor(id, user);
   }
 
+  /** Giá vốn đã chốt của đơn — tab Giá vốn; same guard as /product-costs for giá vốn. */
+  @RequirePermissions('product.view_cost_price')
+  @Get('sales-orders/:id/issued-costs')
+  issuedCosts(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.sales.issuedCosts(id, user);
+  }
+
   @RequirePermissions('order.create')
   @Post('sales-orders')
   create(@Body() dto: SalesOrderDto, @CurrentUser() user: AuthUser) {

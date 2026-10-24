@@ -8,6 +8,7 @@ import { CurrentUser, RequireAnyPermission, RequirePermissions } from '../../aut
 import type { AuthUser } from '../../auth/auth.service.js';
 import { ImportDto, ImportResult, RowError, cellBool, cellNumber, cellText, fold, runImport, validateRow } from '../../common/import.js';
 import { Prisma } from '@prisma/client';
+import { seesPurchasePrices } from '../../common/purchase-prices.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { SequenceService } from '../../prisma/sequence.service.js';
 import { OptionalEmail, OptionalText, Text } from '../../common/dto.js';
@@ -258,11 +259,12 @@ export class SuppliersController {
     return this.suppliers.setActive(id, dto.isActive);
   }
 
-  // Purchase prices: only for roles that may see suppliers.
+  // Danh mục hàng theo NCC: roles that see suppliers; the giá mua only to who may see purchase prices.
   @RequirePermissions('supplier.view')
   @Get('supplier-products')
-  catalog() {
-    return this.suppliers.catalog();
+  async catalog(@CurrentUser() user: AuthUser) {
+    const rows = await this.suppliers.catalog();
+    return seesPurchasePrices(user) ? rows : rows.map((r) => ({ ...r, purchasePrice: null }));
   }
 
   @RequirePermissions('supplier.manage_product')

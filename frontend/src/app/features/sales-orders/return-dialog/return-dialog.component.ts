@@ -23,6 +23,8 @@ interface ReturnRow {
   left: number;
   quantity: number | null;
   stocked: boolean; // false = dịch vụ: không nhập kho, chỉ giảm công nợ
+  /** Kho the line's goods left from — the default kho nhập lại. */
+  warehouseId: string;
   valuePerUnit: number; // giá trị 1 ĐVT (sau chiết khấu, gồm thuế) — the server fixes the exact amount
 }
 
@@ -74,15 +76,13 @@ export class ReturnDialogComponent {
         return {
           lineId: l.id ?? '', productCode: p?.code ?? l.productId, productName: p?.name ?? '—', unit: l.unit || p?.baseUnit || '',
           received, returned, left: round4(received - returned), quantity: null, stocked: movesStock(p),
-          valuePerUnit: l.quantity > 0 ? calc[i].total / l.quantity : 0,
+          valuePerUnit: l.quantity > 0 ? calc[i].total / l.quantity : 0, warehouseId: l.warehouseId || defaultWarehouse(p) || '',
         };
       })
       .filter((r) => r.left > 0);
     this.rows.set(rows);
-    // Back into the kho the goods left from (the first stocked line's), if it is still in use.
-    const first = o.lines.find((l) => movesStock(products.get(l.productId)));
-    const wh = first ? first.warehouseId || defaultWarehouse(products.get(first.productId)) : '';
-    this.warehouseId.set(this.data.warehouses().some((w) => w.id === wh && w.isActive !== false) ? (wh ?? '') : '');
+    this.warehouseTouched = false;
+    this.followReturnedLine();
     this.date.set(this.today);
     this.reason.set('');
     this.note.set('');
@@ -97,10 +97,32 @@ export class ReturnDialogComponent {
 
   patch(i: number, change: Partial<ReturnRow>): void {
     this.rows.update((rs) => rs.map((r, j) => (j === i ? { ...r, ...change } : r)));
+    this.followReturnedLine();
   }
 
   returnAll(): void {
     this.rows.update((rs) => rs.map((r) => ({ ...r, quantity: r.left })));
+    this.followReturnedLine();
+  }
+
+  /** Kho chosen by hand stays; until then it follows the goods actually returned. */
+  private warehouseTouched = false;
+
+  pickWarehouse(id: string): void {
+    this.warehouseTouched = true;
+    this.warehouseId.set(id);
+  }
+
+  /**
+   * Back into the kho the returned goods left from: the first stocked line with a số lượng trả (before any is typed,
+   * the first stocked line that can still be returned), if that kho is still in use.
+   */
+  private followReturnedLine(): void {
+    if (this.warehouseTouched) return;
+    const stocked = this.rows().filter((r) => r.stocked);
+    const line = stocked.find((r) => (r.quantity ?? 0) > 0) ?? stocked[0];
+    const wh = line?.warehouseId ?? '';
+    this.warehouseId.set(this.data.warehouses().some((w) => w.id === wh && w.isActive !== false) ? wh : '');
   }
 
   rowError(r: ReturnRow): string {

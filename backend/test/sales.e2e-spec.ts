@@ -179,7 +179,10 @@ describe('Bán hàng, sản xuất & công nợ phải thu (e2e)', () => {
     await admin.put(`/api/roles/${role.id}/permissions`, { codes: ['order.view', 'order.create', 'order.update'] }).expect(200);
     const u = (await admin.post('/api/users', { name: 'E2E Bán', email: 'e2e.ban@ninhtrang.local', roleId: role.id, password: 'E2eban123' }).expect(201)).body;
     userId = u.id;
-    const seller = await as('e2e.ban@ninhtrang.local', 'E2eban123');
+    // A new account picks its own password first; the server refuses everything else until then.
+    const first = (await api().post('/api/auth/login').send({ email: 'e2e.ban@ninhtrang.local', password: 'E2eban123' }).expect(200)).body.accessToken;
+    await api().post('/api/auth/change-password').set('Authorization', `Bearer ${first}`).send({ currentPassword: 'E2eban123', newPassword: 'E2eban456' }).expect(200);
+    const seller = await as('e2e.ban@ninhtrang.local', 'E2eban456');
     await seller.post('/api/sales-orders', order([{ productId: item, unit: 'Cái', quantity: 1, unitPrice: 45000 }])).expect(403);
     const ok = (await seller.post('/api/sales-orders', order([{ productId: item, unit: 'Cái', quantity: 1, unitPrice: 50000 }])).expect(201)).body;
     orders.push(ok.id);

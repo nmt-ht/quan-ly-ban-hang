@@ -154,8 +154,10 @@
                     <th scope="col">Tính chất</th>
                     <th scope="col">ĐVT</th>
                     <th scope="col">Mã hàng theo NCC</th>
-                    <th scope="col" class="align-right">Giá mua</th>
-                    <th scope="col" class="align-right">Giá trên đơn gần nhất</th>
+                    @if (prices) {
+                      <th scope="col" class="align-right">Giá mua</th>
+                      <th scope="col" class="align-right">Giá trên đơn gần nhất</th>
+                    }
                     <th scope="col" class="actions-col"><span class="visually-hidden">Thao tác</span></th>
                   </tr>
                 </thead>
@@ -171,10 +173,12 @@
                       </td>
                       <td>{{ c.product?.baseUnit ?? '—' }}</td>
                       <td class="num">{{ c.supplierCode || '—' }}</td>
-                      <td class="num align-right">{{ money(c.purchasePrice) }}</td>
-                      <td class="num align-right" [class.sd-price-diff]="c.lastOrderPrice !== undefined && c.lastOrderPrice !== c.purchasePrice">
-                        {{ c.lastOrderPrice !== undefined ? money(c.lastOrderPrice) : '—' }}
-                      </td>
+                      @if (prices) {
+                        <td class="num align-right">{{ money(c.purchasePrice) }}</td>
+                        <td class="num align-right" [class.sd-price-diff]="c.lastOrderPrice !== undefined && c.lastOrderPrice !== c.purchasePrice">
+                          {{ c.lastOrderPrice !== undefined ? money(c.lastOrderPrice) : '—' }}
+                        </td>
+                      }
                       <td class="actions-col">
                         <span class="row-actions">
                           <button type="button" class="icon-action" [attr.aria-label]="'Sửa giá ' + (c.product?.code ?? '')" title="Sửa giá" (click)="editItem(c)">
@@ -201,7 +205,7 @@
 
       @case ('don-nhap') {
         <section class="card section-block">
-          @if (orders().length) {
+          @if (orders().length && prices) {
             <dl class="list-totals sd-inline-totals">
               <div><dt>Tổng giá trị đơn</dt><dd class="num">{{ money(orderTotals().value) }}</dd></div>
               <div><dt>Đã nhận</dt><dd class="num">{{ money(orderTotals().received) }}</dd></div>
@@ -214,8 +218,10 @@
                     <th scope="col">Mã đơn</th>
                     <th scope="col">Ngày đặt</th>
                     <th scope="col" class="align-right">Mặt hàng</th>
-                    <th scope="col" class="align-right">Giá trị đơn</th>
-                    <th scope="col" class="align-right">Đã nhận</th>
+                    @if (prices) {
+                      <th scope="col" class="align-right">Giá trị đơn</th>
+                      <th scope="col" class="align-right">Đã nhận</th>
+                    }
                     <th scope="col">Ngày nhận</th>
                     <th scope="col">Trạng thái</th>
                   </tr>
@@ -226,8 +232,10 @@
                       <td class="num"><a class="code-link" [routerLink]="['/mua-hang', o.id]">{{ o.code }}</a></td>
                       <td class="num">{{ day(o.date) }}</td>
                       <td class="num align-right">{{ o.lines.length }}</td>
-                      <td class="num align-right">{{ money(o.totalValue) }}</td>
-                      <td class="num align-right">{{ o.receivedValue ? money(o.receivedValue) + ' · ' + receivedPercent(o) + '%' : '—' }}</td>
+                      @if (prices) {
+                        <td class="num align-right">{{ money(o.totalValue ?? 0) }}</td>
+                        <td class="num align-right">{{ o.receivedValue ? money(o.receivedValue) + ' · ' + receivedPercent(o) + '%' : '—' }}</td>
+                      }
                       <td class="num">{{ o.receivedDate ? day(o.receivedDate) : '—' }}</td>
                       <td><span class="badge" [ngClass]="poStatusClass(o.status)">{{ poStatusLabel[o.status] }}</span></td>
                     </tr>

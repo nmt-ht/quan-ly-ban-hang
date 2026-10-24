@@ -29,7 +29,7 @@
   </select>
   <app-period-filter [(value)]="period" />
   <app-filter-multi-select label="Người lập" [options]="creatorOptions()" [(selected)]="createdBy" />
-  <app-range-filter label="Giá trị đơn" [(value)]="value" />
+  @if (prices) { <app-range-filter label="Giá trị đơn" [(value)]="value" /> }
 </div>
 
 @if (chips().length) {
@@ -46,7 +46,7 @@
   </div>
 }
 
-@if (orders().length) {
+@if (orders().length && prices) {
   <dl class="list-totals">
     <div><dt>Tổng giá trị đơn</dt><dd class="num">{{ money(totals().value) }}</dd></div>
     <div><dt>Đã nhận</dt><dd class="num">{{ money(totals().received) }}</dd></div>

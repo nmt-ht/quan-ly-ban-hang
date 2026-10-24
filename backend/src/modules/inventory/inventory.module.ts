@@ -4,6 +4,7 @@ import { WarehouseVoucherType } from '@prisma/client';
 import { ArrayMinSize, IsArray, IsEnum, IsNumber, IsOptional, Matches, Min, ValidateNested } from 'class-validator';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard.js';
 import { PermissionsGuard } from '../../auth/permissions.guard.js';
+import { seesPurchasePrices } from '../../common/purchase-prices.js';
 import { CurrentUser, RequirePermissions } from '../../auth/permissions.decorator.js';
 import type { AuthUser } from '../../auth/auth.service.js';
 import { OptionalText, Text } from '../../common/dto.js';
@@ -41,6 +42,8 @@ const CREATE_PERMISSION: Record<WarehouseVoucherType, string[]> = {
   KIEM_KE: ['stock.adjust', 'stock.stocktake'],
 };
 
+const withoutLinePrices = <V extends { lines: { unitPrice?: unknown }[] }>(v: V): V => ({ ...v, lines: v.lines.map((l) => ({ ...l, unitPrice: null })) });
+
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller()
 export class InventoryController {
@@ -52,14 +55,17 @@ export class InventoryController {
     return this.inventory.stockLevels();
   }
 
+  // Giá nhập on phiếu nhập only to who may see purchase prices (not Thủ kho, Sale, giao hàng, xưởng).
   @Get('warehouse-vouchers')
-  vouchers() {
-    return this.inventory.vouchers();
+  async vouchers(@CurrentUser() user: AuthUser) {
+    const rows = await this.inventory.vouchers();
+    return seesPurchasePrices(user) ? rows : rows.map(withoutLinePrices);
   }
 
   @Get('warehouse-vouchers/:id')
-  voucher(@Param('id') id: string) {
-    return this.inventory.voucher(id);
+  async voucher(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    const v = await this.inventory.voucher(id);
+    return seesPurchasePrices(user) ? v : withoutLinePrices(v);
   }
 
   @Post('warehouse-vouchers')

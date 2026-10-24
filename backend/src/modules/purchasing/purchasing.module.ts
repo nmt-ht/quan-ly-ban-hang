@@ -7,7 +7,8 @@ import { CurrentUser, RequirePermissions } from '../../auth/permissions.decorato
 import type { AuthUser } from '../../auth/auth.service.js';
 import { OptionalText, Text } from '../../common/dto.js';
 import { InventoryModule } from '../inventory/inventory.module.js';
-import { PurchaseOrdersService } from './purchase-orders.service.js';
+import { PurchaseOrdersService, orderToApi } from './purchase-orders.service.js';
+import { seesPurchasePrices } from '../../common/purchase-prices.js';
 import { PayablesService } from './payables.service.js';
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -48,20 +49,30 @@ export class CancelDto {
   @OptionalText(300) reason?: string;
 }
 
+type ApiOrder = ReturnType<typeof orderToApi>;
+
+/** A đơn nhập without giá nhập: đơn giá and the money totals are null. */
+function withoutPrices(o: ApiOrder) {
+  return { ...o, totalValue: null, receivedValue: null, lines: o.lines.map((l) => ({ ...l, unitPrice: null })) };
+}
+
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('purchase-orders')
 export class PurchaseOrdersController {
   constructor(private readonly orders: PurchaseOrdersService) {}
 
-  // Reads are open to every signed-in user: stock ("sắp về"), suppliers and debts show them.
+  // Reads are open to every signed-in user: stock ("sắp về"), suppliers and debts show them — giá nhập only to who may
+  // see it (seesPurchasePrices); Thủ kho receives goods by quantity.
   @Get()
-  findAll() {
-    return this.orders.findAll();
+  async findAll(@CurrentUser() user: AuthUser) {
+    const rows = await this.orders.findAll();
+    return seesPurchasePrices(user) ? rows : rows.map(withoutPrices);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.orders.findOne(id);
+  async findOne(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    const o = await this.orders.findOne(id);
+    return seesPurchasePrices(user) ? o : withoutPrices(o);
   }
 
   @RequirePermissions('purchase.create')
@@ -87,8 +98,9 @@ export class PurchaseOrdersController {
   @RequirePermissions('purchase.receive')
   @Post(':id/receive')
   @HttpCode(HttpStatus.OK)
-  receive(@Param('id') id: string, @Body() dto: ReceiptDto, @CurrentUser() user: AuthUser) {
-    return this.orders.receive(id, dto, user.id);
+  async receive(@Param('id') id: string, @Body() dto: ReceiptDto, @CurrentUser() user: AuthUser) {
+    const o = await this.orders.receive(id, dto, user.id);
+    return seesPurchasePrices(user) ? o : withoutPrices(o);
   }
 
   @RequirePermissions('purchase.update')

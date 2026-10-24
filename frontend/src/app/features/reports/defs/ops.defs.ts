@@ -49,7 +49,7 @@ const production: ReportDef = {
   searchHint: 'Tìm thành phẩm…',
   notes: [
     'Chỉ tính lệnh đã HOÀN TẤT (theo ngày hoàn tất). Giá thành đơn vị chia cho SỐ THỰC NHẬP KHO nên hàng hỏng làm tăng giá thành.',
-    'Chi phí vật tư = định mức đã chụp lúc lập lệnh × số lượng lệnh × giá vốn vật tư HIỆN TẠI (ước tính). Hao hụt % = (số lệnh − thực nhập) ÷ số lệnh.',
+    'Chi phí vật tư = giá vốn đã chốt trên phiếu xuất vật tư của lệnh; lệnh cũ chưa có giá chốt thì ước tính = định mức × số lượng lệnh × giá vốn hiện tại. Hao hụt % = (số lệnh − thực nhập) ÷ số lệnh.',
   ],
 };
 

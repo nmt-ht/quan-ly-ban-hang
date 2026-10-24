@@ -29,8 +29,13 @@ export function receivedValueOf(lines: PurchaseOrderLine[]): number {
   return lines.reduce((s, l) => s + lineReceivedTotal(l), 0);
 }
 
+/** Phần đã nhận: theo giá trị; theo số lượng khi chức vụ không được xem giá nhập (server gửi null). */
 export function receivedPercent(o: PurchaseOrder): number {
-  return o.totalValue ? Math.round((o.receivedValue / o.totalValue) * 100) : 0;
+  if (o.totalValue === null) {
+    const qty = o.lines.reduce((s, l) => s + l.quantity, 0);
+    return qty ? Math.round((o.lines.reduce((s, l) => s + l.receivedQuantity, 0) / qty) * 100) : 0;
+  }
+  return o.totalValue ? Math.round((o.receivedValue! / o.totalValue) * 100) : 0;
 }
 
 export const canEdit = (s: PurchaseOrderStatus) => s === 'NHAP';
@@ -39,7 +44,7 @@ export const canReceive = (s: PurchaseOrderStatus) => s === 'DA_GUI_NCC' || s ==
 // "Đã nhận đủ" closes into "Hoàn tất"; a partly received order can also be closed short.
 export const canComplete = (s: PurchaseOrderStatus) => s === 'DA_NHAN_DU' || s === 'NHAN_MOT_PHAN';
 // Once goods are in, the order cannot be cancelled (stock and công nợ already exist).
-export const canCancel = (o: PurchaseOrder) => (o.status === 'NHAP' || o.status === 'DA_GUI_NCC') && o.receivedValue === 0;
+export const canCancel = (o: PurchaseOrder) => (o.status === 'NHAP' || o.status === 'DA_GUI_NCC') && o.lines.every((l) => l.receivedQuantity === 0);
 
 export function statusAfterReceipt(lines: PurchaseOrderLine[]): PurchaseOrderStatus {
   const anyReceived = lines.some((l) => l.receivedQuantity > 0);

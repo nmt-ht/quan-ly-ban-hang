@@ -90,7 +90,9 @@ describe('Đơn nhập hàng & công nợ phải trả (e2e)', () => {
       date: today, note: 'đợt 1',
       items: [{ lineIndex: 0, quantity: 4, warehouseId: 'wh-vattu' }, { lineIndex: 1, quantity: 5, warehouseId: 'wh-phukien' }],
     }).expect(200)).body;
-    expect(part).toMatchObject({ status: 'NHAN_MOT_PHAN', receivedValue: 533_000, receivedDate: today });
+    // Thủ kho nhận theo số lượng: giá nhập không gửi cho chức vụ này; Quản lý thấy giá trị đã nhận.
+    expect(part).toMatchObject({ status: 'NHAN_MOT_PHAN', receivedValue: null, receivedDate: today });
+    expect((await manager.get(`/api/purchase-orders/${o.id}`).expect(200)).body.receivedValue).toBe(533_000);
     expect(await stock(boxed, 'wh-vattu')).toBe(48); // 4 hộp × 12
     expect(await stock(loose, 'wh-phukien')).toBe(5);
 
@@ -103,7 +105,8 @@ describe('Đơn nhập hàng & công nợ phải trả (e2e)', () => {
 
     // More than ordered is capped at what is left.
     const full = (await storekeeper.post(`/api/purchase-orders/${o.id}/receive`, { date: today, items: [{ lineIndex: 0, quantity: 100, warehouseId: 'wh-vattu' }] }).expect(200)).body;
-    expect(full).toMatchObject({ status: 'DA_NHAN_DU', receivedValue: 1_325_000 });
+    expect(full).toMatchObject({ status: 'DA_NHAN_DU', receivedValue: null });
+    expect((await manager.get(`/api/purchase-orders/${o.id}`).expect(200)).body.receivedValue).toBe(1_325_000);
     expect(await stock(boxed, 'wh-vattu')).toBe(120);
     await storekeeper.post(`/api/purchase-orders/${o.id}/receive`, { date: today, items: [{ lineIndex: 0, quantity: 1, warehouseId: 'wh-vattu' }] }).expect(400);
 

@@ -75,6 +75,13 @@ describe('Trả hàng bán (e2e)', () => {
     expect(await stock()).toBe(0);
   });
 
+  it('giá vốn đã chốt của đơn: có cho người xem giá vốn, chặn với Sale', async () => {
+    const costs = (await manager.get(`/api/sales-orders/${orderId}/issued-costs`).expect(200)).body;
+    expect(Object.keys(costs)).toEqual([productId]);
+    expect(typeof costs[productId]).toBe('number');
+    await sale.get(`/api/sales-orders/${orderId}/issued-costs`).expect(403);
+  });
+
   it('chức vụ không có quyền Nhận hàng trả lại bị chặn', async () => {
     await sale.post(`/api/sales-orders/${orderId}/returns`, { date: today, warehouseId: WH, reason: 'Lỗi', lines: [{ orderLineId: lineId, quantity: 1 }] }).expect(403);
   });

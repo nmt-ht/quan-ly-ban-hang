@@ -66,6 +66,9 @@ describe('Bảo mật (e2e)', () => {
     const old = await login(u.email, 'OldPass123');
     const me = await api().get('/api/auth/me').set(bearer(old)).expect(200);
     expect(me.body.mustChangePassword).toBe(true);
+    // Chưa đổi mật khẩu: mọi API khác bị chặn ở máy chủ, không chỉ ở giao diện.
+    const blocked = await api().get('/api/customers').set(bearer(old)).expect(403);
+    expect(blocked.body.message).toContain('đổi mật khẩu');
 
     await api().post('/api/auth/change-password').set(bearer(old)).send({ currentPassword: 'Sai12345', newPassword: 'NewPass123' }).expect(400);
     await api().post('/api/auth/change-password').set(bearer(old)).send({ currentPassword: 'OldPass123', newPassword: 'short1' }).expect(400);
@@ -80,6 +83,7 @@ describe('Bảo mật (e2e)', () => {
 
     await api().get('/api/auth/me').set(bearer(old)).expect(401); // phiên cũ đã bị đăng xuất
     await api().get('/api/auth/me').set(bearer(res.body.accessToken)).expect(200);
+    await api().get('/api/customers').set(bearer(res.body.accessToken)).expect(200);
     await api().post('/api/auth/login').send({ email: u.email, password: 'OldPass123' }).expect(401);
     await api().post('/api/auth/login').send({ email: u.email, password: 'NewPass123' }).expect(200);
 

@@ -72,7 +72,7 @@
       } @else if (attempted() && issues().length) {
         {{ issues()[0] }}
       } @else {
-        {{ receiving().length }} dòng · giá trị lần nhận (gồm thuế): <strong class="num">{{ money(value()) }}</strong>
+        {{ receiving().length }} dòng@if (prices) { · giá trị lần nhận (gồm thuế): <strong class="num">{{ money(value()) }}</strong> }
       }
     </p>
     <div class="toolbar">

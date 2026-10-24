@@ -68,7 +68,7 @@ export class UserDetailComponent {
         list.push({ date: o.orderDate, type: o.createdBy === e ? 'Lập đơn bán' : 'Nhân viên bán', code: o.code, link: ['/don-hang', o.id], detail: '', amount: o.totalOrder });
       }
     }
-    for (const o of this.data.purchaseOrders()) if (o.createdBy === e) list.push({ date: o.date, type: 'Lập đơn nhập', code: o.code, link: ['/mua-hang', o.id], detail: '', amount: o.totalValue });
+    for (const o of this.data.purchaseOrders()) if (o.createdBy === e) list.push({ date: o.date, type: 'Lập đơn nhập', code: o.code, link: ['/mua-hang', o.id], detail: '', amount: o.totalValue ?? undefined });
     for (const v of this.data.cashVouchers()) {
       if (v.createdBy === e) list.push({ date: v.date, type: v.kind === 'THU' ? 'Lập phiếu thu' : 'Lập phiếu chi', code: v.code, link: ['/thu-chi', v.id], detail: v.isCancelled ? 'đã huỷ' : '', amount: v.amount });
     }

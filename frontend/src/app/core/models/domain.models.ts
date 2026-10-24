@@ -175,7 +175,7 @@ export type PurchaseOrderStatus = 'NHAP' | 'DA_GUI_NCC' | 'NHAN_MOT_PHAN' | 'DA_
 export interface PurchaseOrderLine {
   productId: string;
   quantity: number; // in unitName (defaults to the product's base unit)
-  unitPrice: number; // per unitName
+  unitPrice: number; // per unitName — null at runtime when giá nhập is hidden from this role (only shown under seesPurchasePrices)
   receivedQuantity: number; // in unitName
   unitName?: string; // ordering in a conversion unit (e.g. Bó); undefined = base unit
   ratioToBase?: number; // base units per unitName; undefined = 1
@@ -189,10 +189,11 @@ export interface PurchaseOrder {
   supplierId: string;
   date: string;
   status: PurchaseOrderStatus;
-  totalValue: number;
+  /** null: chức vụ không được xem giá nhập (server ẩn; xem seesPurchasePrices). */
+  totalValue: number | null;
   createdBy: string;
   lines: PurchaseOrderLine[];
-  receivedValue: number; // giá trị hàng đã nhận thực tế = công nợ phải trả
+  receivedValue: number | null; // giá trị hàng đã nhận thực tế = công nợ phải trả; null = giá nhập bị ẩn
   receivedDate?: string;
   note?: string;
   sentDate?: string; // ngày gửi NCC

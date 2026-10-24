@@ -1,4 +1,4 @@
-import { Component, ElementRef, computed, input, output, signal, viewChild } from '@angular/core';
+import { Component, inject, ElementRef, computed, input, output, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DataStore } from '../../../core/services/data-store.service';
 import { PurchaseOrder } from '../../../core/models/domain.models';
@@ -10,6 +10,8 @@ import { PurchaseOrderService } from '../purchase-order.service';
 import { errorText } from '../../../core/api/api.service';
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 import { PickableWarehousesPipe } from '../../../shared/pickable-warehouses.pipe';
+import { AuthService } from '../../../core/services/auth.service';
+import { seesPurchasePrices } from '../../../core/auth/purchase-prices';
 
 interface ReceiveRow {
   lineIndex: number;
@@ -47,6 +49,8 @@ export class ReceiveGoodsDialogComponent {
   readonly note = signal('');
   readonly attempted = signal(false);
   readonly money = formatVnd;
+  /** Thủ kho receives by quantity: no giá nhập (the server sends none). */
+  readonly prices = seesPurchasePrices((c) => inject(AuthService).can(c));
 
   constructor(
     readonly data: DataStore,
@@ -142,7 +146,7 @@ export class ReceiveGoodsDialogComponent {
     }
     this.close();
     this.received.emit(
-      `Đã nhận hàng: lập ${vouchers.map((v) => v.code).join(', ')} — tồn kho và công nợ phải trả đã cập nhật (+${formatVnd(this.value())}).`,
+      `Đã nhận hàng: lập ${vouchers.map((v) => v.code).join(', ')} — tồn kho và công nợ phải trả đã cập nhật${this.prices ? ` (+${formatVnd(this.value())})` : ''}.`,
     );
   }
 }

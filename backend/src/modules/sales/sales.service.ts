@@ -202,6 +202,20 @@ export class SalesService {
     return orderToApi(o);
   }
 
+  /**
+   * Giá vốn đã chốt khi xuất hàng của đơn (per base unit, by mặt hàng): from its own phiếu xuất and those of the chuyến
+   * that carried it. Mặt hàng chưa xuất are absent — the tab Giá vốn shows today's average for them.
+   */
+  async issuedCosts(id: string, user: AuthUser): Promise<Record<string, number>> {
+    const o = await this.prisma.salesOrder.findFirst({ where: { id, ...this.visibleTo(user) }, select: { id: true } });
+    if (!o) throw new NotFoundException('Không tìm thấy đơn hàng');
+    return this.prisma.$transaction(async (tx) => {
+      const trips = (await tx.deliveryTripOrder.findMany({ where: { orderId: id }, select: { tripId: true } })).map((t) => t.tripId);
+      const issued = await this.inventory.issuedCost(tx, { OR: [{ salesOrderId: id }, ...(trips.length ? [{ deliveryTripId: { in: trips } }] : [])] });
+      return Object.fromEntries(issued);
+    });
+  }
+
   async order(id: string, db: Tx | PrismaService = this.prisma) {
     const o = await db.salesOrder.findUnique({ where: { id }, include: ORDER_INCLUDE });
     if (!o) throw new NotFoundException('Không tìm thấy đơn hàng');

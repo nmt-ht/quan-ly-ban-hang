@@ -82,11 +82,24 @@ const production: ReportDef = {
       const snap = json as { componentId: string; quantityPerUnit: number }[] | null;
       return snap?.length ? snap : env.data.bomLines().filter((b) => b.finishedProductId === productId);
     };
+    // Chi phí vật tư thực: giá vốn đã chốt trên phiếu xuất vật tư của lệnh (Pha 1.3). A lệnh with none (made before
+    // costs were frozen) falls back to định mức × giá vốn hiện tại and is counted as ước tính.
+    const issued = new Map<string, number>();
+    for (const x of env.data.issueCosts()) {
+      if (x.productionOrderId) issued.set(x.productionOrderId, (issued.get(x.productionOrderId) ?? 0) + x.quantity * x.unitCost);
+    }
+    let estimated = 0;
+    const costOfLsx = (id: string, x: (typeof done)[number]) => {
+      const v = issued.get(x.id);
+      if (v !== undefined) return v;
+      estimated++;
+      return bomOf(id, x.bomSnapshot).reduce((c, b) => c + b.quantityPerUnit * x.quantity * env.cost.costOf(b.componentId), 0);
+    };
     const rows = [...by].map(([id, ls]) => {
       const p = products.get(id);
       const planned = r4(ls.reduce((s, x) => s + x.quantity, 0));
       const made = r4(ls.reduce((s, x) => s + (x.producedQuantity ?? x.quantity), 0));
-      const cost = Math.round(ls.reduce((s, x) => s + bomOf(id, x.bomSnapshot).reduce((c, b) => c + b.quantityPerUnit * x.quantity * env.cost.costOf(b.componentId), 0), 0));
+      const cost = Math.round(ls.reduce((s, x) => s + costOfLsx(id, x), 0));
       return {
         id, code: p?.code ?? '', name: p?.name ?? '—', link: p ? ['/hang-hoa', id] : null, unit: p?.baseUnit ?? '', orders: ls.length,
         planned, made, waste: pct(planned - made, planned), cost, unit_cost: made ? Math.round(cost / made) : 0,
@@ -96,7 +109,7 @@ const production: ReportDef = {
       kpis: [
         { label: 'Lệnh hoàn tất', value: String(done.length) },
         { label: 'Thực nhập kho (số lượng)', value: rows.reduce((s, r) => s + r.made, 0).toLocaleString('vi-VN') },
-        { label: 'Chi phí vật tư (ước tính)', value: formatVnd(rows.reduce((s, r) => s + r.cost, 0)) },
+        { label: estimated ? `Chi phí vật tư (${estimated} lệnh ước tính)` : 'Chi phí vật tư (đã xuất)', value: formatVnd(rows.reduce((s, r) => s + r.cost, 0)) },
       ],
       columns: [
         { key: 'code', label: 'Mã TP' },

@@ -4,7 +4,7 @@ import { AuthService } from './auth.service.js';
 import type { AuthUser } from './auth.service.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { LoginDto } from './dto/login.dto.js';
-import { JwtAuthGuard } from './jwt-auth.guard.js';
+import { AllowWhilePasswordChange, JwtAuthGuard } from './jwt-auth.guard.js';
 
 @Controller('auth')
 export class AuthController {
@@ -19,6 +19,7 @@ export class AuthController {
 
   /** Who am I and what may I do — read fresh from the database (see JwtStrategy.validate). */
   @UseGuards(JwtAuthGuard)
+  @AllowWhilePasswordChange()
   @Get('me')
   me(@Req() req: { user: AuthUser }): AuthUser {
     return req.user;
@@ -26,6 +27,7 @@ export class AuthController {
 
   /** Đổi mật khẩu của chính mình: ends every other session and answers with a fresh token for this one. */
   @UseGuards(JwtAuthGuard, ThrottlerGuard)
+  @AllowWhilePasswordChange()
   @Post('change-password')
   @HttpCode(HttpStatus.OK)
   changePassword(@Req() req: { user: AuthUser }, @Body() dto: ChangePasswordDto) {

@@ -35,7 +35,7 @@ import { activePromotions, applyLinePromotions, orderDiscountFor } from '../prom
 import { HasUnsavedChanges, isSaveShortcut, warnBeforeUnload } from '../../../core/guards/unsaved-changes.guard';
 import { DeliverDialogComponent } from '../deliver-dialog/deliver-dialog.component';
 import { ReturnDialogComponent } from '../return-dialog/return-dialog.component';
-import { errorText } from '../../../core/api/api.service';
+import { ApiService, errorText } from '../../../core/api/api.service';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
@@ -99,6 +99,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   private readonly debt = inject(DebtService);
   private readonly orders = inject(SalesOrderService);
   private readonly quotations = inject(QuotationService);
+  private readonly api = inject(ApiService);
   readonly cost = inject(CostService);
   private readonly auth = inject(AuthService);
   private readonly deliverDialog = viewChild<DeliverDialogComponent>('deliverDialog');
@@ -742,18 +743,35 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
 
   // ---------- tab Giá vốn ----------
   /** Per line: giá vốn bình quân hiện tại (CostService, theo ĐVT của dòng), doanh thu thuần sau chiết khấu, lãi gộp. */
+  /** Giá vốn đã chốt khi xuất hàng của đơn (per base unit) — mặt hàng đã giao dùng giá này thay cho bình quân hiện tại. */
+  readonly issuedCosts = signal<Record<string, number>>({});
+
+  private readonly loadIssuedCosts = effect(() => {
+    const o = this.order();
+    if (!o || !this.cost.canViewCost() || !o.lines.some((l) => (l.receivedQuantity ?? 0) > 0)) {
+      this.issuedCosts.set({});
+      return;
+    }
+    this.api.get<Record<string, number>>(`/sales-orders/${o.id}/issued-costs`).then(
+      (c) => this.issuedCosts.set(c),
+      () => this.issuedCosts.set({}),
+    );
+  });
+
   readonly costRows = computed(() => {
     const t = this.totals();
+    const issued = this.issuedCosts();
     return this.validLines().map((l, i) => {
       const p = this.product(l.productId);
-      const unitCost = Math.round(this.cost.costOf(l.productId) * this.ratio(l));
+      const frozen = issued[l.productId] !== undefined;
+      const unitCost = Math.round((frozen ? issued[l.productId] : this.cost.costOf(l.productId)) * this.ratio(l));
       const costAmount = Math.round(unitCost * (l.quantity ?? 0));
       const net = t.lines[i].taxable;
       const profit = net - costAmount;
       return {
         key: l.key, name: p?.name ?? l.productId, code: p?.code ?? '', unit: this.unitLabel(l), quantity: l.quantity ?? 0,
         service: p?.type === 'DICH_VU', unitCost, costAmount, net, profit, margin: net ? (profit / net) * 100 : 0,
-        noCost: p?.type !== 'DICH_VU' && unitCost === 0,
+        noCost: p?.type !== 'DICH_VU' && unitCost === 0, frozen,
       };
     });
   });

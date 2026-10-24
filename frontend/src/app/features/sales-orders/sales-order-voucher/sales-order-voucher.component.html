@@ -514,7 +514,10 @@
                     <td class="c-num num">
                       @if (r.service) { <span class="subtitle">Dịch vụ</span> }
                       @else if (r.noCost) { <span class="so-nocost" title="Chưa có giá nhập hoặc định mức để tính giá vốn">Chưa có</span> }
-                      @else { {{ money(r.unitCost) }} }
+                      @else {
+                        {{ money(r.unitCost) }}
+                        @if (r.frozen) { <span class="so-chip" title="Giá vốn đã chốt trên phiếu xuất của đơn">đã chốt</span> }
+                      }
                     </td>
                     <td class="c-num num">{{ money(r.costAmount) }}</td>
                     <td class="c-num num">{{ money(r.net) }}</td>
@@ -540,7 +543,7 @@
             </table>
           </div>
           <p class="grid-hint">
-            Giá vốn <strong>bình quân hiện tại</strong> (bình quân gia quyền di động). Khi giao, giá vốn được chốt trên phiếu xuất — báo cáo Lãi gộp dùng giá đã chốt đó.
+            Mặt hàng đã giao dùng <strong>giá vốn đã chốt</strong> trên phiếu xuất của đơn (như báo cáo Lãi gộp); mặt hàng chưa giao dùng giá vốn <strong>bình quân hiện tại</strong>.
             Doanh thu thuần = tiền hàng sau chiết khấu, chưa thuế GTGT.
             @if (costTotals().noCost) { <span class="text-danger"> {{ costTotals().noCost }} dòng chưa có giá vốn nên lãi gộp đang cao hơn thực tế.</span> }
           </p>
