@@ -87,7 +87,8 @@ const lostCustomers: ReportDef = {
   group: 'sell',
   run(env, { range }): ReportResult {
     const cx = ctxOf(env);
-    const active = new Set(cx.lines.filter((l) => inRange(l.date, range)).map((l) => l.customerId));
+    // A trả hàng is not a purchase: only sale lines say a customer bought (returns still lower their doanh thu cũ).
+    const active = new Set(cx.lines.filter((l) => !l.returnCode && inRange(l.date, range)).map((l) => l.customerId));
     const before = new Map<string, RevenueLine[]>();
     for (const l of cx.lines) if (l.date < range.from) before.set(l.customerId, [...(before.get(l.customerId) ?? []), l]);
     const customers = new Map(env.data.customers().map((c) => [c.id, c]));
@@ -95,7 +96,7 @@ const lostCustomers: ReportDef = {
       .filter(([id]) => !active.has(id) && customers.get(id)?.isActive)
       .map(([id, ls]) => {
         const c = customers.get(id)!;
-        const last = ls.map((l) => l.date).sort().at(-1)!;
+        const last = ls.filter((l) => !l.returnCode).map((l) => l.date).sort().at(-1) ?? ls[0].date;
         return {
           id, code: c.code, name: c.name, link: ['/khach-hang', id], phone: c.phone ?? '', last, since: days(last, range.to),
           orders: new Set(ls.map((l) => l.orderId)).size, revenue: ls.reduce((s, l) => s + l.total, 0),
@@ -135,7 +136,8 @@ const grossProfit: ReportDef = {
     const keyOf = (l: RevenueLine) => (group === 'customer' ? l.customerId : group === 'category' ? cx.product(l.productId).category : l.productId);
     const by = new Map<string, RevenueLine[]>();
     for (const l of lines) by.set(keyOf(l), [...(by.get(keyOf(l)) ?? []), l]);
-    const cost = (l: RevenueLine) => Math.round(l.baseQty * env.cost.costOf(l.productId));
+    // Giá vốn hàng bán: what the phiếu xuất froze for this order (a return counts back at the same cost).
+    const cost = (l: RevenueLine) => Math.round(l.baseQty * env.cost.issued(l.orderId, l.productId));
     const rows = [...by].map(([k, ls]) => {
       const net = ls.reduce((s, l) => s + l.net, 0);
       const c = ls.reduce((s, l) => s + cost(l), 0);
@@ -144,7 +146,7 @@ const grossProfit: ReportDef = {
         id: k, code: meta?.code ?? '', name: group === 'category' ? k : meta!.name, link: meta?.link ?? null,
         qty: group === 'product' ? Math.round(ls.reduce((s, l) => s + l.baseQty, 0) * 10000) / 10000 : undefined,
         net, cost: c, profit: net - c, margin: pct(net - c, net),
-        zero: ls.filter((l) => env.cost.costOf(l.productId) === 0).length,
+        zero: ls.filter((l) => env.cost.issued(l.orderId, l.productId) === 0).length,
       };
     }).sort((a, b) => b.profit - a.profit);
     const net = rows.reduce((s, r) => s + r.net, 0);
@@ -152,7 +154,7 @@ const grossProfit: ReportDef = {
     return {
       kpis: [
         { label: 'Doanh thu thuần', value: formatVnd(net) },
-        { label: 'Giá vốn ước tính', value: formatVnd(c) },
+        { label: 'Giá vốn hàng bán', value: formatVnd(c) },
         { label: 'Lãi gộp', value: formatVnd(net - c), tone: net - c < 0 ? 'neg' : 'pos', sub: `Tỷ suất ${pct(net - c, net).toLocaleString('vi-VN')}%` },
       ],
       columns: ([
@@ -183,7 +185,7 @@ const belowCost: ReportDef = {
     const rows = cx.lines
       .filter((l) => inRange(l.date, range) && l.baseQty > 0)
       .map((l) => {
-        const cost = env.cost.costOf(l.productId);
+        const cost = env.cost.issued(l.orderId, l.productId);
         const price = l.net / l.baseQty;
         const p = cx.product(l.productId);
         return {

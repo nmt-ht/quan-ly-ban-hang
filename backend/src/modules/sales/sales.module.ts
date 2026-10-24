@@ -1,8 +1,7 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Module, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { Type } from 'class-transformer';
 import {
-  ArrayMinSize, IsArray, IsISO8601, IsInt, IsNumber, IsOptional, IsPositive, IsString, Matches, Max, Min, ValidateNested,
-} from 'class-validator';
+  ArrayMinSize, IsArray, IsISO8601, IsInt, IsNumber, IsOptional, IsPositive, IsString, Matches, Max, Min, ValidateNested, IsBoolean } from 'class-validator';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard.js';
 import { PermissionsGuard } from '../../auth/permissions.guard.js';
 import { CurrentUser, RequireAnyPermission, RequirePermissions } from '../../auth/permissions.decorator.js';
@@ -11,6 +10,9 @@ import { OptionalDay, OptionalText, Text } from '../../common/dto.js';
 import { InventoryModule } from '../inventory/inventory.module.js';
 import { SalesService } from './sales.service.js';
 import { ReceivablesService } from './receivables.service.js';
+import { SalesReturnsController, SalesReturnsService } from './returns.js';
+import { QuotationsController, QuotationsService } from './quotations.js';
+import { DebtRemindersController, DebtRemindersService } from './reminders.js';
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const DAY_MESSAGE = { message: 'Ngày phải có dạng YYYY-MM-DD' };
@@ -30,6 +32,8 @@ export class SaleLineDto {
   @IsOptional() @IsNumber() @Min(0) length?: number;
   @IsOptional() @IsNumber() @Min(0) width?: number;
   @OptionalText(300) note?: string;
+  @OptionalText(60) promotionId?: string;
+  @IsOptional() @IsBoolean() isGift?: boolean;
 }
 
 export class SalesOrderDto {
@@ -45,6 +49,11 @@ export class SalesOrderDto {
   @OptionalText(200) salesRep?: string;
   @IsNumber() @Min(0) discountAmount!: number;
   @OptionalText(60) payNowAccountId?: string;
+  @OptionalText(60) promotionId?: string;
+  /** Lưu dù vượt hạn mức công nợ của khách — chỉ chức vụ có debt.adjust. */
+  @IsOptional() @IsBoolean() overrideCreditLimit?: boolean;
+  /** Lập đơn từ báo giá (chỉ khi tạo đơn). */
+  @OptionalText(60) quotationId?: string;
   @IsArray() @ArrayMinSize(1, { message: 'Thêm ít nhất một dòng hàng' }) @ValidateNested({ each: true }) @Type(() => SaleLineDto)
   lines!: SaleLineDto[];
   @IsOptional() @IsISO8601() updatedAt?: string;
@@ -169,8 +178,8 @@ export class ReceivablesController {
 
 @Module({
   imports: [InventoryModule],
-  controllers: [SalesController, ReceivablesController],
-  providers: [SalesService, ReceivablesService],
+  controllers: [SalesController, SalesReturnsController, QuotationsController, ReceivablesController, DebtRemindersController],
+  providers: [SalesService, SalesReturnsService, QuotationsService, ReceivablesService, DebtRemindersService],
   exports: [SalesService, ReceivablesService],
 })
 export class SalesModule {}

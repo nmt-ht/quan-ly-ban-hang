@@ -21,6 +21,7 @@ import {
 import { DeliveryTripService } from '../delivery-trip.service';
 import { TripHeaderDialogComponent } from '../trip-header-dialog/trip-header-dialog.component';
 import { PrintDocumentComponent } from '../../../shared/print/print-document.component';
+import { PrintMenuComponent } from '../../../shared/print/print-menu.component';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { errorText } from '../../../core/api/api.service';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
@@ -56,7 +57,7 @@ interface ConfirmRow {
 @Component({
   selector: 'app-delivery-trip-voucher',
   standalone: true,
-  imports: [FrozenColsDirective, NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, TripHeaderDialogComponent, PrintDocumentComponent, AuditHistoryComponent],
+  imports: [FrozenColsDirective, NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, TripHeaderDialogComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent],
   templateUrl: './delivery-trip-voucher.component.html',
   styleUrls: [
     '../../../shared/voucher/voucher.scss',
@@ -307,13 +308,6 @@ export class DeliveryTripVoucherComponent {
     this.notice.set(`Đã bỏ chốt ${r.order.code} — đơn về Đang giao, công nợ ghi lúc chốt đã gỡ.`);
   }
 
-  print(mode: Exclude<PrintMode, null>): void {
-    this.printMode.set(mode);
-    setTimeout(() => {
-      window.print();
-      this.printMode.set(null);
-    });
-  }
 
   // ---------- xếp đơn (dialog) ----------
   readonly addSearch = signal('');

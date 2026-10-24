@@ -7,6 +7,7 @@ import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { foldVi, formatVnd } from '../../../shared/format.util';
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 import { WarehouseService } from './warehouse.service';
+import { CostService } from '../../../core/services/cost.service';
 import { WarehouseFormDialogComponent } from './warehouse-form-dialog.component';
 import { businessStatusClass } from '../../../shared/status-labels';
 
@@ -21,6 +22,7 @@ import { businessStatusClass } from '../../../shared/status-labels';
 export class WarehousesComponent {
   readonly data = inject(DataStore);
   readonly svc = inject(WarehouseService);
+  readonly cost = inject(CostService);
   private readonly router = inject(Router);
   private readonly form = viewChild.required(WarehouseFormDialogComponent);
 

@@ -6,8 +6,16 @@ import { CatalogLoader } from '../api/catalog-loader.service';
 export const authGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
-  if (auth.isAuthenticated()) return true;
-  return router.parseUrl('/login');
+  if (!auth.isAuthenticated()) return router.parseUrl('/login');
+  // An administrator-issued password must be replaced before anything else opens.
+  if (auth.mustChangePassword()) return router.parseUrl('/doi-mat-khau');
+  return true;
+};
+
+/** For pages that only need a signed-in user, not a changed password (the change-password page itself). */
+export const signedInGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  return auth.isAuthenticated() || inject(Router).parseUrl('/login');
 };
 
 /**

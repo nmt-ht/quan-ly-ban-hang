@@ -207,6 +207,10 @@ export interface Customer {
   companyName?: string;
   type: CustomerType;
   creditDays: number; // 0 = pay on receipt
+  /** Hạn mức công nợ phải thu (đồng); 0 hoặc trống = không giới hạn. Server chặn đơn làm vượt hạn mức. */
+  creditLimit?: number;
+  /** Bảng giá riêng (Pha 1.6); không có thì giá theo loại khách. */
+  priceListId?: string | null;
   phone?: string;
   email?: string;
   idNumber?: string;
@@ -251,6 +255,10 @@ export interface SalesOrderLine {
   length?: number; // cm — thành phẩm cắt theo cỡ
   width?: number;
   note?: string;
+  /** Khuyến mãi đã áp vào dòng (Pha 1.6). */
+  promotionId?: string | null;
+  /** Hàng tặng: giá theo bảng giá, chiết khấu 100%. */
+  isGift?: boolean;
 }
 
 export interface SalesOrder {
@@ -282,6 +290,75 @@ export interface SalesOrder {
   /** "Thu tiền ngay": mỗi lần khách nhận hàng, tự lập phiếu thu đúng số nhận vào tài khoản này. */
   payNowAccountId?: string;
   updatedAt?: string;
+  /** Phiếu trả hàng (Pha 1.5), cũ trước. */
+  returns?: SalesReturn[];
+  /** Giá trị các phiếu trả chưa huỷ — công nợ của đơn = receivedValue − returnedValue. */
+  returnedValue?: number;
+  /** Khuyến mãi theo tổng đơn đã áp vào Chiết khấu cả đơn (Pha 1.6). */
+  promotionId?: string | null;
+  /** Báo giá đơn được lập từ (Pha 1.4). */
+  quotationId?: string | null;
+  quotationCode?: string | null;
+}
+
+/** MOI = đang mở (sửa, huỷ, lập đơn được); "Hết hạn" không lưu — màn hình suy ra từ validUntil. */
+export type QuotationStatus = 'MOI' | 'DA_CHOT' | 'HUY';
+
+/** Dòng báo giá: như dòng đơn bán, không có kho xuất và số đã nhận. */
+export type QuotationLine = Omit<SalesOrderLine, 'warehouseId' | 'receivedQuantity'>;
+
+/** Báo giá BG…: không đụng tồn kho, công nợ. "Lập đơn" sao sang đơn hàng bán (orderId) và chốt báo giá. */
+export interface Quotation {
+  id: string;
+  code: string;
+  customerId: string;
+  recipientName?: string | null;
+  recipientPhone?: string | null;
+  deliveryAddress?: string | null;
+  description?: string | null;
+  quoteDate: string;
+  validUntil?: string | null;
+  status: QuotationStatus;
+  cancelReason?: string | null;
+  discountAmount: number;
+  promotionId?: string | null;
+  lines: QuotationLine[];
+  totalGoods: number;
+  totalOrder: number;
+  vatAmount: number;
+  salesRep: string;
+  createdBy: string;
+  orderId?: string | null;
+  orderCode?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Trả hàng bán: khách trả lại hàng đã nhận. Hàng nhập lại kho (phiếu "Nhập trả về" voucherCode), giá trị giảm công nợ
+ * và doanh thu vào ngày trả. Huỷ thì phiếu kho đi kèm bị huỷ theo. */
+export interface SalesReturn {
+  id: string;
+  code: string; // TH0000001
+  orderId: string;
+  date: string;
+  reason: string;
+  note?: string;
+  amount: number; // gồm thuế, sau chiết khấu
+  voucherId?: string;
+  voucherCode?: string;
+  isCancelled: boolean;
+  cancelReason?: string;
+  createdBy: string;
+  createdAt?: string;
+  lines: { id: string; orderLineId: string; quantity: number; amount: number }[];
+}
+
+export interface SalesReturnDraft {
+  date: string;
+  warehouseId: string;
+  reason: string;
+  note?: string;
+  lines: { orderLineId: string; quantity: number }[];
 }
 
 export type DeliveryTripStatus = 'GOM_DON' | 'DA_XUAT_KHO' | 'XE_VE_KHO' | 'HOAN_TAT' | 'HUY';
@@ -365,6 +442,8 @@ export interface CashAccount {
   balance: number; // số dư hiện tại = số dư đầu kỳ + thu − chi (phiếu chưa huỷ); CashVoucherService giữ đồng bộ
   code?: string; // TM, TCB-9999…
   bankName?: string;
+  /** Mã BIN NAPAS của ngân hàng (6 số) — có thì in được mã VietQR chuyển khoản (Pha 2). */
+  bankBin?: string | null;
   accountNumber?: string;
   accountHolder?: string;
   branch?: string;
@@ -488,4 +567,54 @@ export interface AppUser {
   mustChangePassword?: boolean; // bắt đổi mật khẩu ở lần đăng nhập tới
   lockedAt?: string;
   lockedReason?: string;
+}
+
+/** Bảng giá riêng gán cho khách (Pha 1.6): giá theo mặt hàng và ĐVT ("" = ĐVT chính). */
+export interface PriceListItem {
+  productId: string;
+  unitName: string;
+  price: number;
+}
+
+export interface PriceList {
+  id: string;
+  name: string;
+  note?: string | null;
+  isActive: boolean;
+  items: PriceListItem[];
+  customerCount: number;
+  updatedAt?: string;
+}
+
+export type PromotionKind = 'GIAM_HANG' | 'GIAM_DON' | 'BAC_THANG' | 'TANG_HANG';
+export type DiscountType = 'PHAN_TRAM' | 'SO_TIEN';
+export type PromotionScope = 'TAT_CA' | 'LOAI_KHACH' | 'BANG_GIA';
+
+/**
+ * Khuyến mãi KM…: áp theo ngày chứng từ cho phạm vi khách. Số lượng tính theo ĐVT chính; giảm SO_TIEN của GIAM_HANG /
+ * BAC_THANG là số tiền mỗi ĐVT chính. Productids và categoryIds đều trống = mọi mặt hàng.
+ */
+export interface Promotion {
+  id: string;
+  code: string;
+  name: string;
+  kind: PromotionKind;
+  startDate: string;
+  endDate?: string | null;
+  isActive: boolean;
+  note?: string | null;
+  scope: PromotionScope;
+  customerTypes: CustomerType[];
+  priceListIds: string[];
+  productIds: string[];
+  categoryIds: string[];
+  discountType: DiscountType;
+  discountValue: number;
+  minOrderValue: number;
+  tiers: { minQuantity: number; value: number }[];
+  buyQuantity: number;
+  giftProductId?: string | null;
+  giftQuantity: number;
+  createdBy?: string;
+  updatedAt?: string;
 }

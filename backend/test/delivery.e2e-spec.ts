@@ -134,6 +134,17 @@ describe('Chuyến giao hàng (e2e)', () => {
     expect(back.reason).toContain(`chuyến ${t.code}`);
     expect((await manager.post(`/api/delivery-trips/${t.id}/complete`).expect(200)).body.trip.status).toBe('HOAN_TAT');
 
+    // Báo cáo Giao hàng / Hiệu quả theo tài xế read the same chốt giao: o1 nhận một phần, o2 khách không nhận.
+    const byTrip = (await manager.get(`/api/reports/giao-hang?from=${today}&to=${today}&group=trip`).expect(200)).body;
+    expect(byTrip.rows.find((r: any) => r.id === t.id)).toMatchObject({
+      orders: 2, confirmed: 2, open: 0, full: 0, partial: 1, none: 1, loaded: 370_000, received: 170_000, rate: 45.9, link: ['/giao-hang', t.id],
+    });
+    const byCustomer = (await manager.get(`/api/reports/giao-hang?from=${today}&to=${today}&group=customer`).expect(200)).body;
+    expect(byCustomer.rows.find((r: any) => r.id === 'kh-01').received).toBeGreaterThanOrEqual(170_000);
+    const drivers = (await manager.get(`/api/reports/tai-xe?from=${today}&to=${today}`).expect(200)).body;
+    expect(drivers.rows.find((r: any) => r.id === 'Đặng Văn Tài')).toMatchObject({ trips: 1, confirmed: 2, full: 0, fullRate: 0, loaded: 370_000, back: 200_000, backRate: 54.1 });
+    await sale.get('/api/reports/giao-hang').expect(403); // report.delivery
+
     // A cancelled chuyến lets its orders go on another one.
     const o3 = await newOrder(sale, { salesRep: 'sale1@ninhtrang.local', lines: [{ productId: item, unit: 'Cái', quantity: 1, unitPrice: 50000 }] });
     await manager.post(`/api/delivery-trips/${other.id}/orders`, { orderIds: [o3.id] }).expect(200);

@@ -66,6 +66,11 @@ export class AccountMenuComponent {
     this.theme.set(mode); // menu stays open so the effect is visible
   }
 
+  changePassword(): void {
+    this.close(false);
+    this.router.navigateByUrl('/doi-mat-khau');
+  }
+
   logout(): void {
     this.close(false);
     this.auth.logout();

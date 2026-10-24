@@ -14,6 +14,22 @@
   margin: 12mm 14mm 14mm;
 }
 
+// A5 and K80 (PrintService puts the paper on <html data-paper> for the time of one print).
+@page a5 {
+  size: A5 portrait;
+  margin: 9mm 8mm 11mm 10mm;
+}
+
+// K80: an 80 mm thermal roll. PrintService sets the length to the measured content just before printing.
+@page k80 {
+  size: 80mm 297mm;
+  margin: 3mm 4mm 6mm;
+
+  @bottom-center {
+    content: none;
+  }
+}
+
 @page {
   size: A4 portrait;
   margin: 14mm 12mm 16mm 16mm;
@@ -26,20 +42,10 @@
 }
 
 @media print {
-  // Paper tokens — the only raw values in print: fixed so dark mode never prints grey on white.
-  :root {
-    --pr-ink: #000;
-    --pr-ink-2: #262626;
-    --pr-muted: #555;
-    --pr-rule: #7a7a7a;
-    --pr-hair: #bdbdbd;
-    --pr-fill: #f0f0f0;
-  }
-
   html,
   body {
     background: #fff !important;
-    color: var(--pr-ink);
+    color: #000;
   }
 
   .sidebar,
@@ -67,286 +73,568 @@
     display: block !important;
   }
 
+  :root[data-paper='a5'] body {
+    page: a5;
+  }
+
+  :root[data-paper='k80'] body {
+    page: k80;
+  }
+}
+
+// K80 roll length: PrintService lays the printouts out off-screen at the roll's printable width and measures them.
+:root[data-paper-measure] .print-only {
+  display: block !important;
+  position: absolute;
+  top: 0;
+  left: -10000px;
+  width: 72mm;
+  visibility: hidden;
+}
+
+// ---------- the paper ----------
+// Not inside @media print: .print-only hides it on screen, and the K80 roll is measured on screen
+// (PrintService.fitRoll) with the same rules the printer gets.
+
+.pd {
+  // Paper tokens — the only raw values in print: fixed so dark mode never prints grey on white.
+  --pr-ink: #000;
+  --pr-ink-2: #262626;
+  --pr-muted: #555;
+  --pr-rule: #7a7a7a;
+  --pr-hair: #bdbdbd;
+  --pr-fill: #f0f0f0;
+  --color-ink: var(--pr-ink);
+  --color-ink-2: var(--pr-ink-2);
+  --color-muted: var(--pr-muted);
+  --color-rule: var(--pr-hair);
+  color: var(--pr-ink);
+  font-size: 10.5pt;
+  line-height: 1.45;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.pd * {
+  box-shadow: none !important;
+}
+
+.pd-landscape {
+  page: wide;
+}
+
+.pd-break {
+  break-after: page;
+}
+
+// ---------- header: letterhead left, document number right ----------
+
+.pd-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8mm;
+  padding-bottom: 3mm;
+  border-bottom: 1.5pt solid var(--pr-ink);
+}
+
+.pd-brand {
+  flex: 1;
+  min-width: 0;
+  font-size: 9.5pt;
+}
+
+.pd-ref {
+  flex: none;
+  min-width: 40mm;
+  text-align: right;
+  font-size: 10pt;
+}
+
+.pd-stamp {
+  display: inline-block;
+  margin-top: 2mm;
+  padding: 0.8mm 3mm;
+  border: 1.5pt solid var(--pr-ink);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+// ---------- title block ----------
+
+.pd-titlebar {
+  margin: 6mm 0 4mm;
+  text-align: center;
+}
+
+.pd-title {
+  margin: 0;
+  font-size: 16pt;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.pd-sub,
+.pd-date {
+  margin: 1mm 0 0;
+  font-size: 10pt;
+  color: var(--pr-ink-2);
+}
+
+// ---------- information blocks ----------
+
+.pd-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5mm 10mm;
+  margin: 0 0 4mm;
+  padding: 2.5mm 3mm;
+  border: 0.5pt solid var(--pr-hair);
+  background: var(--pr-fill);
+}
+
+.pd-meta > div {
+  display: flex;
+  gap: 2mm;
+  min-width: 0;
+}
+
+.pd-meta dt {
+  flex: 0 0 30mm;
+  margin: 0;
+  font-weight: 600;
+  color: var(--pr-ink-2);
+}
+
+.pd-meta dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.pd-meta .wide {
+  grid-column: 1 / -1;
+}
+
+// Fill-in rows with a dotted rule (phiếu thu / phiếu chi).
+.pd-form {
+  margin: 0 0 4mm;
+}
+
+.pd-form > div {
+  display: flex;
+  gap: 3mm;
+  padding: 1.4mm 0;
+  border-bottom: 0.5pt dotted var(--pr-rule);
+}
+
+.pd-form dt {
+  flex: 0 0 48mm;
+  margin: 0;
+}
+
+.pd-form dd {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.pd-h3 {
+  margin: 5mm 0 2mm;
+  font-size: 11pt;
+  font-weight: 700;
+}
+
+// ---------- data table ----------
+
+.pd-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9.5pt;
+}
+
+.pd-table th,
+.pd-table td {
+  padding: 1.4mm 2mm;
+  border: 0.5pt solid var(--pr-rule);
+  text-align: left;
+  vertical-align: top;
+}
+
+.pd-table th {
+  background: var(--pr-fill);
+  font-weight: 700;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.pd-table thead {
+  display: table-header-group;
+}
+
+.pd-table tr {
+  break-inside: avoid;
+}
+
+.pd-table th.nw {
+  white-space: nowrap;
+}
+
+.pd-table .r {
+  white-space: nowrap;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-table .c {
+  text-align: center;
+}
+
+.pd-table .stt {
+  width: 9mm;
+  text-align: center;
+}
+
+.pd-table tfoot td,
+.pd-table .sum td {
+  background: var(--pr-fill);
+  font-weight: 700;
+}
+
+.pd-table .box {
+  width: 14mm;
+  text-align: center;
+  font-size: 12pt;
+}
+
+// ---------- totals, words, notes ----------
+
+.pd-totals {
+  width: 78mm;
+  margin: 3mm 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-totals > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 4mm;
+  padding: 0.8mm 0;
+  border-bottom: 0.5pt solid var(--pr-hair);
+}
+
+.pd-totals .grand {
+  border-top: 1pt solid var(--pr-ink);
+  border-bottom: 1.5pt double var(--pr-ink);
+  font-size: 11.5pt;
+  font-weight: 700;
+}
+
+.pd-words {
+  margin: 3mm 0 0;
+}
+
+.pd-note {
+  margin: 3mm 0 0;
+  font-size: 9.5pt;
+  color: var(--pr-ink-2);
+}
+
+// Mã VietQR chuyển khoản (Pha 2): kept whole on one page.
+.pd-qr {
+  margin: 4mm 0 0;
+  break-inside: avoid;
+  font-size: 9.5pt;
+}
+
+// ---------- signatures ----------
+
+.pd-sign {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+  gap: 4mm;
+  margin-top: 8mm;
+  text-align: center;
+  break-inside: avoid;
+}
+
+.pd-sign > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5mm;
+  min-height: 30mm;
+}
+
+.pd-sign span {
+  font-size: 9pt;
+  color: var(--pr-muted);
+}
+
+.pd-sign .pd-signer {
+  margin-top: auto;
+  font-size: 10pt;
+  font-weight: 600;
+  color: var(--pr-ink);
+}
+
+// ---------- footer ----------
+
+.pd-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 6mm;
+  margin-top: 6mm;
+  padding-top: 2mm;
+  border-top: 0.5pt solid var(--pr-hair);
+  font-size: 8pt;
+  color: var(--pr-muted);
+}
+
+// ---------- A5: the same document, tighter ----------
+// Type and spacing come down a step and headers wrap. A column a screen marks .a5-hide drops out (đơn hàng bán:
+// chiết khấu and thuế per line — the totals still show both).
+
+:root[data-paper='a5'] {
   .pd {
-    --color-ink: var(--pr-ink);
-    --color-ink-2: var(--pr-ink-2);
-    --color-muted: var(--pr-muted);
-    --color-rule: var(--pr-hair);
-    color: var(--pr-ink);
-    font-size: 10.5pt;
-    line-height: 1.45;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-
-  .pd * {
-    box-shadow: none !important;
-  }
-
-  .pd-landscape {
-    page: wide;
-  }
-
-  .pd-break {
-    break-after: page;
-  }
-
-  // ---------- header: letterhead left, document number right ----------
-
-  .pd-head {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 8mm;
-    padding-bottom: 3mm;
-    border-bottom: 1.5pt solid var(--pr-ink);
+    font-size: 9pt;
+    line-height: 1.4;
   }
 
   .pd-brand {
-    flex: 1;
-    min-width: 0;
-    font-size: 9.5pt;
+    font-size: 8pt;
   }
-
-  .pd-ref {
-    flex: none;
-    min-width: 40mm;
-    text-align: right;
-    font-size: 10pt;
-  }
-
-  .pd-stamp {
-    display: inline-block;
-    margin-top: 2mm;
-    padding: 0.8mm 3mm;
-    border: 1.5pt solid var(--pr-ink);
-    font-weight: 700;
-    letter-spacing: 0.06em;
-  }
-
-  // ---------- title block ----------
 
   .pd-titlebar {
-    margin: 6mm 0 4mm;
-    text-align: center;
+    margin: 4mm 0 3mm;
   }
 
   .pd-title {
-    margin: 0;
-    font-size: 16pt;
-    font-weight: 700;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
+    font-size: 13pt;
   }
-
-  .pd-sub,
-  .pd-date {
-    margin: 1mm 0 0;
-    font-size: 10pt;
-    color: var(--pr-ink-2);
-  }
-
-  // ---------- information blocks ----------
 
   .pd-meta {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1.5mm 10mm;
-    margin: 0 0 4mm;
-    padding: 2.5mm 3mm;
-    border: 0.5pt solid var(--pr-hair);
-    background: var(--pr-fill);
-  }
-
-  .pd-meta > div {
-    display: flex;
-    gap: 2mm;
-    min-width: 0;
+    gap: 1mm 6mm;
+    padding: 2mm 2.5mm;
   }
 
   .pd-meta dt {
-    flex: 0 0 30mm;
-    margin: 0;
-    font-weight: 600;
-    color: var(--pr-ink-2);
-  }
-
-  .pd-meta dd {
-    min-width: 0;
-    margin: 0;
-    overflow-wrap: anywhere;
-  }
-
-  .pd-meta .wide {
-    grid-column: 1 / -1;
-  }
-
-  // Fill-in rows with a dotted rule (phiếu thu / phiếu chi).
-  .pd-form {
-    margin: 0 0 4mm;
-  }
-
-  .pd-form > div {
-    display: flex;
-    gap: 3mm;
-    padding: 1.4mm 0;
-    border-bottom: 0.5pt dotted var(--pr-rule);
+    flex-basis: 22mm;
   }
 
   .pd-form dt {
-    flex: 0 0 48mm;
-    margin: 0;
+    flex-basis: 38mm;
   }
-
-  .pd-form dd {
-    flex: 1;
-    min-width: 0;
-    margin: 0;
-    font-weight: 500;
-    overflow-wrap: anywhere;
-  }
-
-  .pd-h3 {
-    margin: 5mm 0 2mm;
-    font-size: 11pt;
-    font-weight: 700;
-  }
-
-  // ---------- data table ----------
 
   .pd-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 9.5pt;
+    font-size: 8pt;
   }
 
   .pd-table th,
   .pd-table td {
-    padding: 1.4mm 2mm;
-    border: 0.5pt solid var(--pr-rule);
-    text-align: left;
-    vertical-align: top;
+    padding: 1mm 1.4mm;
   }
 
-  .pd-table th {
-    background: var(--pr-fill);
-    font-weight: 700;
-    text-align: center;
-    vertical-align: middle;
-  }
-
-  .pd-table thead {
-    display: table-header-group;
-  }
-
-  .pd-table tr {
-    break-inside: avoid;
-  }
-
+  // Headers wrap so the numbers keep their width; the table never runs off the page.
   .pd-table th.nw {
-    white-space: nowrap;
-  }
-
-  .pd-table .r {
-    white-space: nowrap;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .pd-table .c {
-    text-align: center;
+    white-space: normal;
   }
 
   .pd-table .stt {
-    width: 9mm;
-    text-align: center;
+    width: 6mm;
   }
-
-  .pd-table tfoot td,
-  .pd-table .sum td {
-    background: var(--pr-fill);
-    font-weight: 700;
-  }
-
-  .pd-table .box {
-    width: 14mm;
-    text-align: center;
-    font-size: 12pt;
-  }
-
-  // ---------- totals, words, notes ----------
 
   .pd-totals {
-    width: 78mm;
-    margin: 3mm 0 0 auto;
-    font-variant-numeric: tabular-nums;
+    width: 64mm;
   }
-
-  .pd-totals > div {
-    display: flex;
-    justify-content: space-between;
-    gap: 4mm;
-    padding: 0.8mm 0;
-    border-bottom: 0.5pt solid var(--pr-hair);
-  }
-
-  .pd-totals .grand {
-    border-top: 1pt solid var(--pr-ink);
-    border-bottom: 1.5pt double var(--pr-ink);
-    font-size: 11.5pt;
-    font-weight: 700;
-  }
-
-  .pd-words {
-    margin: 3mm 0 0;
-  }
-
-  .pd-note {
-    margin: 3mm 0 0;
-    font-size: 9.5pt;
-    color: var(--pr-ink-2);
-  }
-
-  // ---------- signatures ----------
 
   .pd-sign {
-    display: grid;
-    grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
-    gap: 4mm;
-    margin-top: 8mm;
-    text-align: center;
-    break-inside: avoid;
+    margin-top: 5mm;
   }
 
   .pd-sign > div {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5mm;
-    min-height: 30mm;
+    min-height: 22mm;
   }
 
   .pd-sign span {
+    font-size: 8pt;
+  }
+
+  .a5-hide {
+    display: none;
+  }
+}
+
+// ---------- K80: a till receipt ----------
+// One column, centred head, rules instead of boxes. Columns a screen marks .k80-hide drop out (mã hàng, ĐVT,
+// chiết khấu, thuế …), the STT column always does. Signatures: the signers marked k80 (else the first and last).
+// Several documents in one print follow each other on the roll, parted by a dashed cut line.
+
+:root[data-paper='k80'] {
+  .pd {
+    font-size: 8.5pt;
+    line-height: 1.35;
+  }
+
+  .pd-break {
+    break-after: auto;
+    margin-bottom: 5mm;
+    padding-bottom: 5mm;
+    border-bottom: 1pt dashed var(--pr-ink);
+  }
+
+  .pd-head {
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5mm;
+    padding-bottom: 2mm;
+    border-bottom: 1pt dashed var(--pr-ink);
+    text-align: center;
+  }
+
+  .pd-brand {
+    flex-direction: column;
+    gap: 1mm;
+    font-size: 7.5pt;
+  }
+
+  .pd-brand .lh-logo {
+    max-width: 22mm;
+    max-height: 12mm;
+  }
+
+  .pd-brand .lh-row {
+    justify-content: center;
+  }
+
+  .pd-ref {
+    min-width: 0;
+    text-align: center;
+    font-size: 8.5pt;
+  }
+
+  .pd-stamp {
+    margin-top: 1mm;
+  }
+
+  .pd-titlebar {
+    margin: 2.5mm 0 2mm;
+  }
+
+  .pd-title {
+    font-size: 11pt;
+  }
+
+  .pd-sub,
+  .pd-date {
+    font-size: 8pt;
+  }
+
+  .pd-meta {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.6mm;
+    margin-bottom: 2mm;
+    padding: 0 0 2mm;
+    border: 0;
+    border-bottom: 0.5pt dashed var(--pr-rule);
+    background: none;
+  }
+
+  .pd-meta dt {
+    flex-basis: 19mm;
+  }
+
+  .pd-form > div {
+    flex-direction: column;
+    gap: 0.3mm;
+    padding: 1mm 0;
+  }
+
+  .pd-form dt {
+    flex-basis: auto;
+    color: var(--pr-ink-2);
+  }
+
+  .pd-h3 {
+    margin: 3mm 0 1mm;
     font-size: 9pt;
-    color: var(--pr-muted);
   }
 
-  .pd-sign .pd-signer {
-    margin-top: auto;
+  .pd-table {
+    font-size: 8pt;
+  }
+
+  .pd-table th,
+  .pd-table td {
+    padding: 0.8mm 0.6mm;
+    border: 0;
+    border-bottom: 0.5pt dashed var(--pr-rule);
+  }
+
+  .pd-table th {
+    border-bottom: 0.75pt solid var(--pr-ink);
+    background: none;
+    text-align: left;
+  }
+
+  .pd-table th.nw {
+    white-space: normal;
+  }
+
+  .pd-table .stt,
+  .pd-table .k80-hide {
+    display: none;
+  }
+
+  .pd-table .box {
+    width: 6mm;
+  }
+
+  .pd-totals {
+    width: 100%;
+    margin-top: 2mm;
+  }
+
+  .pd-totals .grand {
     font-size: 10pt;
-    font-weight: 600;
-    color: var(--pr-ink);
   }
 
-  // ---------- footer ----------
+  .pd-words,
+  .pd-note {
+    margin-top: 2mm;
+    font-size: 8pt;
+  }
+
+  .pd-sign {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2mm;
+    margin-top: 4mm;
+  }
+
+  .pd-sign > div {
+    min-height: 20mm;
+  }
+
+  .pd-sign span {
+    font-size: 7.5pt;
+  }
+
+  .pd-sign:has(> .pd-k80-keep) > div:not(.pd-k80-keep),
+  .pd-sign:not(:has(> .pd-k80-keep)) > div:not(:first-child, :last-child) {
+    display: none;
+  }
 
   .pd-foot {
-    display: flex;
-    justify-content: space-between;
-    gap: 6mm;
-    margin-top: 6mm;
-    padding-top: 2mm;
-    border-top: 0.5pt solid var(--pr-hair);
-    font-size: 8pt;
-    color: var(--pr-muted);
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5mm;
+    margin-top: 3mm;
+    font-size: 7pt;
+  }
+
+  .k80-hide {
+    display: none;
   }
 }

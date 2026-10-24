@@ -60,11 +60,13 @@
         }
       </div>
 
-      <aside class="head-summary">
-        <p class="summary-label">Chi phí vật tư (ước tính)</p>
-        <p class="summary-total num">{{ money(materialCost()) }}</p>
-        <p class="summary-sub">≈ <span class="num">{{ money(unitCost()) }}</span> / {{ product()?.baseUnit }}{{ x.status === 'HOAN_TAT' ? ' (chia số thực nhập)' : '' }}</p>
-      </aside>
+      @if (cost.canViewCost()) {
+        <aside class="head-summary">
+          <p class="summary-label">Chi phí vật tư (ước tính)</p>
+          <p class="summary-total num">{{ money(materialCost()) }}</p>
+          <p class="summary-sub">≈ <span class="num">{{ money(unitCost()) }}</span> / {{ product()?.baseUnit }}{{ x.status === 'HOAN_TAT' ? ' (chia số thực nhập)' : '' }}</p>
+        </aside>
+      }
 
       <p class="form-note head-note">
         @switch (x.status) {
@@ -95,7 +97,7 @@
                 } @else {
                   <th scope="col" class="c-num">Đã xuất</th>
                 }
-                <th scope="col" class="c-num">Chi phí ước tính</th>
+                @if (cost.canViewCost()) { <th scope="col" class="c-num">Chi phí ước tính</th> }
               </tr>
             </thead>
             <tbody>
@@ -113,7 +115,7 @@
                   } @else {
                     <td class="c-num num">{{ b.issued ? b.issued.toLocaleString('vi-VN') : '—' }}</td>
                   }
-                  <td class="c-num num">{{ b.value ? b.value.toLocaleString('vi-VN') : '—' }}</td>
+                  @if (cost.canViewCost()) { <td class="c-num num">{{ b.value ? b.value.toLocaleString('vi-VN') : '—' }}</td> }
                 </tr>
               }
             </tbody>

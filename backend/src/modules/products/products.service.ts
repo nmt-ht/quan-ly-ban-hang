@@ -4,7 +4,8 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { SequenceService } from '../../prisma/sequence.service.js';
 import type { AuthUser } from '../../auth/auth.service.js';
-import { BomReplacementDto, CreateProductDto, ProductImageDto, ProductUpdateRowDto, UnitConversionDto } from './dto/create-product.dto.js';
+import { BomReplacementDto, CreateProductDto, ProductImageDto, ProductImportDto, UnitConversionDto } from './dto/create-product.dto.js';
+import { RowError, UnchangedRow, runImport, validateRow } from '../../common/import.js';
 import { AuditService } from '../../audit/audit.service.js';
 import { diff } from '../../audit/audit.diff.js';
 
@@ -28,8 +29,8 @@ const INCLUDE = {
 
 type Row = Prisma.ProductGetPayload<{ include: typeof INCLUDE }>;
 
-/** The frontend's Product: conversions and images without their bookkeeping columns. */
-const toApi = ({ unitConversions, images, ...p }: Row) => ({
+/** The frontend's Product: conversions and images without their bookkeeping columns, and without giá vốn (avgCost). */
+const toApi = ({ unitConversions, images, avgCost: _cost, ...p }: Row) => ({
   ...p,
   unitConversions: unitConversions.map(({ id: _i, productId: _p, sortOrder: _s, ...u }) => u),
   images: images.map(({ productId: _p, sortOrder: _s, ...img }) => img),
@@ -102,7 +103,7 @@ export class ProductsService {
 
   // The code prefix (VT/SP/DV) is fixed at creation, so the type cannot change.
   async update(id: string, dto: CreateProductDto, user: AuthUser) {
-    return this.prisma.$transaction(async (tx) => toApi(await this.replace(tx, id, dto, user, true)));
+    return this.prisma.$transaction(async (tx) => toApi((await this.replace(tx, id, dto, user, true)).saved));
   }
 
   /** Ngừng kinh doanh / kinh doanh lại: products are never hard-deleted. */
@@ -118,18 +119,29 @@ export class ProductsService {
     });
   }
 
-  /** Nhập hàng hoá từ Excel, all or nothing. Images are not part of the sheet and stay as they are. */
-  async import(creates: CreateProductDto[], updates: ProductUpdateRowDto[], user: AuthUser) {
-    return this.prisma.$transaction(
-      async (tx) => {
-        const created = [];
-        for (const dto of creates) created.push(toApi(await this.insert(tx, dto, 'excel')));
-        const updated = [];
-        for (const { id, ...dto } of updates) updated.push(toApi(await this.replace(tx, id, dto, user, false)));
-        return { created, updated };
-      },
-      { timeout: 60_000 },
-    );
+  /**
+   * Nhập hàng hoá từ Excel (Pha 1.9): the frontend parses the sheet, the server checks and saves each row on its own
+   * (savepoint) with the form's rules — a row that fails is reported and skipped. dryRun = xem trước, nothing is kept.
+   * Images are not part of the sheet and stay as they are.
+   */
+  async import(dto: ProductImportDto, user: AuthUser) {
+    const canCreate = user.permissions.includes('product.create');
+    return runImport(this.prisma, dto, async (tx, r) => {
+      if (!r.id && !canCreate) throw new RowError(['chức vụ của bạn chưa có quyền thêm hàng hoá']);
+      const data = await validateRow(CreateProductDto, r.data, PRODUCT_FIELDS);
+      if (!r.id) {
+        const p = await this.insert(tx, data, 'excel');
+        return { action: 'create', code: p.code, name: p.name };
+      }
+      const { saved, changes } = await this.replace(tx, r.id, data, user, false);
+      if (!changes.length) throw new UnchangedRow(saved.code, saved.name);
+      return { action: 'update', code: saved.code, name: saved.name, changes: changes.map((c) => c.label) };
+    }, async (tx, res) => {
+      await this.audit.log(tx, {
+        action: 'product.import', entityType: 'Product', entityId: 'import',
+        summary: `Nhập hàng hoá từ Excel: ${res.created} thêm mới, ${res.updated} cập nhật, ${res.unchanged} không đổi, ${res.failed} dòng lỗi bỏ qua`,
+      });
+    });
   }
 
   private async insert(tx: Tx, dto: CreateProductDto, source: 'form' | 'excel') {
@@ -173,7 +185,7 @@ export class ProductsService {
       action: changes.some((c) => /Price$/.test(c.field)) ? 'product.update_price' : 'product.update', entityType: 'Product', entityId: id,
       entityCode: saved.code, summary: `Sửa hàng hoá ${saved.code} · ${saved.name}${withImages ? '' : ' (nhập Excel)'}`, changes,
     });
-    return saved;
+    return { saved, changes };
   }
 
   // ---------- Định mức ----------

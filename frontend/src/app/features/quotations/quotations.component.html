@@ -1,0 +1,87 @@
+<div class="page-header">
+  <div>
+    <h1>Báo giá</h1>
+    <p class="subtitle">{{ rows().length }} báo giá</p>
+  </div>
+  @if (canCreate()) {
+    <div class="toolbar">
+      <a class="btn btn-primary" routerLink="/bao-gia/them-moi"><app-nav-icon name="plus" />Lập báo giá</a>
+    </div>
+  }
+</div>
+
+<div class="filters-bar">
+  <input
+    type="text"
+    class="filter-search"
+    placeholder="Tìm số báo giá, khách, mặt hàng, số đơn…"
+    aria-label="Tìm báo giá"
+    [value]="search()"
+    (input)="search.set($any($event.target).value)"
+  />
+  <app-filter-multi-select label="Trạng thái" [options]="statusOptions()" [(selected)]="statuses" />
+  <app-period-filter [(value)]="period" />
+</div>
+
+@if (chips().length) {
+  <div class="filter-chips" aria-label="Bộ lọc đang áp dụng">
+    @for (c of chips(); track c.label) {
+      <span class="filter-chip">
+        {{ c.label }}
+        <button type="button" class="filter-chip-remove" [attr.aria-label]="'Bỏ lọc ' + c.label" (click)="c.clear()">
+          <app-nav-icon name="x" />
+        </button>
+      </span>
+    }
+    <button type="button" class="filter-clear-all" (click)="clearAll()"><app-nav-icon name="x" />Xoá tất cả bộ lọc</button>
+  </div>
+}
+
+@if (rows().length) {
+  <dl class="list-totals">
+    <div><dt>Đang chờ khách</dt><dd class="num">{{ money(totals().open) }} · {{ totals().openCount }}</dd></div>
+    <div><dt>Đã lập đơn</dt><dd class="num">{{ money(totals().won) }} · {{ totals().wonCount }}</dd></div>
+    @if (totals().rate !== null) {
+      <div><dt>Tỷ lệ chốt</dt><dd class="num" title="Đã lập đơn ÷ (đã lập đơn + huỷ + hết hạn)">{{ totals().rate }}%</dd></div>
+    }
+  </dl>
+}
+
+<app-data-table
+  [columns]="columns"
+  [rows]="pagedRows()"
+  [actions]="rowActions"
+  [filterable]="true"
+  [filters]="columnFilters()"
+  (filtersChange)="columnFilters.set($event)"
+  [sortBy]="headerSort()?.key ?? null"
+  [sortDir]="headerSort()?.dir ?? 'asc'"
+  (sortChange)="headerSort.set($event)"
+  [optionRows]="data.quotations()"
+  [emptyAction]="chips().length || search() ? clearCta : (canCreate() ? createCta : null)"
+  [emptyTitle]="chips().length || search() ? 'Không tìm thấy báo giá nào' : 'Chưa có báo giá nào'"
+  [emptyHint]="chips().length || search() ? 'Thử bỏ bớt bộ lọc hoặc mở rộng khoảng ngày.' : 'Báo giá không trừ kho, không ghi công nợ. Khách đồng ý thì Lập đơn từ báo giá.'"
+/>
+
+<app-pagination [total]="rows().length" unit="báo giá" [(page)]="page" [(pageSize)]="pageSize" />
+
+<ng-template #createCta>
+  <a class="btn btn-primary" routerLink="/bao-gia/them-moi"><app-nav-icon name="plus" />Lập báo giá</a>
+</ng-template>
+
+<ng-template #clearCta>
+  <button type="button" class="btn" (click)="clearAll(); search.set('')"><app-nav-icon name="x" />Xoá tất cả bộ lọc</button>
+</ng-template>
+
+<ng-template #rowActions let-q>
+  <span class="row-actions">
+    @if (q.status === 'MOI' && canUpdate()) {
+      <a class="icon-action" [routerLink]="['/bao-gia', q.id, 'sua']" [attr.aria-label]="'Sửa ' + q.code" title="Sửa">
+        <app-nav-icon name="pencil" />
+      </a>
+    }
+    <a class="icon-action" [routerLink]="['/bao-gia', q.id]" [attr.aria-label]="'Xem chi tiết ' + q.code" title="Xem chi tiết">
+      <app-nav-icon name="eye" />
+    </a>
+  </span>
+</ng-template>

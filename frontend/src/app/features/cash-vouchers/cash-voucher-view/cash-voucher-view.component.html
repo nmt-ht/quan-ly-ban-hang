@@ -100,7 +100,7 @@
         {{ v.isCancelled ? 'Phiếu đã huỷ — không tính vào số dư quỹ, báo cáo và công nợ.' : 'Muốn sửa: huỷ phiếu rồi lập lại để giữ dấu vết.' }}
       </p>
       <div class="toolbar">
-        <button type="button" class="btn" (click)="print()"><app-nav-icon name="printer" />In phiếu</button>
+        <app-print-menu kind="cash-voucher" label="In phiếu" />
         @if (partner(); as p) {
           <a class="btn" [routerLink]="p.ledger" [queryParams]="{ partnerId: p.id }">Sổ công nợ</a>
         }
@@ -129,8 +129,8 @@
     [signers]="[
       { role: 'Giám đốc', hint: '(Ký, đóng dấu)' },
       { role: 'Kế toán trưởng' },
-      { role: isThu() ? 'Người nộp tiền' : 'Người nhận tiền' },
-      { role: 'Người lập phiếu', name: creator(v.createdBy) },
+      { role: isThu() ? 'Người nộp tiền' : 'Người nhận tiền', k80: true },
+      { role: 'Người lập phiếu', name: creator(v.createdBy), k80: true },
       { role: 'Thủ quỹ' }
     ]"
   >

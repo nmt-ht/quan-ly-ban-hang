@@ -2,10 +2,14 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import type { NextFunction, Request, Response } from 'express';
-import { existsSync } from 'node:fs';
+import helmet from 'helmet';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AppModule } from './app.module.js';
+import { helmetOptions } from './common/security.js';
+import { requestId } from './monitoring/request-id.js';
+import { initSentry } from './monitoring/sentry.js';
 
 const DEV_SECRET = 'dev-secret-change-me';
 
@@ -19,9 +23,13 @@ async function bootstrap() {
     throw new Error('JWT_SECRET chưa đặt (hoặc còn giá trị mặc định) — không khởi động ở production.');
   }
 
+  if (initSentry()) console.log('Sentry: báo lỗi máy chủ đã bật.');
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  app.use(requestId);
   // Behind Render's proxy: req.ip (kept in Nhật ký hoạt động) is the visitor, not the proxy.
   app.set('trust proxy', 1);
+  const indexPath = join(STATIC_DIR, 'index.html');
+  app.use(helmet(helmetOptions(existsSync(indexPath) ? readFileSync(indexPath, 'utf8') : undefined)));
   if (process.env.CORS_ORIGIN) app.enableCors({ origin: process.env.CORS_ORIGIN.split(','), credentials: true });
   else if (!production) app.enableCors({ origin: true, credentials: true });
   // Logo and product photos travel as data: URLs until file uploads exist (Express defaults to 100 kB).

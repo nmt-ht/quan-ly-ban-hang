@@ -56,6 +56,8 @@ const PERMISSION_MODULES: { key: string; permissions: { code: string; label: str
   { key: 'price', permissions: [
     { code: 'product.update_price', label: 'Sửa giá bán' },
     { code: 'product.view_cost_price', label: 'Xem giá vốn' },
+    { code: 'pricelist.manage', label: 'Quản lý bảng giá' },
+    { code: 'promotion.manage', label: 'Quản lý khuyến mãi' },
   ]},
   { key: 'bom', permissions: [
     { code: 'bom.view', label: 'Xem định mức' },
@@ -104,6 +106,13 @@ const PERMISSION_MODULES: { key: string; permissions: { code: string; label: str
     { code: 'order.update', label: 'Sửa đơn hàng' },
     { code: 'order.cancel', label: 'Huỷ đơn hàng' },
     { code: 'order.update_price', label: 'Sửa đơn giá trên đơn' },
+    { code: 'order.return', label: 'Nhận hàng trả lại' },
+  ]},
+  { key: 'quote', permissions: [
+    { code: 'quote.view', label: 'Xem báo giá' },
+    { code: 'quote.create', label: 'Lập báo giá' },
+    { code: 'quote.update', label: 'Sửa báo giá' },
+    { code: 'quote.cancel', label: 'Huỷ báo giá' },
   ]},
   { key: 'vehicle', permissions: [
     { code: 'vehicle.view', label: 'Xem danh mục xe' },
@@ -132,6 +141,7 @@ const PERMISSION_MODULES: { key: string; permissions: { code: string; label: str
     { code: 'debt.view', label: 'Xem công nợ' },
     { code: 'debt.settle', label: 'Đối trừ công nợ' },
     { code: 'debt.adjust', label: 'Điều chỉnh công nợ' },
+    { code: 'debt.remind', label: 'Nhắc nợ khách hàng' },
   ]},
   { key: 'voucher', permissions: [
     { code: 'voucher.view', label: 'Xem phiếu thu chi' },
@@ -163,7 +173,7 @@ const ALL_PERMISSION_CODES = PERMISSION_MODULES.flatMap((m) => m.permissions.map
 
 // Default grants of the 7 built-in roles. Keep identical to the frontend's
 // features/settings/roles-permissions/role.rules.ts (same ids, same codes):
-// CEO 98 · Quản lý 89 · Kế toán 47 · Sale 16 · Thủ kho 19 · NV giao hàng 6 · NV xưởng 5.
+// CEO 107 · Quản lý 98 · Kế toán 50 · Sale 20 · Thủ kho 19 · NV giao hàng 6 · NV xưởng 5.
 const WITHOUT_ADMIN = [
   'user.create', 'user.update', 'user.delete', 'user.reset_password',
   'position.create', 'position.update', 'position.delete', 'position.assign_permission',
@@ -176,8 +186,8 @@ const ACCOUNTANT = [
   'supplier.view', 'supplier.create', 'supplier.update', 'supplier.manage_product',
   'stock.view', 'stock.view_value',
   'purchase.view', 'purchase.create', 'purchase.update', 'purchase.approve', 'purchase.cancel',
-  'order.view', 'order.view_all', 'vehicle.view', 'vehicle.manage_cost', 'trip.view', 'production.view',
-  'debt.view', 'debt.settle', 'debt.adjust',
+  'order.view', 'order.view_all', 'order.return', 'quote.view', 'vehicle.view', 'vehicle.manage_cost', 'trip.view', 'production.view',
+  'debt.view', 'debt.settle', 'debt.adjust', 'debt.remind',
   'voucher.view', 'voucher.create_receipt', 'voucher.create_payment', 'voucher.cancel', 'voucher.manage_category', 'voucher.manage_account',
   'report.dashboard', 'report.sales', 'report.stock', 'report.purchase', 'report.debt', 'report.cashflow', 'report.production', 'report.delivery',
   'report.view_profit',
@@ -185,6 +195,7 @@ const ACCOUNTANT = [
 const SALE = [
   'customer.view', 'customer.create', 'customer.update', 'customer.delete',
   'order.view', 'order.create', 'order.update', 'order.cancel', 'order.update_price',
+  'quote.view', 'quote.create', 'quote.update', 'quote.cancel',
   'product.view', 'stock.view', 'tag.view', 'production.view', 'trip.view', 'report.dashboard', 'report.sales',
 ];
 const STOREKEEPER = [

@@ -235,3 +235,36 @@
   cursor: default;
   pointer-events: none;
 }
+
+// Phiếu trả đã huỷ: kept in the list, read as struck out.
+.so-ret-void td:not(:last-child) {
+  color: var(--color-muted);
+}
+.so-ret-void td.c-num {
+  text-decoration: line-through;
+}
+
+// Khuyến mãi (Pha 1.6): nhãn KM / Tặng trên dòng, công tắc "Áp khuyến mãi".
+.promo-chip {
+  margin-left: 4px;
+  background: var(--color-accent-tint);
+  color: var(--color-accent);
+  font-weight: 600;
+  cursor: default;
+}
+
+.c-product .promo-chip {
+  display: inline-block;
+  margin-top: 2px;
+}
+
+.promo-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+}
+
+.promo-applied .promo-chip {
+  margin-left: 0;
+}

@@ -3,6 +3,7 @@ import { DataStore } from '../../core/services/data-store.service';
 import { BomLine, Product } from '../../core/models/domain.models';
 import { ApiService, upsertById } from '../../core/api/api.service';
 import { BomImportPlan, ProductImportPlan } from './product-excel';
+import { ImportResult } from '../../shared/import/import.types';
 
 /** What the form saves; the code (VT/SP/DV + số) is given on creation by the server. */
 export type ProductDraft = Omit<Product, 'id' | 'code' | 'createdAt' | 'updatedAt'>;
@@ -22,14 +23,19 @@ export class ProductService {
     return this.keep(await this.api.put<Product>(`/products/${id}`, d));
   }
 
-  /** Nhập hàng hoá từ Excel, all or nothing on the server. Codes of new rows are given there. */
-  async importProducts(plan: ProductImportPlan): Promise<void> {
+  /**
+   * Nhập hàng hoá từ Excel (Pha 1.9): the rows parsed here go to the server, which checks and saves each one on its own
+   * and answers row by row. dryRun = xem trước (nothing saved). After a real import the list is read again.
+   */
+  async importProducts(plan: ProductImportPlan, dryRun: boolean): Promise<ImportResult> {
     const strip = ({ id: _i, code: _c, createdAt: _a, updatedAt: _u, ...p }: Product) => p;
-    const res = await this.api.post<{ created: Product[]; updated: Product[] }>('/products/import', {
-      creates: plan.creates.map(strip),
-      updates: plan.updates.map((p) => ({ ...strip(p), id: p.id })),
-    });
-    this.data.products.update((list) => [...res.created, ...res.updated].reduce((acc, p) => upsertById(acc, p), list));
+    const rows = [
+      ...plan.creates.map((p) => ({ row: plan.rowOf.get(p.id) ?? 0, data: strip(p) })),
+      ...plan.updates.map((p) => ({ row: plan.rowOf.get(p.id) ?? 0, id: p.id, data: strip(p) })),
+    ].sort((a, b) => a.row - b.row);
+    const res = await this.api.post<ImportResult>('/products/import', { dryRun, rows });
+    if (!dryRun) this.data.products.set(await this.api.get<Product[]>('/products'));
+    return res;
   }
 
   /** Nhập định mức: each finished product in the plan gets exactly its new lines. */

@@ -1,0 +1,106 @@
+<div class="page-header">
+  <div>
+    <h1>Nhắc nợ</h1>
+    <p class="subtitle">Khách còn nợ cần nhắc — quá hạn lâu nhất lên đầu · soạn sẵn tin nhắn, ghi lại lần nhắc và hẹn trả</p>
+  </div>
+  <div class="toolbar">
+    <a class="btn" routerLink="/cong-no/khach-hang"><app-nav-icon name="money-in" />Công nợ phải thu</a>
+  </div>
+</div>
+
+@if (notice()) {
+  <div class="notice" role="status">
+    <span>{{ notice() }}</span>
+    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+  </div>
+}
+@if (error()) { <p class="form-note text-danger" role="alert">{{ error() }}</p> }
+
+<div class="filters-bar">
+  <div class="segmented" role="group" aria-label="Hiện khách">
+    <button type="button" [attr.aria-pressed]="show() === 'qua-han'" (click)="show.set('qua-han')">Quá hạn <span class="num">{{ counts().late }}</span></button>
+    <button type="button" [attr.aria-pressed]="show() === 'sap-den-han'" (click)="show.set('sap-den-han')">Đến hạn trong 7 ngày <span class="num">{{ counts().soon }}</span></button>
+    <button type="button" [attr.aria-pressed]="show() === 'tat-ca'" (click)="show.set('tat-ca')">Tất cả còn nợ <span class="num">{{ counts().all }}</span></button>
+  </div>
+  <input type="text" class="filter-search" placeholder="Tìm mã, tên, điện thoại khách…" aria-label="Tìm khách" [value]="search()" (input)="search.set($any($event.target).value)" />
+  @if (qrAccounts().length > 1) {
+    <label class="dr-account">
+      <span>Tài khoản nhận tiền (QR)</span>
+      <select [ngModel]="account()?.id" (ngModelChange)="accountId.set($event)">
+        @for (a of qrAccounts(); track a.id) { <option [value]="a.id">{{ a.name }} · {{ bankName(a.bankBin) ?? a.bankName }} {{ a.accountNumber }}</option> }
+      </select>
+    </label>
+  }
+</div>
+
+@if (!qrAccounts().length) {
+  <p class="hint">Chưa có tài khoản ngân hàng nào khai mã ngân hàng cho VietQR — tin nhắc sẽ không kèm số tài khoản và mã QR.
+    <a class="code-link" routerLink="/thu-chi/tai-khoan">Khai ở Tài khoản tiền</a>.</p>
+}
+
+@if (rows().length) {
+  <dl class="list-totals">
+    <div><dt>Còn nợ</dt><dd class="num">{{ money(totals().balance) }}</dd></div>
+    <div><dt>Trong đó quá hạn</dt><dd class="num text-danger">{{ money(totals().overdue) }}</dd></div>
+    @if (totals().broken) {
+      <div><dt>Lỡ hẹn trả</dt><dd class="num text-danger">{{ totals().broken }} khách</dd></div>
+    }
+  </dl>
+}
+
+<section class="card table-wrap">
+  @if (rows().length) {
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Khách hàng</th>
+            <th scope="col">Điện thoại</th>
+            <th scope="col" class="align-right">Còn nợ</th>
+            <th scope="col" class="align-right">Quá hạn</th>
+            <th scope="col" class="align-right">Lâu nhất</th>
+            <th scope="col">Hạn gần nhất</th>
+            <th scope="col">Lần nhắc gần nhất</th>
+            <th scope="col" class="dr-actions"><span class="visually-hidden">Thao tác</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of rows(); track r.customer.id) {
+            <tr>
+              <td>
+                <a class="code-link num" [routerLink]="['/cong-no/khach-hang']" [queryParams]="{ partnerId: r.customer.id }">{{ r.customer.code }}</a>
+                {{ r.customer.companyName || r.customer.name }}
+              </td>
+              <td class="num">{{ r.customer.phone || '—' }}</td>
+              <td class="num align-right">{{ money(r.debt.balance) }}</td>
+              <td class="num align-right" [class.text-danger]="r.debt.overdue > 0">{{ r.debt.overdue ? money(r.debt.overdue) : '—' }}</td>
+              <td class="num align-right" [class.text-danger]="r.lateDays > 30">{{ r.lateDays ? r.lateDays + ' ngày' : '—' }}</td>
+              <td class="num">{{ r.debt.nextDue ? day(r.debt.nextDue) : '—' }}</td>
+              <td class="dr-last">
+                @if (r.last; as l) {
+                  <span class="num">{{ day(l.createdAt.slice(0, 10)) }}</span> · {{ channelLabel[l.channel] }}
+                  <span class="subtitle">({{ daysSince(l.createdAt) === 0 ? 'hôm nay' : daysSince(l.createdAt) + ' ngày trước' }})</span>
+                  @if (l.promisedDate) {
+                    <br /><span [class.text-danger]="r.brokenPromise">{{ r.brokenPromise ? 'Lỡ hẹn' : 'Hẹn trả' }} <span class="num">{{ day(l.promisedDate) }}</span>{{ l.promisedAmount ? ' · ' + money(l.promisedAmount) : '' }}</span>
+                  }
+                } @else {
+                  <span class="subtitle">Chưa nhắc</span>
+                }
+              </td>
+              <td class="dr-actions">
+                <button type="button" class="btn btn-sm" [class.btn-primary]="r.debt.overdue > 0" (click)="remind(r)">Nhắc nợ</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <div class="empty-state">
+      <h3>{{ search() ? 'Không có khách phù hợp' : show() === 'qua-han' ? 'Không có khách quá hạn' : show() === 'sap-den-han' ? 'Không có khoản nào đến hạn trong 7 ngày' : 'Không khách nào còn nợ' }}</h3>
+      <p>Công nợ phải thu ghi khi khách thực nhận hàng; hạn = ngày nhận + số ngày được nợ của khách.</p>
+    </div>
+  }
+</section>
+
+<app-remind-dialog [account]="account()" (recorded)="notice.set($event)" />

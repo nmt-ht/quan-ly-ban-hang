@@ -38,15 +38,20 @@ model User {
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
 
-  salesOrders          SalesOrder[]       @relation("SalesOrderCreatedBy")
-  salesOrdersAsRep     SalesOrder[]       @relation("SalesOrderRep")
-  purchaseOrders       PurchaseOrder[]    @relation("PurchaseOrderCreatedBy")
-  warehouseVouchers    WarehouseVoucher[] @relation("WarehouseVoucherCreatedBy")
-  cashVouchers         CashVoucher[]      @relation("CashVoucherCreatedBy")
-  productionOrders     ProductionOrder[]  @relation("ProductionOrderCreatedBy")
-  deliveryTrips        DeliveryTrip[]     @relation("DeliveryTripCreatedBy")
-  vehiclesAsDriver     Vehicle[]          @relation("VehicleDriver")
-  managedWarehouses    Warehouse[]        @relation("WarehouseManager")
+  salesOrders       SalesOrder[]       @relation("SalesOrderCreatedBy")
+  salesOrdersAsRep  SalesOrder[]       @relation("SalesOrderRep")
+  purchaseOrders    PurchaseOrder[]    @relation("PurchaseOrderCreatedBy")
+  warehouseVouchers WarehouseVoucher[] @relation("WarehouseVoucherCreatedBy")
+  cashVouchers      CashVoucher[]      @relation("CashVoucherCreatedBy")
+  productionOrders  ProductionOrder[]  @relation("ProductionOrderCreatedBy")
+  deliveryTrips     DeliveryTrip[]     @relation("DeliveryTripCreatedBy")
+  vehiclesAsDriver  Vehicle[]          @relation("VehicleDriver")
+  managedWarehouses Warehouse[]        @relation("WarehouseManager")
+  salesReturns      SalesReturn[]      @relation("SalesReturnCreatedBy")
+  quotations        Quotation[]        @relation("QuotationCreatedBy")
+  quotationsAsRep   Quotation[]        @relation("QuotationRep")
+  promotions        Promotion[]        @relation("PromotionCreatedBy")
+  debtReminders     DebtReminder[]     @relation("DebtReminderCreatedBy")
 }
 
 enum UserStatus {
@@ -86,16 +91,16 @@ model RolePermission {
 }
 
 model CompanyInfo {
-  id      Int     @id @default(1)
-  name    String
-  address String?
-  taxCode String?
-  phone   String?
-  email   String?
-  website String?
-  logo    String? // URL of the uploaded logo
+  id        Int     @id @default(1)
+  name      String
+  address   String?
+  taxCode   String?
+  phone     String?
+  email     String?
+  website   String?
+  logo      String? // URL of the uploaded logo
   // Thiết lập › Màu hiển thị: only the changed colours, `${group}:${key}` → hue 0–359 or "neutral".
-  tagColors Json  @default("{}")
+  tagColors Json    @default("{}")
 }
 
 model Tag {
@@ -142,8 +147,8 @@ model Warehouse {
   updatedAt DateTime @default(now()) @updatedAt
 
   stockLevels        StockLevel[]
-  vouchersFrom       WarehouseVoucher[]     @relation("VoucherWarehouse")
-  vouchersTo         WarehouseVoucher[]     @relation("VoucherTargetWarehouse")
+  vouchersFrom       WarehouseVoucher[]  @relation("VoucherWarehouse")
+  vouchersTo         WarehouseVoucher[]  @relation("VoucherTargetWarehouse")
   defaultForProducts Product[]
   purchaseLines      PurchaseOrderLine[]
   salesLines         SalesOrderLine[]
@@ -151,9 +156,9 @@ model Warehouse {
 }
 
 enum ProductType {
-  VAT_TU     // Vật tư hàng hoá
+  VAT_TU // Vật tư hàng hoá
   THANH_PHAM // Thành phẩm
-  DICH_VU    // Dịch vụ (không tồn kho)
+  DICH_VU // Dịch vụ (không tồn kho)
 }
 
 // Cách tính of a Thành phẩm: per m² (dài × rộng) or per metre.
@@ -175,6 +180,8 @@ model Product {
   defaultWarehouseId String?
   defaultWarehouse   Warehouse?       @relation(fields: [defaultWarehouseId], references: [id])
   minStock           Decimal          @default(0)
+  /// Giá vốn bình quân gia quyền di động theo ĐVT chính, mọi kho (Pha 1.3) — InventoryService giữ, never sent to the screens.
+  avgCost            Decimal          @default(0)
   vatRate            Decimal          @default(0)
   warrantyMonths     Int              @default(0)
   origin             String?
@@ -196,6 +203,9 @@ model Product {
   bomComponentOf        BomLine[]              @relation("BomComponent")
   supplierProducts      SupplierProduct[]
   salesOrderLines       SalesOrderLine[]
+  quotationLines        QuotationLine[]
+  priceListItems        PriceListItem[]
+  giftOfPromotions      Promotion[]            @relation("PromotionGift")
   purchaseOrderLines    PurchaseOrderLine[]
   warehouseVoucherLines WarehouseVoucherLine[]
   productionOrders      ProductionOrder[]
@@ -294,7 +304,8 @@ model WarehouseVoucher {
   createdBy         User                 @relation("WarehouseVoucherCreatedBy", fields: [createdById], references: [id])
   createdAt         DateTime             @default(now())
 
-  lines WarehouseVoucherLine[]
+  lines       WarehouseVoucherLine[]
+  salesReturn SalesReturn?
 }
 
 model WarehouseVoucherLine {
@@ -308,6 +319,7 @@ model WarehouseVoucherLine {
   unitName     String? // ĐVT trên phiếu, if a conversion unit
   unitQuantity Decimal?
   unitPrice    Decimal          @default(0) // phiếu nhập: per base unit
+  unitCost     Decimal? // giá vốn chốt lúc ghi phiếu, per base unit (Pha 1.3); null on vouchers older than that
   bookQuantity Decimal? // kiểm kê: tồn sổ sách lúc lưu
   note         String?
   sortOrder    Int              @default(0)
@@ -439,6 +451,9 @@ model Customer {
   companyName     String?
   type            CustomerType @default(LE)
   creditDays      Int          @default(0)
+  creditLimit     Decimal      @default(0) // hạn mức công nợ (đồng); 0 = không giới hạn
+  priceListId     String? // bảng giá riêng (Pha 1.6); không có thì giá theo loại khách
+  priceList       PriceList?   @relation(fields: [priceListId], references: [id])
   phone           String?
   email           String?
   idNumber        String?
@@ -452,7 +467,9 @@ model Customer {
   addresses    CustomerAddress[]
   tags         CustomerTag[]
   salesOrders  SalesOrder[]
+  quotations   Quotation[]
   cashVouchers CashVoucher[]
+  reminders    DebtReminder[]
 }
 
 // Địa chỉ giao hàng của khách.
@@ -505,6 +522,7 @@ model SalesOrder {
   closedDate      DateTime?        @db.Date // "Kết thúc đơn": khách không lấy phần còn lại
   status          SalesOrderStatus @default(CHO_SAN_XUAT)
   discountAmount  Decimal          @default(0)
+  promotionId     String? // khuyến mãi theo tổng đơn đã áp vào Chiết khấu cả đơn (Pha 1.6)
   cancelReason    String?
   // "Thu tiền ngay": each receipt by the customer auto-creates a phiếu thu into this account.
   payNowAccountId String?
@@ -521,6 +539,8 @@ model SalesOrder {
   productionOrders   ProductionOrder[]
   deliveryTripOrders DeliveryTripOrder[]
   warehouseVouchers  WarehouseVoucher[]
+  returns            SalesReturn[]
+  quotation          Quotation?
 }
 
 model SalesOrderTag {
@@ -533,29 +553,32 @@ model SalesOrderTag {
 }
 
 model SalesOrderLine {
-  id               String             @id @default(uuid())
+  id               String     @id @default(uuid())
   orderId          String
-  order            SalesOrder         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order            SalesOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId        String
-  product          Product            @relation(fields: [productId], references: [id])
+  product          Product    @relation(fields: [productId], references: [id])
   unit             String // ĐVT bán
   unitName         String? // set when selling in a conversion unit
-  ratioToBase      Decimal            @default(1)
+  ratioToBase      Decimal    @default(1)
   quantity         Decimal // in the line's unit
   unitPrice        Decimal // in the line's unit, fixed on save
   discountRate     Decimal? // % chiết khấu dòng (display)
-  discountAmount   Decimal            @default(0)
-  vatRate          Decimal            @default(0)
+  discountAmount   Decimal    @default(0)
+  vatRate          Decimal    @default(0)
   warehouseId      String? // kho xuất
-  warehouse        Warehouse?         @relation(fields: [warehouseId], references: [id])
+  warehouse        Warehouse? @relation(fields: [warehouseId], references: [id])
   length           Decimal? // cm
   width            Decimal?
   note             String?
-  sortOrder        Int                @default(0)
+  sortOrder        Int        @default(0)
   // Phải thu is recognised only on actual customer receipt.
-  receivedQuantity Decimal            @default(0)
+  receivedQuantity Decimal    @default(0)
+  promotionId      String? // khuyến mãi đã áp vào dòng (Pha 1.6) — chỉ để ghi nhận
+  isGift           Boolean    @default(false) // hàng tặng: chiết khấu 100%
 
-  tripLoads DeliveryTripLoad[]
+  tripLoads   DeliveryTripLoad[]
+  returnLines SalesReturnLine[]
 }
 
 // ---------- Delivery ----------
@@ -674,6 +697,7 @@ model CashAccount {
   type           CashAccountType
   code           String? // TM, TCB-9999…
   bankName       String?
+  bankBin        String? // mã BIN NAPAS của ngân hàng — để tạo mã VietQR (Pha 2)
   accountNumber  String?
   accountHolder  String?
   branch         String?
@@ -684,7 +708,7 @@ model CashAccount {
   isDefault      Boolean         @default(false)
   isActive       Boolean         @default(true)
 
-  vouchers         CashVoucher[]
+  vouchers          CashVoucher[]
   payNowSalesOrders SalesOrder[]
 }
 
@@ -712,27 +736,27 @@ model CashCategory {
 }
 
 model CashVoucher {
-  id            String           @id @default(uuid())
-  code          String           @unique
+  id            String      @id @default(uuid())
+  code          String      @unique
   date          DateTime
   kind          VoucherKind
   category      String // name of the CashCategory at the time of saving
   partnerType   PartnerType
   customerId    String?
-  customer      Customer?        @relation(fields: [customerId], references: [id])
+  customer      Customer?   @relation(fields: [customerId], references: [id])
   supplierId    String?
-  supplier      Supplier?        @relation(fields: [supplierId], references: [id])
+  supplier      Supplier?   @relation(fields: [supplierId], references: [id])
   accountId     String
-  account       CashAccount      @relation(fields: [accountId], references: [id])
+  account       CashAccount @relation(fields: [accountId], references: [id])
   amount        Decimal
-  settledAmount Decimal          @default(0)
+  settledAmount Decimal     @default(0)
   description   String?
-  isCancelled   Boolean          @default(false)
+  isCancelled   Boolean     @default(false)
   cancelReason  String?
   cancelledAt   DateTime?
   createdById   String
-  createdBy     User             @relation("CashVoucherCreatedBy", fields: [createdById], references: [id])
-  createdAt     DateTime         @default(now())
+  createdBy     User        @relation("CashVoucherCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime    @default(now())
 
   allocations CashAllocation[]
 }
@@ -751,14 +775,14 @@ model CashAllocation {
 model AuditLog {
   id         BigInt   @id @default(autoincrement())
   at         DateTime @default(now())
-  userId     String?  // null = hệ thống
-  userName   String   // name at the time, kept even if the user is renamed later
-  action     String   // <entity>.<verb>: sales_order.deliver, auth.login_failed…
-  entityType String   // Prisma model name
+  userId     String? // null = hệ thống
+  userName   String // name at the time, kept even if the user is renamed later
+  action     String // <entity>.<verb>: sales_order.deliver, auth.login_failed…
+  entityType String // Prisma model name
   entityId   String
-  entityCode String?  // DH0000014… for searching
+  entityCode String? // DH0000014… for searching
   summary    String
-  changes    Json?    // [{ field, label, from, to }]
+  changes    Json? // [{ field, label, from, to }]
   related    String[] // codes written alongside: PXK…, PT…
   ip         String?
   requestId  String?
@@ -767,4 +791,216 @@ model AuditLog {
   @@index([userId, id])
   @@index([at])
   @@index([related], type: Gin)
+}
+
+// ---------- Trả hàng bán ----------
+
+// Khách trả lại hàng ĐÃ NHẬN của một đơn bán (TH0000001). Hàng nhập lại kho qua phiếu "Nhập trả về" (voucherId);
+// giá trị trả (amount, gồm VAT, sau chiết khấu, chốt lúc lập) ghi giảm công nợ của đơn và doanh thu vào ngày trả —
+// ngày giao không bị sửa lùi. Không xoá: huỷ (isCancelled) thì phiếu kho đi kèm bị huỷ theo.
+model SalesReturn {
+  id           String            @id @default(uuid())
+  code         String            @unique
+  orderId      String
+  order        SalesOrder        @relation(fields: [orderId], references: [id])
+  date         DateTime          @db.Date
+  reason       String
+  note         String?
+  amount       Decimal // tổng các dòng
+  voucherId    String?           @unique
+  voucher      WarehouseVoucher? @relation(fields: [voucherId], references: [id])
+  isCancelled  Boolean           @default(false)
+  cancelReason String?
+  cancelledAt  DateTime?
+  createdById  String
+  createdBy    User              @relation("SalesReturnCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime          @default(now())
+
+  lines SalesReturnLine[]
+
+  @@index([orderId])
+}
+
+model SalesReturnLine {
+  id          String         @id @default(uuid())
+  returnId    String
+  salesReturn SalesReturn    @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  orderLineId String
+  orderLine   SalesOrderLine @relation(fields: [orderLineId], references: [id])
+  quantity    Decimal // in the order line's unit
+  amount      Decimal // giá trị trả của dòng: phần tương ứng của tổng dòng (gồm VAT, sau chiết khấu)
+  sortOrder   Int            @default(0)
+}
+
+// ---------- Báo giá (Pha 1.4) ----------
+
+enum QuotationStatus {
+  MOI // đang mở: sửa, huỷ, lập đơn được ("Hết hạn" chỉ suy ra từ validUntil khi hiển thị)
+  DA_CHOT // đã lập đơn hàng
+  HUY
+}
+
+/**
+ * Báo giá BG…: the same lines as an order, no stock or công nợ. Lập đơn copies it into a SalesOrder (orderId).
+ */
+model Quotation {
+  id              String          @id @default(uuid())
+  code            String          @unique
+  customerId      String
+  customer        Customer        @relation(fields: [customerId], references: [id])
+  recipientName   String?
+  recipientPhone  String?
+  deliveryAddress String?
+  description     String?
+  quoteDate       DateTime        @db.Date
+  validUntil      DateTime?       @db.Date
+  discountAmount  Decimal         @default(0)
+  promotionId     String?
+  status          QuotationStatus @default(MOI)
+  cancelReason    String?
+  orderId         String?         @unique
+  order           SalesOrder?     @relation(fields: [orderId], references: [id])
+  salesRepId      String?
+  salesRep        User?           @relation("QuotationRep", fields: [salesRepId], references: [id])
+  createdById     String
+  createdBy       User            @relation("QuotationCreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @default(now()) @updatedAt
+
+  lines QuotationLine[]
+
+  @@index([customerId])
+}
+
+model QuotationLine {
+  id             String    @id @default(uuid())
+  quotationId    String
+  quotation      Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  productId      String
+  product        Product   @relation(fields: [productId], references: [id])
+  unit           String
+  unitName       String?
+  ratioToBase    Decimal   @default(1)
+  quantity       Decimal
+  unitPrice      Decimal
+  discountRate   Decimal?
+  discountAmount Decimal   @default(0)
+  vatRate        Decimal   @default(0)
+  length         Decimal?
+  width          Decimal?
+  note           String?
+  sortOrder      Int       @default(0)
+  promotionId    String?
+  isGift         Boolean   @default(false)
+}
+
+// ---------- Bảng giá & khuyến mãi (Pha 1.6) ----------
+
+/**
+ * Bảng giá riêng gán cho khách: giá theo mặt hàng và ĐVT. Mặt hàng không có trong bảng dùng giá theo loại khách.
+ */
+model PriceList {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  note      String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  items     PriceListItem[]
+  customers Customer[]
+}
+
+model PriceListItem {
+  id          String    @id @default(uuid())
+  priceListId String
+  priceList   PriceList @relation(fields: [priceListId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id])
+  unitName    String    @default("") // "" = ĐVT chính
+  price       Decimal
+
+  @@unique([priceListId, productId, unitName])
+}
+
+enum PromotionKind {
+  GIAM_HANG // giảm % / số tiền mỗi ĐVT chính trên mặt hàng
+  GIAM_DON // đơn đạt ngưỡng → giảm cả đơn
+  BAC_THANG // mua từ N (ĐVT chính) → giảm theo bậc
+  TANG_HANG // mua đủ X → tặng Y
+}
+
+enum DiscountType {
+  PHAN_TRAM
+  SO_TIEN
+}
+
+enum PromotionScope {
+  TAT_CA
+  LOAI_KHACH
+  BANG_GIA
+}
+
+/**
+ * Khuyến mãi KM…: áp theo ngày chứng từ (startDate ≤ ngày ≤ endDate) cho phạm vi khách đã chọn. Màn hình đơn / báo giá
+ * tự điền chiết khấu dòng, chiết khấu cả đơn hoặc thêm dòng hàng tặng; server không tính lại khuyến mãi.
+ */
+model Promotion {
+  id            String         @id @default(uuid())
+  code          String         @unique
+  name          String
+  kind          PromotionKind
+  startDate     DateTime       @db.Date
+  endDate       DateTime?      @db.Date
+  isActive      Boolean        @default(true)
+  note          String?
+  scope         PromotionScope @default(TAT_CA)
+  customerTypes CustomerType[]
+  priceListIds  String[]
+  // Mặt hàng áp dụng (GIAM_HANG, BAC_THANG, TANG_HANG): cả hai trống = mọi mặt hàng.
+  productIds    String[]
+  categoryIds   String[]
+  discountType  DiscountType   @default(PHAN_TRAM)
+  discountValue Decimal        @default(0) // GIAM_HANG, GIAM_DON
+  minOrderValue Decimal        @default(0) // GIAM_DON: tiền hàng sau chiết khấu dòng
+  tiers         Json? // BAC_THANG: [{ minQuantity, value }] theo discountType
+  buyQuantity   Decimal        @default(0) // TANG_HANG: mỗi X (ĐVT chính) …
+  giftProductId String?
+  giftProduct   Product?       @relation("PromotionGift", fields: [giftProductId], references: [id])
+  giftQuantity  Decimal        @default(0) // … tặng Y (ĐVT chính của hàng tặng)
+  createdById   String
+  createdBy     User           @relation("PromotionCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @default(now()) @updatedAt
+}
+
+// ---------- Nhắc nợ (Pha 2) ----------
+
+enum ReminderChannel {
+  ZALO
+  SMS
+  GOI_DIEN
+  EMAIL
+  GAP_TRUC_TIEP
+  KHAC
+}
+
+/**
+ * One time someone reminded a customer to pay: channel, what was owed then, and the customer's promise if any.
+ */
+model DebtReminder {
+  id             String          @id @default(uuid())
+  customerId     String
+  customer       Customer        @relation(fields: [customerId], references: [id])
+  channel        ReminderChannel
+  note           String?
+  balance        Decimal // số còn nợ lúc nhắc
+  overdue        Decimal // trong đó quá hạn
+  promisedDate   DateTime?       @db.Date // khách hẹn trả
+  promisedAmount Decimal?
+  createdById    String
+  createdBy      User            @relation("DebtReminderCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime        @default(now())
+
+  @@index([customerId, createdAt])
 }

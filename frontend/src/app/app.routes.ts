@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, catalogGuard, permissionGuard } from './core/guards/auth.guard';
+import { authGuard, catalogGuard, permissionGuard, signedInGuard } from './core/guards/auth.guard';
 import { unsavedChangesGuard } from './core/guards/unsaved-changes.guard';
 import { ShellComponent } from './layout/shell/shell.component';
 
@@ -7,6 +7,11 @@ export const routes: Routes = [
   {
     path: 'login',
     loadComponent: () => import('./features/auth/login/login.component').then((m) => m.LoginComponent),
+  },
+  {
+    path: 'doi-mat-khau',
+    canActivate: [signedInGuard],
+    loadComponent: () => import('./features/auth/change-password/change-password.component').then((m) => m.ChangePasswordComponent),
   },
   {
     path: '',
@@ -49,10 +54,17 @@ export const routes: Routes = [
       { path: 'don-hang/them-moi', canDeactivate: [unsavedChangesGuard], loadComponent: () => import('./features/sales-orders/sales-order-voucher/sales-order-voucher.component').then((m) => m.SalesOrderVoucherComponent) },
       { path: 'don-hang/:id', loadComponent: () => import('./features/sales-orders/sales-order-voucher/sales-order-voucher.component').then((m) => m.SalesOrderVoucherComponent) },
       { path: 'don-hang/:id/sua', canDeactivate: [unsavedChangesGuard], loadComponent: () => import('./features/sales-orders/sales-order-voucher/sales-order-voucher.component').then((m) => m.SalesOrderVoucherComponent) },
+      { path: 'bao-gia', loadComponent: () => import('./features/quotations/quotations.component').then((m) => m.QuotationsComponent) },
+      { path: 'bao-gia/them-moi', canDeactivate: [unsavedChangesGuard], loadComponent: () => import('./features/quotations/quotation-voucher/quotation-voucher.component').then((m) => m.QuotationVoucherComponent) },
+      { path: 'bao-gia/:id', loadComponent: () => import('./features/quotations/quotation-voucher/quotation-voucher.component').then((m) => m.QuotationVoucherComponent) },
+      { path: 'bao-gia/:id/sua', canDeactivate: [unsavedChangesGuard], loadComponent: () => import('./features/quotations/quotation-voucher/quotation-voucher.component').then((m) => m.QuotationVoucherComponent) },
+      { path: 'bang-gia', canDeactivate: [unsavedChangesGuard], loadComponent: () => import('./features/pricing/price-lists.component').then((m) => m.PriceListsComponent) },
+      { path: 'khuyen-mai', canDeactivate: [unsavedChangesGuard], loadComponent: () => import('./features/pricing/promotions.component').then((m) => m.PromotionsComponent) },
       { path: 'giao-hang', loadComponent: () => import('./features/delivery-trips/delivery-trips.component').then((m) => m.DeliveryTripsComponent) },
       { path: 'giao-hang/:id', loadComponent: () => import('./features/delivery-trips/delivery-trip-voucher/delivery-trip-voucher.component').then((m) => m.DeliveryTripVoucherComponent) },
       { path: 'xe', loadComponent: () => import('./features/vehicles/vehicles.component').then((m) => m.VehiclesComponent) },
       { path: 'xe/:id', loadComponent: () => import('./features/vehicles/vehicle-detail/vehicle-detail.component').then((m) => m.VehicleDetailComponent) },
+      { path: 'cong-no/nhac-no', loadComponent: () => import('./features/debts/debt-reminders/debt-reminders.component').then((m) => m.DebtRemindersComponent) },
       { path: 'cong-no/khach-hang', loadComponent: () => import('./features/receivables/receivables.component').then((m) => m.ReceivablesComponent) },
 
       { path: 'thu-chi/tai-khoan', loadComponent: () => import('./features/cash-vouchers/cash-accounts/cash-accounts.component').then((m) => m.CashAccountsComponent) },

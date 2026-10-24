@@ -30,3 +30,5 @@ skills-lock.json
 
 # Build cache của TypeScript
 *.tsbuildinfo
+
+*.patch

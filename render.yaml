@@ -13,7 +13,7 @@ services:
       cd frontend && npm ci && npm run build &&
       cd ../backend && npm ci && npx prisma generate && npm run build
     startCommand: cd backend && npm run start:render
-    healthCheckPath: /api
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
         value: 24.22.1
@@ -30,4 +30,9 @@ services:
         value: "true"
       # Password of the demo accounts (quan.ly@, ke.toan@, sale1@, thu.kho@ …ninhtrang.local), ≥ 8 characters.
       - key: DEMO_USER_PASSWORD
+        sync: false
+      # Optional error reporting (leave empty to keep it off): Sentry project DSNs for the server and the browser.
+      - key: SENTRY_DSN
+        sync: false
+      - key: SENTRY_FRONTEND_DSN
         sync: false

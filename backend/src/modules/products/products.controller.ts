@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Put, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard.js';
 import { PermissionsGuard } from '../../auth/permissions.guard.js';
 import { CurrentUser, RequirePermissions } from '../../auth/permissions.decorator.js';
@@ -30,8 +30,9 @@ export class ProductsController {
 
   @RequirePermissions('product.import')
   @Post('products/import')
+  @HttpCode(HttpStatus.OK)
   import(@Body() dto: ProductImportDto, @CurrentUser() user: AuthUser) {
-    return this.products.import(dto.creates, dto.updates, user);
+    return this.products.import(dto, user);
   }
 
   // Changing giá bán also needs product.update_price (checked in the service, which sees the old prices).

@@ -7,12 +7,14 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DataStore } from '../../../core/services/data-store.service';
 import { DebtService } from '../../../core/services/debt.service';
 import { CostService } from '../../../core/services/cost.service';
-import { Product, SalesOrder, SalesOrderLine } from '../../../core/models/domain.models';
+import { AuthService } from '../../../core/services/auth.service';
+import { Product, Quotation, SalesOrder, SalesOrderLine, SalesReturn } from '../../../core/models/domain.models';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { CopyButtonComponent } from '../../../shared/copy-button/copy-button.component';
 import { MoneyInputDirective } from '../../../shared/money-input.directive';
 import { ProductPickerComponent } from '../../../shared/product-picker/product-picker.component';
 import { PrintDocumentComponent } from '../../../shared/print/print-document.component';
+import { PrintMenuComponent } from '../../../shared/print/print-menu.component';
 import { vndInWords } from '../../../shared/vnd-words';
 import { PaginationComponent } from '../../../shared/pagination/pagination.component';
 import { FilterMultiSelectComponent, FilterOption } from '../../../shared/filter-multi-select/filter-multi-select.component';
@@ -28,8 +30,11 @@ import {
   lineRemaining, linesNeedingLsx, needsProduction, orderTotals, priceFor,
 } from '../sales-order.rules';
 import { SalesOrderDraft, SalesOrderService } from '../sales-order.service';
+import { QuotationService } from '../../quotations/quotation.service';
+import { activePromotions, applyLinePromotions, orderDiscountFor } from '../promotion.rules';
 import { HasUnsavedChanges, isSaveShortcut, warnBeforeUnload } from '../../../core/guards/unsaved-changes.guard';
 import { DeliverDialogComponent } from '../deliver-dialog/deliver-dialog.component';
+import { ReturnDialogComponent } from '../return-dialog/return-dialog.component';
 import { errorText } from '../../../core/api/api.service';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
@@ -37,7 +42,7 @@ import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 import { PickableWarehousesPipe } from '../../../shared/pickable-warehouses.pipe';
 
 type Mode = 'create' | 'edit' | 'view';
-type Tab = 'hang' | 'gia-von' | 'lsx' | 'pxk' | 'cong-no' | 'nhat-ky';
+type Tab = 'hang' | 'gia-von' | 'lsx' | 'pxk' | 'tra-hang' | 'cong-no' | 'nhat-ky';
 
 interface DraftLine {
   key: string;
@@ -55,6 +60,10 @@ interface DraftLine {
   width: number | null;
   note: string;
   receivedQuantity: number;
+  /** Khuyến mãi (Pha 1.6): chiết khấu gõ tay không bị ghi đè; dòng tặng do chương trình thêm. */
+  discountManual: boolean;
+  promotionId: string | null;
+  isGift: boolean;
 }
 
 interface UnitOption {
@@ -67,6 +76,7 @@ const newKey = () => crypto.randomUUID();
 const emptyLine = (): DraftLine => ({
   key: newKey(), productId: '', unitName: '', quantity: null, unitPrice: null, priceManual: false, discountRate: null,
   discountAmount: null, vatRate: 0, warehouseId: '', length: null, width: null, note: '', receivedQuantity: 0,
+  discountManual: false, promotionId: null, isGift: false,
 });
 
 // Đơn hàng bán as one MISA-style chứng từ (lập / xem / sửa): header fields + totals panel,
@@ -77,7 +87,7 @@ const emptyLine = (): DraftLine => ({
   standalone: true,
   imports: [PickableWarehousesPipe, FrozenColsDirective, 
     NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
-    PaginationComponent, FilterMultiSelectComponent, DeliverDialogComponent, PrintDocumentComponent, AuditHistoryComponent,
+    PaginationComponent, FilterMultiSelectComponent, DeliverDialogComponent, ReturnDialogComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent,
   ],
   templateUrl: './sales-order-voucher.component.html',
   styleUrls: ['../../../shared/voucher/voucher.scss', './sales-order-voucher.component.scss'],
@@ -88,8 +98,11 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   readonly data = inject(DataStore);
   private readonly debt = inject(DebtService);
   private readonly orders = inject(SalesOrderService);
-  private readonly cost = inject(CostService);
+  private readonly quotations = inject(QuotationService);
+  readonly cost = inject(CostService);
+  private readonly auth = inject(AuthService);
   private readonly deliverDialog = viewChild<DeliverDialogComponent>('deliverDialog');
+  private readonly returnDialog = viewChild<ReturnDialogComponent>('returnDialog');
 
   readonly id = toSignal(this.route.paramMap.pipe(map((p) => p.get('id'))), { initialValue: this.route.snapshot.paramMap.get('id') });
   private readonly editRoute = this.route.snapshot.url.at(-1)?.path === 'sua';
@@ -122,18 +135,31 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   readonly neededByDate = signal('');
   readonly salesRep = signal('');
   readonly orderDiscount = signal<number | null>(null);
+  /** Chiết khấu cả đơn gõ tay: khuyến mãi theo tổng đơn không ghi đè. */
+  readonly orderDiscountManual = signal(false);
+  readonly orderPromotionId = signal<string | null>(null);
+  /** "Áp khuyến mãi": tắt thì không tự điền chiết khấu, không thêm hàng tặng. */
+  readonly applyPromos = signal(true);
   /** "Thu tiền ngay": khi khách nhận hàng tự lập phiếu thu vào tài khoản này. */
   readonly payNow = signal(false);
   readonly payAccountId = signal('');
   readonly lines = signal<DraftLine[]>([emptyLine()]);
+  /** Lập đơn từ báo giá (?quoteId=): saving links the two and marks the báo giá Đã lập đơn. */
+  readonly fromQuote = signal<Quotation | null>(null);
   readonly attempted = signal(false);
   readonly tab = signal<Tab>('hang');
   readonly notice = signal('');
   /** A save the server refused (or that could not reach it). */
   readonly failure = signal('');
+  /** The server refused the save for hạn mức công nợ; someone with debt.adjust may save anyway. */
+  readonly creditBlocked = computed(() => this.failure().startsWith('Vượt hạn mức công nợ'));
+  readonly canOverrideCredit = computed(() => this.auth.can('debt.adjust'));
   readonly confirmCancel = signal(false);
   readonly cancelReason = signal('');
   readonly confirmClose = signal(false);
+  /** Phiếu trả đang chờ xác nhận huỷ. */
+  readonly confirmCancelReturn = signal<SalesReturn | null>(null);
+  readonly cancelReturnReason = signal('');
 
   readonly vatRates = VAT_RATES;
   readonly statusLabel = SALES_ORDER_STATUS_LABEL;
@@ -151,29 +177,38 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
       const id = this.id();
       untracked(() => {
         const o = this.order();
-        const q = this.route.snapshot.queryParamMap.get('customerId') ?? '';
-        const preset = !id && this.data.customers().some((c) => c.id === q && c.isActive) ? q : '';
+        const params = this.route.snapshot.queryParamMap;
+        const quote = !id ? this.data.quotations().find((x) => x.id === params.get('quoteId') && x.status === 'MOI') ?? null : null;
+        const q = quote?.customerId ?? params.get('customerId') ?? '';
+        const preset = !id && this.data.customers().some((c) => c.id === q && (c.isActive || !!quote)) ? q : '';
+        this.fromQuote.set(quote);
         this.customerId.set(o?.customerId ?? preset);
-        this.recipientName.set(o?.recipientName ?? '');
-        this.recipientPhone.set(o?.recipientPhone ?? '');
-        this.deliveryAddress.set(o?.deliveryAddress ?? '');
-        if (!o && preset) this.applyDefaultAddress();
-        this.description.set(o?.description ?? '');
+        this.recipientName.set(o?.recipientName ?? quote?.recipientName ?? '');
+        this.recipientPhone.set(o?.recipientPhone ?? quote?.recipientPhone ?? '');
+        this.deliveryAddress.set(o?.deliveryAddress ?? quote?.deliveryAddress ?? '');
+        if (!o && !quote && preset) this.applyDefaultAddress();
+        this.description.set(o?.description ?? quote?.description ?? '');
         this.source.set(o?.source ?? '');
         this.tagIds.set(o?.tagIds ?? []);
         this.orderDate.set(o ? o.orderDate.slice(0, 10) : isoDay(new Date()));
         this.neededByDate.set(o?.neededByDate?.slice(0, 10) ?? '');
-        this.salesRep.set(o?.salesRep ?? this.defaultRep());
-        this.orderDiscount.set(o?.discountAmount || null);
+        this.salesRep.set(o?.salesRep ?? (quote?.salesRep || this.defaultRep()));
+        this.orderDiscount.set(o?.discountAmount || quote?.discountAmount || null);
+        const header = o ?? quote;
+        this.orderPromotionId.set(header?.promotionId ?? null);
+        this.orderDiscountManual.set(!header?.promotionId && !!header?.discountAmount);
+        this.applyPromos.set(true);
         this.payNow.set(!!o?.payNowAccountId);
         this.payAccountId.set(o?.payNowAccountId ?? this.defaultAccount());
-        this.lines.set(o ? o.lines.map((l) => this.toDraft(l)) : [emptyLine()]);
+        this.lines.set(o ? o.lines.map((l) => this.toDraft(l)) : quote ? quote.lines.map((l) => this.toDraft({ ...l, receivedQuantity: 0 })) : [emptyLine()]);
         this.attempted.set(false);
         this.tab.set('hang');
         this.page.set(1);
         this.confirmCancel.set(false);
         this.confirmClose.set(false);
+        this.confirmCancelReturn.set(null);
         if (id) this.notice.set((history.state as { notice?: string } | null)?.notice ?? '');
+        else this.notice.set(quote ? `Đơn điền sẵn từ báo giá ${quote.code} — chọn kho xuất, ngày cần giao rồi lưu. Lưu xong báo giá chuyển sang Đã lập đơn.` : '');
         this.baseline = this.snapshot();
       });
     });
@@ -193,6 +228,19 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   private readonly productById = computed(() => new Map(this.data.products().map((p) => [p.id, p])));
   readonly customer = computed(() => this.data.customers().find((c) => c.id === this.customerId()));
   readonly customerType = computed(() => this.customer()?.type ?? 'LE');
+  /** Bảng giá riêng của khách (đang dùng), Pha 1.6. */
+  readonly priceList = computed(() => {
+    const id = this.customer()?.priceListId;
+    return id ? this.data.priceLists().find((l) => l.id === id && l.isActive) : undefined;
+  });
+  private readonly listItems = computed(() => this.priceList()?.items ?? []);
+  /** Khuyến mãi đang áp cho ngày đặt và khách này. */
+  readonly promos = computed(() => activePromotions(this.data.promotions(), this.orderDate(), this.customer()));
+
+  promoName(id: string | null | undefined): string {
+    const p = id ? this.data.promotions().find((x) => x.id === id) : undefined;
+    return p ? `${p.code} · ${p.name}` : '';
+  }
   readonly customerOptions = computed(() =>
     this.data.customers().filter((c) => c.isActive || c.id === this.customerId()).sort((a, b) => a.code.localeCompare(b.code)),
   );
@@ -260,6 +308,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
       priceManual: true, discountRate: l.discountRate ?? null, discountAmount: l.discountAmount ?? null, vatRate: l.vatRate ?? 0,
       warehouseId: l.warehouseId ?? defaultWarehouse(this.product(l.productId)), length: l.length ?? null, width: l.width ?? null,
       note: l.note ?? '', receivedQuantity: l.receivedQuantity ?? 0,
+      discountManual: !l.promotionId && !l.isGift && !!l.discountAmount, promotionId: l.promotionId ?? null, isGift: !!l.isGift,
     };
   }
 
@@ -284,6 +333,8 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
       length: d.length || undefined,
       width: d.width || undefined,
       note: d.note.trim() || undefined,
+      promotionId: d.promotionId,
+      isGift: d.isGift || undefined,
     };
   }
 
@@ -306,7 +357,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
       const size = l.length && l.width ? ` (${l.length}×${l.width} cm)` : '';
       return {
         i, code: p?.code ?? '', name: (p?.name ?? l.productId) + size, unit: l.unit, qty: l.quantity, price: l.unitPrice,
-        discount: t.lines[i].lineDiscount, vatRate: l.vatRate ?? 0, amount: t.lines[i].gross - t.lines[i].lineDiscount,
+        discount: t.lines[i].lineDiscount, vatRate: l.vatRate ?? 0, amount: t.lines[i].gross - t.lines[i].lineDiscount, gift: !!l.isGift,
       };
     });
   });
@@ -355,8 +406,66 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
 
   // ---------- grid editing ----------
   patch(i: number, change: Partial<DraftLine>): void {
-    this.lines.update((ls) => ls.map((l, j) => (j === i ? this.withDiscount({ ...l, ...change }, change) : l)));
+    const typed = 'discountRate' in change || 'discountAmount' in change ? { discountManual: true, promotionId: null } : {};
+    this.lines.update((ls) => ls.map((l, j) => (j === i ? this.withDiscount({ ...l, ...change, ...typed }, change) : l)));
+    this.reprice();
   }
+
+  // ---------- bảng giá & khuyến mãi (Pha 1.6) ----------
+
+  /** Re-apply khuyến mãi after an edit: chiết khấu dòng, hàng tặng, chiết khấu cả đơn (each unless typed by hand). */
+  private reprice(): void {
+    const enabled = this.applyPromos();
+    const promos = this.promos();
+    this.lines.update((ls) => applyLinePromotions(ls, {
+      enabled, promos, product: (id) => this.product(id), ratio: (l) => this.ratio(l),
+      makeGift: (productId, quantity, promotionId, previous) => this.giftLine(productId, quantity, promotionId, previous),
+    }));
+    if (this.orderDiscountManual()) return;
+    const net = this.lines().filter((l) => !l.isGift && l.productId && (l.quantity ?? 0) > 0)
+      .reduce((s, l) => s + Math.round((l.quantity ?? 0) * (l.unitPrice ?? 0)) - (l.discountAmount ?? 0), 0);
+    const best = enabled ? orderDiscountFor(promos, net) : null;
+    this.orderDiscount.set(best?.amount || null);
+    this.orderPromotionId.set(best?.promotionId ?? null);
+  }
+
+  /** Hàng tặng: giá theo bảng giá của khách, chiết khấu 100% (thành tiền 0, vẫn xuất kho khi giao). */
+  private giftLine(productId: string, quantity: number, promotionId: string, previous?: DraftLine): DraftLine {
+    const p = this.product(productId);
+    const price = p ? priceFor(p, this.customerType(), '', this.listItems()) : 0;
+    return {
+      ...emptyLine(), key: previous?.key ?? newKey(), productId, quantity, unitPrice: price, priceManual: false,
+      discountRate: 100, discountAmount: Math.round(quantity * price), discountManual: true, promotionId, isGift: true,
+      vatRate: p?.vatRate ?? 0, warehouseId: previous?.warehouseId || defaultWarehouse(p), note: previous?.note ?? '',
+    };
+  }
+
+  setOrderDiscount(v: number | null): void {
+    this.orderDiscount.set(v);
+    this.orderDiscountManual.set(true);
+    this.orderPromotionId.set(null);
+  }
+
+  setOrderDate(day: string): void {
+    this.orderDate.set(day);
+    this.reprice();
+  }
+
+  setApplyPromos(on: boolean): void {
+    this.applyPromos.set(on);
+    if (on) {
+      // Bật lại: chiết khấu dòng và cả đơn theo chương trình, kể cả chỗ đã gõ tay trước đó.
+      this.lines.update((ls) => ls.map((l) => (l.isGift ? l : { ...l, discountManual: false })));
+      this.orderDiscountManual.set(false);
+    }
+    this.reprice();
+  }
+
+  /** Khuyến mãi đang áp trên chứng từ (hiện dưới lưới). */
+  readonly appliedPromos = computed(() => {
+    const ids = new Set([...this.rows().map((l) => l.promotionId), this.orderPromotionId()].filter((x): x is string => !!x));
+    return this.data.promotions().filter((p) => ids.has(p.id));
+  });
 
   /** Keep tỷ lệ CK and tiền CK in step (MISA): the one typed drives the other. */
   private withDiscount(l: DraftLine, change: Partial<DraftLine>): DraftLine {
@@ -377,7 +486,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
     this.patch(i, {
       productId,
       unitName: '',
-      unitPrice: p ? priceFor(p, this.customerType(), '') : null,
+      unitPrice: p ? priceFor(p, this.customerType(), '', this.listItems()) : null,
       priceManual: false,
       vatRate: p?.vatRate ?? 0,
       warehouseId: defaultWarehouse(p),
@@ -390,7 +499,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
     const p = this.product(l.productId);
     if (!p) return;
     // Unit change re-prices from the price list (the unit may have its own price).
-    this.patch(i, { unitName, unitPrice: priceFor(p, this.customerType(), unitName), priceManual: false });
+    this.patch(i, { unitName, unitPrice: priceFor(p, this.customerType(), unitName, this.listItems()), priceManual: false });
   }
 
   setPrice(i: number, price: number | null): void {
@@ -434,9 +543,10 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
     this.lines.update((ls) =>
       ls.map((l) => {
         const p = this.product(l.productId);
-        return p && !l.priceManual ? this.withDiscount({ ...l, unitPrice: priceFor(p, type, l.unitName) }, { unitPrice: 0 }) : l;
+        return p && !l.priceManual ? this.withDiscount({ ...l, unitPrice: priceFor(p, type, l.unitName, this.listItems()) }, { unitPrice: 0 }) : l;
       }),
     );
+    this.reprice();
   }
 
   addLine(): void {
@@ -446,6 +556,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
 
   removeLine(i: number): void {
     this.lines.update((ls) => (ls.length > 1 ? ls.filter((_, j) => j !== i) : [emptyLine()]));
+    this.reprice();
     const last = Math.max(1, Math.ceil(this.lines().length / this.pageSize()));
     if (this.page() > last) this.page.set(last);
   }
@@ -456,7 +567,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   }
 
   // ---------- save ----------
-  async save(): Promise<void> {
+  async save(overrideCredit = false): Promise<void> {
     this.attempted.set(true);
     if (this.issues().length) return;
     const draft: SalesOrderDraft = {
@@ -471,12 +582,16 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
       neededByDate: this.neededByDate() || undefined,
       salesRep: this.salesRep(),
       discountAmount: this.orderDiscount() ?? 0,
+      promotionId: this.orderPromotionId() ?? undefined,
       payNowAccountId: this.payNow() && this.payAccountId() ? this.payAccountId() : undefined,
+      overrideCreditLimit: overrideCredit || undefined,
+      quotationId: this.mode() === 'create' ? this.fromQuote()?.id : undefined,
       lines: this.validSaleLines(),
     };
     const id = this.id();
     const o = await this.attempt(() => (this.mode() === 'edit' && id ? this.orders.update(id, draft) : this.orders.create(draft)));
     if (!o) return;
+    if (draft.quotationId) await this.quotations.reload(draft.quotationId).catch(() => undefined);
     this.baseline = this.snapshot(); // saved: leaving the page must not ask again
     this.router.navigate(['/don-hang', o.id], { state: { notice: this.mode() === 'edit' ? 'Đã lưu thay đổi.' : `Đã tạo đơn ${o.code}.` } });
   }
@@ -567,8 +682,48 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
     this.tab.set('pxk');
   }
 
-  print(): void {
-    window.print();
+  // ---------- trả hàng (Pha 1.5) ----------
+
+  /** Khách đã nhận ít nhất một phần và đơn chưa huỷ: nhận lại được hàng trả. */
+  readonly canReturn = computed(() => {
+    const o = this.order();
+    return !!o && this.auth.can('order.return') && o.status !== 'HUY' && o.lines.some((l) => (l.receivedQuantity ?? 0) > 0);
+  });
+  readonly returns = computed(() => [...(this.order()?.returns ?? [])].sort((a, b) => b.code.localeCompare(a.code)));
+  readonly activeReturns = computed(() => this.returns().filter((r) => !r.isCancelled).length);
+
+  openReturn(): void {
+    this.returnDialog()?.open();
+  }
+
+  onReturned(message: string): void {
+    this.notice.set(message);
+    this.tab.set('tra-hang');
+  }
+
+  /** "SP001 × 4 · SP002 × 1" — the lines of one phiếu trả, by mã hàng. */
+  returnItems(r: SalesReturn): string {
+    const lines = new Map((this.order()?.lines ?? []).map((l) => [l.id, l]));
+    return r.lines
+      .map((x) => {
+        const l = lines.get(x.orderLineId);
+        return `${this.product(l?.productId ?? '')?.code ?? '?'} × ${x.quantity.toLocaleString('vi-VN')}${l?.unit ? ' ' + l.unit : ''}`;
+      })
+      .join(' · ');
+  }
+
+  askCancelReturn(r: SalesReturn): void {
+    this.cancelReturnReason.set('');
+    this.confirmCancelReturn.set(r);
+  }
+
+  async doCancelReturn(): Promise<void> {
+    const r = this.confirmCancelReturn();
+    if (!r) return;
+    const ok = await this.attempt(() => this.orders.cancelReturn(this.id()!, r.id, this.cancelReturnReason().trim()).then(() => true));
+    this.confirmCancelReturn.set(null);
+    if (!ok) return;
+    this.notice.set(`Đã huỷ phiếu trả ${r.code}${r.voucherCode ? ` — phiếu ${r.voucherCode} đã huỷ, hàng ra khỏi kho` : ''}; công nợ phải thu tăng lại ${this.money(r.amount)}.`);
   }
 
   // Phiếu xuất kho của đơn: new ones carry salesOrderId; demo ones mention the order / its trip.
@@ -586,7 +741,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   }
 
   // ---------- tab Giá vốn ----------
-  /** Per line: giá vốn ước tính (CostService, theo ĐVT của dòng), doanh thu thuần sau chiết khấu, lãi gộp. */
+  /** Per line: giá vốn bình quân hiện tại (CostService, theo ĐVT của dòng), doanh thu thuần sau chiết khấu, lãi gộp. */
   readonly costRows = computed(() => {
     const t = this.totals();
     return this.validLines().map((l, i) => {
@@ -620,6 +775,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
     const o = this.order();
     if (!o) return [];
     const out: { label: string; code: string; link: string[]; title: string }[] = [];
+    if (o.quotationId && o.quotationCode) out.push({ label: 'Báo giá', code: o.quotationCode, link: ['/bao-gia', o.quotationId], title: 'Báo giá' });
     const trip = o.tripId ? this.data.deliveryTrips().find((t) => t.id === o.tripId) : undefined;
     if (trip) out.push({ label: 'Chuyến giao', code: trip.code, link: ['/giao-hang', trip.id], title: 'Chuyến giao hàng' });
     for (const v of this.exportVouchers()) out.push({ label: 'Phiếu xuất', code: v.code, link: ['/kho/phieu', v.id], title: 'Phiếu xuất kho' });

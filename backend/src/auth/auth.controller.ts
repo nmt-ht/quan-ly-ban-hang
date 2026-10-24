@@ -1,6 +1,8 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { AuthService } from './auth.service.js';
 import type { AuthUser } from './auth.service.js';
+import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import { JwtAuthGuard } from './jwt-auth.guard.js';
 
@@ -8,6 +10,7 @@ import { JwtAuthGuard } from './jwt-auth.guard.js';
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
+  @UseGuards(ThrottlerGuard)
   @Post('login')
   @HttpCode(HttpStatus.OK)
   login(@Body() dto: LoginDto) {
@@ -19,5 +22,13 @@ export class AuthController {
   @Get('me')
   me(@Req() req: { user: AuthUser }): AuthUser {
     return req.user;
+  }
+
+  /** Đổi mật khẩu của chính mình: ends every other session and answers with a fresh token for this one. */
+  @UseGuards(JwtAuthGuard, ThrottlerGuard)
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  changePassword(@Req() req: { user: AuthUser }, @Body() dto: ChangePasswordDto) {
+    return this.auth.changePassword(req.user.id, dto.currentPassword, dto.newPassword);
   }
 }

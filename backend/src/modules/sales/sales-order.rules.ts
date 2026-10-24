@@ -58,10 +58,28 @@ export interface PriceSource {
   unitConversions: { unitName: string; ratioToBaseUnit: number; price: number; wholesalePrice: number | null; dropshipPrice: number | null }[];
 }
 
-/** Đơn giá theo loại khách, theo ĐVT của dòng (đơn vị quy đổi có giá riêng thì dùng giá đó). */
-export function priceFor(p: PriceSource, type: CustomerType, unitName: string | null | undefined): number {
-  const base = type === 'SI' ? p.wholesalePrice : type === 'DROPSHIP' ? p.dropshipPrice : p.retailPrice;
+/** A price from the customer's bảng giá (Pha 1.6); unitName "" = ĐVT chính. */
+export interface ListPrice {
+  productId: string;
+  unitName: string;
+  price: number;
+}
+
+/**
+ * Đơn giá theo ĐVT của dòng. Bảng giá riêng của khách đi trước: giá đúng ĐVT, rồi giá ĐVT chính × tỷ lệ quy đổi.
+ * Không có trong bảng: giá theo loại khách (đơn vị quy đổi có giá riêng thì dùng giá đó).
+ */
+export function priceFor(
+  p: PriceSource & { id?: string }, type: CustomerType, unitName: string | null | undefined, list: ListPrice[] = [],
+): number {
   const uc = unitName ? p.unitConversions.find((u) => u.unitName === unitName) : undefined;
+  if (p.id && list.length) {
+    const own = list.find((x) => x.productId === p.id && x.unitName === (unitName ?? ''));
+    if (own) return own.price;
+    const base = list.find((x) => x.productId === p.id && x.unitName === '');
+    if (base) return uc ? Math.round(base.price * uc.ratioToBaseUnit) : base.price;
+  }
+  const base = type === 'SI' ? p.wholesalePrice : type === 'DROPSHIP' ? p.dropshipPrice : p.retailPrice;
   if (!uc) return base;
   const listed = type === 'SI' ? uc.wholesalePrice : type === 'DROPSHIP' ? uc.dropshipPrice : uc.price;
   return listed || Math.round(base * uc.ratioToBaseUnit);

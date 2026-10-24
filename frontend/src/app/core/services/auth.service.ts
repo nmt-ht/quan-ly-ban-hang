@@ -13,10 +13,12 @@ export interface SessionUser {
   roleName: string;
   /** Codes granted by the role, as POST /auth/login and GET /auth/me answer them. */
   permissions: string[];
+  /** An administrator set or reset the password: the user must choose their own before using the app. */
+  mustChangePassword?: boolean;
 }
 
 /** What the login screen needs to tell the user. */
-export type LoginResult = 'ok' | 'invalid' | 'offline' | 'error';
+export type LoginResult = 'ok' | 'invalid' | 'throttled' | 'offline' | 'error';
 
 // Shape of POST /auth/login and GET /auth/me (backend src/auth/auth.service.ts › AuthUser).
 interface ApiUser {
@@ -34,6 +36,7 @@ const TOKEN_KEY = 'nt_token';
 
 const fromApi = (u: ApiUser): SessionUser => ({
   userId: u.id, name: u.name, email: u.email, roleId: u.roleId, roleName: u.roleName, permissions: u.permissions,
+  mustChangePassword: u.mustChangePassword,
 });
 
 // Sign-in: POST /auth/login on the NestJS backend.
@@ -45,6 +48,7 @@ export class AuthService {
   readonly user = this._user.asReadonly();
   readonly token = this._token.asReadonly();
   readonly isAuthenticated = computed(() => this._user() !== null);
+  readonly mustChangePassword = computed(() => this._user()?.mustChangePassword === true);
 
   /** Codes granted by the signed-in user's role. */
   readonly permissions = computed<ReadonlySet<string>>(() => new Set(this._user()?.permissions ?? []));
@@ -72,6 +76,28 @@ export class AuthService {
       this.setSession(fromApi(me), this._token()!);
     } catch {
       /* offline or 401 (handled by authInterceptor): nothing more to do here */
+    }
+  }
+
+  /**
+   * Đổi mật khẩu của chính mình (POST /auth/change-password). The backend ends the other sessions and
+   * answers with a fresh token, which replaces this one. Returns '' on success, else the message to show.
+   */
+  async changePassword(current: string, next: string): Promise<string> {
+    try {
+      const res = await firstValueFrom(
+        this.http.post<{ accessToken: string; user: ApiUser }>(`${API_BASE}/auth/change-password`, { currentPassword: current, newPassword: next }),
+      );
+      this.setSession(fromApi(res.user), res.accessToken);
+      return '';
+    } catch (e) {
+      if (e instanceof HttpErrorResponse) {
+        if (e.status === 429) return 'Thử quá nhiều lần. Vui lòng đợi vài phút rồi thử lại.';
+        const msg = (e.error as { message?: string | string[] } | null)?.message;
+        if (e.status === 400 && msg) return Array.isArray(msg) ? msg.join('. ') : msg;
+        if (e.status === 0) return 'Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.';
+      }
+      return 'Máy chủ gặp lỗi, chưa đổi được mật khẩu. Thử lại sau ít phút.';
     }
   }
 
@@ -151,6 +177,7 @@ export class AuthService {
 // account. When the backend is down the dev proxy answers 5xx without our JSON body; status 0 = no network.
 function loginFailure(e: unknown): LoginResult {
   if (!(e instanceof HttpErrorResponse)) return 'error';
+  if (e.status === 429) return 'throttled';
   if (e.status === 400 || e.status === 401) return 'invalid';
   const fromApi = e.error && typeof e.error === 'object' && 'statusCode' in e.error;
   if (e.status === 0 || (e.status >= 500 && !fromApi)) return 'offline';

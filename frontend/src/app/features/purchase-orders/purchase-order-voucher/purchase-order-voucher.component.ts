@@ -12,6 +12,7 @@ import { MoneyInputDirective } from '../../../shared/money-input.directive';
 import { ProductPickerComponent } from '../../../shared/product-picker/product-picker.component';
 import { HasUnsavedChanges, isSaveShortcut, warnBeforeUnload } from '../../../core/guards/unsaved-changes.guard';
 import { PrintDocumentComponent } from '../../../shared/print/print-document.component';
+import { PrintMenuComponent } from '../../../shared/print/print-menu.component';
 import { vndInWords } from '../../../shared/vnd-words';
 import { PaginationComponent } from '../../../shared/pagination/pagination.component';
 import { PURCHASE_ORDER_STATUS_LABEL, purchaseOrderStatusClass } from '../../../shared/status-labels';
@@ -28,6 +29,7 @@ import { errorText } from '../../../core/api/api.service';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 import { PickableWarehousesPipe } from '../../../shared/pickable-warehouses.pipe';
+import type { ReorderDraft } from '../../inventory/reorder.rules';
 
 type Mode = 'create' | 'edit' | 'view';
 
@@ -61,7 +63,7 @@ const emptyLine = (): DraftLine => ({
   standalone: true,
   imports: [PickableWarehousesPipe, FrozenColsDirective, 
     NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
-    ReceiveGoodsDialogComponent, PaginationComponent, PrintDocumentComponent, AuditHistoryComponent,
+    ReceiveGoodsDialogComponent, PaginationComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent,
   ],
   templateUrl: './purchase-order-voucher.component.html',
   styleUrl: '../../../shared/voucher/voucher.scss',
@@ -123,13 +125,18 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
         this.supplierId.set(o?.supplierId ?? preset);
         this.date.set(o ? o.date.slice(0, 10) : isoDay(new Date()));
         this.note.set(o?.note ?? '');
-        this.lines.set(o ? o.lines.map((l) => this.toDraft(l)) : [emptyLine()]);
+        // "Gợi ý lập đơn nhập" (Tồn kho) hands over the lines to buy in history.state — nothing is saved until Lập đơn.
+        const reorder = id ? [] : ((history.state as Partial<ReorderDraft> | null)?.reorder ?? []);
+        this.baseline = '';
+        this.lines.set(o ? o.lines.map((l) => this.toDraft(l)) : reorder.length ? reorder.map((r) => this.suggested(r.productId, r.quantity)) : [emptyLine()]);
         this.attempted.set(false);
         this.tab.set('hang');
         this.page.set(1);
         this.confirmCancel.set(false);
         if (id) this.notice.set((history.state as { notice?: string } | null)?.notice ?? '');
-        this.baseline = this.snapshot();
+        else if (reorder.length) this.notice.set(`Đã điền ${reorder.length} vật tư dưới tồn tối thiểu theo gợi ý — xem lại số lượng, giá rồi Lập đơn nhập.`);
+        // A suggested order counts as unsaved work: leaving asks first.
+        if (!reorder.length) this.baseline = this.snapshot();
       });
     });
   }
@@ -283,6 +290,15 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
     this.lines.update((ls) => ls.map((l, j) => (j === i ? { ...l, ...change } : l)));
   }
 
+  /** A line for a suggested vật tư: what picking it would fill in, plus the quantity (ĐVT chính). */
+  private suggested(productId: string, quantity: number): DraftLine {
+    const p = this.product(productId);
+    return {
+      ...emptyLine(), productId, quantity, unitPrice: this.lastPrice(productId), vatRate: p?.vatRate ?? 0,
+      warehouseId: p?.defaultWarehouseId ?? this.data.warehouses()[0]?.id ?? '',
+    };
+  }
+
   setProduct(i: number, productId: string): void {
     const p = this.product(productId);
     this.patch(i, {
@@ -401,10 +417,6 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
   onReceived(message: string): void {
     this.notice.set(message);
     this.tab.set('phieu');
-  }
-
-  print(): void {
-    window.print();
   }
 
   // Phiếu nhập kho created from this order (new receipts carry purchaseOrderId; demo ones the code).

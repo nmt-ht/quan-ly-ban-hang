@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DataStore } from '../../../core/services/data-store.service';
 import { DebtEntry, DebtService } from '../../../core/services/debt.service';
@@ -10,6 +10,15 @@ import { formatDay, inRange, rangeLabel } from '../../../shared/period';
 import { downloadWorkbook, exportFileName } from '../../../shared/excel.util';
 import { PrintDocumentComponent } from '../../../shared/print/print-document.component';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
+import { FormsModule } from '@angular/forms';
+import { CashAccount } from '../../../core/models/domain.models';
+import { AuthService } from '../../../core/services/auth.service';
+import { VietQrComponent, qrReady } from '../../../shared/vietqr/vietqr.component';
+import { bankNameOf } from '../../../shared/vietqr/vietqr';
+import { vndInWords } from '../../../shared/vnd-words';
+import { CHANNEL_LABEL, debtTransferNote, openCharges } from '../reminder.rules';
+import { ReminderService } from '../reminder.service';
+import { RemindDialogComponent } from '../remind-dialog/remind-dialog.component';
 
 export type DebtSide = 'PHAI_TRA' | 'PHAI_THU';
 
@@ -46,7 +55,10 @@ const SIDE = {
 @Component({
   selector: 'app-debt-ledger',
   standalone: true,
-  imports: [RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, PeriodFilterComponent, PrintDocumentComponent],
+  imports: [
+    RouterLink, FormsModule, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, PeriodFilterComponent, PrintDocumentComponent, VietQrComponent,
+    RemindDialogComponent,
+  ],
   templateUrl: './debt-ledger.component.html',
   styleUrl: './debt-ledger.component.scss',
 })
@@ -124,7 +136,46 @@ export class DebtLedgerComponent {
   }
 
   print(): void {
-    window.print();
+    this.printMode.set('doi-chieu');
+    setTimeout(() => window.print());
+  }
+
+  // ---------- Thông báo công nợ, VietQR, nhắc nợ (Pha 2, chỉ phải thu) ----------
+  private readonly auth = inject(AuthService);
+  readonly reminders = inject(ReminderService);
+  private readonly remindDialog = viewChild(RemindDialogComponent);
+  readonly isReceivable = computed(() => this.side() === 'PHAI_THU');
+  /** Which printout window.print() shows: biên bản đối chiếu, or thông báo công nợ gửi khách. */
+  readonly printMode = signal<'doi-chieu' | 'thong-bao'>('doi-chieu');
+  readonly notice = signal('');
+  readonly channelLabel = CHANNEL_LABEL;
+  readonly words = vndInWords;
+  readonly bankName = bankNameOf;
+
+  readonly qrAccounts = computed(() => this.data.cashAccounts().filter(qrReady).sort((a, b) => Number(!!b.isDefault) - Number(!!a.isDefault)));
+  readonly accountId = signal('');
+  readonly account = computed<CashAccount | null>(() => this.qrAccounts().find((a) => a.id === this.accountId()) ?? this.qrAccounts()[0] ?? null);
+  readonly openItems = computed(() => (this.row() ? openCharges(this.row()!) : []));
+  readonly amountDue = computed(() => Math.max(0, this.row()?.balance ?? 0));
+  readonly transferNote = computed(() => debtTransferNote(this.partner()?.code ?? ''));
+  readonly history = computed(() => this.reminders.all().filter((r) => r.customerId === this.partnerId()));
+  readonly canRemind = computed(() => this.auth.can('debt.remind'));
+
+  constructor() {
+    effect(() => {
+      if (this.isReceivable() && this.auth.can('debt.view')) void this.reminders.load().catch(() => undefined);
+    });
+  }
+
+  printNotice(): void {
+    this.printMode.set('thong-bao');
+    setTimeout(() => window.print());
+  }
+
+  remind(): void {
+    const c = this.data.customers().find((x) => x.id === this.partnerId());
+    const r = this.row();
+    if (c && r) this.remindDialog()?.open(c, r);
   }
 
   async exportExcel(): Promise<void> {

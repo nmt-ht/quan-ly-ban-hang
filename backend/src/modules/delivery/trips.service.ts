@@ -264,6 +264,9 @@ export class TripsService {
     return this.step(id, ['DA_XUAT_KHO'], 'Chỉ bỏ chốt khi xe chưa về kho.', async (tx, t) => {
       const link = t.orders.find((x) => x.orderId === orderId);
       if (!link?.confirmedAt) throw new BadRequestException('Đơn này chưa chốt giao.');
+      // Hàng khách đã trả lại phải còn nằm trong số đã nhận — bỏ chốt sau đó sẽ làm số trả lớn hơn số nhận.
+      const returned = await tx.salesReturn.findFirst({ where: { orderId, isCancelled: false }, select: { code: true } });
+      if (returned) throw new BadRequestException(`Đơn đã có phiếu trả hàng ${returned.code} — huỷ phiếu trả trước khi bỏ chốt giao.`);
       const o = await this.sales.locked(tx, orderId);
       const before = receivedValueOf(o.lines.map(saleLine), o.discountAmount.toNumber());
       for (const load of t.loads.filter((l) => l.orderLine.orderId === orderId)) {
@@ -321,10 +324,12 @@ export class TripsService {
       }
       const today = new Date().toISOString().slice(0, 10);
       const voucherIds: string[] = [];
+      const issued = byWarehouse.size ? await this.inventory.issuedCost(tx, { deliveryTripId: id }) : new Map<string, number>();
       for (const [warehouseId, m] of byWarehouse) {
         voucherIds.push(await this.inventory.post(tx, {
           type: 'NHAP', date: today, warehouseId, deliveryTripId: id, reason: `Nhập trả về — chuyến ${t.code} (${[...refs].join(', ')})`,
-          lines: [...m].map(([productId, quantity]) => ({ productId, quantity })),
+          // Hàng mang về goes back in at the giá vốn it left the kho at.
+          lines: [...m].map(([productId, quantity]) => ({ productId, quantity, unitCost: issued.get(productId) })),
         }, user.id));
       }
       await tx.deliveryTrip.update({ where: { id }, data: { status: 'XE_VE_KHO', returnedAt: new Date() } });

@@ -19,10 +19,10 @@ export class AuditContextInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     if (context.getType() !== 'http') return next.handle();
     const req = context.switchToHttp().getRequest<{
-      method: string; ip?: string; originalUrl?: string; route?: { path?: string }; user?: AuthUser;
+      id?: string; method: string; ip?: string; originalUrl?: string; route?: { path?: string }; user?: AuthUser;
     }>();
     const ctx: AuditContext = {
-      requestId: randomUUID(),
+      requestId: req.id ?? randomUUID(),
       ip: req.ip ?? null,
       method: req.method,
       route: req.route?.path ?? req.originalUrl ?? '',
@@ -36,7 +36,7 @@ export class AuditContextInterceptor implements NestInterceptor {
           .handle()
           .pipe(
             mergeMap(async (data) => {
-              if (isWrite && ctx.logged === 0) await this.audit.unaudited(ctx);
+              if (isWrite && ctx.logged === 0 && !ctx.readOnly) await this.audit.unaudited(ctx);
               return data;
             }),
           )

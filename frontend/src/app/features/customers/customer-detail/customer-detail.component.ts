@@ -48,6 +48,12 @@ export class CustomerDetailComponent {
   readonly tone = amountTone;
   readonly day = formatDay;
   readonly creditLabel = creditLabel;
+
+  priceListName(id: string | null | undefined): string {
+    if (!id) return 'Theo loại khách';
+    const l = this.data.priceLists().find((x) => x.id === id);
+    return l ? l.name + (l.isActive ? '' : ' (ngừng dùng — đang theo loại khách)') : '—';
+  }
   readonly typeLabel = CUSTOMER_TYPE_SHORT;
   readonly typeClass = customerTypeClass;
   readonly statusClass = customerStatusClass;

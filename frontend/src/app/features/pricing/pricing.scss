@@ -1,0 +1,130 @@
+// Bảng giá & Khuyến mãi (Pha 1.6): editor card above the list.
+.table-wrap {
+  padding: 0;
+}
+
+.pr-editor {
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.pr-editor h2 {
+  margin: 0 0 var(--space-sm);
+  font-size: var(--text-lg);
+}
+
+.pr-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0 var(--space-sm);
+  align-items: start;
+}
+
+.pr-fields .field {
+  margin-bottom: var(--space-xs);
+  min-width: 0;
+}
+
+.pr-fields .span-2 {
+  grid-column: span 2;
+}
+
+.pr-fields .span-full {
+  grid-column: 1 / -1;
+}
+
+.pr-fields > .hint {
+  margin: 0 0 var(--space-xs);
+}
+
+.pr-check {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  align-self: center;
+  font-size: var(--text-sm);
+}
+
+.pr-check .hint {
+  flex-basis: 100%;
+}
+
+.pr-goods-pickers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.pr-tools {
+  margin-top: var(--space-xs);
+}
+
+.pr-fill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+}
+
+.pr-fill .num-input {
+  width: 5rem;
+}
+
+.pr-grid .pr-product {
+  min-width: 18rem;
+}
+
+.pr-grid .pr-price {
+  width: 9rem;
+  text-align: right;
+}
+
+.pr-grid .hint {
+  display: block;
+}
+
+.pr-tiers {
+  margin-bottom: var(--space-2xs);
+}
+
+.pr-tiers input {
+  width: 8rem;
+}
+
+.pr-actions {
+  justify-content: flex-end;
+  margin-top: var(--space-sm);
+}
+
+.pr-actions > span {
+  margin-right: auto;
+  font-size: var(--text-sm);
+}
+
+.pr-row-actions {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.pr-off td {
+  color: var(--color-muted);
+}
+
+.btn-sm {
+  min-height: 1.875rem;
+  padding: 0 var(--space-xs);
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 700px) {
+  .pr-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pr-fields .span-2 {
+    grid-column: auto;
+  }
+}

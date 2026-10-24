@@ -67,6 +67,10 @@ export class ReportDataService {
       productionOrders: await this.sales.productionOrders(),
       stockLevels: await this.inventory.stockLevels(),
       warehouseVouchers: await this.inventory.vouchers(),
+      // Giá vốn (Pha 1.3): bình quân hiện tại, and what each phiếu xuất froze — kept off the voucher list itself.
+      averageCosts: await this.inventory.averageCosts(),
+      issueCosts: await this.inventory.issueCosts(),
+      orderTrips: await this.prisma.deliveryTripOrder.findMany({ select: { orderId: true, tripId: true } }),
       deliveryTrips: await this.trips.trips(),
       users: await this.prisma.user.findMany({ select: { email: true, name: true } }),
     });

@@ -35,7 +35,7 @@ const LIMIT = 50;
 export class WarehouseDetailComponent {
   readonly data = inject(DataStore);
   readonly svc = inject(WarehouseService);
-  private readonly cost = inject(CostService);
+  readonly cost = inject(CostService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);

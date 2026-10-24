@@ -1,5 +1,5 @@
 import {
-  CustomerType, Product, ProductionOrder, SalesOrder, SalesOrderLine, SalesOrderStatus,
+  CustomerType, PriceListItem, Product, ProductionOrder, SalesOrder, SalesOrderLine, SalesOrderStatus,
 } from '../../core/models/domain.models';
 import { round4 } from '../purchase-orders/purchase-order.rules';
 
@@ -76,9 +76,14 @@ export function deliveredPercent(o: SalesOrder): number {
 }
 
 /** Đơn giá theo loại khách, theo ĐVT của dòng (đơn vị quy đổi có giá riêng thì dùng giá đó). */
-export function priceFor(p: Product, type: CustomerType, unitName: string): number {
-  const base = type === 'SI' ? p.wholesalePrice : type === 'DROPSHIP' ? p.dropshipPrice : p.retailPrice;
+export function priceFor(p: Product, type: CustomerType, unitName: string, list: PriceListItem[] = []): number {
   const uc = unitName ? p.unitConversions.find((u) => u.unitName === unitName) : undefined;
+  // Bảng giá riêng của khách (Pha 1.6) đi trước: đúng ĐVT, rồi giá ĐVT chính × tỷ lệ. Giống server.
+  const own = list.find((x) => x.productId === p.id && x.unitName === unitName);
+  if (own) return own.price;
+  const listedBase = list.find((x) => x.productId === p.id && x.unitName === '');
+  if (listedBase) return uc ? Math.round(listedBase.price * uc.ratioToBaseUnit) : listedBase.price;
+  const base = type === 'SI' ? p.wholesalePrice : type === 'DROPSHIP' ? p.dropshipPrice : p.retailPrice;
   if (!uc) return base;
   const listed = type === 'SI' ? uc.wholesalePrice : type === 'DROPSHIP' ? uc.dropshipPrice : uc.price;
   return listed || Math.round(base * uc.ratioToBaseUnit);

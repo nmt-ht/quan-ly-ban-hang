@@ -11,13 +11,18 @@
       <app-nav-icon name="download" />{{ exporting() ? 'Đang xuất…' : 'Xuất Excel' }}
     </button>
     <a class="btn" routerLink="/kho/phieu"><app-nav-icon name="voucher" />Phiếu kho</a>
+    @if (toReorder()) {
+      <button type="button" class="btn" (click)="openReorder()"><app-nav-icon name="cart" />Gợi ý đơn nhập <span class="tab-count num">{{ toReorder() }}</span></button>
+    }
     <a class="btn btn-primary" routerLink="/mua-hang/them"><app-nav-icon name="plus" />Lập đơn nhập</a>
   </div>
 </div>
 
 <dl class="list-totals">
   <div><dt>Mặt hàng có tồn</dt><dd class="num">{{ totals().items }}</dd></div>
-  <div><dt>Giá trị tồn (giá vốn ước tính)</dt><dd class="num">{{ money(totals().value) }}</dd></div>
+  @if (cost.canViewStockValue()) {
+    <div><dt>Giá trị tồn (giá vốn bình quân)</dt><dd class="num">{{ money(totals().value) }}</dd></div>
+  }
   @if (totals().belowMin) {
     <div><dt>Dưới tồn tối thiểu / hết</dt><dd class="num text-warning">{{ totals().belowMin }}</dd></div>
   }
@@ -54,7 +59,9 @@
     <option value="code">Mã tăng dần</option>
     <option value="qty-desc">Tồn nhiều → ít</option>
     <option value="qty-asc">Tồn ít → nhiều</option>
-    <option value="value">Giá trị tồn lớn nhất</option>
+    @if (cost.canViewStockValue()) {
+      <option value="value">Giá trị tồn lớn nhất</option>
+    }
   </select>
   <button type="button" class="filter-toggle" [attr.aria-pressed]="negativeOnly()" (click)="negativeOnly.set(!negativeOnly())">Đang tồn âm</button>
   <button type="button" class="filter-toggle" [attr.aria-pressed]="belowMinOnly()" (click)="belowMinOnly.set(!belowMinOnly())">Dưới tồn tối thiểu</button>
@@ -86,7 +93,7 @@
 
 <p class="hint inv-hint">
   Tồn luôn quy về ĐVT chính. Khách đã đặt = đơn bán chưa xuất kho; Có thể bán = tồn − khách đã đặt; Sắp về = đơn nhập đã gửi NCC chưa nhận.
-  Giá trị tồn tính theo giá vốn ước tính (giá nhập gần nhất / định mức).
+  @if (cost.canViewStockValue()) { Giá trị tồn tính theo giá vốn bình quân gia quyền di động. }
 </p>
 
 <ng-template #rowActions let-r>
@@ -99,3 +106,5 @@
     </a>
   </span>
 </ng-template>
+
+<app-reorder-dialog />

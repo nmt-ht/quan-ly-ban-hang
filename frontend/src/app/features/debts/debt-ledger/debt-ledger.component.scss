@@ -91,3 +91,31 @@
 }
 
 // ---------- print: biên bản đối chiếu ----------
+
+// Thanh toán & nhắc nợ (Pha 2): mã VietQR cho số còn nợ, tài khoản nhận tiền, các lần nhắc gần đây.
+.ledger-pay {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.ledger-pay-account {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--text-sm);
+}
+
+.ledger-reminders {
+  margin-left: auto;
+  font-size: var(--text-sm);
+}
+
+.ledger-reminders ul {
+  margin: 4px 0 0;
+  padding-left: 1.1rem;
+  color: var(--color-ink-2);
+}

@@ -1,0 +1,153 @@
+<div class="page-header">
+  <div>
+    <h1>Bảng giá</h1>
+    <p class="subtitle">Giá riêng theo mặt hàng cho từng nhóm khách · {{ data.priceLists().length }} bảng giá</p>
+  </div>
+  <div class="toolbar">
+    <a class="btn" routerLink="/khuyen-mai"><app-nav-icon name="tag" />Khuyến mãi</a>
+    <button type="button" class="btn btn-primary" (click)="open()" [disabled]="editingId() !== null"><app-nav-icon name="plus" />Thêm bảng giá</button>
+  </div>
+</div>
+
+@if (notice()) {
+  <div class="notice" role="status">
+    <span>{{ notice() }}</span>
+    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+  </div>
+}
+
+@if (editingId() !== null) {
+  <section class="card pr-editor" aria-labelledby="pl-title">
+    <h2 id="pl-title">{{ editingId() ? 'Sửa bảng giá' : 'Bảng giá mới' }}</h2>
+    @if (error()) { <p class="form-note text-danger" role="alert">{{ error() }}</p> }
+    <div class="pr-fields">
+      <div class="field">
+        <label for="pl-name">Tên bảng giá <span class="required-mark">*</span></label>
+        <input id="pl-name" type="text" maxlength="100" placeholder="VD: Đại lý cấp 1" [ngModel]="name()" (ngModelChange)="name.set($event)"
+          [attr.aria-invalid]="nameTaken() ? 'true' : null" />
+        @if (nameTaken()) { <span class="hint text-danger">Đã có bảng giá tên này.</span> }
+      </div>
+      <div class="field span-2">
+        <label for="pl-note">Ghi chú</label>
+        <input id="pl-note" type="text" maxlength="500" [ngModel]="note()" (ngModelChange)="note.set($event)" />
+      </div>
+      <label class="pr-check">
+        <input type="checkbox" [ngModel]="isActive()" (ngModelChange)="isActive.set($event)" />
+        Đang dùng
+        <span class="hint">Ngừng dùng thì khách đang gán bảng này về giá theo loại khách.</span>
+      </label>
+    </div>
+
+    <div class="filters-bar pr-tools">
+      <input type="text" class="filter-search" placeholder="Lọc mặt hàng trong bảng…" aria-label="Lọc mặt hàng" [value]="filter()" (input)="filter.set($any($event.target).value)" />
+      <span class="pr-fill">
+        <label for="pl-pct">Điền nhanh: giá lẻ −</label>
+        <input id="pl-pct" type="number" min="0" max="100" step="any" class="num-input" [ngModel]="percent()" (ngModelChange)="percent.set($event)" />
+        <span>%</span>
+        <button type="button" class="btn btn-sm" [disabled]="percent() === null" (click)="fillFromRetail()">Áp cho mọi dòng</button>
+      </span>
+    </div>
+
+    <div class="table-scroll">
+      <table class="pr-grid">
+        <thead>
+          <tr>
+            <th scope="col" class="c-idx">#</th>
+            <th scope="col">Hàng hoá</th>
+            <th scope="col">ĐVT</th>
+            <th scope="col" class="align-right">Giá lẻ</th>
+            <th scope="col" class="align-right">Giá sỉ</th>
+            <th scope="col" class="align-right">Giá trong bảng</th>
+            <th scope="col"><span class="visually-hidden">Xoá</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of visibleItems(); track row.l.key) {
+            @let l = row.l;
+            @let i = row.i;
+            @let ref = refPrices(l);
+            <tr>
+              <td class="c-idx num">{{ i + 1 }}</td>
+              <td class="pr-product">
+                <app-product-picker [products]="productOptions()" [value]="l.productId" (valueChange)="setProduct(i, $event)" [ariaLabel]="'Hàng hoá dòng ' + (i + 1)" />
+              </td>
+              <td>
+                @if (units(l.productId).length > 1) {
+                  <select [ngModel]="l.unitName" (ngModelChange)="patch(i, { unitName: $event })" [attr.aria-label]="'ĐVT dòng ' + (i + 1)">
+                    @for (u of units(l.productId); track u.value) { <option [value]="u.value">{{ u.label }}</option> }
+                  </select>
+                } @else { {{ units(l.productId)[0]?.label ?? '—' }} }
+              </td>
+              <td class="num align-right">{{ l.productId ? money(ref.retail) : '' }}</td>
+              <td class="num align-right">{{ l.productId ? money(ref.wholesale) : '' }}</td>
+              <td class="align-right">
+                @if (l.productId) {
+                  <input type="text" appMoney class="pr-price" [ngModel]="l.price" (ngModelChange)="patch(i, { price: $event })"
+                    [attr.aria-label]="'Giá trong bảng dòng ' + (i + 1)" [attr.aria-invalid]="l.price === null ? 'true' : null" />
+                  @if (l.price !== null && ref.retail) {
+                    <span class="hint num">{{ l.price <= ref.retail ? '−' : '+' }}{{ ((ref.retail - l.price) / ref.retail * 100) | number: '1.0-1' }}% so với giá lẻ</span>
+                  }
+                }
+              </td>
+              <td>
+                @if (l.productId) {
+                  <button type="button" class="icon-action danger-action" (click)="remove(i)" [attr.aria-label]="'Bỏ dòng ' + (i + 1)" title="Bỏ dòng"><app-nav-icon name="trash" /></button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="hint">Giá chỉ đặt ở ĐVT chính thì ĐVT quy đổi tự tính = giá × tỷ lệ. Đơn và báo giá đã lưu giữ nguyên giá cũ.</p>
+
+    <div class="toolbar pr-actions">
+      <span class="text-danger" role="status">{{ issues()[0] ?? '' }}</span>
+      <button type="button" class="btn" (click)="close()">Huỷ</button>
+      <button type="button" class="btn btn-primary" [disabled]="issues().length > 0 || nameTaken() || saving()" (click)="save()">
+        {{ saving() ? 'Đang lưu…' : 'Lưu bảng giá' }}
+      </button>
+    </div>
+  </section>
+}
+
+<section class="card table-wrap">
+  @if (data.priceLists().length) {
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Bảng giá</th>
+            <th scope="col" class="align-right">Số giá</th>
+            <th scope="col" class="align-right">Khách đang dùng</th>
+            <th scope="col">Trạng thái</th>
+            <th scope="col">Ghi chú</th>
+            <th scope="col" class="pr-row-actions"><span class="visually-hidden">Thao tác</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (l of data.priceLists(); track l.id) {
+            <tr [class.pr-off]="!l.isActive">
+              <td><strong>{{ l.name }}</strong></td>
+              <td class="num align-right">{{ l.items.length }}</td>
+              <td class="num align-right">{{ l.customerCount }}</td>
+              <td>{{ l.isActive ? 'Đang dùng' : 'Ngừng dùng' }}</td>
+              <td class="wrap">{{ l.note || '' }}</td>
+              <td class="pr-row-actions">
+                <button type="button" class="icon-action" (click)="open(l)" [disabled]="editingId() !== null" [attr.aria-label]="'Sửa bảng giá ' + l.name" title="Sửa">
+                  <app-nav-icon name="pencil" />
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <div class="empty-state">
+      <h3>Chưa có bảng giá riêng</h3>
+      <p>Mọi khách đang lấy giá theo loại khách (lẻ / sỉ / dropship). Lập bảng giá cho đại lý, công trình… rồi gán ở form khách hàng.</p>
+      <button type="button" class="btn btn-primary" (click)="open()" [disabled]="editingId() !== null"><app-nav-icon name="plus" />Thêm bảng giá</button>
+    </div>
+  }
+</section>

@@ -389,6 +389,20 @@ mix in a second icon library or emoji.
   hàng · phiếu soạn hàng · phiếu giao hàng · biên bản đối chiếu công nợ · báo cáo tuổi nợ. A new printout =
   one `<app-print-document>`; nothing else to style.
 - The same letterhead is the live preview in Thiết lập › Thông tin công ty.
+- **Paper (Pha 1.10).** The print button is `<app-print-menu kind="…" [papers]>`: a split button "In · A5" — one click
+  prints on the paper last used for that kind of document (`nt.print.paper.<kind>`), the arrow opens A4 / A5 / K80
+  with a one-line hint each. Screens that print one of several documents show it in `(prepare)` and hide it in `(done)`.
+  `PrintService` puts the paper on `<html data-paper>` for one print; print.scss sends the body to the named page
+  `a5` / `k80` and lays the same document out for it. The paper rules live outside `@media print` (the documents
+  are `.print-only`, so the screen never shows them) because the K80 roll is measured on screen with them.
+  - **A5**: every column stays; type 9 pt (table 8 pt), title 13 pt, tighter meta and signatures. `.a5-hide` drops a column.
+  - **K80** (80 mm roll, 72 mm printable): a till receipt — centred letterhead and number, one-column meta, dashed
+    rules instead of boxes, no STT; columns marked `.k80-hide` drop out (mã hàng, ĐVT, chiết khấu, thuế, đơn giá
+    trên phiếu kho). Two signatures: the `PrintSigner`s marked `k80` (else the first and last). The page is exactly
+    as long as the content, so the printer cuts after the last line; several documents follow each other on the
+    roll parted by a dashed cut line. No "Trang x / y".
+  - Which paper: đơn hàng bán, phiếu giao hàng, phiếu thu / chi, phiếu kho → A4 · A5 · K80; đơn nhập hàng, phiếu
+    soạn hàng → A4 · A5; báo cáo, biên bản đối chiếu → A4 only (plain button).
 
 ## Voucher screens (chứng từ, MISA-style) — reference: Đơn nhập hàng
 - The product is being remade to work like MISA. Business documents (đơn nhập,
@@ -408,7 +422,22 @@ mix in a second icon library or emoji.
   toán; hand-typed prices carry a small warning dot and are not re-priced when
   the customer changes. Status actions in the bar: Lập lệnh sản xuất →
   Giao hàng (dialog, like Nhận hàng) → Lập phiếu thu / Kết thúc đơn.
+- Trả hàng (Pha 1.5): "Nhận hàng trả lại" in the action bar once the customer has received something
+  (`order.return`). The dialog reuses the Nhận hàng layout: ngày trả, kho nhập lại (pickable), lý do (required,
+  datalist of common reasons), ghi chú; rows = đã nhận · đã trả · còn trả được · trả lần này · giá trị; the footer
+  says how much công nợ goes down. A **Trả hàng** tab (count of live phiếu) lists the phiếu: số, ngày, hàng trả
+  ("SP001 × 4"), lý do, phiếu nhập kho, giảm công nợ, trạng thái, "Huỷ phiếu" behind a confirm strip with a
+  reason. A cancelled phiếu stays in the list, muted, its amount struck out. The Công nợ tab shows "Hàng trả lại"
+  apart from "Đã thu".
 - MISA parity on Đơn hàng bán (and the pattern for later vouchers): a **Thu tiền bar** above the header card (segmented Chưa thu tiền / Thu tiền ngay + account select; view mode shows it as a pill); a **Tham chiếu** row at the end of the header grid linking the related chuyến / phiếu xuất / lệnh SX / phiếu thu (every related document links back); a **Giá vốn tab** next to the goods tab (giá vốn, doanh thu thuần, lãi gộp, tỷ suất, always labelled "ước tính"); **‹ n/N ›** in the left of the sticky action bar to step to the previous / next chứng từ.
+- Giá vốn wording (Pha 1.3): "giá vốn bình quân" for today's figure (Tồn kho, giá trị tồn, tab Giá vốn of an
+  order), "giá vốn hàng bán" / "giá vốn chốt" for what a delivered order cost (Lãi gộp, Tổng quan). "Ước tính" is
+  left only where it still is one (chi phí vật tư of a lệnh sản xuất from định mức × today's cost).
+- Gợi ý lập đơn nhập (Pha 1.8): Tồn kho header button "Gợi ý đơn nhập n" (cart icon, count of vật tư still to
+  order) opens a dialog in the Nhận hàng layout: one block per nhà cung cấp (A → Z, "Chưa rõ nhà cung cấp" last)
+  with "Lập đơn nhập (n dòng)"; rows = chọn · vật tư · tồn · tối thiểu · đang về · đặt thêm (+ ĐVT chính) · NCC
+  (select, moving the row re-groups it and takes that NCC's catalogue price) · giá mua. Rows already covered by
+  đơn đang về stay listed, muted, unticked. The đơn nhập opens prefilled with a notice and counts as unsaved.
 - Never show a customer *type* (Lẻ / Sỉ / Dropship) next to a *tag* (Khách quen…) without a label: the type lives in "Loại khách · bảng giá", the tag in "Thẻ đánh dấu", and the chip beside the name says only the payment term.
 - Product choice uses `app-product-picker` (search, VT/SP/DV tag, code, stock).
 

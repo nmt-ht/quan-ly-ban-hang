@@ -1,8 +1,9 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
+import { checkPassword } from '../common/password.js';
 
 /** The signed-in user as every request sees it (`req.user`) and as /auth/me returns it. */
 export interface AuthUser {
@@ -55,6 +56,32 @@ export class AuthService {
       });
     });
     const payload: JwtPayload = { sub: user.id };
+    return { accessToken: await this.jwt.signAsync(payload), user };
+  }
+
+  /**
+   * Đổi mật khẩu của chính người dùng. A wrong current password is a 400, not a 401: the frontend
+   * signs the user out on 401. Sessions issued before now end (sessionsRevokedAt); the answer carries a
+   * new token so this browser stays signed in.
+   */
+  async changePassword(id: string, current: string, next: string): Promise<{ accessToken: string; user: AuthUser }> {
+    const account = await this.prisma.user.findUnique({ where: { id } });
+    if (!account || account.status !== 'ACTIVE') throw new UnauthorizedException('Phiên đăng nhập không còn hiệu lực');
+    if (!(await bcrypt.compare(current, account.passwordHash))) throw new BadRequestException('Mật khẩu hiện tại không đúng');
+    checkPassword(next);
+    if (next === current) throw new BadRequestException('Mật khẩu mới phải khác mật khẩu hiện tại');
+    const now = new Date();
+    const passwordHash = await bcrypt.hash(next, 10);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({ where: { id }, data: { passwordHash, passwordUpdatedAt: now, mustChangePassword: false, sessionsRevokedAt: now } });
+      await this.audit.log(tx, {
+        action: 'auth.change_password', entityType: 'User', entityId: id, entityCode: account.email,
+        summary: 'Tự đổi mật khẩu, các phiên đăng nhập khác đã bị đăng xuất', actor: { id, name: account.name },
+      });
+    });
+    const user = await this.loadUser(id);
+    if (!user) throw new UnauthorizedException('Phiên đăng nhập không còn hiệu lực');
+    const payload: JwtPayload = { sub: id };
     return { accessToken: await this.jwt.signAsync(payload), user };
   }
 

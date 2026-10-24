@@ -14,6 +14,7 @@ import { vndInWords } from '../../../shared/vnd-words';
 import { ACCOUNT_TYPE_LABEL } from '../cash-voucher.rules';
 import { CashVoucherService } from '../cash-voucher.service';
 import { PrintDocumentComponent } from '../../../shared/print/print-document.component';
+import { PrintMenuComponent } from '../../../shared/print/print-menu.component';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
 
@@ -21,7 +22,7 @@ import { AuditHistoryComponent } from '../../../shared/audit/audit-history.compo
 @Component({
   selector: 'app-cash-voucher-view',
   standalone: true,
-  imports: [FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, PrintDocumentComponent, AuditHistoryComponent],
+  imports: [FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent],
   templateUrl: './cash-voucher-view.component.html',
   styleUrls: ['../../../shared/voucher/voucher.scss', './cash-voucher-view.component.scss'],
 })
@@ -96,10 +97,6 @@ export class CashVoucherViewComponent {
     const d = new Date(iso);
     const pad = (n: number) => String(n).padStart(2, '0');
     return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  }
-
-  print(): void {
-    window.print();
   }
 
   async doCancel(): Promise<void> {

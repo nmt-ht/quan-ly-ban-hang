@@ -16,7 +16,7 @@ const stockNow: ReportDef = {
   searchHint: 'Tìm mã, tên mặt hàng hoặc kho…',
   notes: [
     'Báo cáo hiện trạng: tính tại thời điểm xem, không lọc theo ngày. Chỉ vật tư và thành phẩm (dịch vụ không có tồn); tồn âm giữ nguyên, không làm tròn về 0.',
-    'Giá trị tồn = tồn dương × giá vốn ước tính (xem Lãi gộp); tồn âm không làm giá trị âm. Hàng đã lên xe chưa chốt giao đã trừ khỏi tồn kho.',
+    'Giá trị tồn = tồn dương × giá vốn bình quân (xem Lãi gộp); tồn âm không làm giá trị âm. Hàng đã lên xe chưa chốt giao đã trừ khỏi tồn kho.',
   ],
 };
 
@@ -30,7 +30,7 @@ const belowMin: ReportDef = {
   searchHint: 'Tìm mã hoặc tên mặt hàng…',
   notes: [
     'Chỉ mặt hàng còn kinh doanh, không phải dịch vụ và có tồn tối thiểu > 0; so sánh tổng tồn các kho với mức tối thiểu.',
-    'Tiền cần bù = số thiếu × giá vốn ước tính hiện tại (không phải giá chào của nhà cung cấp). Xếp theo tiền cần bù giảm dần.',
+    'Tiền cần bù = số thiếu × giá vốn bình quân hiện tại (không phải giá chào của nhà cung cấp). Xếp theo tiền cần bù giảm dần.',
   ],
 };
 
@@ -64,7 +64,7 @@ const idle: ReportDef = {
   searchHint: 'Tìm mã hoặc tên mặt hàng…',
   notes: [
     'Chỉ mặt hàng còn tồn dương (không gồm dịch vụ). Số ngày nằm im tính từ chứng từ kho gần nhất (nhập, xuất hoặc kiểm kê) đến hôm nay; chuyển kho không tính là phát sinh. Mặt hàng chưa từng có chứng từ đứng đầu danh sách.',
-    'Giá trị tồn = tồn × giá vốn ước tính (xem Lãi gộp).',
+    'Giá trị tồn = tồn × giá vốn bình quân (xem Lãi gộp).',
   ],
 };
 
@@ -94,7 +94,7 @@ const turnover: ReportDef = {
   notes: [
     'Xuất trong kỳ = mọi phiếu xuất kho: giao cho khách và xuất vật tư cho sản xuất. Xuất / ngày = xuất trong kỳ ÷ số ngày của kỳ.',
     'Số ngày tồn = tồn cuối kỳ ÷ xuất / ngày — tồn còn đủ dùng bao nhiêu ngày với nhịp hiện tại; mặt hàng không xuất hiện "—". Vòng quay = xuất trong kỳ ÷ tồn bình quân (đầu kỳ và cuối kỳ).',
-    'Số ngày tồn toàn kho = giá trị tồn ÷ giá trị xuất bình quân mỗi ngày (theo giá vốn ước tính). Xếp mặt hàng quay chậm nhất lên đầu.',
+    'Số ngày tồn toàn kho = giá trị tồn ÷ giá trị xuất bình quân mỗi ngày (theo giá vốn bình quân). Xếp mặt hàng quay chậm nhất lên đầu.',
   ],
 };
 

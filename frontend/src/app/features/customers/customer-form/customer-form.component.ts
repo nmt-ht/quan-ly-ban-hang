@@ -35,12 +35,16 @@ export class CustomerFormComponent implements HasUnsavedChanges {
   readonly editing = this.id ? this.data.customers().find((c) => c.id === this.id) : undefined;
   readonly notFound = !!this.id && !this.editing;
   readonly types = CUSTOMER_TYPES;
+  /** Bảng giá đang dùng (và bảng khách đang gán, kể cả đã ngừng). */
+  readonly priceLists = computed(() => this.data.priceLists().filter((l) => l.isActive || l.id === this.editing?.priceListId));
 
   readonly form = this.fb.nonNullable.group({
     name: [this.editing?.name ?? '', [Validators.required, Validators.maxLength(200)]],
     companyName: [this.editing?.companyName ?? ''],
     type: [(this.editing?.type ?? 'LE') as CustomerType],
     creditDays: [this.editing?.creditDays ?? 0, [Validators.required, Validators.min(0), Validators.max(365), Validators.pattern(/^\d+$/)]],
+    creditLimit: [this.editing?.creditLimit ?? 0, [Validators.min(0), Validators.max(1e12)]],
+    priceListId: [this.editing?.priceListId ?? ''],
     phone: [this.editing?.phone ?? '', Validators.pattern(PHONE_PATTERN)],
     email: [this.editing?.email ?? '', Validators.email],
     idNumber: [this.editing?.idNumber ?? '', Validators.pattern(ID_NUMBER_PATTERN)],
@@ -125,6 +129,8 @@ export class CustomerFormComponent implements HasUnsavedChanges {
       companyName: v.companyName.trim() || undefined,
       type: v.type,
       creditDays: Number(v.creditDays) || 0,
+      creditLimit: Math.max(0, Math.round(Number(v.creditLimit) || 0)),
+      priceListId: v.priceListId || undefined,
       phone: v.phone.trim() || undefined,
       email: v.email.trim() || undefined,
       idNumber: v.idNumber.trim() || undefined,

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
@@ -8,7 +8,7 @@ import { AuditService } from '../../audit/audit.service.js';
 import { diff } from '../../audit/audit.diff.js';
 
 const CUSTOMER_FIELDS = {
-  name: 'Tên', companyName: 'Tên công ty', type: 'Loại khách', creditDays: 'Số ngày được nợ', phone: 'Điện thoại',
+  name: 'Tên', companyName: 'Tên công ty', type: 'Loại khách', creditDays: 'Số ngày được nợ', creditLimit: 'Hạn mức công nợ', priceList: 'Bảng giá', phone: 'Điện thoại',
   email: 'Email', idNumber: 'CCCD', personalTaxCode: 'MST cá nhân', companyTaxCode: 'MST công ty', note: 'Ghi chú',
   isActive: 'Đang theo dõi', tags: 'Thẻ', addresses: 'Địa chỉ giao hàng',
 };
@@ -50,7 +50,8 @@ export class CustomersService {
   /** A customer as the diff compares it: tags by name, addresses as text. */
   private async described(c: ReturnType<typeof toApi>) {
     const tags = c.tagIds.length ? await this.prisma.tag.findMany({ where: { id: { in: c.tagIds } }, select: { name: true } }) : [];
-    return { ...c, tags: tags.map((t) => t.name), addresses: c.addresses.map(addressText) };
+    const list = c.priceListId ? await this.prisma.priceList.findUnique({ where: { id: c.priceListId }, select: { name: true } }) : null;
+    return { ...c, tags: tags.map((t) => t.name), addresses: c.addresses.map(addressText), priceList: list?.name ?? null };
   }
 
   async findAll() {
@@ -65,50 +66,71 @@ export class CustomersService {
 
   private fields(dto: CustomerDto) {
     return {
-      name: dto.name, companyName: dto.companyName ?? null, type: dto.type, creditDays: dto.creditDays,
+      name: dto.name, companyName: dto.companyName ?? null, type: dto.type, creditDays: dto.creditDays, creditLimit: dto.creditLimit ?? 0,
+      priceListId: dto.priceListId ?? null,
       phone: dto.phone ?? null, email: dto.email ?? null, idNumber: dto.idNumber ?? null,
       personalTaxCode: dto.personalTaxCode ?? null, companyTaxCode: dto.companyTaxCode ?? null,
       note: dto.note ?? null, isActive: dto.isActive ?? true,
     };
   }
 
+  private async checkPriceList(dto: CustomerDto) {
+    if (dto.priceListId && !(await this.prisma.priceList.findUnique({ where: { id: dto.priceListId } }))) {
+      throw new BadRequestException('Bảng giá không tồn tại');
+    }
+  }
+
   async create(dto: CustomerDto) {
-    return this.prisma.$transaction(async (tx) => {
-      const c = await tx.customer.create({
-        data: {
-          ...this.fields(dto),
-          code: await this.sequences.nextCode('KH', tx),
-          tags: { create: [...new Set(dto.tagIds)].map((tagId) => ({ tagId })) },
-          addresses: { create: addressRows(dto.addresses ?? []) },
-        },
-        include: INCLUDE,
-      });
-      await this.audit.log(tx, { action: 'customer.create', entityType: 'Customer', entityId: c.id, entityCode: c.code, summary: `Thêm khách hàng ${c.code} · ${c.name}` });
-      return toApi(c);
+    await this.checkPriceList(dto);
+    return this.prisma.$transaction((tx) => this.createIn(tx, dto));
+  }
+
+  /** Thêm khách inside the caller's transaction (the form, or one row of an import). */
+  async createIn(tx: Prisma.TransactionClient, dto: CustomerDto, source: 'form' | 'excel' = 'form') {
+    const c = await tx.customer.create({
+      data: {
+        ...this.fields(dto),
+        code: await this.sequences.nextCode('KH', tx),
+        tags: { create: [...new Set(dto.tagIds)].map((tagId) => ({ tagId })) },
+        addresses: { create: addressRows(dto.addresses ?? []) },
+      },
+      include: INCLUDE,
     });
+    await this.audit.log(tx, {
+      action: 'customer.create', entityType: 'Customer', entityId: c.id, entityCode: c.code,
+      summary: `Thêm khách hàng ${c.code} · ${c.name}${source === 'excel' ? ' (nhập Excel)' : ''}`,
+    });
+    return toApi(c);
   }
 
   async update(id: string, dto: CustomerDto) {
-    const before = await this.described(await this.findOne(id));
-    return this.prisma.$transaction(async (tx) => {
-      await tx.customerTag.deleteMany({ where: { customerId: id } });
-      await tx.customerAddress.deleteMany({ where: { customerId: id } });
-      const c = await tx.customer.update({
-        where: { id },
-        data: {
-          ...this.fields(dto),
-          tags: { create: [...new Set(dto.tagIds)].map((tagId) => ({ tagId })) },
-          addresses: { create: addressRows(dto.addresses ?? []) },
-        },
-        include: INCLUDE,
-      });
-      const after = toApi(c);
-      await this.audit.log(tx, {
-        action: 'customer.update', entityType: 'Customer', entityId: id, entityCode: c.code,
-        summary: `Sửa khách hàng ${c.code} · ${c.name}`, changes: diff(before, await this.described(after), CUSTOMER_FIELDS),
-      });
-      return after;
+    await this.checkPriceList(dto);
+    return this.prisma.$transaction((tx) => this.updateIn(tx, id, dto));
+  }
+
+  /** Sửa khách (every field, tags and addresses) inside the caller's transaction. */
+  async updateIn(tx: Prisma.TransactionClient, id: string, dto: CustomerDto, source: 'form' | 'excel' = 'form') {
+    const old = await tx.customer.findUnique({ where: { id }, include: INCLUDE });
+    if (!old) throw new NotFoundException('Không tìm thấy khách hàng');
+    const before = await this.described(toApi(old));
+    await tx.customerTag.deleteMany({ where: { customerId: id } });
+    await tx.customerAddress.deleteMany({ where: { customerId: id } });
+    const c = await tx.customer.update({
+      where: { id },
+      data: {
+        ...this.fields(dto),
+        tags: { create: [...new Set(dto.tagIds)].map((tagId) => ({ tagId })) },
+        addresses: { create: addressRows(dto.addresses ?? []) },
+      },
+      include: INCLUDE,
     });
+    const after = toApi(c);
+    await this.audit.log(tx, {
+      action: 'customer.update', entityType: 'Customer', entityId: id, entityCode: c.code,
+      summary: `Sửa khách hàng ${c.code} · ${c.name}${source === 'excel' ? ' (nhập Excel)' : ''}`,
+      changes: diff(before, await this.described(after), CUSTOMER_FIELDS),
+    });
+    return after;
   }
 
   /** Địa chỉ giao hàng edited from the customer page (thêm, sửa, xoá, đặt mặc định). */

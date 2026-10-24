@@ -1,5 +1,7 @@
 // Ported from the frontend's features/reports/defs — same figures as the screens computed before.
+import { orderTotals } from '../../sales/sales-order.rules.js';
 import { formatVnd, inRange } from '../report.rules.js';
+import type { ReportEnv } from '../report.types.js';
 import { ReportDef, ReportResult } from '../report.types.js';
 
 const r4 = (n: number) => Math.round(n * 10000) / 10000;
@@ -156,6 +158,152 @@ const vehicleCost: ReportDef = {
       totals: { name: 'TỔNG CỘNG', trips: trips.length, fuel: rows.reduce((s, r) => s + r.fuel, 0), toll: rows.reduce((s, r) => s + r.toll, 0), other: rows.reduce((s, r) => s + r.other, 0), total },
       chart: { title: group === 'driver' ? 'Chi phí theo tài xế' : 'Chi phí theo xe', items: rows.slice(0, 10).map((r) => ({ label: r.name, value: r.total })) },
       emptyHint: 'Chưa có chuyến giao hàng trong kỳ này.',
+    };
+  },
+};
+
+// ---------------------------------------------------------------- Giao hàng (chốt giao)
+type TripOf = ReturnType<ReportEnv['data']['deliveryTrips']>[number];
+
+/** One đơn on one chuyến, as far as the customer has confirmed it (chưa chốt = no outcome yet). */
+interface Drop {
+  trip: TripOf;
+  orderId: string;
+  customerId: string;
+  confirmed: boolean;
+  loaded: number; // giá trị hàng xếp lên xe cho đơn này
+  received: number; // giá trị khách thực nhận
+  outcome: 'open' | 'full' | 'partial' | 'none';
+}
+
+function drops(env: ReportEnv, range: { from: string; to: string }): Drop[] {
+  const orders = new Map(env.data.salesOrders().map((o) => [o.id, o]));
+  const out: Drop[] = [];
+  for (const t of env.data.deliveryTrips()) {
+    if (t.status === 'HUY' || !inRange(t.date, range)) continue;
+    for (const orderId of t.orderIds) {
+      const o = orders.get(orderId);
+      if (!o) continue;
+      // Phải thu for one unit of each line (after chiết khấu, VAT included), as the chuyến itself values it.
+      const totals = orderTotals(o.lines, o.discountAmount);
+      const unit = o.lines.map((l, i) => (l.quantity > 0 ? totals.lines[i].total / l.quantity : 0));
+      const loads = (t.loads ?? []).filter((l) => l.orderId === orderId);
+      const conf = (t.confirmations ?? []).find((c) => c.orderId === orderId);
+      const loaded = loads.reduce((s, l) => s + l.quantity * (unit[l.lineIndex] ?? 0), 0);
+      const received = (conf?.lines ?? []).reduce((s, r) => s + r.received * (unit[r.lineIndex] ?? 0), 0);
+      const full = loads.every((l) => (conf?.lines.find((r) => r.lineIndex === l.lineIndex)?.received ?? 0) >= l.quantity - 1e-9);
+      out.push({
+        trip: t, orderId, customerId: o.customerId, confirmed: !!conf, loaded: Math.round(loaded), received: Math.round(received),
+        outcome: !conf ? 'open' : received <= 0 ? 'none' : full ? 'full' : 'partial',
+      });
+    }
+  }
+  return out;
+}
+
+/** Aggregates drops into one row: counts of đơn by outcome and giá trị xếp / nhận of the đơn đã chốt. */
+function dropStats(ds: Drop[]) {
+  const done = ds.filter((d) => d.confirmed);
+  const loaded = done.reduce((s, d) => s + d.loaded, 0);
+  const received = done.reduce((s, d) => s + d.received, 0);
+  return {
+    orders: ds.length, confirmed: done.length, open: ds.length - done.length,
+    full: done.filter((d) => d.outcome === 'full').length,
+    partial: done.filter((d) => d.outcome === 'partial').length,
+    none: done.filter((d) => d.outcome === 'none').length,
+    loaded, received, back: loaded - received,
+    rate: pct(received, loaded), fullRate: pct(done.filter((d) => d.outcome === 'full').length, done.length),
+  };
+}
+
+const delivery: ReportDef = {
+  slug: 'giao-hang',
+  group: 'deliver',
+  groups: ['trip', 'customer'],
+  run(env, { range, group }): ReportResult {
+    const ds = drops(env, range);
+    const customers = new Map(env.data.customers().map((c) => [c.id, c.name]));
+    const by = new Map<string, Drop[]>();
+    for (const d of ds) {
+      const k = group === 'customer' ? d.customerId : d.trip.id;
+      by.set(k, [...(by.get(k) ?? []), d]);
+    }
+    const rows = [...by].map(([k, list]) => {
+      const st = dropStats(list);
+      const t = list[0].trip;
+      return group === 'customer'
+        ? { id: k, name: customers.get(k) ?? '(Khách đã xoá)', link: ['/khach-hang', k], ...st }
+        : { id: k, name: t.code, link: ['/giao-hang', k], date: t.date, driver: t.driverName || '—', ...st };
+    }).sort((a, b) => (group === 'customer' ? b.back - a.back : String((b as { date?: string }).date).localeCompare(String((a as { date?: string }).date))));
+    const all = dropStats(ds);
+    const columns: ReportResult['columns'] = group === 'customer'
+      ? [{ key: 'name', label: 'Khách hàng', link: 'link' }]
+      : [{ key: 'name', label: 'Chuyến', link: 'link' }, { key: 'date', label: 'Ngày', kind: 'date' }, { key: 'driver', label: 'Tài xế' }];
+    columns.push(
+      { key: 'orders', label: 'Số đơn', kind: 'int' },
+      { key: 'confirmed', label: 'Đã chốt', kind: 'int' },
+      { key: 'full', label: 'Giao đủ', kind: 'int' },
+      { key: 'partial', label: 'Giao một phần', kind: 'int' },
+      { key: 'none', label: 'Khách không nhận', kind: 'int' },
+      { key: 'open', label: 'Chưa chốt', kind: 'int' },
+      { key: 'loaded', label: 'Giá trị xuất', kind: 'money' },
+      { key: 'received', label: 'Khách nhận', kind: 'money' },
+      { key: 'rate', label: 'Tỷ lệ giao thành công', kind: 'pct' },
+    );
+    return {
+      kpis: [
+        { label: 'Tỷ lệ giao thành công', value: `${all.rate}%`, sub: 'giá trị khách nhận ÷ giá trị xuất của đơn đã chốt', tone: all.confirmed && all.rate < 90 ? 'neg' : 'pos' },
+        { label: 'Đơn đã chốt giao', value: String(all.confirmed), sub: all.open ? `${all.open} đơn chưa chốt` : undefined },
+        { label: 'Giao đủ', value: `${all.full} / ${all.confirmed}`, sub: `${all.fullRate}% số đơn đã chốt` },
+        { label: 'Hàng mang về', value: formatVnd(all.back), tone: all.back ? 'neg' : undefined },
+      ],
+      columns,
+      rows,
+      totals: { name: 'TỔNG CỘNG', orders: all.orders, confirmed: all.confirmed, full: all.full, partial: all.partial, none: all.none, open: all.open, loaded: all.loaded, received: all.received, rate: all.rate },
+      chart: group === 'customer'
+        ? { title: 'Hàng mang về theo khách', items: rows.filter((r) => r.back > 0).slice(0, 10).map((r) => ({ label: r.name, value: r.back })) }
+        : undefined,
+      emptyHint: 'Chưa có chuyến giao hàng nào trong kỳ này.',
+    };
+  },
+};
+
+// ---------------------------------------------------------------- Hiệu quả theo tài xế
+const driverReport: ReportDef = {
+  slug: 'tai-xe',
+  group: 'deliver',
+  run(env, { range }): ReportResult {
+    const ds = drops(env, range);
+    const by = new Map<string, Drop[]>();
+    for (const d of ds) {
+      const k = d.trip.driverName || '(Chưa ghi tài xế)';
+      by.set(k, [...(by.get(k) ?? []), d]);
+    }
+    const rows = [...by].map(([k, list]) => {
+      const st = dropStats(list);
+      return { id: k, name: k, trips: new Set(list.map((d) => d.trip.id)).size, ...st, backRate: st.loaded ? pct(st.back, st.loaded) : 0 };
+    }).sort((a, b) => b.back - a.back);
+    const all = dropStats(ds);
+    return {
+      kpis: [
+        { label: 'Tài xế có chuyến', value: String(rows.length) },
+        { label: 'Tỷ lệ khách lấy đủ', value: `${all.fullRate}%`, sub: 'số đơn giao đủ ÷ số đơn đã chốt', tone: all.confirmed && all.fullRate < 90 ? 'neg' : 'pos' },
+        { label: 'Hàng mang về', value: formatVnd(all.back), tone: all.back ? 'neg' : undefined },
+      ],
+      columns: [
+        { key: 'name', label: 'Tài xế' },
+        { key: 'trips', label: 'Số chuyến', kind: 'int' },
+        { key: 'confirmed', label: 'Đơn đã chốt', kind: 'int' },
+        { key: 'full', label: 'Khách lấy đủ', kind: 'int' },
+        { key: 'fullRate', label: 'Tỷ lệ lấy đủ', kind: 'pct' },
+        { key: 'loaded', label: 'Giá trị xuất', kind: 'money' },
+        { key: 'back', label: 'Hàng mang về', kind: 'money', tone: 'inverse' },
+        { key: 'backRate', label: 'Tỷ lệ mang về', kind: 'pct' },
+      ],
+      rows,
+      totals: { name: 'TỔNG CỘNG', trips: new Set(ds.map((d) => d.trip.id)).size, confirmed: all.confirmed, full: all.full, fullRate: all.fullRate, loaded: all.loaded, back: all.back, backRate: all.loaded ? pct(all.back, all.loaded) : 0 },
+      chart: { title: 'Hàng mang về theo tài xế', items: rows.filter((r) => r.back > 0).slice(0, 10).map((r) => ({ label: r.name, value: r.back })) },
+      emptyHint: 'Chưa có chuyến giao hàng nào trong kỳ này.',
     };
   },
 };
@@ -352,4 +500,4 @@ const priceDrift: ReportDef = {
   },
 };
 
-export const OPS_DEFS: ReportDef[] = [purchase, priceDrift, production, vehicleCost, cashflow, cashbook];
+export const OPS_DEFS: ReportDef[] = [purchase, priceDrift, production, delivery, vehicleCost, driverReport, cashflow, cashbook];

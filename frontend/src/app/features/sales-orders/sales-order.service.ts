@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { DataStore } from '../../core/services/data-store.service';
 import { AuthService } from '../../core/services/auth.service';
-import { CashVoucher, ProductionOrder, SalesOrder, SalesOrderLine, WarehouseVoucher } from '../../core/models/domain.models';
+import { CashVoucher, ProductionOrder, SalesOrder, SalesOrderLine, SalesReturn, SalesReturnDraft, WarehouseVoucher } from '../../core/models/domain.models';
 import { ApiService, upsertById } from '../../core/api/api.service';
 import { CatalogLoader } from '../../core/api/catalog-loader.service';
 import { CashVoucherService } from '../cash-vouchers/cash-voucher.service';
@@ -19,7 +19,13 @@ export interface SalesOrderDraft {
   neededByDate?: string;
   salesRep: string;
   discountAmount: number;
+  /** Khuyến mãi theo tổng đơn đã áp vào chiết khấu cả đơn. */
+  promotionId?: string;
   payNowAccountId?: string;
+  /** Lưu dù vượt hạn mức công nợ của khách (server chỉ nhận từ chức vụ có debt.adjust). */
+  overrideCreditLimit?: boolean;
+  /** Lập đơn từ báo giá (chỉ khi tạo đơn). */
+  quotationId?: string;
   lines: SalesOrderLine[];
 }
 
@@ -166,5 +172,27 @@ export class SalesOrderService {
       await this.cash.refreshBalances();
     }
     return this.newVouchers(before, (v) => v.salesOrderId === id);
+  }
+
+  // ---------- trả hàng (Pha 1.5) ----------
+
+  /** Nhận hàng trả lại: the server writes the phiếu nhập trả về and lowers công nợ; read the order and stock again. */
+  async createReturn(orderId: string, d: SalesReturnDraft): Promise<SalesReturn> {
+    const r = await this.api.post<SalesReturn>(`/sales-orders/${orderId}/returns`, d);
+    await this.reloadOrder(orderId);
+    await this.loader.loadInventory();
+    return r;
+  }
+
+  /** Huỷ phiếu trả: the phiếu kho is undone and the value counts against công nợ again. */
+  async cancelReturn(orderId: string, returnId: string, reason: string): Promise<SalesReturn> {
+    const r = await this.api.post<SalesReturn>(`/sales-orders/${orderId}/returns/${returnId}/cancel`, { reason: reason || undefined });
+    await this.reloadOrder(orderId);
+    await this.loader.loadInventory();
+    return r;
+  }
+
+  private async reloadOrder(id: string): Promise<void> {
+    this.keepOrder(await this.api.get<SalesOrder>(`/sales-orders/${id}`));
   }
 }

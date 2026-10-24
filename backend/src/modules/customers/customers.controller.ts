@@ -1,19 +1,30 @@
-import { Body, Controller, Get, Param, Patch, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Put, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard.js';
 import { PermissionsGuard } from '../../auth/permissions.guard.js';
-import { RequirePermissions } from '../../auth/permissions.decorator.js';
+import { CurrentUser, RequireAnyPermission, RequirePermissions } from '../../auth/permissions.decorator.js';
+import type { AuthUser } from '../../auth/auth.service.js';
+import { ImportDto } from '../../common/import.js';
+import { CustomerImportService } from './customers.import.js';
 import { CustomersService } from './customers.service.js';
 import { ActiveDto, CustomerAddressesDto, CustomerDto } from './dto/create-customer.dto.js';
 
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('customers')
 export class CustomersController {
-  constructor(private readonly customers: CustomersService) {}
+  constructor(private readonly customers: CustomersService, private readonly imports: CustomerImportService) {}
 
   // Reads are open to every signed-in user: orders, trips and debts show customer names.
   @Get()
   findAll() {
     return this.customers.findAll();
+  }
+
+  /** Nhập Excel: dryRun = xem trước (không lưu gì). Dòng thêm mới cần customer.create, dòng cập nhật cần customer.update. */
+  @RequireAnyPermission('customer.create', 'customer.update')
+  @Post('import')
+  @HttpCode(HttpStatus.OK)
+  import(@Body() dto: ImportDto, @CurrentUser() user: AuthUser) {
+    return this.imports.run(dto, user);
   }
 
   @Get(':id')

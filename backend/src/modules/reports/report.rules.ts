@@ -1,4 +1,4 @@
-// Shared by báo cáo and tổng quan: number formats, kỳ, giá vốn ước tính and doanh thu lines — the same
+// Shared by báo cáo and tổng quan: number formats, kỳ, giá vốn and doanh thu lines — the same
 // as the frontend's shared/format.util.ts, shared/period.ts, CostService and revenue.rules.ts.
 import { lineGross, orderTotals } from '../sales/sales-order.rules.js';
 import type { ReportData } from './report-data.service.js';
@@ -30,10 +30,58 @@ export function isoDay(d: Date = new Date()): string {
 }
 
 /**
- * Giá vốn ước tính theo ĐVT chính — there is no costing engine yet: vật tư = giá nhập gần nhất (đơn
- * nhập chưa huỷ), thành phẩm = định mức × giá vật tư, dịch vụ = 0.
+ * Giá vốn theo ĐVT chính hôm nay: the bình quân gia quyền di động InventoryService keeps (Pha 1.3). A product that
+ * has none yet (never moved since) falls back to the old estimate: vật tư = giá nhập gần nhất (đơn nhập chưa huỷ),
+ * thành phẩm = định mức × giá vật tư, dịch vụ = 0.
  */
 export function unitCosts(data: ReportData): Map<string, number> {
+  const estimate = estimatedCosts(data);
+  const avg = data.averageCosts();
+  return new Map([...estimate].map(([id, c]) => [id, avg[id] > 0 ? avg[id] : c]));
+}
+
+/** What revenue costs: giá vốn frozen on the phiếu xuất that took the goods out, today's cost where none did. */
+export interface CostBook {
+  /** Giá vốn hôm nay (tồn kho, định mức …). */
+  costOf(productId: string): number;
+  /** Giá vốn per base unit of what an order sold: its own phiếu xuất, else those of its chuyến, else today's. */
+  issued(orderId: string, productId: string): number;
+}
+
+export function costBook(data: ReportData): CostBook {
+  const now = unitCosts(data);
+  const sum = new Map<string, { q: number; v: number }>();
+  const add = (key: string, q: number, c: number) => {
+    const s = sum.get(key) ?? { q: 0, v: 0 };
+    sum.set(key, { q: s.q + q, v: s.v + q * c });
+  };
+  for (const x of data.issueCosts()) {
+    if (x.salesOrderId) add(`o|${x.salesOrderId}|${x.productId}`, x.quantity, x.unitCost);
+    if (x.deliveryTripId) add(`t|${x.deliveryTripId}|${x.productId}`, x.quantity, x.unitCost);
+  }
+  const trips = new Map<string, string[]>();
+  for (const t of data.orderTrips()) trips.set(t.orderId, [...(trips.get(t.orderId) ?? []), t.tripId]);
+  const frozen = (keys: string[]) => {
+    let q = 0;
+    let v = 0;
+    for (const k of keys) {
+      const s = sum.get(k);
+      if (s && s.q > 0) {
+        q += s.q;
+        v += s.v;
+      }
+    }
+    return q > 0 ? v / q : undefined;
+  };
+  const costOf = (id: string) => now.get(id) ?? 0;
+  return {
+    costOf,
+    issued: (orderId, productId) =>
+      frozen([`o|${orderId}|${productId}`]) ?? frozen((trips.get(orderId) ?? []).map((t) => `t|${t}|${productId}`)) ?? costOf(productId),
+  };
+}
+
+function estimatedCosts(data: ReportData): Map<string, number> {
   const last = new Map<string, { date: string; price: number }>();
   for (const o of data.purchaseOrders()) {
     if (o.status === 'HUY') continue;
@@ -70,6 +118,8 @@ export interface RevenueLine {
   net: number; // doanh thu thuần (chưa thuế)
   vat: number;
   total: number; // tổng thanh toán = phải thu
+  /** Set on the negative lines of a phiếu trả hàng (Pha 1.5): counted on the return's date, not the delivery's. */
+  returnCode?: string;
 }
 
 export function revenueLines(orders: Order[]): RevenueLine[] {
@@ -92,6 +142,24 @@ export function revenueLines(orders: Order[]): RevenueLine[] {
         baseQty: Math.round(got * (l.ratioToBase ?? 1) * 10000) / 10000, gross, discount: gross - net, net, vat, total,
       });
     });
+    // Trả hàng: the same line, negative, on the ngày trả — total is the phiếu's own amount, so doanh thu ties to công nợ.
+    for (const r of o.returns ?? []) {
+      if (r.isCancelled) continue;
+      for (const rl of r.lines) {
+        const i = o.lines.findIndex((l) => l.id === rl.orderLineId);
+        const l = o.lines[i];
+        if (i < 0 || !l.quantity) continue;
+        const share = rl.quantity / l.quantity;
+        const total = -rl.amount;
+        const vat = -Math.round(t.lines[i].vat * share);
+        const net = total - vat;
+        const gross = -Math.round(lineGross(l) * share);
+        out.push({
+          orderId: o.id, orderCode: o.code, date: r.date.slice(0, 10), customerId: o.customerId, salesRep: o.salesRep, productId: l.productId,
+          baseQty: -Math.round(rl.quantity * (l.ratioToBase ?? 1) * 10000) / 10000, gross, discount: gross - net, net, vat, total, returnCode: r.code,
+        });
+      }
+    }
   }
   return out;
 }

@@ -1,0 +1,220 @@
+<div class="page-header">
+  <div>
+    <h1>Khuyến mãi</h1>
+    <p class="subtitle">Tự áp vào đơn hàng và báo giá theo ngày chứng từ · {{ data.promotions().length }} chương trình</p>
+  </div>
+  <div class="toolbar">
+    <a class="btn" routerLink="/bang-gia"><app-nav-icon name="money-in" />Bảng giá</a>
+    <button type="button" class="btn btn-primary" (click)="open()" [disabled]="editingId() !== null"><app-nav-icon name="plus" />Thêm khuyến mãi</button>
+  </div>
+</div>
+
+@if (notice()) {
+  <div class="notice" role="status">
+    <span>{{ notice() }}</span>
+    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+  </div>
+}
+@if (error() && editingId() === null) { <p class="form-note text-danger" role="alert">{{ error() }}</p> }
+
+@if (editingId() !== null) {
+  <section class="card pr-editor" aria-labelledby="km-title">
+    <h2 id="km-title">{{ editingId() ? 'Sửa khuyến mãi' : 'Khuyến mãi mới' }}</h2>
+    @if (error()) { <p class="form-note text-danger" role="alert">{{ error() }}</p> }
+
+    <div class="pr-fields">
+      <div class="field span-2">
+        <label for="km-name">Tên chương trình <span class="required-mark">*</span></label>
+        <input id="km-name" type="text" maxlength="200" placeholder="VD: Giảm 5% khung tranh tháng 11" [ngModel]="name()" (ngModelChange)="name.set($event)" />
+      </div>
+      <div class="field">
+        <label for="km-kind">Kiểu</label>
+        <select id="km-kind" [ngModel]="kind()" (ngModelChange)="kind.set($event)">
+          @for (k of kinds; track k) { <option [value]="k">{{ kindLabel[k] }}</option> }
+        </select>
+      </div>
+      <p class="hint span-full">{{ kindHint[kind()] }}</p>
+
+      <div class="field">
+        <label for="km-start">Từ ngày <span class="required-mark">*</span></label>
+        <input id="km-start" type="date" [ngModel]="startDate()" (ngModelChange)="startDate.set($event)" />
+      </div>
+      <div class="field">
+        <label for="km-end">Đến ngày</label>
+        <input id="km-end" type="date" [min]="startDate()" [ngModel]="endDate()" (ngModelChange)="endDate.set($event)" />
+        <span class="hint">Bỏ trống = chạy đến khi dừng.</span>
+      </div>
+      <label class="pr-check">
+        <input type="checkbox" [ngModel]="isActive()" (ngModelChange)="isActive.set($event)" />
+        Đang chạy
+      </label>
+
+      <div class="field">
+        <label for="km-scope">Áp cho</label>
+        <select id="km-scope" [ngModel]="scope()" (ngModelChange)="scope.set($event)">
+          <option value="TAT_CA">Mọi khách</option>
+          <option value="LOAI_KHACH">Theo loại khách</option>
+          <option value="BANG_GIA">Khách dùng bảng giá</option>
+        </select>
+      </div>
+      @if (scope() === 'LOAI_KHACH') {
+        <div class="field">
+          <span class="field-label">Loại khách</span>
+          <app-filter-multi-select label="Chọn loại khách" [options]="typeOptions" [(selected)]="customerTypes" />
+        </div>
+      }
+      @if (scope() === 'BANG_GIA') {
+        <div class="field">
+          <span class="field-label">Bảng giá</span>
+          <app-filter-multi-select label="Chọn bảng giá" [options]="listOptions()" [(selected)]="priceListIds" />
+        </div>
+      }
+
+      @if (kind() !== 'GIAM_DON') {
+        <div class="field span-full pr-goods">
+          <span class="field-label">{{ kind() === 'TANG_HANG' ? 'Mặt hàng phải mua' : 'Mặt hàng áp dụng' }}</span>
+          <span class="pr-goods-pickers">
+            <app-filter-multi-select label="Mặt hàng" [options]="productOptions()" [searchable]="true" searchPlaceholder="Tìm mã, tên hàng…" [(selected)]="productIds" />
+            <app-filter-multi-select label="Nhóm hàng" [options]="categoryOptions()" [searchable]="true" [(selected)]="categoryIds" />
+            <span class="hint">
+              {{ productIds().length }} mặt hàng · {{ categoryIds().length }} nhóm
+              @if (!productIds().length && !categoryIds().length && kind() !== 'TANG_HANG') { — để trống = mọi mặt hàng }
+            </span>
+          </span>
+        </div>
+      }
+
+      @if (kind() !== 'TANG_HANG') {
+        <div class="field">
+          <label for="km-dtype">Cách giảm</label>
+          <select id="km-dtype" [ngModel]="discountType()" (ngModelChange)="discountType.set($event)">
+            <option value="PHAN_TRAM">Theo %</option>
+            <option value="SO_TIEN">{{ kind() === 'GIAM_DON' ? 'Số tiền cả đơn' : 'Số tiền mỗi ĐVT chính' }}</option>
+          </select>
+        </div>
+      }
+      @if (kind() === 'GIAM_HANG' || kind() === 'GIAM_DON') {
+        <div class="field">
+          <label for="km-value">Mức giảm {{ discountType() === 'PHAN_TRAM' ? '(%)' : '(₫)' }} <span class="required-mark">*</span></label>
+          @if (discountType() === 'PHAN_TRAM') {
+            <input id="km-value" type="number" min="0" max="100" step="any" class="num" [ngModel]="discountValue()" (ngModelChange)="discountValue.set($event)" />
+          } @else {
+            <input id="km-value" type="text" appMoney [ngModel]="discountValue()" (ngModelChange)="discountValue.set($event)" />
+          }
+        </div>
+      }
+      @if (kind() === 'GIAM_DON') {
+        <div class="field">
+          <label for="km-min">Đơn từ (₫)</label>
+          <input id="km-min" type="text" appMoney placeholder="0" [ngModel]="minOrderValue()" (ngModelChange)="minOrderValue.set($event)" />
+          <span class="hint">Tiền hàng sau chiết khấu dòng, chưa thuế.</span>
+        </div>
+      }
+
+      @if (kind() === 'BAC_THANG') {
+        <div class="field span-full">
+          <span class="field-label">Bậc số lượng (theo ĐVT chính của mặt hàng)</span>
+          <table class="pr-tiers">
+            <thead><tr><th scope="col">Mua từ</th><th scope="col">Giảm {{ discountType() === 'PHAN_TRAM' ? '(%)' : '(₫/ĐVT)' }}</th><th scope="col"><span class="visually-hidden">Xoá</span></th></tr></thead>
+            <tbody>
+              @for (t of tiers(); track t.key; let i = $index) {
+                <tr>
+                  <td><input type="number" min="0" step="any" class="num-input" [ngModel]="t.minQuantity" (ngModelChange)="patchTier(i, { minQuantity: $event })" [attr.aria-label]="'Số lượng bậc ' + (i + 1)" /></td>
+                  <td>
+                    @if (discountType() === 'PHAN_TRAM') {
+                      <input type="number" min="0" max="100" step="any" class="num-input" [ngModel]="t.value" (ngModelChange)="patchTier(i, { value: $event })" [attr.aria-label]="'Mức giảm bậc ' + (i + 1)" />
+                    } @else {
+                      <input type="text" appMoney [ngModel]="t.value" (ngModelChange)="patchTier(i, { value: $event })" [attr.aria-label]="'Mức giảm bậc ' + (i + 1)" />
+                    }
+                  </td>
+                  <td><button type="button" class="icon-action danger-action" (click)="removeTier(i)" [attr.aria-label]="'Xoá bậc ' + (i + 1)" title="Xoá bậc"><app-nav-icon name="trash" /></button></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+          <button type="button" class="btn btn-sm" (click)="addTier()"><app-nav-icon name="plus" />Thêm bậc</button>
+        </div>
+      }
+
+      @if (kind() === 'TANG_HANG') {
+        <div class="field">
+          <label for="km-buy">Mua mỗi (ĐVT chính) <span class="required-mark">*</span></label>
+          <input id="km-buy" type="number" min="0" step="any" class="num" [ngModel]="buyQuantity()" (ngModelChange)="buyQuantity.set($event)" />
+        </div>
+        <div class="field span-2">
+          <span class="field-label">Hàng tặng <span class="required-mark">*</span></span>
+          <app-product-picker [products]="giftOptions()" [value]="giftProductId()" (valueChange)="giftProductId.set($event)" ariaLabel="Hàng tặng" />
+        </div>
+        <div class="field">
+          <label for="km-gift">Tặng {{ giftUnit() ? '(' + giftUnit() + ')' : '' }} <span class="required-mark">*</span></label>
+          <input id="km-gift" type="number" min="0" step="any" class="num" [ngModel]="giftQuantity()" (ngModelChange)="giftQuantity.set($event)" />
+        </div>
+      }
+
+      <div class="field span-full">
+        <label for="km-note">Ghi chú</label>
+        <input id="km-note" type="text" maxlength="1000" [ngModel]="note()" (ngModelChange)="note.set($event)" />
+      </div>
+    </div>
+
+    <div class="toolbar pr-actions">
+      <span class="text-danger" role="status">{{ issues()[0] ?? '' }}</span>
+      <button type="button" class="btn" (click)="close()">Huỷ</button>
+      <button type="button" class="btn btn-primary" [disabled]="issues().length > 0 || saving()" (click)="save()">{{ saving() ? 'Đang lưu…' : 'Lưu khuyến mãi' }}</button>
+    </div>
+  </section>
+}
+
+<div class="filters-bar">
+  <input type="text" class="filter-search" placeholder="Tìm mã, tên chương trình…" aria-label="Tìm khuyến mãi" [value]="search()" (input)="search.set($any($event.target).value)" />
+  <button type="button" class="filter-toggle" [attr.aria-pressed]="showEnded()" (click)="showEnded.set(!showEnded())">Hiện chương trình đã hết / đã dừng</button>
+</div>
+
+<section class="card table-wrap">
+  @if (rows().length) {
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Mã</th>
+            <th scope="col">Chương trình</th>
+            <th scope="col">Kiểu</th>
+            <th scope="col">Nội dung</th>
+            <th scope="col">Áp cho</th>
+            <th scope="col">Thời gian</th>
+            <th scope="col">Trạng thái</th>
+            <th scope="col" class="pr-row-actions"><span class="visually-hidden">Thao tác</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of rows(); track p.id) {
+            @let s = state(p);
+            <tr [class.pr-off]="s === 'DA_DUNG' || s === 'HET_HAN'">
+              <td class="num">{{ p.code }}</td>
+              <td><strong>{{ p.name }}</strong></td>
+              <td>{{ kindLabel[p.kind] }}</td>
+              <td class="wrap">{{ summary(p) }}</td>
+              <td>{{ scopeText(p) }}</td>
+              <td class="num">{{ day(p.startDate) }} → {{ p.endDate ? day(p.endDate) : '…' }}</td>
+              <td><span class="badge" [ngClass]="stateClass(s)">{{ stateLabel[s] }}</span></td>
+              <td class="pr-row-actions">
+                <span class="row-actions">
+                  <button type="button" class="btn btn-sm" (click)="toggle(p)">{{ p.isActive ? 'Dừng' : 'Chạy lại' }}</button>
+                  <button type="button" class="icon-action" (click)="open(p)" [disabled]="editingId() !== null" [attr.aria-label]="'Sửa ' + p.code" title="Sửa">
+                    <app-nav-icon name="pencil" />
+                  </button>
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <div class="empty-state">
+      <h3>{{ search() || !showEnded() && data.promotions().length ? 'Không có chương trình nào đang hiện' : 'Chưa có khuyến mãi' }}</h3>
+      <p>Giảm giá mặt hàng, giảm theo tổng đơn, giảm theo số lượng hoặc mua hàng tặng hàng — đơn và báo giá tự áp.</p>
+      <button type="button" class="btn btn-primary" (click)="open()" [disabled]="editingId() !== null"><app-nav-icon name="plus" />Thêm khuyến mãi</button>
+    </div>
+  }
+</section>

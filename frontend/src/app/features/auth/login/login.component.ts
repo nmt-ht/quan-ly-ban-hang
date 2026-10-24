@@ -6,6 +6,7 @@ import { BrandService } from '../../../core/services/brand.service';
 
 const MESSAGE: Record<Exclude<LoginResult, 'ok'>, string> = {
   invalid: 'Sai email hoặc mật khẩu, hoặc tài khoản đã bị khoá.',
+  throttled: 'Thử đăng nhập quá nhiều lần. Vui lòng đợi vài phút rồi thử lại.',
   offline: 'Không kết nối được máy chủ. Kiểm tra mạng hoặc báo quản trị kiểm tra backend.',
   error: 'Máy chủ gặp lỗi, chưa đăng nhập được. Thử lại sau ít phút.',
 };
@@ -39,6 +40,10 @@ export class LoginComponent {
     this.busy.set(false);
     if (result !== 'ok') {
       this.error.set(MESSAGE[result]);
+      return;
+    }
+    if (this.auth.mustChangePassword()) {
+      this.router.navigateByUrl('/doi-mat-khau');
       return;
     }
     const back = this.route.snapshot.queryParamMap.get('returnUrl');

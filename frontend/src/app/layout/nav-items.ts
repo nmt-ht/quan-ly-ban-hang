@@ -29,10 +29,14 @@ export const NAV_GROUPS: NavGroup[] = [
   ]},
   { label: 'Bán hàng', links: [
     { label: 'Khách hàng', path: '/khach-hang', icon: 'customers' },
+    { label: 'Báo giá', path: '/bao-gia', icon: 'voucher' },
+    { label: 'Bảng giá', path: '/bang-gia', icon: 'money-in' },
+    { label: 'Khuyến mãi', path: '/khuyen-mai', icon: 'tag' },
     { label: 'Đơn hàng bán', path: '/don-hang', icon: 'receipt' },
     { label: 'Chuyến giao hàng', path: '/giao-hang', icon: 'truck' },
     { label: 'Danh mục xe', path: '/xe', icon: 'car' },
     { label: 'Công nợ phải thu', path: '/cong-no/khach-hang', icon: 'money-in' },
+    { label: 'Nhắc nợ', path: '/cong-no/nhac-no', icon: 'clock' },
   ]},
   { label: 'Dòng tiền', links: [
     { label: 'Phiếu thu chi', path: '/thu-chi', icon: 'cash' },

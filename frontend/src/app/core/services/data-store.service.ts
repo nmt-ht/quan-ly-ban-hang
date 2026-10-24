@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import {
   Product, ProductCategory, Warehouse, StockLevel, WarehouseVoucher, ProductionOrder,
-  Supplier, PurchaseOrder, Customer, SalesOrder, DeliveryTrip, Vehicle, CashAccount,
+  Supplier, PurchaseOrder, Customer, SalesOrder, Quotation, PriceList, Promotion, DeliveryTrip, Vehicle, CashAccount,
   CashVoucher, Tag, CompanyInfo, Role, PermissionModule, AppUser, BomLine, SupplierProduct, CashCategory, TagColors,
 } from '../models/domain.models';
 import { PERMISSION_MODULES } from '../data/permission-catalog';
@@ -30,6 +30,12 @@ export class DataStore {
   readonly customers = signal<Customer[]>([]);
 
   readonly salesOrders = signal<SalesOrder[]>([]);
+
+  readonly quotations = signal<Quotation[]>([]);
+
+  readonly priceLists = signal<PriceList[]>([]);
+
+  readonly promotions = signal<Promotion[]>([]);
 
   readonly deliveryTrips = signal<DeliveryTrip[]>([]);
 

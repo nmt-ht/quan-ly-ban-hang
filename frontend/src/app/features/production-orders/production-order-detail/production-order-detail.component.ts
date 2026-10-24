@@ -38,7 +38,7 @@ export class ProductionOrderDetailComponent {
   readonly data = inject(DataStore);
   private readonly orders = inject(SalesOrderService);
   private readonly stock = inject(WarehouseVoucherService);
-  private readonly cost = inject(CostService);
+  readonly cost = inject(CostService);
 
   private readonly id = toSignal(this.route.paramMap.pipe(map((p) => p.get('id') ?? '')), { initialValue: this.route.snapshot.paramMap.get('id') ?? '' });
 

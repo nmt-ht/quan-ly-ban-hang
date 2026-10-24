@@ -8,6 +8,7 @@ export interface PrintSigner {
   role: string;
   hint?: string; // default "(Ký, họ tên)"
   name?: string; // printed under the signature space (e.g. the person who made the document)
+  k80?: boolean; // kept on a K80 receipt (2 columns); when no signer is marked, the first and the last are kept
 }
 
 // The paper every printout is made of: letterhead + document number, centred title, content slot,
@@ -16,6 +17,8 @@ export interface PrintSigner {
 //     <dl pdMeta class="pd-meta">…</dl>      ← optional information block under the title
 //     <table class="pd-table">…</table>       ← body (any content)
 //   </app-print-document>
+// Paper: A4 by default; <app-print-menu> prints the same document on A5 or a K80 roll (print.scss lays it out —
+// mark the columns a narrow paper can drop with .a5-hide / .k80-hide).
 @Component({
   selector: 'app-print-document',
   standalone: true,
@@ -52,7 +55,7 @@ export interface PrintSigner {
       @if (signers().length) {
         <div class="pd-sign" [style.--cols]="signers().length">
           @for (s of signers(); track s.role) {
-            <div>
+            <div [class.pd-k80-keep]="s.k80">
               <strong>{{ s.role }}</strong>
               <span>{{ s.hint ?? '(Ký, họ tên)' }}</span>
               @if (s.name) {

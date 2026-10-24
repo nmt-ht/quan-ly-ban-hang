@@ -1,0 +1,52 @@
+<dialog #dialog class="import-dialog import-dialog-wide" aria-labelledby="xi-title" (close)="reset()">
+  <header class="dialog-head">
+    <h2 id="xi-title">{{ config().title }}</h2>
+    <button type="button" class="dialog-x" aria-label="Đóng" (click)="close()"><app-nav-icon name="x" /></button>
+  </header>
+
+  <div class="dialog-body">
+    <ol class="steps">
+      <li>
+        <span>Tải file mẫu và điền dữ liệu — xem sheet "Hướng dẫn" trong file.
+          @if (config().currentRows) { Muốn sửa hàng loạt: tải danh sách hiện có, sửa rồi nhập lại. }</span>
+        <div class="xi-downloads">
+          <button type="button" class="btn" (click)="downloadTemplate(false)"><app-nav-icon name="download" />Tải file mẫu</button>
+          @if (config().currentRows) {
+            <button type="button" class="btn" (click)="downloadTemplate(true)"><app-nav-icon name="download" />Tải danh sách hiện có</button>
+          }
+        </div>
+      </li>
+      <li>
+        <span>Chọn file .xlsx đã điền — hệ thống kiểm tra từng dòng, <strong>chưa lưu gì</strong> cho tới khi bấm Nhập.</span>
+        <label class="btn file-pick">
+          <app-nav-icon name="upload" />{{ fileName() ? 'Chọn file khác' : 'Chọn file' }}
+          <input #fileInput type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" (change)="onFile($event)" />
+        </label>
+      </li>
+    </ol>
+
+    @if (fileName()) { <p class="file-name"><span class="num">{{ fileName() }}</span></p> }
+
+    @switch (busy()) {
+      @case ('reading') { <p class="status" role="status">Đang đọc file…</p> }
+      @case ('checking') { <p class="status" role="status">Đang kiểm tra từng dòng…</p> }
+      @case ('saving') { <p class="status" role="status">Đang nhập…</p> }
+    }
+
+    @if (error()) { <p class="status status-error" role="alert">{{ error() }}</p> }
+
+    @if (preview(); as p) {
+      <app-import-preview [result]="p" />
+      @if (p.failed) {
+        <p class="status">Dòng lỗi sẽ bị bỏ qua. Sửa trong file rồi chọn lại để kiểm tra lại.</p>
+      }
+    }
+  </div>
+
+  <footer class="dialog-foot">
+    <button type="button" class="btn" (click)="close()">Huỷ</button>
+    <button type="button" class="btn btn-primary" [disabled]="!importable() || !!busy()" (click)="confirm()">
+      Nhập {{ importable() }} {{ config().noun }}
+    </button>
+  </footer>
+</dialog>

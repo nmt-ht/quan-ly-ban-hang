@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { ErrorReportInterceptor } from './monitoring/error-report.interceptor.js';
+import { HealthController } from './monitoring/health.controller.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { PrismaModule } from './prisma/prisma.module.js';
@@ -21,6 +23,7 @@ import { SalesModule } from './modules/sales/sales.module.js';
 import { DeliveryModule } from './modules/delivery/delivery.module.js';
 import { CashVouchersModule } from './modules/cash/cash-vouchers.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
+import { PricingModule } from './modules/pricing/pricing.module.js';
 import { DecimalInterceptor } from './common/decimal.interceptor.js';
 import { PrismaExceptionFilter } from './common/prisma-exception.filter.js';
 
@@ -36,6 +39,7 @@ import { PrismaExceptionFilter } from './common/prisma-exception.filter.js';
     TagsModule,
     LookupsModule,
     ProductsModule,
+    PricingModule,
     CustomersModule,
     SuppliersModule,
     VehiclesModule,
@@ -53,9 +57,10 @@ import { PrismaExceptionFilter } from './common/prisma-exception.filter.js';
     // Đợt 7 — tổng quan, báo cáo
     ReportsModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
   providers: [
     AppService,
+    { provide: APP_INTERCEPTOR, useClass: ErrorReportInterceptor },
     { provide: APP_INTERCEPTOR, useClass: DecimalInterceptor },
     { provide: APP_FILTER, useClass: PrismaExceptionFilter },
   ],

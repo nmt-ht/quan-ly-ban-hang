@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import {
-  AppUser, BomLine, CashVoucher, DeliveryTrip, ProductionOrder, PurchaseOrder, SalesOrder, StockLevel, WarehouseVoucher, CashAccount, CashCategory, CompanyInfo, Customer, Product, ProductCategory, Role, Supplier, SupplierProduct, Tag, Vehicle,
+  AppUser, BomLine, CashVoucher, DeliveryTrip, ProductionOrder, PurchaseOrder, PriceList, Promotion, Quotation, SalesOrder, StockLevel, WarehouseVoucher, CashAccount, CashCategory, CompanyInfo, Customer, Product, ProductCategory, Role, Supplier, SupplierProduct, Tag, Vehicle,
   TagColors, Warehouse,
 } from '../models/domain.models';
 import { DataStore } from '../services/data-store.service';
@@ -64,13 +64,14 @@ export class CatalogLoader {
       ]);
       this.data.salesOrders.set(orders);
       this.data.productionOrders.set(lsx);
+      this.data.quotations.set(can('quote.view') ? await this.api.get<Quotation[]>('/quotations') : []);
       this.data.deliveryTrips.set(await this.api.get<DeliveryTrip[]>('/delivery-trips'));
       // Công nợ, the dashboard and the cash-flow report read them too (same rule as the server).
       const canRead = ['voucher.view', 'debt.view', 'report.cashflow', 'report.dashboard'].some((c) => can(c));
       this.data.cashVouchers.set(canRead ? await this.api.get<CashVoucher[]>('/cash-vouchers') : []);
       const [
         products, bomLines, categories, warehouses, customers, suppliers, supplierProducts, vehicles,
-        cashAccounts, cashCategories, tags, company, tagColors, users, roles,
+        cashAccounts, cashCategories, tags, company, tagColors, users, roles, priceLists, promotions,
       ] = await Promise.all([
         this.api.get<Product[]>('/products'),
         this.api.get<BomLine[]>('/bom-lines'),
@@ -90,6 +91,8 @@ export class CatalogLoader {
           ? this.api.get<AppUser[]>('/users')
           : this.api.get<DirectoryUser[]>('/users/directory').then((list) => list.map((u): AppUser => ({ ...u, openSessions: 0 }))),
         can('position.view') || can('user.view') ? this.api.get<Role[]>('/roles') : Promise.resolve([]),
+        this.api.get<PriceList[]>('/price-lists'),
+        this.api.get<Promotion[]>('/promotions'),
       ]);
       const d = this.data;
       d.products.set(products);
@@ -107,6 +110,8 @@ export class CatalogLoader {
       d.tagColors.set(tagColors);
       d.users.set(users);
       d.roles.set(roles);
+      d.priceLists.set(priceLists);
+      d.promotions.set(promotions);
       this.status.set('ready');
     } catch (e) {
       this.status.set('error');

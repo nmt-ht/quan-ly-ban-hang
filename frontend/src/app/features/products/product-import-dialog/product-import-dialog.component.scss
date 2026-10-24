@@ -193,3 +193,14 @@
     font-size: var(--text-md);
   }
 }
+
+// Nhập Excel có xem trước (Pha 1.9): wider, for the row-by-row preview table.
+.import-dialog-wide {
+  width: min(64rem, calc(100vw - 2 * var(--space-sm)));
+}
+
+.xi-downloads {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+}

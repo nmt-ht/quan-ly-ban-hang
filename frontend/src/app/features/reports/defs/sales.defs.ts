@@ -41,7 +41,7 @@ const grossProfit: ReportDef = {
   slug: 'loi-nhuan',
   label: 'Lãi gộp',
   group: 'profit',
-  summary: 'Doanh thu thuần trừ giá vốn ước tính, theo mặt hàng, khách hàng hoặc nhóm hàng.',
+  summary: 'Doanh thu thuần trừ giá vốn hàng bán, theo mặt hàng, khách hàng hoặc nhóm hàng.',
   kind: 'period',
   groups: [
     { value: 'product', label: 'Theo mặt hàng' },
@@ -50,8 +50,8 @@ const grossProfit: ReportDef = {
   ],
   searchHint: 'Tìm mặt hàng, khách, nhóm hàng…',
   notes: [
-    'Lãi gộp = doanh thu thuần (chưa thuế, đã trừ chiết khấu) − giá vốn. Giá vốn là ƯỚC TÍNH: vật tư theo giá nhập gần nhất; thành phẩm theo định mức × giá vật tư; dịch vụ = 0.',
-    'Hệ thống chưa lưu giá vốn tại thời điểm giao nên số này đổi khi giá nhập đổi. Cột "Dòng giá vốn 0" đếm dòng chưa có giá vốn — lãi gộp của những dòng đó bị thổi lên.',
+    'Lãi gộp = doanh thu thuần (chưa thuế, đã trừ chiết khấu) − giá vốn hàng bán. Giá vốn là bình quân gia quyền di động, CHỐT trên phiếu xuất lúc giao — nhập hàng giá khác về sau không làm đổi lãi của đơn đã giao. Hàng trả lại tính ngược đúng giá đã xuất.',
+    'Đơn giao trước khi có giá vốn chốt (dữ liệu cũ) dùng giá vốn bình quân hiện tại. Dịch vụ = 0. Cột "Dòng giá vốn 0" đếm dòng chưa có giá vốn — lãi gộp của những dòng đó bị thổi lên.',
   ],
 };
 
@@ -65,7 +65,7 @@ const belowCost: ReportDef = {
   searchHint: 'Tìm mặt hàng, khách, số đơn…',
   notes: [
     'Giá bán thực = doanh thu thuần của dòng ÷ số lượng thực nhận (ĐVT chính); đã trừ chiết khấu dòng và phần chiết khấu cả đơn, nên bán đúng giá vốn rồi chiết khấu thêm bị tính là lỗ.',
-    'Giá vốn ước tính (xem Lãi gộp). Chỉ dòng có giá vốn > 0. Xếp theo mức lỗ giảm dần.',
+    'Giá vốn chốt trên phiếu xuất (xem Lãi gộp). Chỉ dòng có giá vốn > 0. Xếp theo mức lỗ giảm dần.',
   ],
 };
 

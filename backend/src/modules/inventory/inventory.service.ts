@@ -15,6 +15,11 @@ export interface VoucherLineInput {
   unitName?: string;
   unitQuantity?: number;
   unitPrice?: number; // phiếu nhập: per base unit
+  /**
+   * Phiếu nhập: what the goods cost per base unit when the chứng từ gốc knows it better than a price — thành phẩm =
+   * vật tư đã xuất / số làm được, hàng trả về = giá vốn đã chốt khi xuất. Missing: unitPrice if > 0, else the average.
+   */
+  unitCost?: number;
   note?: string;
 }
 
@@ -40,6 +45,19 @@ const SOURCE_IN_REASON = [/theo đơn DN\d+/, /LSX\d+/, /chuyến CH\d+/];
 
 const round4 = (x: number) => Math.round(x * 10_000) / 10_000;
 
+/** Bình quân gia quyền: `onHand` units at `avg`, plus `qty` at `cost`. Stock below zero counts as none. */
+export function blendCost(onHand: number, avg: number, qty: number, cost: number): number {
+  const base = Math.max(onHand, 0);
+  return base + qty > 0 ? round4((base * avg + qty * cost) / (base + qty)) : avg;
+}
+
+/** The average once `qty` units that came in at `cost` are taken back out (huỷ phiếu nhập). */
+export function unblendCost(onHand: number, avg: number, qty: number, cost: number): number {
+  const rest = onHand - qty;
+  if (onHand <= 0 || rest <= 0) return avg;
+  return round4(Math.max(0, (onHand * avg - qty * cost) / rest));
+}
+
 const INCLUDE = {
   lines: { orderBy: { sortOrder: 'asc' } },
   createdBy: { select: { email: true } },
@@ -52,7 +70,8 @@ export const voucherToApi = ({ lines, createdBy, createdById: _c, date, ...v }: 
   ...v,
   date: toDay(date)!,
   createdBy: createdBy.email,
-  lines: lines.map(({ id: _i, voucherId: _v, sortOrder: _s, ...l }) => l),
+  // unitCost is giá vốn: only reports (and roles that may see it) get it, through their own endpoints.
+  lines: lines.map(({ id: _i, voucherId: _v, sortOrder: _s, unitCost: _c, ...l }) => l),
 });
 
 /**
@@ -121,6 +140,7 @@ export class InventoryService {
       if (p.type === 'DICH_VU') throw new BadRequestException(`${p.code} là dịch vụ — không có tồn kho`);
     }
 
+    const costs = await this.lockedCosts(tx, ids);
     const rows = [];
     for (const [i, l] of lines.entries()) {
       const quantity = round4(l.quantity);
@@ -134,8 +154,10 @@ export class InventoryService {
         productId: l.productId, quantity, delta, bookQuantity, sortOrder: i, note: l.note ?? null,
         unitName: l.unitName ?? null, unitQuantity: l.unitName ? (l.unitQuantity ?? null) : null,
         unitPrice: type === 'NHAP' ? (l.unitPrice ?? 0) : 0,
+        unitCost: this.costIn(type, l, costs.get(l.productId)!, delta),
       });
     }
+    await this.saveCosts(tx, costs);
 
     const v = await tx.warehouseVoucher.create({
       data: {
@@ -165,15 +187,108 @@ export class InventoryService {
       const fromDocument = v.purchaseOrderId || v.salesOrderId || v.productionOrderId || v.deliveryTripId ||
         SOURCE_IN_REASON.some((re) => re.test(v.reason ?? ''));
       if (fromDocument) throw new BadRequestException('Phiếu này lập từ chứng từ khác — huỷ ở chứng từ gốc.');
-      const lines = v.lines.map((l) => ({ productId: l.productId, delta: l.delta.toNumber() }));
-      await this.applyStock(tx, v.type, v.warehouseId, v.targetWarehouseId ?? undefined, lines, -1);
-      await tx.warehouseVoucher.update({ where: { id }, data: { isCancelled: true, cancelReason: reason ?? null, cancelledAt: new Date() } });
-      await this.audit.log(tx, {
-        action: 'warehouse_voucher.cancel', entityType: 'WarehouseVoucher', entityId: id, entityCode: v.code,
-        summary: `Huỷ ${TYPE_LABEL[v.type]} ${v.code}, tồn kho trả về như trước${reason ? `: ${reason}` : ''}`,
-      });
+      await this.reverse(tx, id, reason);
       return this.voucher(id, tx);
     });
+  }
+
+  /**
+   * Undoes a voucher inside the caller's transaction (stock back to before it, the voucher kept, marked huỷ). For the
+   * chứng từ gốc that wrote it — e.g. huỷ phiếu trả hàng; a voucher already huỷ is left as it is.
+   */
+  async reverse(tx: Tx, id: string, reason: string | undefined): Promise<void> {
+    const v = await tx.warehouseVoucher.findUnique({ where: { id }, include: { lines: true } });
+    if (!v) throw new NotFoundException('Không tìm thấy phiếu kho');
+    if (v.isCancelled) return;
+    // Giá vốn: a phiếu nhập taken back leaves the average as if it had never come in; a phiếu xuất taken back
+    // returns its goods at the cost they left at. Lines older than Pha 1.3 (no unitCost) leave it alone.
+    if (v.type === 'NHAP' || v.type === 'XUAT') {
+      const costs = await this.lockedCosts(tx, v.lines.map((l) => l.productId));
+      for (const l of v.lines) {
+        const c = costs.get(l.productId)!;
+        if (l.unitCost === null) continue;
+        const q = l.delta.toNumber();
+        const avg = v.type === 'NHAP' ? unblendCost(c.onHand, c.avg, q, l.unitCost.toNumber()) : blendCost(c.onHand, c.avg, q, l.unitCost.toNumber());
+        if (avg !== c.avg) Object.assign(c, { avg, changed: true });
+        c.onHand = round4(c.onHand + (v.type === 'NHAP' ? -q : q));
+      }
+      await this.saveCosts(tx, costs);
+    }
+    const lines = v.lines.map((l) => ({ productId: l.productId, delta: l.delta.toNumber() }));
+    await this.applyStock(tx, v.type, v.warehouseId, v.targetWarehouseId ?? undefined, lines, -1);
+    await tx.warehouseVoucher.update({ where: { id }, data: { isCancelled: true, cancelReason: reason ?? null, cancelledAt: new Date() } });
+    await this.audit.log(tx, {
+      action: 'warehouse_voucher.cancel', entityType: 'WarehouseVoucher', entityId: id, entityCode: v.code,
+      summary: `Huỷ ${TYPE_LABEL[v.type]} ${v.code}, tồn kho trả về như trước${reason ? `: ${reason}` : ''}`,
+    });
+  }
+
+  /**
+   * Giá vốn đã chốt khi xuất hàng cho một chứng từ: per product, the weighted unitCost of its live phiếu xuất.
+   * Lines older than Pha 1.3 count at today's average. Used to take goods back in at the cost they left at.
+   */
+  async issuedCost(tx: Tx, where: Prisma.WarehouseVoucherWhereInput): Promise<Map<string, number>> {
+    const lines = await tx.warehouseVoucherLine.findMany({
+      where: { voucher: { ...where, type: 'XUAT', isCancelled: false } },
+      select: { productId: true, delta: true, unitCost: true, product: { select: { avgCost: true } } },
+    });
+    const sum = new Map<string, { q: number; v: number }>();
+    for (const l of lines) {
+      const q = l.delta.toNumber();
+      const s = sum.get(l.productId) ?? { q: 0, v: 0 };
+      sum.set(l.productId, { q: s.q + q, v: s.v + q * (l.unitCost ?? l.product.avgCost).toNumber() });
+    }
+    return new Map([...sum].filter(([, s]) => s.q > 0).map(([id, s]) => [id, round4(s.v / s.q)]));
+  }
+
+  /** Live phiếu xuất lines with their frozen cost — the reports' giá vốn hàng bán. */
+  async issueCosts() {
+    const lines = await this.prisma.warehouseVoucherLine.findMany({
+      where: { unitCost: { not: null }, voucher: { type: 'XUAT', isCancelled: false } },
+      select: {
+        productId: true, delta: true, unitCost: true,
+        voucher: { select: { salesOrderId: true, deliveryTripId: true, productionOrderId: true } },
+      },
+    });
+    return lines.map((l) => ({
+      ...l.voucher, productId: l.productId, quantity: l.delta.toNumber(), unitCost: l.unitCost!.toNumber(),
+    }));
+  }
+
+  /** Bình quân hiện tại of every product: productId → giá vốn per base unit. */
+  async averageCosts(): Promise<Record<string, number>> {
+    const rows = await this.prisma.product.findMany({ select: { id: true, avgCost: true } });
+    return Object.fromEntries(rows.map((r) => [r.id, r.avgCost.toNumber()]));
+  }
+
+  // The cost a line moves at. NHAP brings goods in at its own cost (and moves the average); every other line goes
+  // out, across or is counted at the average, which it leaves as it is.
+  private costIn(type: WarehouseVoucherType, l: VoucherLineInput, c: { onHand: number; avg: number; changed: boolean }, delta: number): number {
+    if (type === 'NHAP') {
+      const cost = round4(l.unitCost ?? ((l.unitPrice ?? 0) > 0 ? l.unitPrice! : c.avg));
+      const avg = blendCost(c.onHand, c.avg, delta, cost);
+      if (avg !== c.avg) Object.assign(c, { avg, changed: true });
+      c.onHand = round4(c.onHand + delta);
+      return cost;
+    }
+    if (type === 'XUAT') c.onHand = round4(c.onHand - delta);
+    if (type === 'KIEM_KE') c.onHand = round4(c.onHand + delta);
+    return c.avg;
+  }
+
+  // The products' average and total stock (every kho), rows locked so two vouchers of one product queue up.
+  private async lockedCosts(tx: Tx, ids: string[]): Promise<Map<string, { onHand: number; avg: number; changed: boolean }>> {
+    const unique = [...new Set(ids)];
+    const rows = await tx.$queryRaw<{ id: string; avgCost: Prisma.Decimal }[]>`
+      SELECT "id", "avgCost" FROM "Product" WHERE "id" IN (${Prisma.join(unique)}) ORDER BY "id" FOR UPDATE`;
+    const stock = await tx.stockLevel.groupBy({ by: ['productId'], where: { productId: { in: unique } }, _sum: { quantity: true } });
+    return new Map(rows.map((r) => [r.id, {
+      onHand: Number(stock.find((s) => s.productId === r.id)?._sum.quantity ?? 0), avg: Number(r.avgCost), changed: false,
+    }]));
+  }
+
+  private async saveCosts(tx: Tx, costs: Map<string, { avg: number; changed: boolean }>): Promise<void> {
+    for (const [id, c] of costs) if (c.changed) await tx.product.update({ where: { id }, data: { avgCost: c.avg } });
   }
 
   // Tồn sổ sách of a kiểm kê, with the row locked so a voucher saved at the same moment waits for this one.

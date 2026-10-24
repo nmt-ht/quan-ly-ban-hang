@@ -1,6 +1,6 @@
 import { Type } from 'class-transformer';
 import { CustomerType } from '@prisma/client';
-import { IsArray, IsBoolean, IsEnum, IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
+import { IsArray, IsBoolean, IsEnum, IsInt, IsNumber, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 import { OptionalEmail, OptionalText, Text } from '../../../common/dto.js';
 
 export class CustomerAddressDto {
@@ -18,6 +18,10 @@ export class CustomerDto {
   @OptionalText(200) companyName?: string;
   @IsEnum(CustomerType) type!: CustomerType;
   @IsInt() @Min(0) creditDays!: number;
+  /** Hạn mức công nợ phải thu (đồng); bỏ trống hoặc 0 = không giới hạn. */
+  @IsOptional() @IsNumber() @Min(0) creditLimit?: number;
+  /** Bảng giá riêng (Pha 1.6); bỏ trống = giá theo loại khách. */
+  @OptionalText(60) priceListId?: string;
   @OptionalText(30) phone?: string;
   @OptionalEmail() email?: string;
   @OptionalText(30) idNumber?: string;

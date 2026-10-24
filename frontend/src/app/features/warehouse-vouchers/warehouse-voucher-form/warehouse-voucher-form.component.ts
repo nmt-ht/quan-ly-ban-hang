@@ -18,6 +18,7 @@ import { round4 } from '../../purchase-orders/purchase-order.rules';
 import { KIND_SLUG, KIND_TEXT, SLUG_KIND, VOUCHER_KIND_LABEL, kindOf, sourceOf } from '../warehouse-voucher.rules';
 import { WarehouseVoucherService } from '../warehouse-voucher.service';
 import { PrintDocumentComponent, PrintSigner } from '../../../shared/print/print-document.component';
+import { PrintMenuComponent } from '../../../shared/print/print-menu.component';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { errorText } from '../../../core/api/api.service';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
@@ -45,7 +46,7 @@ const emptyLine = (): Line => ({ key: crypto.randomUUID(), productId: '', unitNa
 @Component({
   selector: 'app-warehouse-voucher-form',
   standalone: true,
-  imports: [PickableWarehousesPipe, FrozenColsDirective, NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent, PrintDocumentComponent, AuditHistoryComponent],
+  imports: [PickableWarehousesPipe, FrozenColsDirective, NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent],
   templateUrl: './warehouse-voucher-form.component.html',
   styleUrls: ['../../../shared/voucher/voucher.scss', './warehouse-voucher-form.component.scss'],
 })
@@ -293,16 +294,12 @@ export class WarehouseVoucherFormComponent {
   readonly printSigners = computed<PrintSigner[]>(() => {
     const v = this.voucher();
     if (!v) return [];
-    const maker = { role: v.type === 'KIEM_KE' ? 'Người kiểm kê' : 'Người lập phiếu', name: this.userName(v.createdBy) };
+    const maker = { role: v.type === 'KIEM_KE' ? 'Người kiểm kê' : 'Người lập phiếu', name: this.userName(v.createdBy), k80: true };
     switch (v.type) {
-      case 'NHAP': return [maker, { role: 'Người giao hàng' }, { role: 'Thủ kho' }, { role: 'Kế toán trưởng' }];
-      case 'XUAT': return [maker, { role: 'Người nhận hàng' }, { role: 'Thủ kho' }, { role: 'Kế toán trưởng' }];
-      case 'CHUYEN': return [maker, { role: 'Thủ kho xuất' }, { role: 'Thủ kho nhận' }, { role: 'Kế toán trưởng' }];
-      default: return [maker, { role: 'Thủ kho' }, { role: 'Kế toán trưởng' }];
+      case 'NHAP': return [maker, { role: 'Người giao hàng', k80: true }, { role: 'Thủ kho' }, { role: 'Kế toán trưởng' }];
+      case 'XUAT': return [maker, { role: 'Người nhận hàng', k80: true }, { role: 'Thủ kho' }, { role: 'Kế toán trưởng' }];
+      case 'CHUYEN': return [{ ...maker, k80: false }, { role: 'Thủ kho xuất', k80: true }, { role: 'Thủ kho nhận', k80: true }, { role: 'Kế toán trưởng' }];
+      default: return [maker, { role: 'Thủ kho', k80: true }, { role: 'Kế toán trưởng' }];
     }
   });
-
-  print(): void {
-    window.print();
-  }
 }

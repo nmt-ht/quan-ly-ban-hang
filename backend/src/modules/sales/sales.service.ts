@@ -8,9 +8,11 @@ import type { AuthUser } from '../../auth/auth.service.js';
 import { fromDay, toDay } from '../../common/text.js';
 import { CASH_INCLUDE, cashToApi } from '../cash/cash-voucher.mapper.js';
 import { AuditService } from '../../audit/audit.service.js';
+import { ReceivablesService } from './receivables.service.js';
+import { RETURN_INCLUDE, returnToApi } from './returns.js';
 import { diff, vnd } from '../../audit/audit.diff.js';
 import {
-  LsxState, PriceSource, STATUS_LABEL, SaleLine, canCancel, canClose, canDeliver, canEdit, deriveStatus, lineDiscount, lineRemaining,
+  ListPrice, LsxState, PriceSource, STATUS_LABEL, SaleLine, canCancel, canClose, canDeliver, canEdit, deriveStatus, lineDiscount, lineRemaining,
   linesNeedingLsx, orderTotals, priceFor, receivedValueOf, round4,
 } from './sales-order.rules.js';
 
@@ -33,6 +35,9 @@ export interface SaleLineInput {
   length?: number;
   width?: number;
   note?: string;
+  /** Khuyến mãi đã áp vào dòng; hàng tặng = chiết khấu 100% (Pha 1.6). */
+  promotionId?: string;
+  isGift?: boolean;
 }
 
 export interface SalesOrderInput {
@@ -48,9 +53,17 @@ export interface SalesOrderInput {
   salesRep?: string; // e-mail of the người bán, as the frontend keeps it
   discountAmount: number;
   payNowAccountId?: string;
+  /** Khuyến mãi theo tổng đơn đã áp vào Chiết khấu cả đơn. */
+  promotionId?: string;
+  overrideCreditLimit?: boolean;
+  /** Lập đơn từ báo giá (Pha 1.4): the báo giá is marked Đã chốt and linked to the new order. */
+  quotationId?: string;
   lines: SaleLineInput[];
   updatedAt?: string;
 }
+
+/** A line already priced on a chứng từ: an order's own line, or the báo giá it comes from. */
+type PricedLine = { productId: string; unitName: string | null; unitPrice: Prisma.Decimal };
 
 export interface DeliveryInput {
   date: string;
@@ -64,6 +77,8 @@ const ORDER_INCLUDE = {
   createdBy: { select: { email: true } },
   salesRep: { select: { email: true } },
   deliveryTripOrders: { select: { tripId: true, trip: { select: { date: true } } } },
+  returns: { include: RETURN_INCLUDE, orderBy: { createdAt: 'asc' } },
+  quotation: { select: { id: true, code: true } },
 } as const satisfies Prisma.SalesOrderInclude;
 
 const LSX_INCLUDE = { createdBy: { select: { email: true } } } as const satisfies Prisma.ProductionOrderInclude;
@@ -93,7 +108,7 @@ const saleLine = (l: LineRow): SaleLine => ({
 
 /** The frontend's SalesOrder: day-only dates, e-mails for people, tagIds, totals derived from the lines. */
 export function orderToApi(o: OrderRow) {
-  const { lines, tags, createdBy, createdById: _c, salesRep, salesRepId: _r, deliveryTripOrders, orderDate, neededByDate, dueDate, deliveredDate, closedDate, ...rest } = o;
+  const { lines, tags, createdBy, createdById: _c, salesRep, salesRepId: _r, deliveryTripOrders, returns, quotation, orderDate, neededByDate, dueDate, deliveredDate, closedDate, ...rest } = o;
   const nums = lines.map(saleLine);
   const discount = o.discountAmount.toNumber();
   const t = orderTotals(nums, discount);
@@ -106,6 +121,11 @@ export function orderToApi(o: OrderRow) {
     createdBy: createdBy.email,
     tripId: lastTrip?.tripId ?? null,
     totalGoods: t.goods, totalOrder: t.total, vatAmount: t.vat, receivedValue: receivedValueOf(nums, discount),
+    // Trả hàng (Pha 1.5): every phiếu TH…, and the value of the ones not huỷ — công nợ = receivedValue − returnedValue.
+    returns: returns.map(returnToApi),
+    returnedValue: returns.filter((r) => !r.isCancelled).reduce((s, r) => s + r.amount.toNumber(), 0),
+    quotationId: quotation?.id ?? null,
+    quotationCode: quotation?.code ?? null,
     lines: lines.map(({ orderId: _o, sortOrder: _s, ...l }, i) => ({ ...l, lineTotal: t.lines[i].gross })),
   };
 }
@@ -122,6 +142,7 @@ export class SalesService {
     private readonly sequences: SequenceService,
     private readonly inventory: InventoryService,
     private readonly audit: AuditService,
+    private readonly receivables: ReceivablesService,
   ) {}
 
   /** An order with names instead of ids, lines as "SP0000003 × 2 m² (120×80) @ 150.000 ₫ · CK 5.000 ₫ · VAT 8%". */
@@ -202,7 +223,9 @@ export class SalesService {
 
   create(input: SalesOrderInput, user: AuthUser) {
     return this.prisma.$transaction(async (tx) => {
-      const refs = await this.checkInput(tx, input, user, []);
+      const quote = input.quotationId ? await this.openQuotation(tx, input.quotationId, input.customerId) : null;
+      const refs = await this.checkInput(tx, input, user, quote?.lines ?? []);
+      const credit = await this.checkCredit(input, user);
       const lines = lineRows(input.lines);
       const status = deriveStatus({ status: 'CHO_SAN_XUAT', lines: lines.map(rowToSaleLine), receivedValue: 0 }, [], refs.isTp);
       const o = await tx.salesOrder.create({
@@ -212,14 +235,21 @@ export class SalesService {
           lines: { create: lines },
         },
       });
+      if (quote) await tx.quotation.update({ where: { id: quote.id }, data: { status: 'DA_CHOT', orderId: o.id } });
       const saved = await this.order(o.id, tx);
       const customer = await tx.customer.findUnique({ where: { id: input.customerId }, select: { code: true, name: true } });
       await this.audit.log(tx, {
         action: 'sales_order.create', entityType: 'SalesOrder', entityId: o.id, entityCode: o.code,
         summary: `Lập đơn hàng bán ${o.code} · ${customer?.code} ${customer?.name} · ${lines.length} dòng · ${vnd(saved.totalOrder)}`
-          + (input.payNowAccountId ? ' · thu tiền ngay' : ''),
-        related: customer ? [customer.code] : undefined,
+          + (quote ? ` · từ báo giá ${quote.code}` : '') + (input.payNowAccountId ? ' · thu tiền ngay' : '') + credit,
+        related: [...(customer ? [customer.code] : []), ...(quote ? [quote.code] : [])],
       });
+      if (quote) {
+        await this.audit.log(tx, {
+          action: 'quotation.convert', entityType: 'Quotation', entityId: quote.id, entityCode: quote.code,
+          summary: `Chốt báo giá ${quote.code}: đã lập đơn hàng ${o.code}`, related: [o.code],
+        });
+      }
       return saved;
     });
   }
@@ -234,6 +264,7 @@ export class SalesService {
       const lsx = await tx.productionOrder.findMany({ where: { sourceOrderId: id } });
       if (!canEdit(this.state(o), lsx)) throw new BadRequestException('Đơn đã sản xuất hoặc đã giao, không sửa được.');
       const refs = await this.checkInput(tx, input, user, o.lines);
+      const credit = await this.checkCredit(input, user, id);
       const lines = lineRows(input.lines);
       const before = await this.described(tx, { ...o, tagIds: o.tags.map((t) => t.tagId) });
 
@@ -262,7 +293,7 @@ export class SalesService {
       await this.refreshStatus(tx, id);
       const after = await this.described(tx, { ...headerFields(input), salesRepId: refs.salesRepId, tagIds: [...new Set(input.tagIds)], lines });
       await this.audit.log(tx, {
-        action: 'sales_order.update', entityType: 'SalesOrder', entityId: id, entityCode: o.code, summary: `Sửa đơn hàng bán ${o.code}`,
+        action: 'sales_order.update', entityType: 'SalesOrder', entityId: id, entityCode: o.code, summary: `Sửa đơn hàng bán ${o.code}${credit}`,
         changes: diff(before, after, ORDER_FIELDS),
       });
       return this.order(id, tx);
@@ -485,9 +516,15 @@ export class SalesService {
         const target = (await tx.warehouse.findUnique({ where: { id: FINISHED_GOODS_WAREHOUSE } }))?.id
           ?? (await tx.product.findUnique({ where: { id: x.productId } }))?.defaultWarehouseId;
         if (!target) throw new BadRequestException('Chưa có Kho thành phẩm để nhập.');
+        // Giá thành = vật tư đã xuất cho lệnh (at the cost they left at) / số làm được — hàng hỏng makes each one dearer.
+        const used = await tx.warehouseVoucherLine.findMany({
+          where: { voucher: { productionOrderId: x.id, type: 'XUAT', isCancelled: false } },
+          select: { delta: true, unitCost: true, product: { select: { avgCost: true } } },
+        });
+        const material = used.reduce((s, l) => s + l.delta.toNumber() * (l.unitCost ?? l.product.avgCost).toNumber(), 0);
         voucherId = await this.inventory.post(tx, {
           type: 'NHAP', date: today, warehouseId: target, productionOrderId: x.id, reason: `Nhập thành phẩm từ xưởng: ${x.code}`,
-          lines: [{ productId: x.productId, quantity: qty }],
+          lines: [{ productId: x.productId, quantity: qty, unitCost: used.length ? material / qty : undefined }],
         }, user.id);
       }
       await tx.productionOrder.update({ where: { id: x.id }, data: { status: 'HOAN_TAT', completeDate: fromDay(today), producedQuantity: qty } });
@@ -548,6 +585,16 @@ export class SalesService {
     return bom.map((b) => ({ componentId: b.componentId, quantityPerUnit: b.quantityPerUnit.toNumber() }));
   }
 
+  /** The báo giá an order is made from: locked, still open, for the same customer. Its lines keep their quoted prices. */
+  private async openQuotation(tx: Tx, id: string, customerId: string) {
+    await tx.$queryRaw`SELECT "id" FROM "Quotation" WHERE "id" = ${id} FOR UPDATE`;
+    const q = await tx.quotation.findUnique({ where: { id }, include: { lines: true } });
+    if (!q) throw new BadRequestException('Báo giá không tồn tại');
+    if (q.status !== 'MOI') throw new BadRequestException(`Báo giá ${q.code} ${q.status === 'HUY' ? 'đã huỷ' : 'đã lập đơn'} — không lập đơn từ nó được nữa.`);
+    if (q.customerId !== customerId) throw new BadRequestException(`Đơn lập từ báo giá ${q.code} phải cùng khách hàng với báo giá.`);
+    return q;
+  }
+
   // The order row is locked for the rest of the transaction: two deliveries at once cannot both pass.
   async locked(tx: Tx, id: string) {
     await tx.$queryRaw`SELECT "id" FROM "SalesOrder" WHERE "id" = ${id} FOR UPDATE`;
@@ -568,29 +615,27 @@ export class SalesService {
    * Customer, products, người bán, tài khoản thu tiền ngay must exist. Without order.update_price
    * each line keeps the list price for the customer type (or the price it already had on the order).
    */
-  private async checkInput(tx: Tx, input: SalesOrderInput, user: AuthUser, existing: LineRow[]) {
-    const customer = await tx.customer.findUnique({ where: { id: input.customerId } });
-    if (!customer) throw new BadRequestException('Khách hàng không tồn tại');
-    const ids = [...new Set(input.lines.map((l) => l.productId))];
-    const products = await tx.product.findMany({ where: { id: { in: ids } }, include: { unitConversions: true } });
-    if (products.length !== ids.length) throw new BadRequestException('Có mặt hàng không tồn tại');
-    const byId = new Map(products.map((p) => [p.id, p]));
+  /**
+   * Hạn mức công nợ: số dư phải thu + phần chưa giao của các đơn đang mở + đơn này không được vượt hạn mức
+   * của khách (0 = không giới hạn). Người có debt.adjust được lưu tiếp bằng overrideCreditLimit; dòng nhật
+   * ký ghi lại. Trả về đoạn chú thích cho dòng nhật ký ('' khi không vượt).
+   */
+  private async checkCredit(input: SalesOrderInput, user: AuthUser, excludeOrderId?: string): Promise<string> {
+    const customer = await this.prisma.customer.findUnique({ where: { id: input.customerId }, select: { creditLimit: true, name: true } });
+    const limit = customer?.creditLimit.toNumber() ?? 0;
+    if (!customer || limit <= 0) return '';
+    const { owed, open } = await this.receivables.exposure(input.customerId, excludeOrderId);
+    const thisOrder = orderTotals(lineRows(input.lines).map(rowToSaleLine), input.discountAmount || 0).total;
+    const after = owed + open + thisOrder;
+    if (after <= limit) return '';
+    const detail = `${customer.name}: đang nợ ${vnd(owed)}, đơn đang mở ${vnd(open)}, đơn này ${vnd(thisOrder)} → ${vnd(after)} / hạn mức ${vnd(limit)}`;
+    if (!input.overrideCreditLimit) throw new BadRequestException(`Vượt hạn mức công nợ. ${detail}.`);
+    if (!user.permissions.includes('debt.adjust')) throw new ForbiddenException('Vượt hạn mức công nợ — chỉ chức vụ có quyền điều chỉnh công nợ mới được lưu tiếp.');
+    return ` · vượt hạn mức công nợ (${detail})`;
+  }
 
-    if (!user.permissions.includes('order.update_price')) {
-      for (const [i, l] of input.lines.entries()) {
-        const p = byId.get(l.productId)!;
-        const source: PriceSource = {
-          type: p.type, retailPrice: p.retailPrice.toNumber(), wholesalePrice: p.wholesalePrice.toNumber(), dropshipPrice: p.dropshipPrice.toNumber(),
-          unitConversions: p.unitConversions.map((u) => ({
-            unitName: u.unitName, ratioToBaseUnit: u.ratioToBaseUnit.toNumber(), price: u.price.toNumber(),
-            wholesalePrice: u.wholesalePrice?.toNumber() ?? null, dropshipPrice: u.dropshipPrice?.toNumber() ?? null,
-          })),
-        };
-        const listed = priceFor(source, customer.type, l.unitName);
-        const kept = existing.some((e) => e.productId === l.productId && (e.unitName ?? '') === (l.unitName ?? '') && e.unitPrice.toNumber() === l.unitPrice);
-        if (l.unitPrice !== listed && !kept) throw new ForbiddenException(`Dòng ${i + 1}: chức vụ của bạn chưa có quyền sửa đơn giá trên đơn.`);
-      }
-    }
+  private async checkInput(tx: Tx, input: SalesOrderInput, user: AuthUser, existing: PricedLine[]) {
+    const { byId } = await checkPartyAndPrices(tx, input, user, existing);
 
     let salesRepId: string | null = null;
     if (input.salesRep) {
@@ -605,32 +650,74 @@ export class SalesService {
   }
 }
 
+/**
+ * Customer and products must exist. Without order.update_price each line keeps the list price for the customer
+ * type, or the price it already had (on the order, or on the báo giá it comes from). Shared with báo giá.
+ */
+export async function checkPartyAndPrices(
+  tx: Tx, input: { customerId: string; lines: SaleLineInput[] }, user: AuthUser, existing: PricedLine[],
+) {
+  const customer = await tx.customer.findUnique({
+    where: { id: input.customerId }, include: { priceList: { select: { isActive: true, items: true } } },
+  });
+  if (!customer) throw new BadRequestException('Khách hàng không tồn tại');
+  // Bảng giá riêng của khách (Pha 1.6) — bảng đã ngừng dùng thì về giá theo loại khách.
+  const list: ListPrice[] = customer.priceList?.isActive
+    ? customer.priceList.items.map((x) => ({ productId: x.productId, unitName: x.unitName, price: x.price.toNumber() }))
+    : [];
+  const ids = [...new Set(input.lines.map((l) => l.productId))];
+  const products = await tx.product.findMany({ where: { id: { in: ids } }, include: { unitConversions: true } });
+  if (products.length !== ids.length) throw new BadRequestException('Có mặt hàng không tồn tại');
+  const byId = new Map(products.map((p) => [p.id, p]));
+
+  if (!user.permissions.includes('order.update_price')) {
+    for (const [i, l] of input.lines.entries()) {
+      const p = byId.get(l.productId)!;
+      const source: PriceSource & { id: string } = {
+        id: p.id, type: p.type, retailPrice: p.retailPrice.toNumber(), wholesalePrice: p.wholesalePrice.toNumber(), dropshipPrice: p.dropshipPrice.toNumber(),
+        unitConversions: p.unitConversions.map((u) => ({
+          unitName: u.unitName, ratioToBaseUnit: u.ratioToBaseUnit.toNumber(), price: u.price.toNumber(),
+          wholesalePrice: u.wholesalePrice?.toNumber() ?? null, dropshipPrice: u.dropshipPrice?.toNumber() ?? null,
+        })),
+      };
+      const listed = priceFor(source, customer.type, l.unitName, list);
+      const kept = existing.some((e) => e.productId === l.productId && (e.unitName ?? '') === (l.unitName ?? '') && e.unitPrice.toNumber() === l.unitPrice);
+      if (l.unitPrice !== listed && !kept) throw new ForbiddenException(`Dòng ${i + 1}: chức vụ của bạn chưa có quyền sửa đơn giá trên đơn.`);
+    }
+  }
+  return { customer, byId };
+}
+
 function headerFields(input: SalesOrderInput) {
   return {
     customerId: input.customerId, recipientName: input.recipientName ?? null, recipientPhone: input.recipientPhone ?? null,
     deliveryAddress: input.deliveryAddress ?? null, description: input.description ?? null, source: input.source ?? null,
     orderDate: fromDay(input.orderDate)!, neededByDate: fromDay(input.neededByDate), discountAmount: input.discountAmount || 0,
-    payNowAccountId: input.payNowAccountId ?? null,
+    payNowAccountId: input.payNowAccountId ?? null, promotionId: input.promotionId ?? null,
   };
 }
 
-/** Lines as stored: the chiết khấu dòng is kept as an amount (from the rate when only a rate is given). */
-function lineRows(lines: SaleLineInput[]) {
+/**
+ * Lines as stored: the chiết khấu dòng is kept as an amount (from the rate when only a rate is given).
+ * Hàng tặng always carries a 100% chiết khấu, whatever the form sent.
+ */
+export function lineRows(lines: SaleLineInput[]) {
   return lines.map((l, i) => {
+    const gift = !!l.isGift;
     const base: SaleLine = {
-      productId: l.productId, quantity: l.quantity, unitPrice: l.unitPrice, discountRate: l.discountRate ?? null,
-      discountAmount: l.discountAmount ?? null, vatRate: l.vatRate ?? 0, receivedQuantity: 0, ratioToBase: l.ratioToBase ?? 1,
+      productId: l.productId, quantity: l.quantity, unitPrice: l.unitPrice, discountRate: gift ? 100 : l.discountRate ?? null,
+      discountAmount: gift ? null : l.discountAmount ?? null, vatRate: l.vatRate ?? 0, receivedQuantity: 0, ratioToBase: l.ratioToBase ?? 1,
     };
     return {
       id: l.id ?? randomUUID(), productId: l.productId, unit: l.unit, unitName: l.unitName ?? null, ratioToBase: base.ratioToBase,
-      quantity: l.quantity, unitPrice: l.unitPrice, discountRate: l.discountRate ?? null, discountAmount: lineDiscount(base),
+      quantity: l.quantity, unitPrice: l.unitPrice, discountRate: base.discountRate, discountAmount: lineDiscount(base),
       vatRate: base.vatRate, warehouseId: l.warehouseId ?? null, length: l.length ?? null, width: l.width ?? null, note: l.note ?? null,
-      receivedQuantity: 0, sortOrder: i,
+      receivedQuantity: 0, sortOrder: i, promotionId: l.promotionId ?? null, isGift: !!l.isGift,
     };
   });
 }
 
-function rowToSaleLine(r: ReturnType<typeof lineRows>[number]): SaleLine {
+export function rowToSaleLine(r: ReturnType<typeof lineRows>[number]): SaleLine {
   return {
     productId: r.productId, quantity: r.quantity, unitPrice: r.unitPrice, discountRate: r.discountRate, discountAmount: r.discountAmount,
     vatRate: r.vatRate, receivedQuantity: 0, ratioToBase: r.ratioToBase,

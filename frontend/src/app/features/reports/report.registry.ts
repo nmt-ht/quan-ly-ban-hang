@@ -54,9 +54,9 @@ export const REPORTS: ReportDef[] = [
   // ---- Sản xuất
   byslug(OPS_DEFS, 'san-xuat'),
   // ---- Giao hàng
-  soon('giao-hang', 'Giao hàng', 'deliver', 'Tỷ lệ giao thành công của các đơn đã chốt giao.'),
+  byslug(OPS_DEFS, 'giao-hang'),
   byslug(OPS_DEFS, 'chi-phi-xe'),
-  soon('tai-xe', 'Hiệu quả theo tài xế', 'deliver', 'Tỷ lệ khách lấy đủ và giá trị hàng mang về theo từng tài xế.'),
+  byslug(OPS_DEFS, 'tai-xe'),
   // ---- Công nợ
   {
     slug: 'cong-no', label: 'Số dư công nợ', group: 'debt', kind: 'link',

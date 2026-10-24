@@ -11,7 +11,7 @@ import { AuditService } from '../../audit/audit.service.js';
 import { diff } from '../../audit/audit.diff.js';
 
 const ACCOUNT_FIELDS = {
-  name: 'Tên', type: 'Tính chất', code: 'Mã', bankName: 'Ngân hàng', accountNumber: 'Số tài khoản', accountHolder: 'Chủ tài khoản',
+  name: 'Tên', type: 'Tính chất', code: 'Mã', bankName: 'Ngân hàng', bankBin: 'Mã ngân hàng (VietQR)', accountNumber: 'Số tài khoản', accountHolder: 'Chủ tài khoản',
   branch: 'Chi nhánh', openingBalance: 'Số dư đầu kỳ', sortOrder: 'Thứ tự', note: 'Ghi chú', isDefault: 'Mặc định', isActive: 'Đang dùng',
 };
 const CATEGORY_FIELDS = { name: 'Tên', partnerType: 'Đối tác', isDefault: 'Mặc định', isActive: 'Đang dùng' };
@@ -29,6 +29,8 @@ export class CashAccountDto {
   @IsEnum(CashAccountType) type!: CashAccountType;
   @OptionalText(30) code?: string;
   @OptionalText(100) bankName?: string;
+  /** Mã BIN NAPAS (6 số) — có thì in được mã VietQR chuyển khoản vào tài khoản này. */
+  @IsOptional() @Matches(/^\d{6}$/, { message: 'Mã ngân hàng (BIN) gồm 6 chữ số' }) bankBin?: string;
   @OptionalText(40) accountNumber?: string;
   @OptionalText(100) accountHolder?: string;
   @OptionalText(100) branch?: string;
@@ -82,7 +84,7 @@ export class CashAccountsService {
     const isDefault = !!dto.isDefault && isActive;
     const data = {
       name: dto.name, type: dto.type, code: dto.code ?? null,
-      bankName: bank ? (dto.bankName ?? null) : null, accountNumber: bank ? (dto.accountNumber ?? null) : null,
+      bankName: bank ? (dto.bankName ?? null) : null, bankBin: bank ? (dto.bankBin ?? null) : null, accountNumber: bank ? (dto.accountNumber ?? null) : null,
       accountHolder: bank ? (dto.accountHolder ?? null) : null, branch: bank ? (dto.branch ?? null) : null,
       openingBalance: dto.openingBalance, sortOrder: dto.sortOrder ?? 0, note: dto.note ?? null, isDefault, isActive,
     };

@@ -1,0 +1,60 @@
+# Sao lưu PostgreSQL (Neon) hằng ngày: pg_dump → khôi phục thử vào một DB tạm để chắc chắn file dùng được →
+# mã hoá AES-256 → lưu làm artifact 30 ngày. Repo này công khai nên file PHẢI mã hoá; không có
+# BACKUP_PASSPHRASE thì workflow dừng, không tải gì lên.
+#
+# Cần 2 secret (Settings › Secrets and variables › Actions):
+#   BACKUP_DATABASE_URL  chuỗi kết nối trực tiếp của Neon (nên tạo role chỉ đọc cho việc này)
+#   BACKUP_PASSPHRASE    cụm mật khẩu dài; mất nó là không giải mã được bản sao lưu
+# Khôi phục: xem tools/backup/README.md.
+name: Backup DB
+
+on:
+  schedule:
+    - cron: '17 20 * * *' # 03:17 giờ Việt Nam
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      scratch:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: scratch
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - name: Kiểm tra secret
+        run: |
+          test -n "$BACKUP_DATABASE_URL" || { echo "::error::Thiếu secret BACKUP_DATABASE_URL"; exit 1; }
+          test -n "$BACKUP_PASSPHRASE" || { echo "::error::Thiếu secret BACKUP_PASSPHRASE (file sao lưu phải mã hoá)"; exit 1; }
+      - name: pg_dump
+        run: |
+          docker run --rm -e BACKUP_DATABASE_URL postgres:17 \
+            sh -c 'pg_dump --format=custom --no-owner --no-privileges "$BACKUP_DATABASE_URL"' > backup.dump
+          ls -lh backup.dump
+      - name: Khôi phục thử vào DB tạm
+        run: |
+          docker run --rm --network host -e PGPASSWORD=scratch -v "$PWD:/b" postgres:17 sh -c '
+            createdb -h localhost -U postgres verify &&
+            pg_restore -h localhost -U postgres -d verify --no-owner --exit-on-error /b/backup.dump &&
+            psql -h localhost -U postgres -d verify -tAc "select count(*) from \"User\"" | tee /b/users.txt'
+          test "$(cat users.txt)" -ge 1 || { echo "::error::Bản sao lưu không có người dùng nào"; exit 1; }
+      - name: Mã hoá
+        run: |
+          openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:BACKUP_PASSPHRASE -in backup.dump -out "ninhtrang-$(date -u +%Y%m%d).dump.enc"
+          rm backup.dump
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ninhtrang-db-backup
+          path: ninhtrang-*.dump.enc
+          retention-days: 30
+          if-no-files-found: error

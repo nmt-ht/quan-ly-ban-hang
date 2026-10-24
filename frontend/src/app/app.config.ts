@@ -1,9 +1,10 @@
-import { ApplicationConfig, inject, provideAppInitializer, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { ApplicationConfig, ErrorHandler, inject, provideAppInitializer, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { provideRouter, TitleStrategy } from '@angular/router';
 import { routes } from './app.routes';
 import { authInterceptor } from './core/api/auth.interceptor';
 import { AuthService } from './core/services/auth.service';
+import { MonitoringErrorHandler, MonitoringService } from './core/services/monitoring.service';
 import { DisplayColorsService } from './core/services/display-colors.service';
 import { PageTitleStrategy } from './core/services/page-title.strategy';
 import { ThemeService } from './core/services/theme.service';
@@ -11,6 +12,7 @@ import { ThemeService } from './core/services/theme.service';
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
+    { provide: ErrorHandler, useClass: MonitoringErrorHandler },
     provideRouter(routes),
     provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
     { provide: TitleStrategy, useClass: PageTitleStrategy },
@@ -18,6 +20,7 @@ export const appConfig: ApplicationConfig = {
     provideAppInitializer(() => {
       inject(DisplayColorsService);
       inject(ThemeService);
+      void inject(MonitoringService).start();
       // Fresh permissions for a session restored from storage. Not awaited: the app starts at once
       // with the stored ones, and the menu follows when the answer arrives.
       void inject(AuthService).refresh();

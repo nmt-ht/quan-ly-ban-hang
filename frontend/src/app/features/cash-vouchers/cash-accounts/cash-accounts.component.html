@@ -42,6 +42,7 @@
               <p class="subtitle">
                 @if (a.type === 'NGAN_HANG') {
                   {{ a.bankName || 'Ngân hàng' }} · <span class="num">{{ a.accountNumber || 'Chưa khai số tài khoản' }}</span>
+                  @if (qrReady(a)) { <span class="badge badge-success ca-badge" title="In được mã VietQR chuyển khoản vào tài khoản này">VietQR</span> }
                   {{ a.accountHolder ? ' · ' + a.accountHolder : '' }}{{ a.branch ? ' · ' + a.branch : '' }}
                 } @else {
                   {{ a.note || 'Tiền mặt tại quỹ' }}
@@ -90,7 +91,22 @@
     </label>
     @if (draft().type === 'NGAN_HANG') {
       <label class="field">
-        <span>Ngân hàng</span>
+        <span>Ngân hàng (cho mã VietQR)</span>
+        <select [ngModel]="otherBin() ? 'khac' : bankChoice()" (ngModelChange)="pickBank($event)">
+          <option value="">— Chưa chọn (không in mã QR) —</option>
+          @for (b of banks; track b.bin) { <option [value]="b.bin">{{ b.name }}</option> }
+          <option value="khac">Ngân hàng khác — nhập mã BIN</option>
+        </select>
+      </label>
+      @if (otherBin() || bankChoice() === 'khac') {
+        <label class="field">
+          <span>Mã BIN ngân hàng (6 số)</span>
+          <input type="text" class="num" inputmode="numeric" maxlength="6" placeholder="VD: 970436" [ngModel]="draft().bankBin" (ngModelChange)="patch({ bankBin: $event })"
+            [attr.aria-invalid]="draft().bankBin && !(draft().bankBin.length === 6) ? 'true' : null" />
+        </label>
+      }
+      <label class="field">
+        <span>Tên ngân hàng (in trên chứng từ)</span>
         <input type="text" [ngModel]="draft().bankName" (ngModelChange)="patch({ bankName: $event })" />
       </label>
       <label class="field">
@@ -106,6 +122,12 @@
         <span>Chi nhánh</span>
         <input type="text" [ngModel]="draft().branch" (ngModelChange)="patch({ branch: $event })" />
       </label>
+      @if (previewAccount(); as pa) {
+        <div class="field ca-qr">
+          <span>Xem thử mã VietQR (quét bằng app ngân hàng để kiểm tra đúng tài khoản)</span>
+          <app-vietqr [account]="pa" note="Kiem tra" [size]="112" />
+        </div>
+      }
     }
     <label class="field">
       <span>Số dư đầu kỳ</span>

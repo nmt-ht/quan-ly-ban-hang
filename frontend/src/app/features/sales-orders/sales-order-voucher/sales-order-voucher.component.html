@@ -30,6 +30,9 @@
     @if (failure()) {
       <div class="notice is-error" role="alert">
         <span>{{ failure() }}</span>
+        @if (creditBlocked() && canOverrideCredit()) {
+          <button type="button" class="btn btn-secondary" (click)="save(true)">Vẫn lưu đơn (vượt hạn mức)</button>
+        }
         <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="failure.set('')"><app-nav-icon name="x" /></button>
       </div>
     }
@@ -88,7 +91,7 @@
         <div class="field">
           <label for="so-date">Ngày đặt @if (editable()) { <span class="required-mark">*</span> }</label>
           @if (editable()) {
-            <input id="so-date" type="date" [ngModel]="orderDate()" (ngModelChange)="orderDate.set($event)" />
+            <input id="so-date" type="date" [ngModel]="orderDate()" (ngModelChange)="setOrderDate($event)" />
           } @else {
             <p class="field-value num">{{ day(orderDate()) }}</p>
           }
@@ -180,7 +183,11 @@
         </div>
         <div class="field">
           <span class="field-label">Loại khách · bảng giá</span>
-          <p class="field-value">{{ customer() ? typeLabel[customerType()] + ' · ' + priceLabel[customerType()].toLowerCase() : 'Chọn khách trước' }}</p>
+          <p class="field-value">
+            @if (!customer()) { Chọn khách trước }
+            @else if (priceList(); as pl) { {{ typeLabel[customerType()] }} · bảng giá <strong>{{ pl.name }}</strong> }
+            @else { {{ typeLabel[customerType()] + ' · ' + priceLabel[customerType()].toLowerCase() }} }
+          </p>
         </div>
         <div class="field">
           <span class="field-label">Hạn thanh toán</span>
@@ -246,7 +253,9 @@
       <button type="button" role="tab" [attr.aria-selected]="tab() === 'hang'" (click)="tab.set('hang')">
         Hàng hoá <span class="tab-count num">{{ validLines().length }}</span>
       </button>
-      <button type="button" role="tab" [attr.aria-selected]="tab() === 'gia-von'" (click)="tab.set('gia-von')">Giá vốn</button>
+      @if (cost.canViewCost()) {
+        <button type="button" role="tab" [attr.aria-selected]="tab() === 'gia-von'" (click)="tab.set('gia-von')">Giá vốn</button>
+      }
       @if (order()) {
         @if (lsx().length || lsxNeeded()) {
           <button type="button" role="tab" [attr.aria-selected]="tab() === 'lsx'" (click)="tab.set('lsx')">
@@ -256,6 +265,11 @@
         <button type="button" role="tab" [attr.aria-selected]="tab() === 'pxk'" (click)="tab.set('pxk')">
           Phiếu xuất kho @if (exportVouchers().length) { <span class="tab-count num">{{ exportVouchers().length }}</span> }
         </button>
+        @if (returns().length) {
+          <button type="button" role="tab" [attr.aria-selected]="tab() === 'tra-hang'" (click)="tab.set('tra-hang')">
+            Trả hàng <span class="tab-count num">{{ activeReturns() }}</span>
+          </button>
+        }
         @if (order()!.receivedValue > 0) {
           <button type="button" role="tab" [attr.aria-selected]="tab() === 'cong-no'" (click)="tab.set('cong-no')">Công nợ</button>
         }
@@ -306,10 +320,15 @@
                         [stock]="stock()"
                         [value]="l.productId"
                         (valueChange)="setProduct(i, $event)"
-                        [disabled]="!editable()"
+                        [disabled]="!editable() || l.isGift"
                         [invalid]="attempted() && !l.productId && (l.quantity ?? 0) > 0"
                         [ariaLabel]="'Hàng hoá dòng ' + (i + 1)"
                       />
+                      @if (l.isGift) {
+                        <span class="so-chip promo-chip" [title]="'Hàng tặng · ' + promoName(l.promotionId)">Tặng</span>
+                      } @else if (l.promotionId) {
+                        <span class="so-chip promo-chip" [title]="promoName(l.promotionId)">KM</span>
+                      }
                     </td>
                     <td class="c-wh">
                       @if (p?.type === 'DICH_VU') {
@@ -322,7 +341,7 @@
                       } @else { {{ l.warehouseId ? warehouseName(l.warehouseId) : '—' }} }
                     </td>
                     <td class="c-unit">
-                      @if (editable() && units(l.productId).length > 1) {
+                      @if (editable() && !l.isGift && units(l.productId).length > 1) {
                         <select [ngModel]="l.unitName" (ngModelChange)="setUnit(i, $event)" [attr.aria-label]="'Đơn vị dòng ' + (i + 1)">
                           @for (u of units(l.productId); track u.value) { <option [value]="u.value">{{ u.label }}</option> }
                         </select>
@@ -344,14 +363,14 @@
                       </td>
                     }
                     <td class="c-num">
-                      @if (editable()) {
+                      @if (editable() && !l.isGift) {
                         <input type="number" min="0" step="any" class="num-input" [ngModel]="l.quantity"
                           (ngModelChange)="patch(i, { quantity: $event })" [attr.aria-label]="'Số lượng dòng ' + (i + 1)"
                           [attr.aria-invalid]="attempted() && l.productId && !((l.quantity ?? 0) > 0) ? 'true' : null" />
                       } @else { <span class="num">{{ (l.quantity ?? 0).toLocaleString('vi-VN') }}</span> }
                     </td>
                     <td class="c-num">
-                      @if (editable()) {
+                      @if (editable() && !l.isGift) {
                         <input type="text" appMoney [ngModel]="l.unitPrice" (ngModelChange)="setPrice(i, $event)"
                           [class.is-manual]="l.priceManual && l.productId" [title]="l.priceManual ? 'Giá sửa tay' : 'Giá theo bảng giá'"
                           [attr.aria-label]="'Đơn giá dòng ' + (i + 1)" />
@@ -359,14 +378,14 @@
                     </td>
                     <td class="c-num num">{{ (c?.gross ?? 0).toLocaleString('vi-VN') }}</td>
                     <td class="c-num c-pct">
-                      @if (editable()) {
+                      @if (editable() && !l.isGift) {
                         <input type="number" min="0" max="100" step="any" class="num-input" [ngModel]="l.discountRate"
                           (ngModelChange)="patch(i, { discountRate: $event })" [attr.aria-label]="'Tỷ lệ chiết khấu dòng ' + (i + 1)"
                           [attr.aria-invalid]="(l.discountRate ?? 0) > 100 ? 'true' : null" />
                       } @else { <span class="num">{{ l.discountRate ? l.discountRate + '%' : '—' }}</span> }
                     </td>
                     <td class="c-num">
-                      @if (editable()) {
+                      @if (editable() && !l.isGift) {
                         <input type="text" appMoney [ngModel]="l.discountAmount" (ngModelChange)="patch(i, { discountAmount: $event })"
                           [attr.aria-label]="'Tiền chiết khấu dòng ' + (i + 1)" />
                       } @else { <span class="num">{{ (c?.discount ?? 0).toLocaleString('vi-VN') }}</span> }
@@ -392,9 +411,11 @@
                     }
                     @if (editable()) {
                       <td class="c-act">
-                        <button type="button" class="icon-action danger-action" (click)="removeLine(i)" [attr.aria-label]="'Xoá dòng ' + (i + 1)" title="Xoá dòng">
-                          <app-nav-icon name="trash" />
-                        </button>
+                        @if (!l.isGift) {
+                          <button type="button" class="icon-action danger-action" (click)="removeLine(i)" [attr.aria-label]="'Xoá dòng ' + (i + 1)" title="Xoá dòng">
+                            <app-nav-icon name="trash" />
+                          </button>
+                        }
                       </td>
                     }
                   </tr>
@@ -428,6 +449,17 @@
                   <button type="button" class="btn" (click)="clearLines()"><app-nav-icon name="trash" />Xoá hết dòng</button>
                 </div>
                 <p class="grid-hint-inline">Số lượng gõ theo đúng ĐVT của dòng. Đơn giá chốt vào dòng khi lưu, không đổi khi bảng giá đổi sau.</p>
+                <label class="promo-toggle">
+                  <input type="checkbox" [ngModel]="applyPromos()" (ngModelChange)="setApplyPromos($event)" />
+                  Áp khuyến mãi
+                  @if (promos().length) { <span class="subtitle">({{ promos().length }} chương trình đang chạy cho khách này)</span> }
+                </label>
+              }
+              @if (appliedPromos().length) {
+                <p class="grid-hint-inline promo-applied">
+                  Khuyến mãi đã áp:
+                  @for (p of appliedPromos(); track p.id) { <span class="so-chip promo-chip" [title]="p.name">{{ p.code }}</span> {{ p.name }}@if (!$last) {; } }
+                </p>
               }
             </div>
             <dl class="grid-totals">
@@ -437,9 +469,10 @@
                 <dt><label for="so-orderdisc">Chiết khấu cả đơn</label></dt>
                 <dd>
                   @if (editable()) {
-                    <input id="so-orderdisc" type="text" appMoney placeholder="0" [ngModel]="orderDiscount()" (ngModelChange)="orderDiscount.set($event)"
+                    <input id="so-orderdisc" type="text" appMoney placeholder="0" [ngModel]="orderDiscount()" (ngModelChange)="setOrderDiscount($event)"
                       [attr.aria-invalid]="(orderDiscount() ?? 0) > totals().goods - totals().lineDiscount ? 'true' : null" />
                   } @else { <span class="num">{{ money(totals().orderDiscount) }}</span> }
+                  @if (orderPromotionId()) { <span class="so-chip promo-chip" [title]="promoName(orderPromotionId())">KM</span> }
                 </dd>
               </div>
               <div><dt>Thuế GTGT</dt><dd class="num">{{ money(totals().vat) }}</dd></div>
@@ -454,6 +487,7 @@
       }
 
       @case ('gia-von') {
+        @if (cost.canViewCost()) {
         <section class="card voucher-grid-card">
           <div class="voucher-grid-scroll">
             <table class="voucher-grid so-cost">
@@ -506,11 +540,12 @@
             </table>
           </div>
           <p class="grid-hint">
-            Giá vốn <strong>ước tính</strong> theo giá nhập gần nhất (vật tư) hoặc định mức × giá vật tư (thành phẩm); chưa phải giá vốn chốt khi giao.
+            Giá vốn <strong>bình quân hiện tại</strong> (bình quân gia quyền di động). Khi giao, giá vốn được chốt trên phiếu xuất — báo cáo Lãi gộp dùng giá đã chốt đó.
             Doanh thu thuần = tiền hàng sau chiết khấu, chưa thuế GTGT.
             @if (costTotals().noCost) { <span class="text-danger"> {{ costTotals().noCost }} dòng chưa có giá vốn nên lãi gộp đang cao hơn thực tế.</span> }
           </p>
         </section>
+        }
       }
 
       @case ('lsx') {
@@ -607,12 +642,61 @@
         </section>
       }
 
+      @case ('tra-hang') {
+        <section class="card voucher-grid-card">
+          <div class="voucher-grid-scroll">
+            <table class="voucher-grid" appFrozenCols="1">
+              <thead>
+                <tr>
+                  <th scope="col">Số phiếu</th>
+                  <th scope="col">Ngày trả</th>
+                  <th scope="col">Hàng trả</th>
+                  <th scope="col">Lý do</th>
+                  <th scope="col">Phiếu nhập kho</th>
+                  <th scope="col" class="c-num">Giảm công nợ</th>
+                  <th scope="col">Trạng thái</th>
+                  <th scope="col"><span class="visually-hidden">Thao tác</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (r of returns(); track r.id) {
+                  <tr [class.so-ret-void]="r.isCancelled">
+                    <td class="num">{{ r.code }}</td>
+                    <td class="num">{{ day(r.date) }}</td>
+                    <td class="wrap">{{ returnItems(r) }}</td>
+                    <td class="wrap">{{ r.reason }}@if (r.note) { <span class="subtitle"> · {{ r.note }}</span> }</td>
+                    <td class="num">{{ r.voucherCode || '—' }}</td>
+                    <td class="c-num num">{{ money(r.amount) }}</td>
+                    <td>
+                      @if (r.isCancelled) {
+                        <span class="badge badge-muted" [title]="r.cancelReason || ''">Đã huỷ</span>
+                      } @else {
+                        <span class="badge badge-success">Đã nhập lại</span>
+                      }
+                    </td>
+                    <td class="c-act lsx-actions">
+                      @if (!r.isCancelled && canReturn()) {
+                        <button type="button" class="btn btn-sm btn-danger-ghost" (click)="askCancelReturn(r)">Huỷ phiếu</button>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <p class="grid-hint">Hàng trả nhập lại kho bằng phiếu "Nhập trả về"; giá trị trả (gồm thuế, sau chiết khấu) giảm công nợ phải thu và doanh thu vào ngày trả. Tiền khách đã trả thừa thì hoàn bằng phiếu chi.</p>
+        </section>
+      }
+
       @case ('cong-no') {
         <section class="card voucher-grid-card so-debt">
           @if (debtEntry(); as e) {
             <dl class="grid-totals so-debt-list">
               <div><dt>Ghi công nợ (khách đã nhận)</dt><dd class="num">{{ money(e.amount) }}</dd></div>
-              <div><dt>Đã thu (đối trừ)</dt><dd class="num">{{ money(e.settled) }}</dd></div>
+              @if (order()!.returnedValue) {
+                <div><dt>Hàng trả lại</dt><dd class="num">−{{ money(order()!.returnedValue!) }}</dd></div>
+              }
+              <div><dt>Đã thu (đối trừ)</dt><dd class="num">{{ money(e.settled - (order()!.returnedValue ?? 0)) }}</dd></div>
               <div><dt>Hạn thanh toán</dt><dd class="num">{{ e.dueDate ? day(e.dueDate) : '—' }}</dd></div>
               <div class="grand"><dt>Còn phải thu</dt><dd class="num" [class.text-danger]="(e.overdueDays ?? 0) > 0 && e.remaining > 0">{{ money(e.remaining) }}</dd></div>
             </dl>
@@ -669,7 +753,7 @@
             {{ mode() === 'edit' ? 'Lưu thay đổi' : 'Lập đơn hàng' }}
           </button>
         } @else if (order(); as o) {
-          <button type="button" class="btn" (click)="print()"><app-nav-icon name="printer" />In</button>
+          <app-print-menu kind="sales-order" />
           @if (canCancel()) {
             <button type="button" class="btn btn-danger-ghost" (click)="confirmCancel.set(true)">Huỷ đơn</button>
           }
@@ -681,6 +765,9 @@
           }
           @if ((debtEntry()?.remaining ?? 0) > 0) {
             <a class="btn" routerLink="/thu-chi/lap/thu" [queryParams]="{ customerId: o.customerId, back: '/don-hang/' + o.id }"><app-nav-icon name="cash" />Lập phiếu thu</a>
+          }
+          @if (canReturn()) {
+            <button type="button" class="btn" (click)="openReturn()"><app-nav-icon name="download" />Nhận hàng trả lại</button>
           }
           @if (lsxNeeded()) {
             <button type="button" class="btn btn-primary" (click)="createLsx()">Lập lệnh sản xuất</button>
@@ -714,16 +801,30 @@
     </div>
   }
 
+  @if (confirmCancelReturn(); as r) {
+    <div class="confirm-strip" role="alertdialog" aria-labelledby="cancel-return-title">
+      <p id="cancel-return-title"><strong>Huỷ phiếu trả {{ r.code }}?</strong> Phiếu nhập kho {{ r.voucherCode || '' }} bị huỷ (hàng ra khỏi kho), công nợ phải thu tăng lại {{ money(r.amount) }}.</p>
+      <input type="text" placeholder="Lý do huỷ (không bắt buộc)" aria-label="Lý do huỷ phiếu trả" [ngModel]="cancelReturnReason()" (ngModelChange)="cancelReturnReason.set($event)" />
+      <div class="toolbar">
+        <button type="button" class="btn" (click)="confirmCancelReturn.set(null)">Không huỷ</button>
+        <button type="button" class="btn btn-danger" (click)="doCancelReturn()">Huỷ phiếu trả</button>
+      </div>
+    </div>
+  }
+
   @if (order(); as o) {
     <app-deliver-dialog #deliverDialog [order]="o" (delivered)="onDelivered($event)" />
+    @if (canReturn()) {
+      <app-return-dialog #returnDialog [order]="o" (returned)="onReturned($event)" />
+    }
 
     <app-print-document
       title="ĐƠN HÀNG BÁN" [no]="o.code" [date]="o.orderDate" [status]="o.status === 'HUY' ? 'ĐÃ HUỶ' : undefined"
       [signers]="[
-        { role: 'Người lập đơn', name: userName(o.createdBy) },
+        { role: 'Người lập đơn', name: userName(o.createdBy), k80: true },
         { role: 'Nhân viên bán hàng', name: userName(o.salesRep) },
         { role: 'Thủ kho' },
-        { role: 'Khách hàng' }
+        { role: 'Khách hàng', k80: true }
       ]"
     >
       <dl pdMeta class="pd-meta">
@@ -740,21 +841,21 @@
       <table class="pd-table">
         <thead>
           <tr>
-            <th class="stt">STT</th><th>Mã hàng</th><th>Tên hàng</th><th>ĐVT</th><th class="nw">Số lượng</th>
-            <th class="nw">Đơn giá</th><th class="nw">Chiết khấu</th><th class="nw">Thuế</th><th class="nw">Thành tiền</th>
+            <th class="stt">STT</th><th class="k80-hide">Mã hàng</th><th>Tên hàng</th><th class="k80-hide">ĐVT</th><th class="nw">Số lượng</th>
+            <th class="nw">Đơn giá</th><th class="nw a5-hide k80-hide">Chiết khấu</th><th class="nw a5-hide k80-hide">Thuế</th><th class="nw">Thành tiền</th>
           </tr>
         </thead>
         <tbody>
           @for (r of printRows(); track r.i) {
             <tr>
               <td class="stt">{{ r.i + 1 }}</td>
-              <td>{{ r.code }}</td>
-              <td>{{ r.name }}</td>
-              <td class="c">{{ r.unit }}</td>
+              <td class="k80-hide">{{ r.code }}</td>
+              <td>{{ r.name }}{{ r.gift ? ' (hàng tặng)' : '' }}</td>
+              <td class="c k80-hide">{{ r.unit }}</td>
               <td class="r">{{ r.qty.toLocaleString('vi-VN') }}</td>
               <td class="r">{{ r.price.toLocaleString('vi-VN') }}</td>
-              <td class="r">{{ r.discount ? r.discount.toLocaleString('vi-VN') : '' }}</td>
-              <td class="r">{{ r.vatRate ? r.vatRate + '%' : '' }}</td>
+              <td class="r a5-hide k80-hide">{{ r.discount ? r.discount.toLocaleString('vi-VN') : '' }}</td>
+              <td class="r a5-hide k80-hide">{{ r.vatRate ? r.vatRate + '%' : '' }}</td>
               <td class="r">{{ r.amount.toLocaleString('vi-VN') }}</td>
             </tr>
           }

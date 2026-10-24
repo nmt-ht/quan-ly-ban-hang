@@ -34,6 +34,11 @@ const RULES: [RegExp, string[]][] = [
   [/^\/don-hang\/them(-moi)?$/, ['order.create']],
   [/^\/don-hang\/[^/]+\/sua$/, ['order.update']],
   [/^\/don-hang(\/|$)/, ['order.view']],
+  [/^\/bao-gia\/them-moi$/, ['quote.create']],
+  [/^\/bao-gia\/[^/]+\/sua$/, ['quote.update']],
+  [/^\/bao-gia(\/|$)/, ['quote.view']],
+  [/^\/bang-gia$/, ['pricelist.manage']],
+  [/^\/khuyen-mai$/, ['promotion.manage']],
   [/^\/giao-hang(\/|$)/, ['trip.view']],
   [/^\/xe(\/|$)/, ['vehicle.view']],
 

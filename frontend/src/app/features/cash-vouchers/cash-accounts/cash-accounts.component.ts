@@ -9,6 +9,8 @@ import { formatVnd } from '../../../shared/format.util';
 import { CashVoucherService } from '../cash-voucher.service';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { errorText } from '../../../core/api/api.service';
+import { VN_BANKS, bankNameOf } from '../../../shared/vietqr/vietqr';
+import { VietQrComponent, qrReady } from '../../../shared/vietqr/vietqr.component';
 
 interface Draft {
   id?: string;
@@ -16,6 +18,7 @@ interface Draft {
   type: CashAccountType;
   name: string;
   bankName: string;
+  bankBin: string;
   accountNumber: string;
   accountHolder: string;
   branch: string;
@@ -27,7 +30,7 @@ interface Draft {
 }
 
 const EMPTY: Draft = {
-  code: '', type: 'TIEN_MAT', name: '', bankName: '', accountNumber: '', accountHolder: '', branch: '',
+  code: '', type: 'TIEN_MAT', name: '', bankName: '', bankBin: '', accountNumber: '', accountHolder: '', branch: '',
   openingBalance: null, sortOrder: 0, note: '', isDefault: false, isActive: true,
 };
 
@@ -35,7 +38,7 @@ const EMPTY: Draft = {
 @Component({
   selector: 'app-cash-accounts',
   standalone: true,
-  imports: [FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, MoneyInputDirective],
+  imports: [FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, MoneyInputDirective, VietQrComponent],
   templateUrl: './cash-accounts.component.html',
   styleUrls: [
     '../../purchase-orders/receive-goods-dialog/receive-goods-dialog.component.scss',
@@ -83,7 +86,7 @@ export class CashAccountsComponent {
 
   open(a?: CashAccount): void {
     this.draft.set(a ? {
-      id: a.id, code: a.code ?? '', type: a.type, name: a.name, bankName: a.bankName ?? '', accountNumber: a.accountNumber ?? '',
+      id: a.id, code: a.code ?? '', type: a.type, name: a.name, bankName: a.bankName ?? '', bankBin: a.bankBin ?? '', accountNumber: a.accountNumber ?? '',
       accountHolder: a.accountHolder ?? '', branch: a.branch ?? '', openingBalance: a.openingBalance || null, sortOrder: a.sortOrder ?? 0,
       note: a.note ?? '', isDefault: !!a.isDefault, isActive: a.isActive !== false,
     } : { ...EMPTY, sortOrder: this.data.cashAccounts().length });
@@ -96,6 +99,34 @@ export class CashAccountsComponent {
     this.dialog().nativeElement.close();
   }
 
+  // ---------- VietQR (Pha 2) ----------
+  readonly banks = VN_BANKS;
+  readonly qrReady = qrReady;
+  /** "" = chưa chọn, a BIN from the list, or "khac" to type one. */
+  readonly bankChoice = computed(() => {
+    const bin = this.draft().bankBin;
+    return !bin ? '' : VN_BANKS.some((b) => b.bin === bin) ? bin : 'khac';
+  });
+  readonly otherBin = signal(false);
+
+  pickBank(choice: string): void {
+    this.otherBin.set(choice === 'khac');
+    if (choice === 'khac' || !choice) return this.patch({ bankBin: choice === 'khac' ? this.draft().bankBin : '' });
+    const name = bankNameOf(choice) ?? '';
+    const d = this.draft();
+    // Fill Ngân hàng when empty or when it still holds the previously picked bank's name.
+    const autoName = !d.bankName.trim() || d.bankName === (bankNameOf(d.bankBin) ?? '');
+    this.patch({ bankBin: choice, bankName: autoName ? name : d.bankName });
+  }
+
+  /** The draft as an account, for the QR preview. */
+  readonly previewAccount = computed<CashAccount | null>(() => {
+    const d = this.draft();
+    return d.type === 'NGAN_HANG' && /^\d{6}$/.test(d.bankBin) && d.accountNumber.trim()
+      ? { id: d.id ?? '', name: d.name, type: d.type, balance: 0, bankBin: d.bankBin, bankName: d.bankName, accountNumber: d.accountNumber.trim(), accountHolder: d.accountHolder }
+      : null;
+  });
+
   patch(change: Partial<Draft>): void {
     this.draft.update((d) => ({ ...d, ...change }));
   }
@@ -105,6 +136,7 @@ export class CashAccountsComponent {
     const out: string[] = [];
     if (!d.name.trim()) out.push('Nhập tên tài khoản');
     if (d.type === 'NGAN_HANG' && !d.accountNumber.trim()) out.push('Nhập số tài khoản ngân hàng');
+    if (d.type === 'NGAN_HANG' && d.bankBin.trim() && !/^\d{6}$/.test(d.bankBin.trim())) out.push('Mã ngân hàng (BIN) gồm 6 chữ số');
     const dupCode = d.code.trim() && this.data.cashAccounts().find((a) => a.id !== d.id && (a.code ?? '').toUpperCase() === d.code.trim().toUpperCase());
     if (dupCode) out.push(`Mã ${d.code.trim()} đã dùng cho ${dupCode.name}`);
     return out;
@@ -124,6 +156,7 @@ export class CashAccountsComponent {
       type: d.type,
       name: d.name.trim(),
       bankName: bank ? d.bankName.trim() || undefined : undefined,
+      bankBin: bank ? d.bankBin.trim() || undefined : undefined,
       accountNumber: bank ? d.accountNumber.trim() : undefined,
       accountHolder: bank ? d.accountHolder.trim() || undefined : undefined,
       branch: bank ? d.branch.trim() || undefined : undefined,

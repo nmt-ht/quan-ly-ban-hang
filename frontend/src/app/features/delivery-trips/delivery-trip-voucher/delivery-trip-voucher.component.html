@@ -326,8 +326,8 @@
       </p>
       <div class="toolbar">
         @if (t.orderIds.length) {
-          <button type="button" class="btn" (click)="print('soan')"><app-nav-icon name="printer" />Phiếu soạn hàng</button>
-          <button type="button" class="btn" (click)="print('giao')"><app-nav-icon name="printer" />Phiếu giao hàng</button>
+          <app-print-menu kind="trip-picking" label="Phiếu soạn hàng" [papers]="['A4', 'A5']" (prepare)="printMode.set('soan')" (done)="printMode.set(null)" />
+          <app-print-menu kind="trip-delivery" label="Phiếu giao hàng" (prepare)="printMode.set('giao')" (done)="printMode.set(null)" />
         }
         @if (can()?.cancel) {
           <button type="button" class="btn btn-danger-ghost" (click)="confirmCancel.set(true)">Huỷ chuyến</button>
@@ -521,10 +521,10 @@
           <div class="wide"><dt>Địa chỉ</dt><dd>{{ r.address || '—' }}</dd></div>
         </dl>
         <table class="pd-table">
-          <thead><tr><th class="stt">STT</th><th>Mã hàng</th><th>Tên hàng</th><th>ĐVT</th><th class="nw">Số lượng giao</th><th class="nw">Khách nhận</th></tr></thead>
+          <thead><tr><th class="stt">STT</th><th class="k80-hide">Mã hàng</th><th>Tên hàng</th><th>ĐVT</th><th class="nw">Số lượng giao</th><th class="nw">Khách nhận</th></tr></thead>
           <tbody>
             @for (l of linesOf(r.order); track l.key; let i = $index) {
-              <tr><td class="stt">{{ i + 1 }}</td><td>{{ l.code }}</td><td>{{ l.name }}</td><td class="c">{{ l.unit }}</td><td class="r">{{ l.qty.toLocaleString('vi-VN') }}</td><td></td></tr>
+              <tr><td class="stt">{{ i + 1 }}</td><td class="k80-hide">{{ l.code }}</td><td>{{ l.name }}</td><td class="c">{{ l.unit }}</td><td class="r">{{ l.qty.toLocaleString('vi-VN') }}</td><td></td></tr>
             }
           </tbody>
         </table>

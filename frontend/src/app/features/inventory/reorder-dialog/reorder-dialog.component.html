@@ -1,0 +1,87 @@
+<dialog #dialog class="rg-dialog" aria-labelledby="ro-title">
+  <header class="rg-head">
+    <div>
+      <h2 id="ro-title">Gợi ý lập đơn nhập</h2>
+      <p class="subtitle">Vật tư đang dưới tồn tối thiểu, gom theo nhà cung cấp. Số đặt thêm = tối thiểu − tồn − đơn nhập đang về (kể cả Nháp), làm tròn lên.</p>
+    </div>
+    <button type="button" class="icon-action" aria-label="Đóng" (click)="close()"><app-nav-icon name="x" /></button>
+  </header>
+
+  <div class="rg-body">
+    @for (g of groups(); track g.supplierId) {
+      <section class="ro-group" [attr.aria-label]="g.name">
+        <header class="ro-group-head">
+          <div>
+            <h3>{{ g.name }}</h3>
+            <p class="subtitle">
+              {{ g.rows.length }} mặt hàng · chọn {{ g.picked.length }}
+              @if (g.value) { · ước tính <span class="num">{{ money(g.value) }}</span> }
+            </p>
+          </div>
+          @if (canBuy()) {
+            <button type="button" class="btn btn-primary" [disabled]="!g.picked.length" (click)="createOrder(g)">
+              <app-nav-icon name="plus" />Lập đơn nhập{{ g.picked.length ? ' (' + g.picked.length + ' dòng)' : '' }}
+            </button>
+          }
+        </header>
+        <div class="rg-scroll">
+          <table class="rg-table ro-table">
+            <thead>
+              <tr>
+                <th scope="col"><span class="visually-hidden">Chọn</span></th>
+                <th scope="col">Vật tư</th>
+                <th scope="col" class="c-num">Tồn</th>
+                <th scope="col" class="c-num">Tối thiểu</th>
+                <th scope="col" class="c-num">Đang về</th>
+                <th scope="col" class="c-num">Đặt thêm</th>
+                <th scope="col">Nhà cung cấp</th>
+                <th scope="col" class="c-num">Giá mua</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (r of g.rows; track r.product.id) {
+                <tr [class.ro-covered]="r.suggest === 0">
+                  <td><input type="checkbox" [checked]="r.picked" (change)="patch(r.product.id, { picked: $any($event.target).checked })" [attr.aria-label]="'Chọn ' + r.product.code" /></td>
+                  <td>
+                    <span class="num rg-code">{{ r.product.code }}</span> {{ r.product.name }}
+                    @if (r.suggest === 0) { <span class="subtitle"> · đơn đang về đã đủ bù</span> }
+                  </td>
+                  <td class="c-num num" [class.text-danger]="r.onHand < 0">{{ qty(r.onHand) }}</td>
+                  <td class="c-num num">{{ qty(r.min) }}</td>
+                  <td class="c-num num">{{ r.ordered ? qty(r.ordered) : '—' }}</td>
+                  <td class="c-num">
+                    <input type="number" min="0" step="any" [ngModel]="r.quantity" placeholder="0" [attr.aria-label]="'Đặt thêm ' + r.product.code"
+                      (ngModelChange)="patch(r.product.id, { quantity: $event, picked: ($event ?? 0) > 0 })" />
+                    <span class="ro-unit">{{ r.product.baseUnit }}</span>
+                  </td>
+                  <td>
+                    <select [ngModel]="r.supplierId" (ngModelChange)="moveTo(r.product.id, $event)" [attr.aria-label]="'Nhà cung cấp cho ' + r.product.code">
+                      <option value="">— Chưa rõ —</option>
+                      @for (s of suppliers(); track s.id) { <option [value]="s.id">{{ s.name }}</option> }
+                    </select>
+                  </td>
+                  <td class="c-num num">{{ r.price ? money(r.price) : '—' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    } @empty {
+      <div class="rg-empty">
+        <p><strong>Không có vật tư nào dưới tồn tối thiểu.</strong></p>
+        <p>Đặt "Tồn tối thiểu" trong hồ sơ hàng hoá để hệ thống nhắc khi sắp hết.</p>
+      </div>
+    }
+  </div>
+
+  <footer class="rg-foot">
+    <p class="rg-summary" role="status">
+      {{ rows().length }} vật tư dưới tối thiểu@if (covered()) { · {{ covered() }} đã có đơn đang về đủ bù }.
+      @if (!canBuy()) { Chức vụ của bạn chưa có quyền tạo đơn nhập hàng. }
+    </p>
+    <div class="toolbar">
+      <button type="button" class="btn" (click)="close()">Đóng</button>
+    </div>
+  </footer>
+</dialog>

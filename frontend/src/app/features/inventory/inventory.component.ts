@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { Component, afterNextRender, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DataStore } from '../../core/services/data-store.service';
@@ -17,6 +17,8 @@ import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { lineRemaining } from '../sales-orders/sales-order.rules';
 import { lineRemaining as poLineRemaining } from '../purchase-orders/purchase-order.rules';
 import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
+import { ReorderDialogComponent } from './reorder-dialog/reorder-dialog.component';
+import { reorderLines } from './reorder.rules';
 
 type Sort = 'name' | 'code' | 'qty-desc' | 'qty-asc' | 'value';
 type TypeTab = 'all' | ProductType;
@@ -48,13 +50,13 @@ const r4 = (n: number) => Math.round(n * 10000) / 10000;
   standalone: true,
   imports: [
     CommonModule, RouterLink, AllowedLinkDirective, DataTableComponent, FilterMultiSelectComponent, PaginationComponent, NavIconComponent,
-    ListTabsComponent, ListRailComponent,
+    ListTabsComponent, ListRailComponent, ReorderDialogComponent,
   ],
   templateUrl: './inventory.component.html',
 })
 export class InventoryComponent {
   readonly data = inject(DataStore);
-  private readonly cost = inject(CostService);
+  readonly cost = inject(CostService);
 
   private readonly query = inject(ActivatedRoute).snapshot.queryParamMap;
   readonly search = signal('');
@@ -73,10 +75,20 @@ export class InventoryComponent {
   readonly pageSize = signal(20);
   readonly exporting = signal(false);
   readonly money = formatVnd;
+  private readonly reorderDialog = viewChild.required(ReorderDialogComponent);
+
+  /** Vật tư dưới tồn tối thiểu that still need ordering (đơn đang về not enough) — Pha 1.8. */
+  readonly toReorder = computed(() =>
+    reorderLines({
+      products: this.data.products(), stockLevels: this.data.stockLevels(), purchaseOrders: this.data.purchaseOrders(),
+      suppliers: this.data.suppliers(), supplierProducts: this.data.supplierProducts(),
+    }).filter((l) => l.suggest > 0).length,
+  );
 
   constructor() {
-    // Lối tắt từ Tổng quan: /kho/ton-kho?belowMin=true
+    // Lối tắt từ Tổng quan: /kho/ton-kho?belowMin=true (&reorder=1 opens Gợi ý lập đơn nhập)
     if (this.query.get('belowMin')) this.belowMinOnly.set(true);
+    if (this.query.get('reorder')) afterNextRender(() => this.openReorder());
     syncSliceToUrl(() => {
       const t = this.typeTab();
       const w = this.warehouseId();
@@ -86,6 +98,10 @@ export class InventoryComponent {
       this.rows();
       untracked(() => this.page.set(1));
     });
+  }
+
+  openReorder(): void {
+    this.reorderDialog().open();
   }
 
   /** Warehouses that hold anything (or the selected one): one column each in "Tất cả kho". */
@@ -243,7 +259,9 @@ export class InventoryComponent {
         { key: 'incoming', label: 'Sắp về', align: 'right' as const, format: (r: StockRow) => this.qtyText(r.incoming), filterValue: (r: StockRow) => r.incoming },
       ] : []),
       { key: 'min', label: 'Tối thiểu', align: 'right', format: (r) => this.qtyText(r.min), filterValue: (r) => r.min },
-      { key: 'value', label: 'Giá trị tồn', align: 'right', format: (r) => (r.value ? formatVnd(r.value) : '—'), filterValue: (r) => r.value },
+      ...(this.cost.canViewStockValue()
+        ? [{ key: 'value', label: 'Giá trị tồn', align: 'right' as const, format: (r: StockRow) => (r.value ? formatVnd(r.value) : '—'), filterValue: (r: StockRow) => r.value }]
+        : []),
       {
         key: 'state', sortByText: true, label: 'Tình trạng', format: (r) => STATE_LABEL[r.state],
         badge: (r) => (r.state === 'AM' ? 'stock-am' : r.state === 'HET' ? 'stock-het' : r.state === 'DUOI_MIN' ? 'stock-low' : r.state === 'ZERO' ? 'stock-zero' : 'stock-ok'),
@@ -268,6 +286,7 @@ export class InventoryComponent {
   async exportExcel(): Promise<void> {
     this.exporting.set(true);
     const whs = this.warehouses();
+    const showValue = this.cost.canViewStockValue();
     try {
       await downloadWorkbook(exportFileName('Tồn kho'), [{
         name: 'Tồn kho',
@@ -276,8 +295,9 @@ export class InventoryComponent {
           ...whs.map((w) => ({ header: w.name, width: 14, numFmt: '#,##0.##' })),
           { header: 'Tổng tồn', width: 12, numFmt: '#,##0.##' }, { header: 'Khách đã đặt', width: 12, numFmt: '#,##0.##' },
           { header: 'Có thể bán', width: 12, numFmt: '#,##0.##' }, { header: 'Sắp về', width: 12, numFmt: '#,##0.##' },
-          { header: 'Tối thiểu', width: 10, numFmt: '#,##0.##' }, { header: 'Giá vốn ước tính', width: 14, numFmt: '#,##0' },
-          { header: 'Giá trị tồn', width: 15, numFmt: '#,##0' }, { header: 'Tình trạng', width: 14 },
+          { header: 'Tối thiểu', width: 10, numFmt: '#,##0.##' },
+          ...(showValue ? [{ header: 'Giá vốn bình quân', width: 14, numFmt: '#,##0' }, { header: 'Giá trị tồn', width: 15, numFmt: '#,##0' }] : []),
+          { header: 'Tình trạng', width: 14 },
         ],
         rows: this.rows().map((r) => {
           const total = r4(Object.values(r.byWarehouse).reduce((s, v) => s + v, 0));
@@ -285,7 +305,7 @@ export class InventoryComponent {
           return [
             r.product.code, r.product.name, PRODUCT_TYPE_LABEL[r.product.type], r.product.baseUnit,
             ...whs.map((w) => r.byWarehouse[w.id] ?? 0), total, reserved, r4(total - reserved), this.incoming().get(r.product.id) ?? 0,
-            r.product.minStock, Math.round(r.unitCost), Math.round(Math.max(0, total) * r.unitCost), STATE_LABEL[r.state],
+            r.product.minStock, ...(showValue ? [Math.round(r.unitCost), Math.round(Math.max(0, total) * r.unitCost)] : []), STATE_LABEL[r.state],
           ];
         }),
       }]);

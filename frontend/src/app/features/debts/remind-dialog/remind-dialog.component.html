@@ -1,0 +1,93 @@
+<dialog #dialog class="import-dialog import-dialog-wide" aria-labelledby="rd-title">
+  @if (customer(); as c) {
+    <header class="dialog-head">
+      <h2 id="rd-title">Nhắc nợ {{ c.code }} · {{ c.companyName || c.name }}</h2>
+      <button type="button" class="dialog-x" aria-label="Đóng" (click)="close()"><app-nav-icon name="x" /></button>
+    </header>
+
+    <div class="dialog-body rd-body">
+      @if (row(); as r) {
+        <dl class="summary rd-facts">
+          <div><dt>Còn nợ</dt><dd class="num">{{ money(r.balance) }}</dd></div>
+          <div><dt>Quá hạn</dt><dd class="num" [class.text-danger]="r.overdue > 0">{{ money(r.overdue) }}</dd></div>
+          <div><dt>Quá hạn lâu nhất</dt><dd class="num">{{ lateDays() ? lateDays() + ' ngày' : '—' }}</dd></div>
+          <div><dt>Điện thoại</dt><dd class="num">{{ c.phone || '—' }}</dd></div>
+        </dl>
+      }
+
+      <div class="rd-compose">
+        <label class="field rd-message">
+          <span>Tin nhắn (sửa được trước khi gửi)</span>
+          <textarea rows="11" [ngModel]="message()" (ngModelChange)="message.set($event); copied.set(false)"></textarea>
+        </label>
+        @if (account(); as a) {
+          <div class="rd-qr">
+            <app-vietqr [account]="a" [amount]="row()!.balance > 0 ? row()!.balance : null" [note]="transferNote()" [size]="120" />
+          </div>
+        }
+      </div>
+
+      <div class="toolbar rd-send">
+        <button type="button" class="btn" (click)="copy()"><app-nav-icon name="copy" />{{ copied() ? 'Đã sao chép' : 'Sao chép tin' }}</button>
+        @if (phone()) {
+          <a class="btn" [href]="'https://zalo.me/' + phone()" target="_blank" rel="noopener" (click)="channel.set('ZALO')">Mở Zalo</a>
+          <a class="btn" [href]="'tel:' + phone()" (click)="channel.set('GOI_DIEN')">Gọi {{ c.phone }}</a>
+          <a class="btn" [href]="smsHref()" (click)="channel.set('SMS')">SMS</a>
+        }
+        @if (email()) {
+          <a class="btn" [href]="mailto()" (click)="channel.set('EMAIL')">Gửi email</a>
+        }
+        @if (!phone() && !email()) { <span class="subtitle">Khách chưa có điện thoại / email — gọi hoặc gặp trực tiếp rồi ghi nhận.</span> }
+      </div>
+      <p class="hint">Zalo: dán tin (Ctrl+V) vào cuộc trò chuyện vừa mở. Mã QR ở trên có số tiền và nội dung chuyển khoản — chụp gửi kèm nếu cần.</p>
+
+      @if (canRecord()) {
+        <fieldset class="rd-record">
+          <legend>Ghi nhận đã nhắc</legend>
+          <label class="field">
+            <span>Kênh</span>
+            <select [ngModel]="channel()" (ngModelChange)="channel.set($event)">
+              @for (ch of channels; track ch) { <option [value]="ch">{{ channelLabel[ch] }}</option> }
+            </select>
+          </label>
+          <label class="field">
+            <span>Khách hẹn trả ngày</span>
+            <input type="date" [min]="today" [ngModel]="promisedDate()" (ngModelChange)="promisedDate.set($event)" />
+          </label>
+          <label class="field">
+            <span>Số tiền hẹn trả</span>
+            <input type="text" appMoney placeholder="Không bắt buộc" [ngModel]="promisedAmount()" (ngModelChange)="promisedAmount.set($event)" />
+          </label>
+          <label class="field rd-note">
+            <span>Ghi chú</span>
+            <input type="text" maxlength="1000" placeholder="VD: khách xin lùi đến cuối tháng" [ngModel]="note()" (ngModelChange)="note.set($event)" />
+          </label>
+        </fieldset>
+      }
+
+      @if (history().length) {
+        <div class="rd-history">
+          <h3>Các lần nhắc gần đây</h3>
+          <ul>
+            @for (h of history(); track h.id) {
+              <li>
+                <span class="num">{{ day(h.createdAt.slice(0, 10)) }}</span> · {{ channelLabel[h.channel] }} · còn nợ <span class="num">{{ money(h.balance) }}</span>
+                @if (h.promisedDate) { · hẹn trả <span class="num">{{ day(h.promisedDate) }}</span>{{ h.promisedAmount ? ' ' + money(h.promisedAmount) : '' }} }
+                @if (h.note) { — {{ h.note }} }
+              </li>
+            }
+          </ul>
+        </div>
+      }
+
+      @if (error()) { <p class="status status-error" role="alert">{{ error() }}</p> }
+    </div>
+
+    <footer class="dialog-foot">
+      <button type="button" class="btn" (click)="close()">Đóng</button>
+      @if (canRecord()) {
+        <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="record()">{{ saving() ? 'Đang lưu…' : 'Ghi nhận đã nhắc' }}</button>
+      }
+    </footer>
+  }
+</dialog>

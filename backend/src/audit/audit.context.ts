@@ -9,6 +9,8 @@ export interface AuditContext {
   user: { id: string; name: string } | null;
   /** Entries written by AuditService during this request (0 on a write = nothing was logged). */
   logged: number;
+  /** A POST that changed nothing (an import dry run rolls its transaction back): no Nhật ký line is expected. */
+  readOnly?: boolean;
 }
 
 const storage = new AsyncLocalStorage<AuditContext>();

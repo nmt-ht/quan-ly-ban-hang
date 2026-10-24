@@ -153,7 +153,7 @@ export class DashboardComponent {
     else if (dt && dt.payableDue > 0) out.push({ key: 'ap', area: 'debt', level: 'warn', title: `Phải trả NCC đến hạn trong 7 ngày: ${m(dt.payableDue)}`, detail: `${dt.payableDueCount} khoản — chuẩn bị tiền để trả đúng hạn.`, to: '/cong-no/tuoi-no', cta: 'Xem tuổi nợ' });
     if (l.belowCostLines) out.push({ key: 'below', area: 'profit', level: 'bad', title: `Bán dưới giá vốn: ${l.belowCostLines} dòng`, detail: `Lỗ ${m(l.belowCostLoss ?? 0)} trong kỳ — kiểm tra giá bán hoặc chiết khấu.`, to: '/bao-cao', query: { name: 'ban-duoi-gia-von' }, cta: 'Xem báo cáo' });
     if (k.profit !== undefined && k.margin !== undefined) {
-      if (k.orders > 0 && k.profit < 0) out.push({ key: 'loss', area: 'profit', level: 'bad', title: `Lãi gộp âm ${m(k.profit)}`, detail: 'Giá vốn ước tính cao hơn doanh thu trong kỳ.', to: '/bao-cao', query: { name: 'loi-nhuan' }, cta: 'Xem lãi gộp' });
+      if (k.orders > 0 && k.profit < 0) out.push({ key: 'loss', area: 'profit', level: 'bad', title: `Lãi gộp âm ${m(k.profit)}`, detail: 'Giá vốn hàng bán cao hơn doanh thu trong kỳ.', to: '/bao-cao', query: { name: 'loi-nhuan' }, cta: 'Xem lãi gộp' });
       else if (p.revenue > 0 && k.revenue > 0 && k.margin < (p.margin ?? 0) - 5) out.push({ key: 'margin', area: 'profit', level: 'warn', title: 'Tỷ suất lãi gộp giảm', detail: `${this.percent(k.margin)} so với ${this.percent(p.margin)} kỳ trước.`, to: '/bao-cao', query: { name: 'loi-nhuan' }, cta: 'Xem lãi gộp' });
     }
     if (l.discountPct >= 10) out.push({ key: 'disc', area: 'profit', level: 'warn', title: `Chiết khấu ${l.discountPct}% giá trị hàng`, detail: `${m(l.discount)} đã cấp trong kỳ.`, to: '/bao-cao', query: { name: 'chiet-khau' }, cta: 'Xem chiết khấu' });

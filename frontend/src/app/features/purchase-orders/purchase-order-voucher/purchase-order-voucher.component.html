@@ -322,7 +322,7 @@
             {{ mode() === 'edit' ? 'Lưu thay đổi' : 'Tạo đơn nhập' }}
           </button>
         } @else {
-          <button type="button" class="btn" (click)="print()"><app-nav-icon name="printer" />In</button>
+          <app-print-menu kind="purchase-order" [papers]="['A4', 'A5']" />
           @if (canCancel()) {
             <button type="button" class="btn btn-danger-ghost" (click)="confirmCancel.set(true)">Huỷ đơn</button>
           }
@@ -380,7 +380,7 @@
         <thead>
           <tr>
             <th class="stt">STT</th><th>Mã hàng</th><th>Tên hàng</th><th>ĐVT</th><th class="nw">Số lượng</th>
-            <th class="nw">Đơn giá</th><th class="nw">Thành tiền</th><th class="nw">Thuế</th><th class="nw">Tiền thuế</th>
+            <th class="nw">Đơn giá</th><th class="nw">Thành tiền</th><th class="nw a5-hide">Thuế</th><th class="nw a5-hide">Tiền thuế</th>
           </tr>
         </thead>
         <tbody>
@@ -393,8 +393,8 @@
               <td class="r">{{ r.qty.toLocaleString('vi-VN') }}</td>
               <td class="r">{{ r.price.toLocaleString('vi-VN') }}</td>
               <td class="r">{{ r.amount.toLocaleString('vi-VN') }}</td>
-              <td class="r">{{ r.vatRate ? r.vatRate + '%' : '' }}</td>
-              <td class="r">{{ r.vat ? r.vat.toLocaleString('vi-VN') : '' }}</td>
+              <td class="r a5-hide">{{ r.vatRate ? r.vatRate + '%' : '' }}</td>
+              <td class="r a5-hide">{{ r.vat ? r.vat.toLocaleString('vi-VN') : '' }}</td>
             </tr>
           }
         </tbody>

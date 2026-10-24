@@ -147,6 +147,8 @@ export interface ProductImportPlan {
   updates: Product[];
   issues: ImportIssue[];
   totalRows: number;
+  /** Excel row of each parsed product (by its id; new rows carry a temporary id), for the server's row-by-row check. */
+  rowOf: Map<string, number>;
 }
 
 function nextCodeFactory(existing: Product[]) {
@@ -169,7 +171,7 @@ export async function planProductImport(file: File, lk: ProductLookups): Promise
   const missing = required.filter((h) => !headers.includes(h));
   if (missing.length) {
     const names = [P.name, P.type, P.unit].filter((h) => missing.includes(headerKey(h)));
-    return { creates: [], updates: [], totalRows: rows.length, issues: [{ row: 1, message: `Thiếu cột bắt buộc: ${names.join(', ')}. Hãy dùng file mẫu.` }] };
+    return { creates: [], updates: [], totalRows: rows.length, rowOf: new Map(), issues: [{ row: 1, message: `Thiếu cột bắt buộc: ${names.join(', ')}. Hãy dùng file mẫu.` }] };
   }
 
   const byCode = new Map(lk.products.map((p) => [foldVi(p.code), p]));
@@ -183,6 +185,7 @@ export async function planProductImport(file: File, lk: ProductLookups): Promise
 
   const creates: Product[] = [];
   const updates: Product[] = [];
+  const rowOf = new Map<string, number>();
   const seen = new Set<string>();
 
   for (const r of rows) {
@@ -265,10 +268,13 @@ export async function planProductImport(file: File, lk: ProductLookups): Promise
 
     if (existing) {
       updates.push({ ...existing, ...fields });
+      rowOf.set(existing.id, r.rowNumber);
     } else {
+      const id = crypto.randomUUID();
+      rowOf.set(id, r.rowNumber);
       creates.push({
         ...fields,
-        id: crypto.randomUUID(),
+        id,
         code: nextCode(type!),
         type: type!,
         unitConversions: [],
@@ -277,7 +283,7 @@ export async function planProductImport(file: File, lk: ProductLookups): Promise
     }
   }
 
-  return { creates, updates, issues, totalRows: rows.length };
+  return { creates, updates, issues, totalRows: rows.length, rowOf };
 }
 
 // ---------- Định mức ----------

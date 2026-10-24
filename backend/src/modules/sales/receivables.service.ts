@@ -3,7 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import { toDay } from '../../common/text.js';
 import { addDays, dayMs } from '../../common/settle.js';
 import { DebtCharge, DebtRow, DebtSettlement, debtRow } from '../../common/debt-rows.js';
-import { receivedValueOf } from './sales-order.rules.js';
+import { SaleLine, orderTotals, receivedValueOf } from './sales-order.rules.js';
 
 /**
  * Công nợ phải thu, computed the way the frontend's DebtService.receivables does: each đơn bán is owed
@@ -15,11 +15,12 @@ import { receivedValueOf } from './sales-order.rules.js';
 export class ReceivablesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async rows(today = new Date().toISOString().slice(0, 10)): Promise<DebtRow[]> {
+  async rows(today = new Date().toISOString().slice(0, 10), onlyCustomerId?: string): Promise<DebtRow[]> {
+    const who = onlyCustomerId ? { customerId: onlyCustomerId } : {};
     const [customers, orders, vouchers] = await Promise.all([
-      this.prisma.customer.findMany({ orderBy: { name: 'asc' } }),
-      this.prisma.salesOrder.findMany({ where: { status: { not: 'HUY' } }, include: { lines: true } }),
-      this.prisma.cashVoucher.findMany({ where: { isCancelled: false, partnerType: 'KHACH_HANG' }, include: { allocations: true } }),
+      this.prisma.customer.findMany({ where: onlyCustomerId ? { id: onlyCustomerId } : {}, orderBy: { name: 'asc' } }),
+      this.prisma.salesOrder.findMany({ where: { status: { not: 'HUY' }, ...who }, include: { lines: true, returns: { where: { isCancelled: false } } } }),
+      this.prisma.cashVoucher.findMany({ where: { isCancelled: false, partnerType: 'KHACH_HANG', ...who }, include: { allocations: true } }),
     ]);
     const now = dayMs(today);
 
@@ -39,6 +40,16 @@ export class ReceivablesService {
         })
         .filter((x) => x.amount > 0);
       const payments: DebtSettlement[] = [];
+      // Trả hàng (Pha 1.5) settles the đơn it belongs to, like a payment on that đơn; beyond what is owed it is the
+      // customer's credit (số dư âm), refunded with a phiếu chi.
+      for (const o of orders.filter((x) => x.customerId === c.id)) {
+        for (const r of o.returns) {
+          payments.push({
+            id: r.id, code: r.code, date: toDay(r.date)!, amount: r.amount.toNumber(), typeLabel: 'Trả hàng',
+            description: `Khách trả hàng đơn ${o.code}: ${r.reason}`, allocations: [{ ref: o.code, amount: r.amount.toNumber() }],
+          });
+        }
+      }
       for (const v of vouchers.filter((x) => x.customerId === c.id)) {
         const date = v.date.toISOString().slice(0, 10);
         if (v.kind === 'THU') {
@@ -53,5 +64,29 @@ export class ReceivablesService {
       const row = debtRow({ partnerId: c.id, code: c.code, name: c.name, creditDays: c.creditDays }, charges, payments, now);
       return row ? [row] : [];
     });
+  }
+
+  /**
+   * What a customer owes or is about to owe, for the hạn mức công nợ check: `owed` = số dư phải thu hiện tại
+   * (đã trừ phiếu thu; trả trước thì âm), `open` = giá trị phần chưa giao của các đơn còn mở — đơn đã đặt
+   * nhưng chưa thành công nợ. `excludeOrderId` leaves out the đơn being edited.
+   */
+  async exposure(customerId: string, excludeOrderId?: string): Promise<{ owed: number; open: number }> {
+    const [rows, orders] = await Promise.all([
+      this.rows(undefined, customerId),
+      this.prisma.salesOrder.findMany({
+        where: { customerId, status: { notIn: ['HUY', 'HOAN_THANH', 'TRA_TOAN_BO'] }, closedDate: null, ...(excludeOrderId ? { id: { not: excludeOrderId } } : {}) },
+        include: { lines: true },
+      }),
+    ]);
+    const open = orders.reduce((sum, o) => {
+      const lines: SaleLine[] = o.lines.map((l) => ({
+        productId: l.productId, quantity: l.quantity.toNumber(), unitPrice: l.unitPrice.toNumber(), discountRate: l.discountRate?.toNumber() ?? null,
+        discountAmount: l.discountAmount.toNumber(), vatRate: l.vatRate.toNumber(), receivedQuantity: l.receivedQuantity.toNumber(), ratioToBase: l.ratioToBase.toNumber(),
+      }));
+      const discount = o.discountAmount.toNumber();
+      return sum + Math.max(0, orderTotals(lines, discount).total - receivedValueOf(lines, discount));
+    }, 0);
+    return { owed: rows[0]?.balance ?? 0, open };
   }
 }

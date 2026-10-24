@@ -17,6 +17,10 @@ import { tagStyle } from '../../shared/tag-colors';
 import { CUSTOMER_SORTS, CUSTOMER_TYPES, CustomerSort, creditLabel, taxCodeOf } from './customer.rules';
 import { CustomerService } from './customer.service';
 import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
+import { ExcelImportDialogComponent } from '../../shared/import/excel-import-dialog.component';
+import { ApiService } from '../../core/api/api.service';
+import { AuthService } from '../../core/services/auth.service';
+import { customerImportConfig } from './customer-import';
 
 interface ActiveChip {
   label: string;
@@ -28,12 +32,24 @@ type StatusFilter = 'all' | 'active' | 'inactive';
 @Component({
   selector: 'app-customers',
   standalone: true,
-  imports: [CommonModule, RouterLink, AllowedLinkDirective, DataTableComponent, FilterMultiSelectComponent, PaginationComponent, NavIconComponent],
+  imports: [CommonModule, RouterLink, AllowedLinkDirective, DataTableComponent, FilterMultiSelectComponent, PaginationComponent, NavIconComponent, ExcelImportDialogComponent],
   templateUrl: './customers.component.html',
 })
 export class CustomersComponent {
   readonly data = inject(DataStore);
   private readonly svc = inject(CustomerService);
+  private readonly api = inject(ApiService);
+  private readonly auth = inject(AuthService);
+
+  // ---------- Nhập Excel (Pha 1.9) ----------
+  readonly canImport = computed(() => this.auth.can('customer.create') || this.auth.can('customer.update'));
+  readonly importConfig = customerImportConfig({ customers: this.data.customers, tags: this.data.tags, priceLists: this.data.priceLists });
+  readonly importNotice = signal('');
+
+  async onImported(message: string): Promise<void> {
+    this.importNotice.set(message);
+    this.data.customers.set(await this.api.get<Customer[]>('/customers'));
+  }
 
   readonly search = signal('');
   readonly types = signal<string[]>([]);

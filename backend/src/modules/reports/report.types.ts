@@ -1,6 +1,7 @@
 // Báo cáo dạng bảng, as the frontend's <app-table-report> shows them. The screen owns kỳ, cách nhóm,
 // tìm kiếm, sắp xếp, phân trang and xuất Excel; the server answers "what rows, what columns".
 import type { ReportData } from './report-data.service.js';
+import type { CostBook } from './report.rules.js';
 
 export type ColKind = 'text' | 'money' | 'qty' | 'int' | 'pct' | 'date';
 
@@ -36,7 +37,7 @@ export interface ReportOptions {
 
 export interface ReportEnv {
   data: ReportData;
-  cost: { costOf(productId: string): number };
+  cost: CostBook;
 }
 
 export type ReportGroupKey = 'sell' | 'profit' | 'stock' | 'buy' | 'make' | 'deliver' | 'debt' | 'cash';

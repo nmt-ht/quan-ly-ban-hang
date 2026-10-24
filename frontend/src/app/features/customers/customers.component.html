@@ -7,9 +7,20 @@
     <button type="button" class="btn" [disabled]="exporting()" (click)="exportExcel()">
       <app-nav-icon name="download" />{{ exporting() ? 'Đang xuất…' : 'Xuất Excel' }}
     </button>
+    @if (canImport()) {
+      <button type="button" class="btn" (click)="importDialog.open()"><app-nav-icon name="upload" />Nhập Excel</button>
+    }
     <a class="btn btn-primary" routerLink="/khach-hang/them-moi"><app-nav-icon name="plus" />Thêm khách hàng</a>
   </div>
 </div>
+
+@if (importNotice()) {
+  <div class="notice" role="status">
+    <span>{{ importNotice() }}</span>
+    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="importNotice.set('')"><app-nav-icon name="x" /></button>
+  </div>
+}
+<app-excel-import-dialog #importDialog [config]="importConfig" (imported)="onImported($event)" />
 
 <div class="filters-bar">
   <input

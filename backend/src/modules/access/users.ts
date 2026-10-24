@@ -12,6 +12,7 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import { OptionalText, Text } from '../../common/dto.js';
 import { AuditService } from '../../audit/audit.service.js';
 import { diff } from '../../audit/audit.diff.js';
+import { checkPassword } from '../../common/password.js';
 
 export const SYSTEM_ROLE = 'role-ceo';
 const TOKEN_HOURS = 12; // keep in step with signOptions.expiresIn in auth.module.ts
@@ -35,12 +36,6 @@ export class LockDto {
 export class ResetPasswordDto {
   @IsString() password!: string;
   @IsBoolean() mustChange!: boolean;
-}
-
-/** Mật khẩu: từ 8 ký tự, có cả chữ và số (same rule as the frontend's passwordIssue). */
-function checkPassword(pw: string): void {
-  if (pw.length < 8) throw new BadRequestException('Mật khẩu từ 8 ký tự');
-  if (!/[a-zA-Z]/.test(pw) || !/\d/.test(pw)) throw new BadRequestException('Mật khẩu phải có cả chữ và số');
 }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

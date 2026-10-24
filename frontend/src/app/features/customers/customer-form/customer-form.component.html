@@ -58,6 +58,23 @@
           }
         </div>
         <div class="field">
+          <label for="cf-limit">Hạn mức công nợ (₫)</label>
+          <input id="cf-limit" type="number" min="0" step="1000" formControlName="creditLimit" class="num" />
+          @if (showError('creditLimit')) {
+            <span class="hint text-danger">Nhập số tiền từ 0.</span>
+          } @else {
+            <span class="hint">Đơn làm tổng nợ vượt mức này sẽ bị chặn (người có quyền điều chỉnh công nợ được cho qua). Để 0 = không giới hạn.</span>
+          }
+        </div>
+        <div class="field">
+          <label for="cf-pricelist">Bảng giá</label>
+          <select id="cf-pricelist" formControlName="priceListId">
+            <option value="">— Theo loại khách —</option>
+            @for (l of priceLists(); track l.id) { <option [value]="l.id">{{ l.name }}{{ l.isActive ? '' : ' (ngừng dùng)' }}</option> }
+          </select>
+          <span class="hint">Mặt hàng có trong bảng giá dùng giá của bảng; mặt hàng khác vẫn theo loại khách.</span>
+        </div>
+        <div class="field">
           <label for="cf-phone">Điện thoại</label>
           <input id="cf-phone" type="tel" formControlName="phone" placeholder="0912345678" autocomplete="tel" class="num" />
           @if (showError('phone')) {

@@ -1,6 +1,6 @@
 import { PermissionModule } from '../models/domain.models';
 
-// Danh mục quyền của hệ thống (99 quyền, 24 nhóm). Mã quyền chỉ dùng trong code và backend — giao diện chỉ hiện nhãn.
+// Danh mục quyền của hệ thống (107 quyền, 25 nhóm). Mã quyền chỉ dùng trong code và backend — giao diện chỉ hiện nhãn.
 export const PERMISSION_MODULES: PermissionModule[] = [
   { key: 'user', label: 'Người dùng', permissions: [
     { code: 'user.view', label: 'Xem người dùng' },
@@ -48,6 +48,8 @@ export const PERMISSION_MODULES: PermissionModule[] = [
   { key: 'price', label: 'Giá', permissions: [
     { code: 'product.update_price', label: 'Sửa giá bán' },
     { code: 'product.view_cost_price', label: 'Xem giá vốn' },
+    { code: 'pricelist.manage', label: 'Quản lý bảng giá' },
+    { code: 'promotion.manage', label: 'Quản lý khuyến mãi' },
   ]},
   { key: 'bom', label: 'Định mức', permissions: [
     { code: 'bom.view', label: 'Xem định mức' },
@@ -96,6 +98,13 @@ export const PERMISSION_MODULES: PermissionModule[] = [
     { code: 'order.update', label: 'Sửa đơn hàng' },
     { code: 'order.cancel', label: 'Huỷ đơn hàng' },
     { code: 'order.update_price', label: 'Sửa đơn giá trên đơn' },
+    { code: 'order.return', label: 'Nhận hàng trả lại' },
+  ]},
+  { key: 'quote', label: 'Báo giá', permissions: [
+    { code: 'quote.view', label: 'Xem báo giá' },
+    { code: 'quote.create', label: 'Lập báo giá' },
+    { code: 'quote.update', label: 'Sửa báo giá' },
+    { code: 'quote.cancel', label: 'Huỷ báo giá' },
   ]},
   { key: 'vehicle', label: 'Xe', permissions: [
     { code: 'vehicle.view', label: 'Xem danh mục xe' },
@@ -124,6 +133,7 @@ export const PERMISSION_MODULES: PermissionModule[] = [
     { code: 'debt.view', label: 'Xem công nợ' },
     { code: 'debt.settle', label: 'Đối trừ công nợ' },
     { code: 'debt.adjust', label: 'Điều chỉnh công nợ' },
+    { code: 'debt.remind', label: 'Nhắc nợ khách hàng' },
   ]},
   { key: 'voucher', label: 'Phiếu thu chi', permissions: [
     { code: 'voucher.view', label: 'Xem phiếu thu chi' },

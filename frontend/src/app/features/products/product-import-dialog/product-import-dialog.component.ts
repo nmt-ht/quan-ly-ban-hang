@@ -8,6 +8,8 @@ import {
 } from '../product-excel';
 import { ProductService } from '../product.service';
 import { errorText } from '../../../core/api/api.service';
+import { ImportPreviewComponent } from '../../../shared/import/import-preview.component';
+import { ImportResult, withClientErrors } from '../../../shared/import/import.types';
 
 export type ImportMode = 'products' | 'bom';
 
@@ -16,7 +18,7 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
 @Component({
   selector: 'app-product-import-dialog',
   standalone: true,
-  imports: [NavIconComponent],
+  imports: [NavIconComponent, ImportPreviewComponent],
   templateUrl: './product-import-dialog.component.html',
   styleUrl: './product-import-dialog.component.scss',
 })
@@ -34,12 +36,14 @@ export class ProductImportDialogComponent {
   readonly error = signal('');
   readonly productPlan = signal<ProductImportPlan | null>(null);
   readonly bomPlan = signal<BomImportPlan | null>(null);
+  /** Hàng hoá: the server's dry run of the parsed rows, with the rows the file itself failed (Pha 1.9). */
+  readonly preview = signal<ImportResult | null>(null);
 
   readonly title = computed(() => (this.mode() === 'products' ? 'Nhập hàng hoá từ Excel' : 'Nhập định mức từ Excel'));
   readonly issues = computed<ImportIssue[]>(() => this.productPlan()?.issues ?? this.bomPlan()?.issues ?? []);
   readonly validCount = computed(() => {
-    const p = this.productPlan();
-    if (p) return p.creates.length + p.updates.length;
+    const v = this.preview();
+    if (this.productPlan()) return v ? v.created + v.updated : 0;
     return this.bomPlan()?.lineCount ?? 0;
   });
   readonly hasPlan = computed(() => !!this.productPlan() || !!this.bomPlan());
@@ -74,6 +78,7 @@ export class ProductImportDialogComponent {
     if (!file) return;
     this.productPlan.set(null);
     this.bomPlan.set(null);
+    this.preview.set(null);
     this.error.set('');
     this.fileName.set(file.name);
     if (!/\.xlsx$/i.test(file.name)) {
@@ -86,10 +91,17 @@ export class ProductImportDialogComponent {
     }
     this.busy.set(true);
     try {
-      if (this.mode() === 'products') this.productPlan.set(await planProductImport(file, this.lookups()));
-      else this.bomPlan.set(await planBomImport(file, this.data.products()));
-    } catch {
-      this.error.set('Không đọc được file. Kiểm tra file có đúng định dạng Excel (.xlsx) và không bị khoá mật khẩu.');
+      if (this.mode() === 'products') {
+        const plan = await planProductImport(file, this.lookups());
+        this.productPlan.set(plan);
+        // Xem trước trên máy chủ: same rules as saving (quyền sửa giá, độ dài, trùng…), nothing is kept.
+        const checked = plan.creates.length + plan.updates.length
+          ? await this.products.importProducts(plan, true)
+          : { dryRun: true, rows: [], created: 0, updated: 0, unchanged: 0, failed: 0 };
+        this.preview.set(withClientErrors(checked, plan.issues));
+      } else this.bomPlan.set(await planBomImport(file, this.data.products()));
+    } catch (e) {
+      this.error.set(this.productPlan() ? errorText(e) : 'Không đọc được file. Kiểm tra file có đúng định dạng Excel (.xlsx) và không bị khoá mật khẩu.');
     } finally {
       this.busy.set(false);
     }
@@ -109,8 +121,9 @@ export class ProductImportDialogComponent {
     let summary = '';
     this.busy.set(true);
     this.error.set('');
+    let done: ImportResult | null = null;
     try {
-      if (pp) await this.products.importProducts(pp);
+      if (pp) done = withClientErrors(await this.products.importProducts(pp, false), pp.issues);
       else if (bp) await this.products.importBoms(bp);
     } catch (e) {
       this.error.set(errorText(e));
@@ -118,9 +131,10 @@ export class ProductImportDialogComponent {
     } finally {
       this.busy.set(false);
     }
-    if (pp) {
-      summary = `Đã nhập hàng hoá: ${pp.creates.length} thêm mới, ${pp.updates.length} cập nhật`;
-      if (pp.issues.length) summary += `, bỏ qua ${pp.issues.length} dòng lỗi`;
+    if (done) {
+      summary = `Đã nhập hàng hoá: ${done.created} thêm mới, ${done.updated} cập nhật`;
+      if (done.unchanged) summary += `, ${done.unchanged} không đổi`;
+      if (done.failed) summary += `, bỏ qua ${done.failed} dòng lỗi`;
     } else if (bp) {
       summary = `Đã nhập định mức cho ${bp.replacements.size} thành phẩm (${bp.lineCount} dòng vật tư)`;
       const skipped = bp.issues.filter((i) => i.row > 0).length;
@@ -145,6 +159,7 @@ export class ProductImportDialogComponent {
     this.busy.set(false);
     this.productPlan.set(null);
     this.bomPlan.set(null);
+    this.preview.set(null);
     const el = this.fileInput()?.nativeElement;
     if (el) el.value = '';
   }

@@ -1,0 +1,26 @@
+.table-wrap {
+  padding: 0;
+}
+
+.dr-actions {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.dr-last {
+  font-size: var(--text-sm);
+}
+
+.dr-account {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+}
+
+.btn-sm {
+  min-height: 1.875rem;
+  padding: 0 var(--space-xs);
+  font-size: var(--text-xs);
+}

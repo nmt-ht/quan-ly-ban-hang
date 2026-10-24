@@ -1,4 +1,4 @@
-import { Component, computed, effect, signal, untracked } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { DataStore } from '../../core/services/data-store.service';
@@ -15,6 +15,10 @@ import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { SUPPLIER_SORTS, SupplierSort, creditLabel, sortSuppliers } from './supplier.rules';
 import { SupplierService } from './supplier.service';
 import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
+import { ExcelImportDialogComponent } from '../../shared/import/excel-import-dialog.component';
+import { ApiService } from '../../core/api/api.service';
+import { AuthService } from '../../core/services/auth.service';
+import { supplierImportConfig } from './supplier-import';
 
 interface ActiveChip {
   label: string;
@@ -27,7 +31,7 @@ type CreditFilter = 'all' | 'credit' | 'cash';
 @Component({
   selector: 'app-suppliers',
   standalone: true,
-  imports: [CommonModule, RouterLink, AllowedLinkDirective, DataTableComponent, PaginationComponent, NavIconComponent],
+  imports: [CommonModule, RouterLink, AllowedLinkDirective, DataTableComponent, PaginationComponent, NavIconComponent, ExcelImportDialogComponent],
   templateUrl: './suppliers.component.html',
 })
 export class SuppliersComponent {
@@ -129,6 +133,18 @@ export class SuppliersComponent {
     },
     { key: 'isActive', label: 'Trạng thái', format: (r) => supplierStatusLabel(r.isActive), badge: (r) => supplierStatusClass(r.isActive) },
   ];
+
+  // ---------- Nhập Excel (Pha 1.9) ----------
+  private readonly api = inject(ApiService);
+  private readonly auth = inject(AuthService);
+  readonly canImport = computed(() => this.auth.can('supplier.create') || this.auth.can('supplier.update'));
+  readonly importNotice = signal('');
+  readonly importConfig = supplierImportConfig(() => this.data.suppliers());
+
+  async onImported(message: string): Promise<void> {
+    this.importNotice.set(message);
+    this.data.suppliers.set(await this.api.get<Supplier[]>('/suppliers'));
+  }
 
   constructor(
     readonly data: DataStore,

@@ -1,7 +1,7 @@
 <div class="page-header">
   <div>
     <h1>Kho</h1>
-    <p class="subtitle">{{ data.warehouses().length }} kho · giá trị tồn <span class="num">{{ money(totalValue()) }}</span> (giá vốn ước tính)</p>
+    <p class="subtitle">{{ data.warehouses().length }} kho@if (cost.canViewStockValue()) { · giá trị tồn <span class="num">{{ money(totalValue()) }}</span> (giá vốn ước tính) }</p>
   </div>
   @if (canCreate) {
     <div class="toolbar">
@@ -43,7 +43,7 @@
             <th scope="col">Thủ kho</th>
             <th scope="col">Địa chỉ</th>
             <th scope="col" class="align-right">Mặt hàng còn tồn</th>
-            <th scope="col" class="align-right">Giá trị tồn</th>
+            @if (cost.canViewStockValue()) { <th scope="col" class="align-right">Giá trị tồn</th> }
             <th scope="col" class="align-right">Phiếu kho</th>
             <th scope="col">Trạng thái</th>
             <th scope="col" class="cg-actions"><span class="visually-hidden">Thao tác</span></th>
@@ -59,7 +59,7 @@
               <td class="num align-right">
                 @if (r.u.items) { <a class="code-link" routerLink="/kho/ton-kho" [queryParams]="{ kho: r.w.id }">{{ r.u.items }}</a> } @else { 0 }
               </td>
-              <td class="num align-right">{{ r.u.value ? money(r.u.value) : '—' }}</td>
+              @if (cost.canViewStockValue()) { <td class="num align-right">{{ r.u.value ? money(r.u.value) : '—' }}</td> }
               <td class="num align-right">
                 @if (r.u.vouchers) { <a class="code-link" routerLink="/kho/phieu" [queryParams]="{ kho: r.w.id }">{{ r.u.vouchers }}</a> } @else { 0 }
               </td>

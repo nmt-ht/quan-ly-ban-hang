@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsEnum, IsInt, IsNumber, IsOptional, IsPositive, IsString, Matches, Min, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsEnum, IsInt, IsNumber, IsObject, IsOptional, IsPositive, IsString, Matches, Min, ValidateNested } from 'class-validator';
 import { MeasureMode, ProductType, UnitOperation } from '@prisma/client';
 import { OptionalText, Text } from '../../../common/dto.js';
 
@@ -53,14 +53,19 @@ export class CreateProductDto {
   @IsOptional() @ValidateNested({ each: true }) @Type(() => ProductImageDto) images?: ProductImageDto[];
 }
 
-export class ProductUpdateRowDto extends CreateProductDto {
-  @Text(60) id!: string;
+export class ProductImportRowDto {
+  /** Số dòng trong file Excel. */
+  @IsInt() @Min(1) row!: number;
+  /** Cập nhật mặt hàng này; trống = thêm mới (mã cấp khi lưu). */
+  @OptionalText(60) id?: string;
+  /** The row as the frontend parsed it; checked here row by row (CreateProductDto) so one bad row cannot fail the file. */
+  @IsObject() data!: Record<string, unknown>;
 }
 
-/** Nhập hàng hoá từ Excel: rows already checked by the frontend preview. Codes of new rows come from the server. */
+/** Nhập hàng hoá từ Excel (Pha 1.9): dryRun = xem trước, nothing is saved. */
 export class ProductImportDto {
-  @IsArray() @ValidateNested({ each: true }) @Type(() => CreateProductDto) creates!: CreateProductDto[];
-  @IsArray() @ValidateNested({ each: true }) @Type(() => ProductUpdateRowDto) updates!: ProductUpdateRowDto[];
+  @IsOptional() @IsBoolean() dryRun?: boolean;
+  @IsArray() @ArrayMaxSize(5000) @ValidateNested({ each: true }) @Type(() => ProductImportRowDto) rows!: ProductImportRowDto[];
 }
 
 export class ActiveDto {

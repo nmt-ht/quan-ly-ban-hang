@@ -71,6 +71,39 @@ const vehicleCost: ReportDef = {
   ],
 };
 
+// ---------------------------------------------------------------- Giao hàng (chốt giao)
+const delivery: ReportDef = {
+  slug: 'giao-hang',
+  label: 'Giao hàng',
+  group: 'deliver',
+  summary: 'Tỷ lệ giao thành công của các đơn đã chốt giao.',
+  kind: 'period',
+  groups: [
+    { value: 'trip', label: 'Theo chuyến' },
+    { value: 'customer', label: 'Theo khách hàng' },
+  ],
+  searchHint: 'Tìm chuyến, tài xế hoặc khách hàng…',
+  notes: [
+    'Chỉ tính đơn đã CHỐT GIAO trên chuyến (khách đã xác nhận số nhận). Đơn chưa chốt hiện ở cột "Chưa chốt" và không tính vào tỷ lệ. Chuyến đã huỷ không tính; tính theo ngày của chuyến.',
+    'Giao đủ = mọi dòng khách nhận đủ số xếp lên xe; Giao một phần = nhận ít hơn; Khách không nhận = nhận 0. Giá trị theo giá bán sau chiết khấu, gồm thuế GTGT.',
+    'Tỷ lệ giao thành công = giá trị khách nhận ÷ giá trị xuất của các đơn đã chốt. Phần chênh là hàng mang về kho.',
+  ],
+};
+
+// ---------------------------------------------------------------- Hiệu quả theo tài xế
+const driver: ReportDef = {
+  slug: 'tai-xe',
+  label: 'Hiệu quả theo tài xế',
+  group: 'deliver',
+  summary: 'Tỷ lệ khách lấy đủ và giá trị hàng mang về theo từng tài xế.',
+  kind: 'period',
+  searchHint: 'Tìm tài xế…',
+  notes: [
+    'Cùng nguồn với báo cáo Giao hàng: chỉ đơn đã chốt giao, chuyến đã huỷ không tính. Tài xế gộp theo tên ghi trên chuyến.',
+    'Tỷ lệ lấy đủ = số đơn khách nhận đủ ÷ số đơn đã chốt. Hàng mang về = giá trị xuất − giá trị khách nhận (tô đỏ khi tăng); sắp xếp từ nhiều đến ít.',
+  ],
+};
+
 // ---------------------------------------------------------------- Thu chi
 const cashflow: ReportDef = {
   slug: 'thu-chi',
@@ -100,4 +133,4 @@ const cashbook: ReportDef = {
   ],
 };
 
-export const OPS_DEFS: ReportDef[] = [purchase, priceDrift, production, vehicleCost, cashflow, cashbook];
+export const OPS_DEFS: ReportDef[] = [purchase, priceDrift, production, delivery, vehicleCost, driver, cashflow, cashbook];

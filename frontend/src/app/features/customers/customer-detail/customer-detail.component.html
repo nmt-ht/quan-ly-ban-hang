@@ -68,6 +68,8 @@
                 <dd>@if (c.companyTaxCode) { <span class="num">{{ c.companyTaxCode }}</span><app-copy-button [text]="c.companyTaxCode" label="mã số thuế" /> } @else { — }</dd>
               </div>
               <div><dt>Số ngày được nợ</dt><dd>{{ creditLabel(c.creditDays) }}</dd></div>
+              <div><dt>Bảng giá</dt><dd>{{ priceListName(c.priceListId) }}</dd></div>
+              <div><dt>Hạn mức công nợ</dt><dd class="num">{{ c.creditLimit ? money(c.creditLimit) : 'Không giới hạn' }}</dd></div>
               <div><dt>Thẻ đánh dấu</dt><dd>@for (t of tagList(); track t.id) { <span class="badge tag" [style]="tagStyle(t.color)">{{ t.name }}</span> } @empty { — }</dd></div>
               <div><dt>Số đơn hàng</dt><dd class="num">{{ stats().orderCount }}</dd></div>
               <div><dt>Ngày tạo</dt><dd class="num">{{ c.createdAt ? day(c.createdAt) : '—' }}</dd></div>

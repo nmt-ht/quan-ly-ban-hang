@@ -1,5 +1,5 @@
 import {
-  CustomerType, DeliveryTripStatus, ProductionOrderStatus, ProductType, PurchaseOrderStatus, SalesOrderStatus,
+  CustomerType, DeliveryTripStatus, ProductionOrderStatus, ProductType, PurchaseOrderStatus, QuotationStatus, SalesOrderStatus,
 } from '../core/models/domain.models';
 import { tagClass } from './tag-class';
 
@@ -24,11 +24,23 @@ export const customerStatusLabel = (isActive: boolean) => (isActive ? 'Đang the
 export const supplierStatusClass = (isActive: boolean) => tagClass('supplier-status', isActive ? 'ACTIVE' : 'INACTIVE');
 export const supplierStatusLabel = (isActive: boolean) => (isActive ? 'Còn hợp tác' : 'Ngừng hợp tác');
 export const salesOrderStatusClass = (s: SalesOrderStatus) => tagClass('sales-order', s);
+export const quotationStatusClass = (s: QuotationView) => tagClass('quotation', s);
 export const purchaseOrderStatusClass = (s: PurchaseOrderStatus) => tagClass('purchase-order', s);
 export const productionOrderStatusClass = (s: ProductionOrderStatus) => tagClass('production-order', s);
 export const deliveryTripStatusClass = (s: DeliveryTripStatus) => tagClass('delivery-trip', s);
 
 // Nhãn trạng thái tiếng Việt, theo docs/crawl (04, 06, 09, 10).
+/** Trạng thái báo giá như màn hình hiện: Hết hạn = còn mở mà đã qua ngày hiệu lực. */
+export type QuotationView = QuotationStatus | 'HET_HAN';
+export const QUOTATION_STATUS_LABEL: Record<QuotationView, string> = {
+  MOI: 'Đang chờ khách',
+  HET_HAN: 'Hết hạn',
+  DA_CHOT: 'Đã lập đơn',
+  HUY: 'Đã huỷ',
+};
+export const quotationView = (q: { status: QuotationStatus; validUntil?: string | null }, today: string): QuotationView =>
+  q.status === 'MOI' && !!q.validUntil && q.validUntil.slice(0, 10) < today ? 'HET_HAN' : q.status;
+
 export const SALES_ORDER_STATUS_LABEL: Record<SalesOrderStatus, string> = {
   CHO_SAN_XUAT: 'Chờ sản xuất',
   DANG_SAN_XUAT: 'Đang sản xuất',

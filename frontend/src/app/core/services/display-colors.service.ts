@@ -5,7 +5,7 @@ import { AuthService } from './auth.service';
 import { ApiService, errorText } from '../api/api.service';
 import {
   DELIVERY_TRIP_STATUS_LABEL, PRODUCT_TYPE_LABEL, PRODUCTION_ORDER_STATUS_LABEL, PURCHASE_ORDER_STATUS_LABEL,
-  SALES_ORDER_STATUS_LABEL,
+  QUOTATION_STATUS_LABEL, SALES_ORDER_STATUS_LABEL,
 } from '../../shared/status-labels';
 
 export type { TagColor } from '../models/domain.models';
@@ -87,6 +87,12 @@ export const TAG_GROUPS: TagGroup[] = [
       CHO_SAN_XUAT: 65, DANG_SAN_XUAT: 285, CHO_GIAO_HANG: 200, DANG_GIAO: 240,
       HOAN_THANH: 150, GIAO_MOT_PHAN: 95, TRA_TOAN_BO: 25, HUY: 'neutral',
     }),
+  },
+  {
+    id: 'quotation',
+    label: 'Trạng thái báo giá',
+    hint: 'Cột Trạng thái của Báo giá.',
+    items: items(QUOTATION_STATUS_LABEL, { MOI: 240, HET_HAN: 65, DA_CHOT: 150, HUY: 'neutral' }),
   },
   {
     id: 'purchase-order',

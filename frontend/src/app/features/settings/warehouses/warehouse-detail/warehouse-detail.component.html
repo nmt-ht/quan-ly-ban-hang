@@ -78,7 +78,7 @@
             <h3 id="wd-fig-title">Hàng trong kho</h3>
             <dl class="ledger-dl">
               <div><dt>Mặt hàng còn tồn</dt><dd class="num">{{ usage().items }}</dd></div>
-              <div><dt>Giá trị tồn (giá vốn ước tính)</dt><dd class="num">{{ money(usage().value) }}</dd></div>
+              @if (cost.canViewStockValue()) { <div><dt>Giá trị tồn (giá vốn bình quân)</dt><dd class="num">{{ money(usage().value) }}</dd></div> }
               <div><dt>Phiếu kho</dt><dd class="num">{{ usage().vouchers }}</dd></div>
               <div><dt>Kho ngầm định của</dt><dd class="num">{{ usage().defaults }} mặt hàng</dd></div>
             </dl>
@@ -102,7 +102,7 @@
                     <th scope="col">ĐVT</th>
                     <th scope="col" class="align-right">Tồn</th>
                     <th scope="col" class="align-right">Tối thiểu</th>
-                    <th scope="col" class="align-right">Giá trị tồn</th>
+                    @if (cost.canViewStockValue()) { <th scope="col" class="align-right">Giá trị tồn</th> }
                   </tr>
                 </thead>
                 <tbody>
@@ -113,7 +113,7 @@
                       <td>{{ r.unit }}</td>
                       <td class="num align-right" [class.amt-neg]="r.qty < 0" [class.text-warning]="r.low && r.qty >= 0">{{ qty(r.qty) }}</td>
                       <td class="num align-right">{{ r.min ? qty(r.min) : '—' }}</td>
-                      <td class="num align-right">{{ r.value ? money(r.value) : '—' }}</td>
+                      @if (cost.canViewStockValue()) { <td class="num align-right">{{ r.value ? money(r.value) : '—' }}</td> }
                     </tr>
                   }
                 </tbody>

@@ -16,6 +16,11 @@
           <app-nav-icon name="download" />{{ exporting() ? 'Đang xuất…' : 'Xuất Excel' }}
         </button>
         <button type="button" class="btn" [disabled]="!row()" (click)="print()"><app-nav-icon name="printer" />Biên bản đối chiếu</button>
+        @if (isReceivable()) {
+          <button type="button" class="btn" [disabled]="!row() || amountDue() <= 0" (click)="printNotice()"
+            title="In thông báo các khoản còn nợ kèm mã VietQR chuyển khoản, gửi khách"><app-nav-icon name="printer" />Thông báo công nợ</button>
+          <button type="button" class="btn" [disabled]="!row() || amountDue() <= 0" (click)="remind()"><app-nav-icon name="clock" />Nhắc nợ</button>
+        }
         <a class="btn btn-primary" [routerLink]="t().voucherPath" [queryParams]="voucherQuery()"><app-nav-icon name="cash" />{{ t().voucherLabel }}</a>
       </div>
     </div>
@@ -35,6 +40,45 @@
         <div><dt>Hạn gần nhất</dt><dd class="num">{{ row()?.nextDue ? day(row()!.nextDue!) : '—' }}</dd></div>
       </dl>
     </section>
+
+    @if (notice()) {
+      <div class="notice" role="status">
+        <span>{{ notice() }}</span>
+        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+      </div>
+    }
+
+    @if (isReceivable() && row() && amountDue() > 0) {
+      <section class="card ledger-pay" aria-label="Thanh toán công nợ">
+        @if (account(); as a) {
+          <app-vietqr [account]="a" [amount]="amountDue()" [note]="transferNote()" [size]="112" />
+          @if (qrAccounts().length > 1) {
+            <label class="ledger-pay-account">
+              <span>Tài khoản nhận tiền</span>
+              <select [ngModel]="a.id" (ngModelChange)="accountId.set($event)">
+                @for (x of qrAccounts(); track x.id) { <option [value]="x.id">{{ x.name }} · {{ bankName(x.bankBin) ?? x.bankName }} {{ x.accountNumber }}</option> }
+              </select>
+            </label>
+          }
+        } @else {
+          <p class="hint">Khai mã ngân hàng cho một tài khoản ngân hàng ở <a class="code-link" routerLink="/thu-chi/tai-khoan">Tài khoản tiền</a> để in mã VietQR chuyển khoản trên thông báo công nợ.</p>
+        }
+        @if (history().length) {
+          <div class="ledger-reminders">
+            <strong>Đã nhắc nợ {{ history().length }} lần</strong>
+            <ul>
+              @for (h of history().slice(0, 3); track h.id) {
+                <li>
+                  <span class="num">{{ day(h.createdAt.slice(0, 10)) }}</span> · {{ channelLabel[h.channel] }} · còn nợ <span class="num">{{ money(h.balance) }}</span>
+                  @if (h.promisedDate) { · hẹn trả <span class="num" [class.text-danger]="h.promisedDate < today">{{ day(h.promisedDate) }}</span> }
+                  @if (h.note) { — {{ h.note }} }
+                </li>
+              }
+            </ul>
+          </div>
+        }
+      </section>
+    }
 
     @if (row()) {
       <div class="filters-bar">
@@ -121,7 +165,7 @@
   </div>
 
   <!-- Biên bản đối chiếu công nợ (print only) -->
-  @if (row()) {
+  @if (row() && printMode() === 'doi-chieu') {
     <app-print-document
       title="BIÊN BẢN ĐỐI CHIẾU CÔNG NỢ" [sub]="'Kỳ đối chiếu: ' + periodLabel()" [date]="today"
       [signers]="[{ role: 'ĐẠI DIỆN BÊN A', hint: '(Ký, ghi rõ họ tên, đóng dấu)' }, { role: 'ĐẠI DIỆN BÊN B', hint: '(Ký, ghi rõ họ tên, đóng dấu)' }]"
@@ -162,6 +206,52 @@
       </table>
       <p class="pd-note">Hai bên thống nhất số liệu trên. Nếu có chênh lệch, đề nghị Bên B phản hồi trong vòng 07 ngày kể từ ngày nhận biên bản.</p>
     </app-print-document>
+  }
+  <!-- Thông báo công nợ gửi khách, kèm VietQR (print only, Pha 2) -->
+  @if (row() && printMode() === 'thong-bao') {
+    <app-print-document
+      title="THÔNG BÁO CÔNG NỢ" [sub]="'Tính đến ngày ' + day(today)" [date]="today"
+      [signers]="[{ role: 'Người lập thông báo', hint: '(Ký, ghi rõ họ tên)' }]"
+    >
+      <dl pdMeta class="pd-meta">
+        <div class="wide"><dt>Kính gửi</dt><dd>{{ p.name }} — {{ p.code }}{{ p.taxCode ? ' — MST ' + p.taxCode : '' }}</dd></div>
+        <div class="wide"><dt>Nội dung</dt><dd>{{ company().name }} xin thông báo các khoản Quý khách còn phải thanh toán như sau:</dd></div>
+      </dl>
+      <table class="pd-table">
+        <thead>
+          <tr><th class="stt">STT</th><th>Ngày</th><th>Chứng từ</th><th>Hạn thanh toán</th><th>Giá trị</th><th>Đã thanh toán</th><th>Còn nợ</th><th>Tình trạng</th></tr>
+        </thead>
+        <tbody>
+          @for (e of openItems(); track e.ref; let i = $index) {
+            <tr>
+              <td class="stt">{{ i + 1 }}</td>
+              <td class="c">{{ day(e.date) }}</td>
+              <td>{{ e.ref }}</td>
+              <td class="c">{{ e.dueDate ? day(e.dueDate) : '' }}</td>
+              <td class="r">{{ money(e.amount) }}</td>
+              <td class="r">{{ e.settled ? money(e.settled) : '' }}</td>
+              <td class="r">{{ money(e.remaining) }}</td>
+              <td>{{ (e.overdueDays ?? 0) > 0 ? 'Quá hạn ' + e.overdueDays + ' ngày' : 'Trong hạn' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <div class="pd-totals">
+        <div><span>Tổng còn nợ các chứng từ</span><span>{{ money(amountDue() + (row()!.prepaid ?? 0)) }}</span></div>
+        @if (row()!.prepaid) { <div><span>Tiền trả trước chưa trừ</span><span>−{{ money(row()!.prepaid) }}</span></div> }
+        @if (row()!.overdue) { <div><span>Trong đó quá hạn</span><span>{{ money(row()!.overdue) }}</span></div> }
+        <div class="grand"><span>Số tiền cần thanh toán</span><span>{{ money(amountDue()) }}</span></div>
+      </div>
+      <p class="pd-words">Bằng chữ: <strong>{{ words(amountDue()) }}</strong></p>
+      @if (account(); as a) {
+        <div class="pd-qr"><app-vietqr [account]="a" [amount]="amountDue()" [note]="transferNote()" [size]="120" /></div>
+      }
+      <p class="pd-note">Nếu Quý khách đã thanh toán, vui lòng bỏ qua thông báo này. Mọi thắc mắc xin liên hệ {{ company().phone || company().email || company().name }}. Trân trọng cảm ơn!</p>
+    </app-print-document>
+  }
+
+  @if (isReceivable()) {
+    <app-remind-dialog [account]="account()" (recorded)="notice.set($event)" />
   }
 } @else {
   <div class="card empty-state">

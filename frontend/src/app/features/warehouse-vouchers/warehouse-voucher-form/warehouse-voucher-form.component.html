@@ -220,7 +220,7 @@
           <a class="btn" routerLink="/kho/phieu">Huỷ</a>
           <button type="button" class="btn btn-primary" [disabled]="saving() || (attempted() && issues().length > 0)" (click)="save()"><app-nav-icon name="check" />Lưu phiếu</button>
         } @else {
-          <button type="button" class="btn" (click)="print()"><app-nav-icon name="printer" />In phiếu</button>
+          <app-print-menu kind="warehouse-voucher" label="In phiếu" />
           @if (canCancel()) {
             <button type="button" class="btn btn-danger-ghost" (click)="confirmCancel.set(true)">Huỷ phiếu</button>
           }
@@ -263,7 +263,7 @@
           <tr>
             <th class="stt">STT</th><th>Mã hàng</th><th>Tên hàng</th><th>ĐVT</th>
             @if (v.type === 'KIEM_KE') { <th class="nw">Số sổ sách</th><th class="nw">Thực đếm</th><th class="nw">Chênh lệch</th> } @else { <th class="nw">Số lượng</th> }
-            @if (showPrice()) { <th class="nw">Đơn giá</th><th class="nw">Thành tiền</th> }
+            @if (showPrice()) { <th class="nw k80-hide">Đơn giá</th><th class="nw">Thành tiền</th> }
           </tr>
         </thead>
         <tbody>
@@ -281,7 +281,7 @@
                 <td class="r">{{ qty(l.qty) }}</td>
               }
               @if (showPrice()) {
-                <td class="r">{{ l.price ? l.price.toLocaleString('vi-VN') : '' }}</td>
+                <td class="r k80-hide">{{ l.price ? l.price.toLocaleString('vi-VN') : '' }}</td>
                 <td class="r">{{ l.value ? l.value.toLocaleString('vi-VN') : '' }}</td>
               }
             </tr>

@@ -1,0 +1,71 @@
+# Kiểm tra mỗi lần đẩy code hoặc mở pull request: backend (lint, unit, e2e trên PostgreSQL thật, build)
+# và frontend (build). Để Render chỉ deploy khi workflow này xanh: Render › Settings › Build & Deploy ›
+# Auto-Deploy › "After CI checks pass".
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ninhtrang
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ninhtrang?schema=public
+      JWT_SECRET: ci-only-secret
+      SEED_ADMIN_PASSWORD: ChangeMe123!
+      DEMO_USER_PASSWORD: demo1234
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm run prisma:deploy
+      - run: npm run prisma:seed
+      - run: npm run prisma:seed:demo
+      - run: npm run lint
+      - run: npm test
+      - run: npm run test:e2e
+      - run: npm run build
+
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build
