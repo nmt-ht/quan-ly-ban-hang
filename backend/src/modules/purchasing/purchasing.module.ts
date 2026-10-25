@@ -12,6 +12,7 @@ import { listParam, parsePageQuery, windowStart } from '../../common/paging.js';
 import { PurchaseOrderPageQuery } from './purchase-order-page.js';
 import { seesPurchasePrices } from '../../common/purchase-prices.js';
 import { PayablesService } from './payables.service.js';
+import { PurchaseReturnsController, PurchaseReturnsService } from './purchase-returns.js';
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const DAY_MESSAGE = { message: 'Ngày phải có dạng YYYY-MM-DD' };
@@ -142,8 +143,8 @@ export class PayablesController {
 
 @Module({
   imports: [InventoryModule],
-  controllers: [PurchaseOrdersController, PayablesController],
-  providers: [PurchaseOrdersService, PayablesService],
+  controllers: [PurchaseOrdersController, PurchaseReturnsController, PayablesController],
+  providers: [PurchaseOrdersService, PurchaseReturnsService, PayablesService],
   exports: [PurchaseOrdersService, PayablesService],
 })
 export class PurchasingModule {}

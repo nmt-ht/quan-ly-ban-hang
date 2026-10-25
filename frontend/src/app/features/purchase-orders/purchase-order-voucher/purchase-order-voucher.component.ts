@@ -5,7 +5,7 @@ import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DataStore } from '../../../core/services/data-store.service';
-import { Product, PurchaseOrder, PurchaseOrderLine } from '../../../core/models/domain.models';
+import { Product, PurchaseOrder, PurchaseOrderLine, PurchaseReturn } from '../../../core/models/domain.models';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { CopyButtonComponent } from '../../../shared/copy-button/copy-button.component';
 import { MoneyInputDirective } from '../../../shared/money-input.directive';
@@ -27,6 +27,7 @@ import { seesPurchasePrices } from '../../../core/auth/purchase-prices';
 import { WarehouseVoucherService } from '../../warehouse-vouchers/warehouse-voucher.service';
 import { PurchaseOrderService } from '../purchase-order.service';
 import { ReceiveGoodsDialogComponent } from '../receive-goods-dialog/receive-goods-dialog.component';
+import { PurchaseReturnDialogComponent } from '../purchase-return-dialog/purchase-return-dialog.component';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { errorText } from '../../../core/api/api.service';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
@@ -66,7 +67,7 @@ const emptyLine = (): DraftLine => ({
   standalone: true,
   imports: [PickableWarehousesPipe, FrozenColsDirective, 
     NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
-    ReceiveGoodsDialogComponent, PaginationComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent,
+    ReceiveGoodsDialogComponent, PurchaseReturnDialogComponent, PaginationComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent,
   ],
   templateUrl: './purchase-order-voucher.component.html',
   styleUrl: '../../../shared/voucher/voucher.scss',
@@ -81,6 +82,7 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
   /** Giá nhập hidden from roles that only receive goods (Thủ kho…): the server sends no prices to them. */
   readonly prices = seesPurchasePrices((c) => this.auth.can(c));
   private readonly receiveDialog = viewChild<ReceiveGoodsDialogComponent>('receiveDialog');
+  private readonly returnDialog = viewChild<PurchaseReturnDialogComponent>('returnDialog');
 
   // The same instance is reused when navigating between orders (/mua-hang/a → /mua-hang/b),
   // so the id is a signal and the draft is reloaded whenever it changes.
@@ -117,7 +119,7 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
   readonly note = signal('');
   readonly lines = signal<DraftLine[]>([emptyLine()]);
   readonly attempted = signal(false);
-  readonly tab = signal<'hang' | 'phieu' | 'nhat-ky'>('hang');
+  readonly tab = signal<'hang' | 'phieu' | 'tra-hang' | 'nhat-ky'>('hang');
   readonly notice = signal('');
   /** A save or status change the server refused (or that could not reach it). */
   readonly failure = signal('');
@@ -436,6 +438,48 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
   onReceived(message: string): void {
     this.notice.set(message);
     this.tab.set('phieu');
+  }
+
+  // ---------- trả lại hàng mua (as MISA) ----------
+  readonly returns = computed(() => this.order()?.returns ?? []);
+  readonly activeReturns = computed(() => this.returns().filter((r) => !r.isCancelled).length);
+  /** Hàng đã nhận của một đơn chưa huỷ có thể trả lại nhà cung cấp. */
+  readonly canReturn = computed(() => {
+    const o = this.order();
+    return !!o && this.auth.can('purchase.return') && o.status !== 'HUY' && o.lines.some((l) => (l.receivedQuantity ?? 0) > 0);
+  });
+  readonly confirmCancelReturn = signal<PurchaseReturn | null>(null);
+  readonly cancelReturnReason = signal('');
+
+  openReturn(): void {
+    this.returnDialog()?.open();
+  }
+
+  onReturned(message: string): void {
+    this.notice.set(message);
+    this.tab.set('tra-hang');
+  }
+
+  returnItems(r: PurchaseReturn): string {
+    const o = this.order();
+    return r.lines.map((x) => {
+      const l = o?.lines.find((y) => y.id === x.orderLineId);
+      const p = l ? this.data.products().find((q) => q.id === l.productId) : undefined;
+      return `${p?.code ?? '?'} × ${x.quantity.toLocaleString('vi-VN')}`;
+    }).join(', ');
+  }
+
+  askCancelReturn(r: PurchaseReturn): void {
+    this.cancelReturnReason.set('');
+    this.confirmCancelReturn.set(r);
+  }
+
+  async doCancelReturn(): Promise<void> {
+    const r = this.confirmCancelReturn();
+    if (!r) return;
+    const ok = await this.attempt(() => this.orders.cancelReturn(this.id()!, r.id, this.cancelReturnReason().trim()).then(() => true));
+    this.confirmCancelReturn.set(null);
+    if (ok) this.notice.set(`Đã huỷ phiếu trả ${r.code} — hàng nhập lại kho, công nợ phải trả tính lại.`);
   }
 
   // Phiếu nhập kho created from this order (new receipts carry purchaseOrderId; demo ones the code).

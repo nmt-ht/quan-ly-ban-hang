@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { toDay } from '../../common/text.js';
 import { addDays, dayMs } from '../../common/settle.js';
-import { DebtCharge, DebtRow, DebtSettlement, debtRow } from '../../common/debt-rows.js';
+import { DebtCharge, DebtRow, DebtSettlement, chargesOfOrder, debtRow } from '../../common/debt-rows.js';
 import { SaleLine, orderTotals, receivedValueOf } from './sales-order.rules.js';
 
 /**
@@ -19,26 +19,29 @@ export class ReceivablesService {
     const who = onlyCustomerId ? { customerId: onlyCustomerId } : {};
     const [customers, orders, vouchers] = await Promise.all([
       this.prisma.customer.findMany({ where: onlyCustomerId ? { id: onlyCustomerId } : {}, orderBy: { name: 'asc' } }),
-      this.prisma.salesOrder.findMany({ where: { status: { not: 'HUY' }, ...who }, include: { lines: true, returns: { where: { isCancelled: false } } } }),
+      this.prisma.salesOrder.findMany({
+        where: { status: { not: 'HUY' }, ...who },
+        include: { lines: true, returns: { where: { isCancelled: false } }, deliveries: { orderBy: [{ date: 'asc' }, { createdAt: 'asc' }] } },
+      }),
       this.prisma.cashVoucher.findMany({ where: { isCancelled: false, partnerType: 'KHACH_HANG', ...who }, include: { allocations: true } }),
     ]);
     const now = dayMs(today);
 
     return customers.flatMap((c) => {
+      // One khoản per đợt khách nhận hàng, each due "ngày nhận + số ngày được nợ" (or the đơn's own hạn).
       const charges: DebtCharge[] = orders
         .filter((o) => o.customerId === c.id)
-        .map((o) => {
+        .flatMap((o) => {
           const amount = receivedValueOf(o.lines.map((l) => ({
             productId: l.productId, quantity: l.quantity.toNumber(), unitPrice: l.unitPrice.toNumber(), discountRate: l.discountRate?.toNumber() ?? null,
             discountAmount: l.discountAmount.toNumber(), vatRate: l.vatRate.toNumber(), receivedQuantity: l.receivedQuantity.toNumber(), ratioToBase: l.ratioToBase.toNumber(),
           })), o.discountAmount.toNumber());
-          const date = toDay(o.deliveredDate ?? o.orderDate)!;
-          return {
-            ref: o.code, date, dueDate: toDay(o.dueDate) ?? addDays(date, c.creditDays), amount,
-            typeLabel: 'Giao hàng', description: `Khách nhận hàng đơn ${o.code}`, sourceId: o.id,
-          };
-        })
-        .filter((x) => x.amount > 0);
+          const rounds = o.deliveries.map((d) => ({ date: toDay(d.date)!, amount: d.amount.toNumber() }));
+          // Before the đợt were recorded: the đơn's ngày nhận, or its ngày đặt when later đợt were recorded since.
+          const legacy = toDay(rounds.length ? o.orderDate : (o.deliveredDate ?? o.orderDate))!;
+          return chargesOfOrder({ code: o.code, sourceId: o.id, typeLabel: 'Giao hàng', description: `Khách nhận hàng đơn ${o.code}` },
+            amount, rounds, legacy, (date) => toDay(o.dueDate) ?? addDays(date, c.creditDays));
+        });
       const payments: DebtSettlement[] = [];
       // Trả hàng (Pha 1.5) settles the đơn it belongs to, like a payment on that đơn; beyond what is owed it is the
       // customer's credit (số dư âm), refunded with a phiếu chi.

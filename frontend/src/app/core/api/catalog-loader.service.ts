@@ -73,7 +73,7 @@ export class CatalogLoader {
       this.data.purchaseOrders.set(await this.api.get<PurchaseOrder[]>(`/purchase-orders?recentDays=${RECENT_DAYS}`));
       const [orders, lsx] = await Promise.all([
         // Còn mở + 90 ngày gần nhất; đơn cũ hơn đọc theo trang hoặc theo id khi mở (Pha 1.1).
-        this.api.get<SalesOrder[]>(`/sales-orders?recentDays=${RECENT_DAYS}`),
+        can('order.view') ? this.api.get<SalesOrder[]>(`/sales-orders?recentDays=${RECENT_DAYS}`) : Promise.resolve([]),
         this.api.get<ProductionOrder[]>('/production-orders'),
       ]);
       this.data.salesOrders.set(orders);

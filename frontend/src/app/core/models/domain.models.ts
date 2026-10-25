@@ -173,6 +173,7 @@ export interface SupplierProduct {
 export type PurchaseOrderStatus = 'NHAP' | 'DA_GUI_NCC' | 'NHAN_MOT_PHAN' | 'DA_NHAN_DU' | 'HOAN_TAT' | 'HUY';
 
 export interface PurchaseOrderLine {
+  id?: string; // set on lines read from the server (trả lại hàng mua names them)
   productId: string;
   quantity: number; // in unitName (defaults to the product's base unit)
   unitPrice: number; // per unitName — null at runtime when giá nhập is hidden from this role (only shown under seesPurchasePrices)
@@ -199,6 +200,36 @@ export interface PurchaseOrder {
   sentDate?: string; // ngày gửi NCC
   cancelReason?: string;
   updatedAt?: string;
+  /** Trả lại hàng mua TLM… of this đơn (huỷ ones included). */
+  returns?: PurchaseReturn[];
+  /** Giá trị đã trả lại (phiếu chưa huỷ) — giảm công nợ phải trả; null = giá nhập bị ẩn. */
+  returnedValue?: number | null;
+}
+
+/** Trả lại hàng mua (as MISA): hàng đã nhận xuất trả nhà cung cấp theo giá mua, giảm công nợ phải trả. */
+export interface PurchaseReturn {
+  id: string;
+  code: string; // TLM0000001
+  orderId: string;
+  date: string;
+  reason: string;
+  note?: string;
+  amount: number | null; // gồm thuế; null = giá nhập bị ẩn
+  voucherId?: string;
+  voucherCode?: string;
+  isCancelled: boolean;
+  cancelReason?: string;
+  createdBy: string;
+  createdAt?: string;
+  lines: { id: string; orderLineId: string; quantity: number; amount: number | null }[];
+}
+
+export interface PurchaseReturnDraft {
+  date: string;
+  warehouseId: string;
+  reason: string;
+  note?: string;
+  lines: { orderLineId: string; quantity: number }[];
 }
 
 export interface Customer {
@@ -525,6 +556,8 @@ export interface CompanyInfo {
   email?: string;
   website?: string;
   logo?: string; // data: URL, PNG/JPEG đã thu nhỏ (giữ trong trình duyệt tới khi có backend upload)
+  /** Khoá sổ: chứng từ có ngày từ ngày này trở về trước không lập, sửa, huỷ được (as MISA). */
+  lockDate?: string | null;
 }
 
 // A tag colour is a hue (0–360) or 'neutral' (grey). Lightness and chroma are fixed by the

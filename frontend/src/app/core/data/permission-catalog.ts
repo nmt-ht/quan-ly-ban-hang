@@ -19,6 +19,7 @@ export const PERMISSION_MODULES: PermissionModule[] = [
   { key: 'company', label: 'Công ty', permissions: [
     { code: 'company.view', label: 'Xem thông tin công ty' },
     { code: 'company.update', label: 'Sửa thông tin công ty' },
+    { code: 'period.lock', label: 'Khoá sổ / bỏ khoá sổ kỳ kế toán' },
   ]},
   { key: 'category', label: 'Nhóm hàng', permissions: [
     { code: 'category.view', label: 'Xem nhóm hàng' },
@@ -90,6 +91,7 @@ export const PERMISSION_MODULES: PermissionModule[] = [
     { code: 'purchase.approve', label: 'Duyệt đơn nhập hàng' },
     { code: 'purchase.receive', label: 'Xác nhận nhận hàng' },
     { code: 'purchase.cancel', label: 'Huỷ đơn nhập hàng' },
+    { code: 'purchase.return', label: 'Trả lại hàng mua' },
   ]},
   { key: 'order', label: 'Đơn bán hàng', permissions: [
     { code: 'order.view', label: 'Xem đơn hàng' },
@@ -143,6 +145,7 @@ export const PERMISSION_MODULES: PermissionModule[] = [
     { code: 'voucher.cancel', label: 'Huỷ phiếu thu chi' },
     { code: 'voucher.manage_category', label: 'Quản lý loại thu chi' },
     { code: 'voucher.manage_account', label: 'Quản lý tài khoản tiền' },
+    { code: 'voucher.overdraw', label: 'Chi vượt tồn quỹ' },
   ]},
   { key: 'dashboard', label: 'Tổng quan', permissions: [
     { code: 'report.dashboard', label: 'Xem trang tổng quan' },

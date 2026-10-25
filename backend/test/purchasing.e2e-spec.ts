@@ -127,8 +127,11 @@ describe('Đơn nhập hàng & công nợ phải trả (e2e)', () => {
     const rows = (await accountant.get('/api/payables').expect(200)).body;
     const ncc1 = rows.find((r: any) => r.partnerId === 'ncc-1');
     const order = (await accountant.get(`/api/purchase-orders/${orders[0]}`).expect(200)).body;
-    const entry = ncc1.entries.find((e: any) => e.ref === order.code);
-    expect(entry).toMatchObject({ kind: 'PHAT_SINH', amount: 1_325_000, dueDate: addDays(today, 30), sourceId: order.id });
+    // Nhận hai lần: one khoản per lần nhận (DN…, DN…·2), each due "ngày nhận + 30".
+    const parts = ncc1.entries.filter((e: any) => e.ref === order.code || e.ref.startsWith(`${order.code}·`));
+    expect(parts).toHaveLength(2);
+    for (const e of parts) expect(e).toMatchObject({ kind: 'PHAT_SINH', dueDate: addDays(today, 30), sourceId: order.id });
+    expect(parts.reduce((s: number, e: any) => s + e.amount, 0)).toBe(1_325_000);
     // The balance is what is still open minus money paid ahead.
     const open = ncc1.items.reduce((s: number, i: any) => s + i.amount, 0);
     expect(ncc1.balance).toBe(open - ncc1.prepaid);

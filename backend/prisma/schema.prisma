@@ -48,6 +48,7 @@ model User {
   vehiclesAsDriver  Vehicle[]          @relation("VehicleDriver")
   managedWarehouses Warehouse[]        @relation("WarehouseManager")
   salesReturns      SalesReturn[]      @relation("SalesReturnCreatedBy")
+  purchaseReturns   PurchaseReturn[]   @relation("PurchaseReturnCreatedBy")
   quotations        Quotation[]        @relation("QuotationCreatedBy")
   quotationsAsRep   Quotation[]        @relation("QuotationRep")
   promotions        Promotion[]        @relation("PromotionCreatedBy")
@@ -91,7 +92,7 @@ model RolePermission {
 }
 
 model CompanyInfo {
-  id        Int     @id @default(1)
+  id        Int       @id @default(1)
   name      String
   address   String?
   taxCode   String?
@@ -100,7 +101,9 @@ model CompanyInfo {
   website   String?
   logo      String? // URL of the uploaded logo
   // Thiết lập › Màu hiển thị: only the changed colours, `${group}:${key}` → hue 0–359 or "neutral".
-  tagColors Json    @default("{}")
+  tagColors Json      @default("{}")
+  // Khoá sổ: chứng từ dated on or before it cannot be lập, sửa or huỷ (common/period-lock.ts).
+  lockDate  DateTime? @db.Date
 }
 
 model Tag {
@@ -304,8 +307,9 @@ model WarehouseVoucher {
   createdBy         User                 @relation("WarehouseVoucherCreatedBy", fields: [createdById], references: [id])
   createdAt         DateTime             @default(now())
 
-  lines       WarehouseVoucherLine[]
-  salesReturn SalesReturn?
+  lines          WarehouseVoucherLine[]
+  salesReturn    SalesReturn?
+  purchaseReturn PurchaseReturn?
 }
 
 model WarehouseVoucherLine {
@@ -417,6 +421,8 @@ model PurchaseOrder {
 
   lines             PurchaseOrderLine[]
   warehouseVouchers WarehouseVoucher[]
+  receipts          PurchaseOrderReceipt[]
+  returns           PurchaseReturn[]
 }
 
 model PurchaseOrderLine {
@@ -434,6 +440,61 @@ model PurchaseOrderLine {
   warehouseId      String? // kho nhập dự kiến
   warehouse        Warehouse?    @relation(fields: [warehouseId], references: [id])
   sortOrder        Int           @default(0)
+
+  returnLines PurchaseReturnLine[]
+}
+
+/**
+ * Một lần nhận hàng của đơn nhập: giá trị nhận thêm (gồm VAT) — một khoản công nợ phải trả riêng, hạn tính từ ngày nhận
+ * (as MISA: mỗi chứng từ mua hàng một hạn thanh toán).
+ */
+model PurchaseOrderReceipt {
+  id        String        @id @default(uuid())
+  orderId   String
+  order     PurchaseOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  date      DateTime      @db.Date
+  amount    Decimal
+  createdAt DateTime      @default(now())
+
+  @@index([orderId])
+}
+
+/**
+ * Trả lại hàng mua TLM… (as MISA): hàng đã nhận của một đơn nhập xuất trả nhà cung cấp theo giá mua, giảm công nợ phải
+ * trả. Huỷ phiếu trả: phiếu xuất được huỷ, công nợ tính lại.
+ */
+model PurchaseReturn {
+  id           String            @id @default(uuid())
+  code         String            @unique
+  orderId      String
+  order        PurchaseOrder     @relation(fields: [orderId], references: [id])
+  date         DateTime          @db.Date
+  reason       String
+  note         String?
+  amount       Decimal // tổng các dòng (gồm VAT)
+  voucherId    String?           @unique
+  voucher      WarehouseVoucher? @relation(fields: [voucherId], references: [id])
+  isCancelled  Boolean           @default(false)
+  cancelReason String?
+  cancelledAt  DateTime?
+  createdById  String
+  createdBy    User              @relation("PurchaseReturnCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime          @default(now())
+
+  lines PurchaseReturnLine[]
+
+  @@index([orderId])
+}
+
+model PurchaseReturnLine {
+  id             String            @id @default(uuid())
+  returnId       String
+  purchaseReturn PurchaseReturn    @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  orderLineId    String
+  orderLine      PurchaseOrderLine @relation(fields: [orderLineId], references: [id])
+  quantity       Decimal // in the order line's unit
+  amount         Decimal // số lượng × đơn giá × (1 + VAT)
+  sortOrder      Int               @default(0)
 }
 
 // ---------- Sales ----------
@@ -541,6 +602,23 @@ model SalesOrder {
   warehouseVouchers  WarehouseVoucher[]
   returns            SalesReturn[]
   quotation          Quotation?
+  deliveries         SalesOrderDelivery[]
+}
+
+/**
+ * Một đợt khách nhận hàng của đơn bán (giao tại kho, hoặc chốt giao trên chuyến): giá trị nhận thêm (gồm VAT, sau chiết
+ * khấu) — một khoản công nợ phải thu riêng, hạn tính từ ngày nhận (as MISA). Bỏ chốt giao xoá đợt của chuyến đó.
+ */
+model SalesOrderDelivery {
+  id        String     @id @default(uuid())
+  orderId   String
+  order     SalesOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  date      DateTime   @db.Date
+  amount    Decimal
+  tripId    String?
+  createdAt DateTime   @default(now())
+
+  @@index([orderId])
 }
 
 model SalesOrderTag {

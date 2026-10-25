@@ -51,6 +51,27 @@ export interface DebtRow extends DebtPartner {
 
 export const creditLabel = (days: number) => (days > 0 ? `${days} ngày` : 'Trả ngay');
 
+/**
+ * The khoản công nợ of one đơn: one per đợt giao / nhận (as MISA, each with its own hạn), refs DH0000012, DH0000012·2…
+ * `total` is what the đơn owes now; đợt recorded before the đợt table existed (or a đơn with none) make one khoản for the
+ * rest, dated `legacyDate`.
+ */
+export function chargesOfOrder(
+  o: { code: string; sourceId: string; typeLabel: string; description: string },
+  total: number, rounds: { date: string; amount: number }[], legacyDate: string, dueOf: (date: string) => string,
+): DebtCharge[] {
+  const parts: { date: string; amount: number }[] = [];
+  const recorded = rounds.reduce((s, r) => s + r.amount, 0);
+  if (total - recorded > 0) parts.push({ date: legacyDate, amount: total - recorded });
+  for (const r of rounds) if (r.amount > 0) parts.push(r);
+  parts.sort((a, b) => a.date.localeCompare(b.date));
+  if (total <= 0) return [];
+  return parts.map((p, i) => ({
+    ref: i ? `${o.code}·${i + 1}` : o.code, group: parts.length > 1 ? o.code : undefined, date: p.date, dueDate: dueOf(p.date),
+    amount: p.amount, typeLabel: o.typeLabel, description: parts.length > 1 ? `${o.description} (đợt ${i + 1})` : o.description, sourceId: o.sourceId,
+  }));
+}
+
 /** Null when the partner has neither charges nor payments. */
 export function debtRow(p: DebtPartner, charges: DebtCharge[], payments: DebtSettlement[], today: number): DebtRow | null {
   if (!charges.length && !payments.length) return null;

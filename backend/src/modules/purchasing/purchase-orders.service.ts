@@ -5,6 +5,8 @@ import { SequenceService } from '../../prisma/sequence.service.js';
 import { InventoryService, VoucherLineInput } from '../inventory/inventory.service.js';
 import { fromDay, toDay } from '../../common/text.js';
 import { AuditService } from '../../audit/audit.service.js';
+import { PURCHASE_RETURN_INCLUDE, purchaseReturnToApi } from './purchase-returns.js';
+import { assertOpenPeriod } from '../../common/period-lock.js';
 import { OPEN_STATUSES, PurchaseOrderPageQuery, purchasePageOf, purchaseWhere } from './purchase-order-page.js';
 import { diff, vnd } from '../../audit/audit.diff.js';
 import {
@@ -42,6 +44,7 @@ export interface ReceiptInput {
 const INCLUDE = {
   lines: { orderBy: { sortOrder: 'asc' } },
   createdBy: { select: { email: true } },
+  returns: { include: PURCHASE_RETURN_INCLUDE, orderBy: { createdAt: 'asc' } },
 } as const satisfies Prisma.PurchaseOrderInclude;
 
 type Row = Prisma.PurchaseOrderGetPayload<{ include: typeof INCLUDE }>;
@@ -51,7 +54,7 @@ const numbers = (l: Row['lines'][number]): LineNumbers => ({
 });
 
 /** The frontend's PurchaseOrder: day-only dates, creator e-mail, totals derived from the lines. */
-export function orderToApi({ lines, createdBy, createdById: _c, date, sentDate, receivedDate, ...o }: Row) {
+export function orderToApi({ lines, createdBy, createdById: _c, date, sentDate, receivedDate, returns, ...o }: Row) {
   const nums = lines.map(numbers);
   return {
     ...o,
@@ -61,13 +64,19 @@ export function orderToApi({ lines, createdBy, createdById: _c, date, sentDate, 
     createdBy: createdBy.email,
     totalValue: totalValueOf(nums),
     receivedValue: receivedValueOf(nums),
-    lines: lines.map(({ id: _i, orderId: _o, sortOrder: _s, ...l }) => l),
+    // Trả lại hàng mua: every phiếu TLM…, and the value of the ones not huỷ — công nợ = receivedValue − returnedValue.
+    returns: returns.map(purchaseReturnToApi),
+    returnedValue: returns.filter((r) => !r.isCancelled).reduce((s, r) => s + r.amount.toNumber(), 0) as number | null,
+    lines: lines.map(({ orderId: _o, sortOrder: _s, ...l }) => l),
   };
 }
 
 /** A đơn nhập without giá nhập: đơn giá and the money totals are null. */
 export function withoutPrices(o: ReturnType<typeof orderToApi>) {
-  return { ...o, totalValue: null, receivedValue: null, lines: o.lines.map((l) => ({ ...l, unitPrice: null })) };
+  return {
+    ...o, totalValue: null, receivedValue: null, returnedValue: null, lines: o.lines.map((l) => ({ ...l, unitPrice: null })),
+    returns: o.returns.map((r) => ({ ...r, amount: null, lines: r.lines.map((l) => ({ ...l, amount: null })) })),
+  };
 }
 
 @Injectable()
@@ -216,6 +225,7 @@ export class PurchaseOrdersService {
     return this.prisma.$transaction(async (tx) => {
       const o = await this.locked(tx, id);
       if (!canReceive(o.status)) throw new BadRequestException('Đơn này không ở trạng thái nhận hàng được.');
+      await assertOpenPeriod(tx, input.date, 'Nhận hàng');
       const products = new Map(
         (await tx.product.findMany({ where: { id: { in: o.lines.map((l) => l.productId) } }, select: { id: true, type: true } })).map((p) => [p.id, p.type]),
       );
@@ -259,6 +269,10 @@ export class PurchaseOrdersService {
       await tx.purchaseOrder.update({ where: { id }, data: { status, receivedDate: fromDay(input.date) } });
       const saved = await this.findOne(id, tx);
       const before = receivedValueOf(o.lines.map(numbers));
+      // One khoản công nợ phải trả per lần nhận hàng.
+      if (saved.receivedValue! - before > 0) {
+        await tx.purchaseOrderReceipt.create({ data: { orderId: id, date: fromDay(input.date)!, amount: saved.receivedValue! - before } });
+      }
       await this.audit.log(tx, {
         action: 'purchase_order.receive', entityType: 'PurchaseOrder', entityId: id, entityCode: o.code,
         summary: `Nhận hàng đơn ${o.code}: ${vnd(saved.receivedValue - before)}, công nợ phải trả tăng · ${STATUS_LABEL[status]}${input.note ? ` · ${input.note}` : ''}`,

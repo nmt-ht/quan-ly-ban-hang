@@ -206,3 +206,12 @@
 .co-wide {
   grid-column: 1 / -1;
 }
+
+.co-lock {
+  margin-top: var(--space-4, 16px);
+}
+
+.co-lock-row {
+  align-items: flex-end;
+  flex-wrap: wrap;
+}

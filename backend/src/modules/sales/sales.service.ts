@@ -17,6 +17,7 @@ import {
 } from './sales-order.rules.js';
 import { SalesOrderPageQuery, orderWhere, pageOf } from './sales-order-page.js';
 import { lockOrderFor, orderVisibleTo } from './order-access.js';
+import { assertOpenPeriod } from '../../common/period-lock.js';
 import { activeWhere, forCustomer, giftsFor, lineDiscountFor, orderDiscountFor, toRule } from '../pricing/promotion.rules.js';
 
 type Tx = Prisma.TransactionClient;
@@ -420,6 +421,7 @@ export class SalesService {
     return this.prisma.$transaction(async (tx) => {
       const o = await this.lockedFor(tx, id, user);
       if (!canDeliver(this.state(o))) throw new BadRequestException('Đơn này không ở trạng thái giao hàng được.');
+      await assertOpenPeriod(tx, input.date, 'Giao hàng');
       // Hàng của đơn đang trên xe: giao qua chuyến (chốt giao), không giao tay thêm lần nữa.
       const trip = await activeTripOf(tx, id);
       if (trip?.status === 'DA_XUAT_KHO') throw new BadRequestException(`Hàng của đơn ${o.code} đang trên chuyến ${trip.code} — chốt giao trên chuyến.`);
@@ -464,6 +466,7 @@ export class SalesService {
       const status = await this.refreshStatus(tx, id);
 
       const delta = receivedValueOf(nums, o.discountAmount.toNumber()) - before;
+      if (delta > 0) await tx.salesOrderDelivery.create({ data: { orderId: id, date: fromDay(input.date)!, amount: delta } });
       const { receipts } = await this.syncPayNow(tx, o, delta, input.date, user.id);
       await this.audit.log(tx, {
         action: 'sales_order.deliver', entityType: 'SalesOrder', entityId: id, entityCode: o.code,
@@ -487,6 +490,7 @@ export class SalesService {
     const none = { receipts: [] as ReturnType<typeof cashToApi>[], cancelled: [] as string[] };
     if (!o.payNowAccountId || o.status === 'HUY' || !delta) return none;
     const marker = `Thu tiền ngay đơn ${o.code}`;
+    await assertOpenPeriod(tx, date, 'Phiếu thu tiền ngay');
     if (delta > 0) {
       const v = await tx.cashVoucher.create({
         data: {

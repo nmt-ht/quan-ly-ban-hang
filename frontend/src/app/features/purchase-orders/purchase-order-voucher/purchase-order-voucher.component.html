@@ -136,6 +136,11 @@
         <button type="button" role="tab" [attr.aria-selected]="tab() === 'phieu'" (click)="tab.set('phieu')">
           Phiếu nhập kho @if (receipts().length) { <span class="tab-count num">{{ receipts().length }}</span> }
         </button>
+        @if (returns().length) {
+          <button type="button" role="tab" [attr.aria-selected]="tab() === 'tra-hang'" (click)="tab.set('tra-hang')">
+            Trả lại hàng <span class="tab-count num">{{ activeReturns() }}</span>
+          </button>
+        }
         <button type="button" role="tab" [attr.aria-selected]="tab() === 'nhat-ky'" (click)="tab.set('nhat-ky')">Nhật ký</button>
       }
     </div>
@@ -276,6 +281,50 @@
           <app-pagination [total]="rows().length" unit="dòng" [pageSizeOptions]="[10, 20, 50]" [(page)]="page" [(pageSize)]="pageSize" />
         }
       </section>
+    } @else if (tab() === 'tra-hang') {
+      <section class="card voucher-grid-card">
+        <div class="voucher-grid-scroll">
+          <table class="voucher-grid">
+            <thead>
+              <tr>
+                <th scope="col">Số phiếu</th>
+                <th scope="col">Ngày</th>
+                <th scope="col">Hàng trả</th>
+                <th scope="col">Lý do</th>
+                <th scope="col">Phiếu xuất kho</th>
+                @if (prices) { <th scope="col" class="c-num">Giảm công nợ</th> }
+                <th scope="col">Trạng thái</th>
+                <th scope="col"><span class="visually-hidden">Thao tác</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (r of returns(); track r.id) {
+                <tr>
+                  <td class="num">{{ r.code }}</td>
+                  <td class="num">{{ day(r.date) }}</td>
+                  <td class="wrap">{{ returnItems(r) }}</td>
+                  <td class="wrap">{{ r.reason }}@if (r.note) { <span class="subtitle"> · {{ r.note }}</span> }</td>
+                  <td class="num">{{ r.voucherCode || '—' }}</td>
+                  @if (prices) { <td class="c-num num">{{ money(r.amount ?? 0) }}</td> }
+                  <td>
+                    @if (r.isCancelled) {
+                      <span class="badge badge-muted" [title]="r.cancelReason || ''">Đã huỷ</span>
+                    } @else {
+                      <span class="badge badge-success">Đã trả</span>
+                    }
+                  </td>
+                  <td class="c-act">
+                    @if (!r.isCancelled && canReturn()) {
+                      <button type="button" class="btn btn-sm btn-danger-ghost" (click)="askCancelReturn(r)">Huỷ phiếu</button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <p class="grid-hint">Hàng trả xuất khỏi kho theo giá mua; giá trị trả (gồm thuế) giảm công nợ phải trả vào ngày trả. Tiền nhà cung cấp hoàn lại thì lập phiếu thu.</p>
+      </section>
     } @else if (tab() === 'nhat-ky') {
       @if (order(); as o) {
         <section class="card history-card"><app-audit-history entityType="PurchaseOrder" [entityId]="o.id" [code]="o.code" /></section>
@@ -347,6 +396,9 @@
           @if (canComplete()) {
             <button type="button" class="btn" [class.btn-primary]="!canReceive()" (click)="complete()">Hoàn tất</button>
           }
+          @if (canReturn()) {
+            <button type="button" class="btn" (click)="openReturn()">Trả lại hàng mua</button>
+          }
           @if (canReceive()) {
             <button type="button" class="btn btn-primary" (click)="openReceive()"><app-nav-icon name="download" />Nhận hàng</button>
           }
@@ -366,8 +418,22 @@
     </div>
   }
 
+  @if (confirmCancelReturn(); as r) {
+    <div class="confirm-strip" role="alertdialog" aria-labelledby="cancel-return-title">
+      <p id="cancel-return-title"><strong>Huỷ phiếu trả {{ r.code }}?</strong> Phiếu xuất kho {{ r.voucherCode || '' }} bị huỷ (hàng nhập lại kho), công nợ phải trả tăng lại.</p>
+      <input type="text" placeholder="Lý do huỷ (không bắt buộc)" aria-label="Lý do huỷ phiếu trả" [ngModel]="cancelReturnReason()" (ngModelChange)="cancelReturnReason.set($event)" />
+      <div class="toolbar">
+        <button type="button" class="btn" (click)="confirmCancelReturn.set(null)">Không huỷ</button>
+        <button type="button" class="btn btn-danger" (click)="doCancelReturn()">Huỷ phiếu trả</button>
+      </div>
+    </div>
+  }
+
   @if (order(); as o) {
     <app-receive-goods-dialog #receiveDialog [order]="o" (received)="onReceived($event)" />
+    @if (canReturn()) {
+      <app-purchase-return-dialog #returnDialog [order]="o" (returned)="onReturned($event)" />
+    }
 
     <app-print-document
       title="ĐƠN NHẬP HÀNG" [no]="o.code" [date]="o.date" [status]="o.status === 'HUY' ? 'ĐÃ HUỶ' : undefined"

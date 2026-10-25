@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { DataStore } from '../../core/services/data-store.service';
-import { PurchaseOrder, PurchaseOrderLine, WarehouseVoucher } from '../../core/models/domain.models';
+import { PurchaseOrder, PurchaseOrderLine, PurchaseReturn, PurchaseReturnDraft, WarehouseVoucher } from '../../core/models/domain.models';
 import { canCancel, canComplete, canEdit, canReceive, canSend } from './purchase-order.rules';
 import { ApiService, upsertById } from '../../core/api/api.service';
 import { CatalogLoader } from '../../core/api/catalog-loader.service';
@@ -108,6 +108,22 @@ export class PurchaseOrderService {
   async complete(id: string): Promise<void> {
     if (!canComplete(this.find(id).status)) return;
     this.keep(await this.api.post<PurchaseOrder>(`/purchase-orders/${id}/complete`));
+  }
+
+  /** Trả lại hàng mua: the server xuất kho the goods at their giá mua and lowers công nợ phải trả. */
+  async createReturn(orderId: string, d: PurchaseReturnDraft): Promise<PurchaseReturn> {
+    const r = await this.api.post<PurchaseReturn>(`/purchase-orders/${orderId}/returns`, d);
+    this.keep(await this.api.get<PurchaseOrder>(`/purchase-orders/${orderId}`));
+    await this.loader.loadInventory();
+    return r;
+  }
+
+  /** Huỷ phiếu trả: the phiếu xuất is undone and the value counts against công nợ phải trả again. */
+  async cancelReturn(orderId: string, returnId: string, reason: string): Promise<PurchaseReturn> {
+    const r = await this.api.post<PurchaseReturn>(`/purchase-orders/${orderId}/returns/${returnId}/cancel`, { reason: reason || undefined });
+    this.keep(await this.api.get<PurchaseOrder>(`/purchase-orders/${orderId}`));
+    await this.loader.loadInventory();
+    return r;
   }
 
   /**

@@ -4,6 +4,7 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import { SequenceService } from '../../prisma/sequence.service.js';
 import { fromDay, toDay } from '../../common/text.js';
 import { AuditService } from '../../audit/audit.service.js';
+import { assertOpenPeriod } from '../../common/period-lock.js';
 import { VoucherLookups, WarehouseVoucherPageQuery, relatedWhere, voucherPageOf, voucherWhere } from './warehouse-voucher-page.js';
 
 const TYPE_LABEL: Record<WarehouseVoucherType, string> = { NHAP: 'phiếu nhập kho', XUAT: 'phiếu xuất kho', CHUYEN: 'phiếu chuyển kho', KIEM_KE: 'phiếu kiểm kê' };
@@ -19,6 +20,8 @@ export interface VoucherLineInput {
   /**
    * Phiếu nhập: what the goods cost per base unit when the chứng từ gốc knows it better than a price — thành phẩm =
    * vật tư đã xuất / số làm được, hàng trả về = giá vốn đã chốt khi xuất. Missing: unitPrice if > 0, else the average.
+   * Phiếu xuất: the cost goods leave at instead of the average — trả lại hàng mua leaves at its giá mua (as MISA), taking
+   * the average back as if those goods had never come in.
    */
   unitCost?: number;
   note?: string;
@@ -178,6 +181,7 @@ export class InventoryService {
   /** Number, store and apply one voucher; returns its id. Runs inside the caller's transaction. */
   async post(tx: Tx, input: VoucherInput, userId: string): Promise<string> {
     const { type, warehouseId } = input;
+    await assertOpenPeriod(tx, input.date, 'Phiếu kho');
     const target = type === 'CHUYEN' ? input.targetWarehouseId : undefined;
     if (type === 'CHUYEN' && (!target || target === warehouseId)) throw new BadRequestException('Kho nhận phải khác kho xuất');
     const warehouses = await tx.warehouse.findMany({ where: { id: { in: [warehouseId, ...(target ? [target] : [])] } }, select: { id: true, name: true } });
@@ -254,6 +258,7 @@ export class InventoryService {
     const v = await tx.warehouseVoucher.findUnique({ where: { id }, include: { lines: true } });
     if (!v) throw new NotFoundException('Không tìm thấy phiếu kho');
     if (v.isCancelled) return;
+    await assertOpenPeriod(tx, v.date, `Huỷ ${v.code}:`);
     // Giá vốn: a phiếu nhập taken back leaves the average as if it had never come in; a phiếu xuất taken back
     // returns its goods at the cost they left at. Lines older than Pha 1.3 (no unitCost) leave it alone.
     if (v.type === 'NHAP' || v.type === 'XUAT') {
@@ -323,6 +328,13 @@ export class InventoryService {
       const avg = blendCost(c.onHand, c.avg, delta, cost);
       if (avg !== c.avg) Object.assign(c, { avg, changed: true });
       c.onHand = round4(c.onHand + delta);
+      return cost;
+    }
+    if (type === 'XUAT' && l.unitCost !== undefined) {
+      const cost = round4(l.unitCost);
+      const avg = unblendCost(c.onHand, c.avg, delta, cost);
+      if (avg !== c.avg) Object.assign(c, { avg, changed: true });
+      c.onHand = round4(c.onHand - delta);
       return cost;
     }
     if (type === 'XUAT') c.onHand = round4(c.onHand - delta);

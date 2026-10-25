@@ -1,5 +1,5 @@
 import { BadRequestException, Body, Controller, Get, Injectable, Module, Put, UseGuards } from '@nestjs/common';
-import { IsObject, Matches, ValidateIf } from 'class-validator';
+import { IsObject, IsOptional, Matches, ValidateIf } from 'class-validator';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard.js';
 import { PermissionsGuard } from '../../auth/permissions.guard.js';
 import { RequirePermissions } from '../../auth/permissions.decorator.js';
@@ -7,6 +7,7 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import { OptionalEmail, OptionalText, Text } from '../../common/dto.js';
 import { AuditService } from '../../audit/audit.service.js';
 import { diff } from '../../audit/audit.diff.js';
+import { fromDay, toDay } from '../../common/text.js';
 
 const COMPANY_FIELDS = { name: 'Tên công ty', address: 'Địa chỉ', taxCode: 'Mã số thuế', phone: 'Điện thoại', email: 'Email', website: 'Website' };
 
@@ -22,6 +23,11 @@ export class CompanyDto {
   @ValidateIf((o: CompanyDto) => !!o.logo)
   @Matches(/^(data:image\/(png|jpeg);base64,|https?:\/\/)/, { message: 'Logo phải là ảnh PNG/JPEG hoặc đường dẫn' })
   logo?: string;
+}
+
+export class LockDateDto {
+  /** Null = bỏ khoá sổ. */
+  @IsOptional() @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'Ngày phải có dạng YYYY-MM-DD' }) lockDate?: string | null;
 }
 
 /** Màu hiển thị: `${group}:${key}` → hue 0–359 or "neutral" (frontend core/services/display-colors.service.ts). */
@@ -78,6 +84,21 @@ export class CompanyService {
     return this.getColors();
   }
 
+  /** Khoá sổ đến ngày (as MISA "Khoá sổ kỳ kế toán"); a later date closes more, an earlier one or none re-opens. */
+  async setLockDate(lockDate: string | null) {
+    const before = toDay((await this.prisma.companyInfo.findUnique({ where: { id: 1 }, select: { lockDate: true } }))?.lockDate ?? null);
+    const show = (d: string | null) => (d ? d.split('-').reverse().join('/') : null);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.companyInfo.upsert({ where: { id: 1 }, update: { lockDate: fromDay(lockDate) }, create: { id: 1, name: '', lockDate: fromDay(lockDate) } });
+      await this.audit.log(tx, {
+        action: 'company.lock_period', entityType: 'CompanyInfo', entityId: '1',
+        summary: lockDate ? `Khoá sổ đến ngày ${show(lockDate)}` : 'Bỏ khoá sổ',
+        changes: [{ field: 'lockDate', label: 'Ngày khoá sổ', from: show(before), to: show(lockDate) }],
+      });
+    });
+    return this.get();
+  }
+
   async save(dto: CompanyDto) {
     const data = {
       name: dto.name, address: dto.address ?? null, taxCode: dto.taxCode ?? null, phone: dto.phone ?? null,
@@ -109,6 +130,12 @@ export class CompanyController {
   @Put()
   save(@Body() dto: CompanyDto) {
     return this.company.save(dto);
+  }
+
+  @RequirePermissions('period.lock')
+  @Put('lock-date')
+  setLockDate(@Body() dto: LockDateDto) {
+    return this.company.setLockDate(dto.lockDate ?? null);
   }
 
   // Every signed-in user reads them: the badges on every page use them.

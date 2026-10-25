@@ -8,6 +8,8 @@ import { CompanyLetterheadComponent } from '../../../shared/company-letterhead/c
 import { readLogo } from '../../../shared/company-letterhead/logo-image';
 import { PHONE_PATTERN, TAX_CODE_PATTERN, WEBSITE_PATTERN } from './company.rules';
 import { errorText } from '../../../core/api/api.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { formatDay } from '../../../shared/period';
 
 const clean = (s: string) => s.trim();
 
@@ -32,6 +34,29 @@ export class CompanyInfoComponent {
   readonly logoError = signal('');
 
   private readonly saved = signal<CompanyInfo>(this.svc.info());
+
+  // ---------- khoá sổ kỳ kế toán ----------
+  readonly canLock = inject(AuthService).can('period.lock');
+  readonly lockDate = computed(() => this.svc.info().lockDate?.slice(0, 10) ?? null);
+  readonly lockDraft = signal(this.svc.info().lockDate?.slice(0, 10) ?? '');
+  readonly lockBusy = signal(false);
+  readonly day = formatDay;
+
+  async saveLock(clear = false): Promise<void> {
+    const next = clear ? null : this.lockDraft() || null;
+    this.lockBusy.set(true);
+    this.failure.set('');
+    try {
+      await this.svc.setLockDate(next);
+    } catch (e) {
+      this.failure.set(errorText(e));
+      return;
+    } finally {
+      this.lockBusy.set(false);
+    }
+    this.lockDraft.set(next ?? '');
+    this.notice.set(next ? `Đã khoá sổ đến ngày ${formatDay(next)}.` : 'Đã bỏ khoá sổ.');
+  }
 
   constructor() {
     this.logo.set(this.saved().logo);

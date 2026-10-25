@@ -13,6 +13,7 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import { SequenceService } from '../../prisma/sequence.service.js';
 import { OptionalText, Text } from '../../common/dto.js';
 import { fromDay } from '../../common/text.js';
+import { assertOpenPeriod } from '../../common/period-lock.js';
 import { CASH_INCLUDE, cashToApi } from './cash-voucher.mapper.js';
 import { AuditService } from '../../audit/audit.service.js';
 import { vnd } from '../../audit/audit.diff.js';
@@ -41,6 +42,8 @@ export class CashVoucherDto {
 export class CancelDto {
   @OptionalText(300) reason?: string;
 }
+
+type Tx = Prisma.TransactionClient;
 
 const PREFIX: Record<VoucherKind, string> = { THU: 'PT', CHI: 'PC' };
 
@@ -103,11 +106,13 @@ export class CashVouchersService {
 
   async create(dto: CashVoucherDto, user: AuthUser) {
     return this.prisma.$transaction(async (tx) => {
+      await assertOpenPeriod(tx, dto.date, dto.kind === 'THU' ? 'Phiếu thu' : 'Phiếu chi');
       const category = await tx.cashCategory.findFirst({ where: { kind: dto.kind, name: dto.category, isActive: true } });
       if (!category) throw new BadRequestException(`Loại "${dto.category}" không có hoặc đã ngừng dùng.`);
       if (category.partnerType !== dto.partnerType) throw new BadRequestException(`Loại "${category.name}" không gắn với đối tác này.`);
       const account = await tx.cashAccount.findUnique({ where: { id: dto.accountId } });
       if (!account || !account.isActive) throw new BadRequestException('Tài khoản tiền không có hoặc đã ngừng dùng.');
+      const overdrawn = dto.kind === 'CHI' ? await this.overdraw(tx, account, dto.date, dto.amount, user) : '';
 
       let customerId: string | null = null;
       let supplierId: string | null = null;
@@ -132,7 +137,9 @@ export class CashVouchersService {
       // Chọn tay: same document twice adds up; unknown documents and more than the phiếu are refused.
       const merged = new Map<string, number>();
       for (const a of dto.partnerType === 'KHAC' ? [] : (dto.allocations ?? [])) merged.set(a.ref, (merged.get(a.ref) ?? 0) + a.amount);
-      for (const ref of merged.keys()) if (!refs.has(ref)) throw new BadRequestException(`${ref} không phải chứng từ công nợ của đối tác này.`);
+      for (const ref of merged.keys()) {
+        if (!refs.has(ref.split('·')[0])) throw new BadRequestException(`${ref} không phải chứng từ công nợ của đối tác này.`);
+      }
       const allocated = [...merged.values()].reduce((s, x) => s + x, 0);
       if (allocated > dto.amount) throw new BadRequestException('Tổng đối trừ chọn tay vượt số tiền của phiếu.');
 
@@ -153,11 +160,31 @@ export class CashVouchersService {
         action: 'cash_voucher.create', entityType: 'CashVoucher', entityId: v.id, entityCode: v.code,
         summary: `Lập ${dto.kind === 'THU' ? 'phiếu thu' : 'phiếu chi'} ${v.code}: ${vnd(dto.amount)} · ${category.name}`
           + (partner ? ` · ${partner.code} ${partner.name}` : '') + ` · ${account.name}`
-          + (merged.size ? ` · đối trừ chọn tay ${[...merged].map(([r, a]) => `${r} ${vnd(a)}`).join(', ')}` : ''),
+          + (merged.size ? ` · đối trừ chọn tay ${[...merged].map(([r, a]) => `${r} ${vnd(a)}`).join(', ')}` : '') + overdrawn,
         related: [...merged.keys(), ...(partner ? [partner.code] : [])],
       });
       return cashToApi(v);
     });
+  }
+
+  /**
+   * Không chi vượt tồn quỹ (as MISA): the account's số dư on the phiếu's date and today must both cover the phiếu.
+   * The account row is locked so two phiếu chi at once queue up. voucher.overdraw saves anyway — the Nhật ký says so.
+   */
+  private async overdraw(tx: Tx, account: { id: string; name: string; openingBalance: Prisma.Decimal }, day: string, amount: number, user: AuthUser) {
+    await tx.$queryRaw`SELECT "id" FROM "CashAccount" WHERE "id" = ${account.id} FOR UPDATE`;
+    const balance = async (until?: Date) => {
+      const sums = await tx.cashVoucher.groupBy({
+        by: ['kind'], where: { accountId: account.id, isCancelled: false, ...(until ? { date: { lte: until } } : {}) }, _sum: { amount: true },
+      });
+      return sums.reduce((s, x) => s + (x.kind === 'THU' ? 1 : -1) * (x._sum.amount?.toNumber() ?? 0), account.openingBalance.toNumber());
+    };
+    const left = Math.min(await balance(fromDay(day)!), await balance());
+    if (left >= amount) return '';
+    if (!user.permissions.includes('voucher.overdraw')) {
+      throw new BadRequestException(`Tồn quỹ ${account.name} chỉ còn ${vnd(left)} — không chi được ${vnd(amount)}.`);
+    }
+    return ` · chi vượt tồn quỹ (còn ${vnd(left)})`;
   }
 
   /** Huỷ phiếu: the phiếu stays (shown as huỷ); it no longer counts in số dư quỹ or đối trừ, so công nợ reopens. */
@@ -166,6 +193,7 @@ export class CashVouchersService {
     if (!v) throw new NotFoundException('Không tìm thấy phiếu thu chi');
     if (v.isCancelled) throw new BadRequestException(`${v.code} đã huỷ rồi.`);
     const saved = await this.prisma.$transaction(async (tx) => {
+      await assertOpenPeriod(tx, v.date, `Huỷ ${v.code}:`);
       const s = await tx.cashVoucher.update({
         where: { id }, data: { isCancelled: true, cancelReason: reason ?? null, cancelledAt: new Date() }, include: CASH_INCLUDE,
       });

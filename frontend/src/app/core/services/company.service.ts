@@ -12,6 +12,12 @@ export class CompanyService {
   readonly info = this.data.companyInfo.asReadonly();
 
   async save(info: CompanyInfo): Promise<void> {
-    this.data.companyInfo.set(await this.api.put<CompanyInfo>('/company', info));
+    const { lockDate: _l, ...body } = info;
+    this.data.companyInfo.set(await this.api.put<CompanyInfo>('/company', body));
+  }
+
+  /** Khoá sổ đến ngày (PUT /company/lock-date, quyền period.lock); null = bỏ khoá sổ. */
+  async setLockDate(lockDate: string | null): Promise<void> {
+    this.data.companyInfo.set(await this.api.put<CompanyInfo>('/company/lock-date', { lockDate }));
   }
 }

@@ -648,11 +648,22 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   readonly lsxDone = computed(() => this.lsx().filter((x) => x.status === 'HOAN_TAT').length);
   readonly lsxActive = computed(() => this.lsx().filter((x) => x.status !== 'HUY').length);
 
-  /** Còn phải thu của riêng đơn này (sau khi đối trừ các phiếu thu). */
+  /**
+   * Còn phải thu của riêng đơn này (sau khi đối trừ các phiếu thu). A đơn giao nhiều đợt is one khoản per đợt
+   * (DH0000012, DH0000012·2…), each with its own hạn: added up here, hạn = the earliest one still open.
+   */
   readonly debtEntry = computed(() => {
     const o = this.order();
     if (!o) return undefined;
-    return this.debt.receivables().find((r) => r.partnerId === o.customerId)?.entries.find((e) => e.ref === o.code && e.kind === 'PHAT_SINH');
+    const parts = (this.debt.receivables().find((r) => r.partnerId === o.customerId)?.entries ?? [])
+      .filter((e) => e.kind === 'PHAT_SINH' && (e.ref === o.code || e.ref.startsWith(`${o.code}·`)));
+    if (!parts.length) return undefined;
+    const open = parts.filter((e) => e.remaining > 0).sort((a, b) => (a.dueDate ?? '').localeCompare(b.dueDate ?? ''));
+    const sum = (k: 'amount' | 'settled' | 'remaining') => parts.reduce((s, e) => s + e[k], 0);
+    return {
+      amount: sum('amount'), settled: sum('settled'), remaining: sum('remaining'),
+      dueDate: (open[0] ?? parts[parts.length - 1]).dueDate, overdueDays: open.length ? Math.max(...open.map((e) => e.overdueDays ?? 0)) : undefined,
+    };
   });
 
   async createLsx(): Promise<void> {

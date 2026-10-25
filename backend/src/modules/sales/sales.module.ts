@@ -88,6 +88,7 @@ export class SalesController {
   // A seller without order.view_all sees only their own orders (SalesService.visibleTo).
   // `?recentDays=90` (what the app loads at sign-in, Pha 1.1): open orders plus the last 90 days.
   // `?ids=a,b` / `?codes=DH1,DH2`: just those orders (at most 500), for screens showing older ones.
+  @RequirePermissions('order.view')
   @Get('sales-orders')
   orders(@CurrentUser() user: AuthUser, @Query('recentDays') recentDays?: string, @Query('ids') ids?: string, @Query('codes') codes?: string) {
     const days = Number(recentDays);
@@ -96,6 +97,7 @@ export class SalesController {
   }
 
   /** Danh sách theo trang: lọc, tìm không dấu, sắp xếp, tổng của mọi đơn khớp (Pha 1.1). Declared before :id. */
+  @RequirePermissions('order.view')
   @Get('sales-orders/page')
   async page(@Query() raw: Record<string, unknown>, @CurrentUser() user: AuthUser) {
     const q = plainToInstance(SalesOrderPageQuery, normaliseListQuery(raw));
@@ -111,6 +113,7 @@ export class SalesController {
     return this.sales.customerStats(user);
   }
 
+  @RequirePermissions('order.view')
   @Get('sales-orders/:id')
   order(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.sales.orderFor(id, user);

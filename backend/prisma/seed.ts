@@ -27,6 +27,7 @@ const PERMISSION_MODULES: { key: string; permissions: { code: string; label: str
   { key: 'company', permissions: [
     { code: 'company.view', label: 'Xem thông tin công ty' },
     { code: 'company.update', label: 'Sửa thông tin công ty' },
+    { code: 'period.lock', label: 'Khoá sổ / bỏ khoá sổ kỳ kế toán' },
   ]},
   { key: 'category', permissions: [
     { code: 'category.view', label: 'Xem nhóm hàng' },
@@ -98,6 +99,7 @@ const PERMISSION_MODULES: { key: string; permissions: { code: string; label: str
     { code: 'purchase.approve', label: 'Duyệt đơn nhập hàng' },
     { code: 'purchase.receive', label: 'Xác nhận nhận hàng' },
     { code: 'purchase.cancel', label: 'Huỷ đơn nhập hàng' },
+    { code: 'purchase.return', label: 'Trả lại hàng mua' },
   ]},
   { key: 'order', permissions: [
     { code: 'order.view', label: 'Xem đơn hàng' },
@@ -151,6 +153,7 @@ const PERMISSION_MODULES: { key: string; permissions: { code: string; label: str
     { code: 'voucher.cancel', label: 'Huỷ phiếu thu chi' },
     { code: 'voucher.manage_category', label: 'Quản lý loại thu chi' },
     { code: 'voucher.manage_account', label: 'Quản lý tài khoản tiền' },
+    { code: 'voucher.overdraw', label: 'Chi vượt tồn quỹ' },
   ]},
   { key: 'dashboard', permissions: [
     { code: 'report.dashboard', label: 'Xem trang tổng quan' },
@@ -174,7 +177,7 @@ const ALL_PERMISSION_CODES = PERMISSION_MODULES.flatMap((m) => m.permissions.map
 
 // Default grants of the 7 built-in roles. Keep identical to the frontend's
 // features/settings/roles-permissions/role.rules.ts (same ids, same codes):
-// CEO 108 · Quản lý 99 · Kế toán 50 · Sale 20 · Thủ kho 19 · NV giao hàng 6 · NV xưởng 5.
+// CEO 111 · Quản lý 102 · Kế toán 52 · Sale 20 · Thủ kho 19 · NV giao hàng 6 · NV xưởng 5.
 const WITHOUT_ADMIN = [
   'user.create', 'user.update', 'user.delete', 'user.reset_password',
   'position.create', 'position.update', 'position.delete', 'position.assign_permission',
@@ -186,7 +189,7 @@ const ACCOUNTANT = [
   'customer.view', 'customer.create', 'customer.update', 'customer.delete',
   'supplier.view', 'supplier.create', 'supplier.update', 'supplier.manage_product',
   'stock.view', 'stock.view_value',
-  'purchase.view', 'purchase.create', 'purchase.update', 'purchase.approve', 'purchase.cancel',
+  'purchase.view', 'purchase.create', 'purchase.update', 'purchase.approve', 'purchase.cancel', 'purchase.return', 'period.lock',
   'order.view', 'order.view_all', 'order.return', 'quote.view', 'vehicle.view', 'vehicle.manage_cost', 'trip.view', 'production.view',
   'debt.view', 'debt.settle', 'debt.adjust', 'debt.remind',
   'voucher.view', 'voucher.create_receipt', 'voucher.create_payment', 'voucher.cancel', 'voucher.manage_category', 'voucher.manage_account',

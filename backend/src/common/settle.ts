@@ -21,6 +21,8 @@ export interface DebtInvoice {
   ref: string;
   dueDate: string;
   amount: number;
+  /** Mã đơn of a khoản that is one đợt of a đơn giao / nhận nhiều đợt (ref DH0000012·2): Chọn tay to the đơn spreads over its đợt. */
+  group?: string;
 }
 
 export interface DebtPayment {
@@ -72,10 +74,16 @@ export function settle(invoices: DebtInvoice[], payments: DebtPayment[], today: 
 
   for (const p of byDate) {
     for (const a of p.allocations ?? []) {
-      const take = Math.min(a.amount, open.get(a.ref) ?? 0, p.amount - used.get(p.id)!);
-      if (take <= 0) continue;
-      open.set(a.ref, open.get(a.ref)! - take);
-      used.set(p.id, used.get(p.id)! + take);
+      // The khoản itself, or every đợt of the đơn it names (earliest due first).
+      const targets = invoices.filter((i) => i.ref === a.ref || i.group === a.ref).sort((x, y) => x.dueDate.localeCompare(y.dueDate) || x.ref.localeCompare(y.ref));
+      let left = a.amount;
+      for (const t of targets) {
+        const take = Math.min(left, open.get(t.ref) ?? 0, p.amount - used.get(p.id)!);
+        if (take <= 0) continue;
+        open.set(t.ref, open.get(t.ref)! - take);
+        used.set(p.id, used.get(p.id)! + take);
+        left -= take;
+      }
     }
   }
 

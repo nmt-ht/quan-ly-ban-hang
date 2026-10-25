@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { DeliveryTripStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { SequenceService } from '../../prisma/sequence.service.js';
@@ -8,6 +8,7 @@ import { SaleLine, deriveStatus, lineRemaining, orderTotals, receivedValueOf, ro
 import type { AuthUser } from '../../auth/auth.service.js';
 import { fromDay, toDay } from '../../common/text.js';
 import { AuditService } from '../../audit/audit.service.js';
+import { assertOpenPeriod } from '../../common/period-lock.js';
 import { diff, vnd } from '../../audit/audit.diff.js';
 
 const STATUS_AFTER: Record<string, string> = { HOAN_THANH: 'nhận đủ', GIAO_MOT_PHAN: 'nhận một phần', TRA_TOAN_BO: 'không nhận gì' };
@@ -239,9 +240,11 @@ export class TripsService {
    */
   confirm(id: string, orderId: string, lines: { lineIndex: number; received: number }[], note: string | undefined, user: AuthUser) {
     return this.step(id, ['DA_XUAT_KHO'], 'Chỉ chốt giao khi chuyến đã xuất kho.', async (tx, t) => {
+      this.assertDriver(t, user);
       const link = t.orders.find((x) => x.orderId === orderId);
       if (!link) throw new BadRequestException('Đơn không nằm trên chuyến này.');
       if (link.confirmedAt) throw new BadRequestException('Đơn này đã chốt giao.');
+      await assertOpenPeriod(tx, new Date().toISOString().slice(0, 10), 'Chốt giao');
       const o = await this.sales.locked(tx, orderId);
       if (o.status === 'HUY') throw new BadRequestException(`Đơn ${o.code} đã huỷ — không chốt giao được.`);
       const today = new Date().toISOString().slice(0, 10);
@@ -258,6 +261,8 @@ export class TripsService {
       const receipts = (await this.afterReceipt(tx, orderId, before, today, user, false)) as Awaited<ReturnType<SalesService['syncPayNow']>>['receipts'];
       const after = (await this.ordersOf(tx, [orderId])).get(orderId)!;
       const got = receivedValueOf(after.lines.map(saleLine), after.discountAmount.toNumber()) - before;
+      // One đợt công nợ for what the customer took off this chuyến.
+      if (got > 0) await tx.salesOrderDelivery.create({ data: { orderId, date: fromDay(today)!, amount: got, tripId: id } });
       await this.log(tx, t, 'delivery_trip.confirm',
         `Chốt giao đơn ${o.code} trên chuyến ${t.code}: khách ${STATUS_AFTER[after.status] ?? 'nhận'} (${vnd(got)})`
           + (receipts.length ? ` · thu tiền ngay ${receipts.map((r) => r.code).join(', ')}` : '') + (note ? ` · ${note}` : ''),
@@ -269,6 +274,7 @@ export class TripsService {
   /** Bỏ chốt (before the truck is back): the received quantities are taken back, the order is Đang giao again. */
   unconfirm(id: string, orderId: string, user: AuthUser) {
     return this.step(id, ['DA_XUAT_KHO'], 'Chỉ bỏ chốt khi xe chưa về kho.', async (tx, t) => {
+      this.assertDriver(t, user);
       const link = t.orders.find((x) => x.orderId === orderId);
       if (!link?.confirmedAt) throw new BadRequestException('Đơn này chưa chốt giao.');
       // Hàng khách đã trả lại phải còn nằm trong số đã nhận — bỏ chốt sau đó sẽ làm số trả lớn hơn số nhận.
@@ -282,6 +288,7 @@ export class TripsService {
         await tx.deliveryTripLoad.update({ where: { id: load.id }, data: { receivedQuantity: null } });
       }
       await tx.deliveryTripOrder.update({ where: { tripId_orderId: { tripId: id, orderId } }, data: { confirmedAt: null, confirmNote: null } });
+      await tx.salesOrderDelivery.deleteMany({ where: { orderId, tripId: id } });
       const cancelled = (await this.afterReceipt(tx, orderId, before, new Date().toISOString().slice(0, 10), user, true)) as string[];
       const voided = cancelled.length ? (await tx.cashVoucher.findMany({ where: { id: { in: cancelled } }, select: { code: true } })).map((v) => v.code) : [];
       const after = (await this.ordersOf(tx, [orderId])).get(orderId)!;
@@ -365,6 +372,15 @@ export class TripsService {
   }
 
   // ---------- helpers ----------
+
+  /** Chốt giao: the tài xế named on the chuyến, or whoever điều phối chuyến (trip.update). */
+  private assertDriver(t: { code: string; driverName: string | null }, user: AuthUser): void {
+    if (user.permissions.includes('trip.update')) return;
+    const same = (a: string, b: string) => a.trim().localeCompare(b.trim(), 'vi', { sensitivity: 'base' }) === 0;
+    if (!t.driverName || !same(t.driverName, user.name)) {
+      throw new ForbiddenException(`Chỉ tài xế của chuyến ${t.code}${t.driverName ? ` (${t.driverName})` : ''} hoặc người điều phối mới chốt giao được.`);
+    }
+  }
 
   /** Lock the trip, check its status, run the change, answer the trip (plus what the change returns). */
   private step<R extends object | void>(id: string, allowed: DeliveryTripStatus[], refusal: string, change: (tx: Tx, t: TripRow) => Promise<R>) {
