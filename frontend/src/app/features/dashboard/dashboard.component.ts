@@ -91,7 +91,8 @@ const WEEKDAY = ['Chủ nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ N�
   standalone: true,
   imports: [RouterLink, AllowedLinkDirective, PeriodFilterComponent, NavIconComponent],
   templateUrl: './dashboard.component.html',
-  styleUrl: './dashboard.component.scss',
+  // Split in four so each stylesheet stays under the component-style budget (angular.json).
+  styleUrls: ['./dashboard.component.scss', './dashboard-hero.scss', './dashboard-charts.scss', './dashboard-areas.scss'],
 })
 export class DashboardComponent {
   readonly money = formatVnd;

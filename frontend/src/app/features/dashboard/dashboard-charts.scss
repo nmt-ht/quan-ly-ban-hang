@@ -1,0 +1,538 @@
+// Tổng quan — daily revenue chart, the 12-month chart and cơ cấu tồn kho.
+
+// ---------- trend ----------
+
+.db-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.db-grid-wide {
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+}
+
+@media (max-width: 900px) {
+  .db-grid,
+  .db-grid-wide {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.db-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.db-block h3 {
+  margin: 0;
+  font-size: var(--text-md);
+}
+
+.db-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+// Small "Xem …" link at the right of a block heading.
+.db-head-link {
+  color: var(--color-accent);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+
+  &::after {
+    content: ' →';
+  }
+
+  &:hover {
+    color: var(--color-accent-hover);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-control);
+  }
+}
+
+// Four plain numbers above the chart, so reading it never depends on hovering a bar.
+.db-stats {
+  display: grid;
+  // As many columns as fit (4 on a wide card, 2 on a narrow one) — a figure is never cut.
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: var(--space-xs) var(--space-sm);
+  margin: 0;
+  padding-bottom: var(--space-xs);
+  border-bottom: var(--rule-hair) solid var(--color-rule);
+
+  div {
+    min-width: 0;
+  }
+
+  dt {
+    font-size: var(--text-xs);
+    color: var(--color-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  dd {
+    margin: 2px 0 0;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-ink);
+    white-space: nowrap;
+  }
+}
+
+// Plot: y labels in a left gutter, gridlines at top / half / 0, bars, x labels.
+.db-plot {
+  --db-gutter: 3rem;
+  --db-plot-h: 11rem;
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--db-gutter) minmax(0, 1fr);
+  grid-template-rows: var(--db-plot-h) auto;
+  margin-top: var(--space-sm);
+  container-type: inline-size;
+}
+
+.db-grid-lines {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  position: relative;
+}
+
+.db-tick {
+  position: absolute;
+  left: var(--db-gutter);
+  right: 0;
+  border-top: var(--rule-hair) solid var(--color-rule);
+
+  span {
+    position: absolute;
+    right: calc(100% + var(--space-2xs));
+    top: 0;
+    transform: translateY(-50%);
+    font-size: var(--text-2xs);
+    color: var(--color-muted);
+    white-space: nowrap;
+  }
+
+  // The 0 line is the baseline the bars stand on.
+  &.is-base {
+    border-top-color: var(--color-rule-strong);
+  }
+}
+
+.db-avg {
+  position: absolute;
+  left: var(--db-gutter);
+  right: 0;
+  border-top: var(--rule-hair) dashed var(--color-ink-2);
+
+  span {
+    position: absolute;
+    right: 0;
+    bottom: 2px;
+    padding: 0 var(--space-3xs);
+    border-radius: var(--radius-control);
+    background: var(--color-surface);
+    font-size: var(--text-2xs);
+    color: var(--color-ink-2);
+    white-space: nowrap;
+  }
+}
+
+.db-bars {
+  grid-column: 2;
+  grid-row: 1;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.db-col {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  border-radius: 3px 3px 0 0;
+}
+
+.db-bar {
+  width: 100%;
+  max-width: 1.75rem;
+  min-height: 2px;
+  border-radius: 3px 3px 0 0;
+  background: var(--color-accent);
+  opacity: 0.85;
+  transition: opacity var(--dur-short) var(--ease-out);
+
+  &.is-peak {
+    opacity: 1;
+  }
+}
+
+// Tooltip: date + amount, shown while the pointer is over the column (the hidden table serves screen readers).
+.db-tip {
+  position: absolute;
+  // Just above the bar (--h = bar height), capped inside the plot so it never covers the numbers above.
+  bottom: min(calc(var(--h, 0%) + var(--space-2xs)), calc(100% - 3.25rem));
+  left: 50%;
+  z-index: 2;
+  display: none;
+  flex-direction: column;
+  gap: 1px;
+  padding: var(--space-2xs) var(--space-xs);
+  border: var(--rule-hair) solid var(--color-rule);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  box-shadow: 0 4px 12px var(--color-shadow);
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+
+  b {
+    font-size: var(--text-sm);
+    color: var(--color-ink);
+  }
+}
+
+.db-col {
+  &.is-start .db-tip {
+    left: 0;
+    transform: none;
+  }
+
+  &.is-end .db-tip {
+    left: auto;
+    right: 0;
+    transform: none;
+  }
+}
+
+@media (hover: hover) {
+  .db-col:hover {
+    background: var(--color-paper-2);
+
+    .db-bar {
+      opacity: 1;
+      background: var(--color-accent-hover);
+    }
+
+    .db-tip {
+      display: flex;
+    }
+  }
+}
+
+.db-axis {
+  grid-column: 2;
+  grid-row: 2;
+  display: flex;
+  gap: 3px;
+  padding-top: var(--space-3xs);
+
+  span {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: visible;
+    font-size: var(--text-2xs);
+    color: var(--color-muted);
+    text-align: center;
+    white-space: nowrap;
+  }
+}
+
+@container (max-width: 28rem) {
+  .db-axis .is-minor {
+    visibility: hidden;
+  }
+}
+
+// ---------- 12 tháng & cơ cấu tồn kho ----------
+
+.db-grid-12 {
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+}
+
+@media (max-width: 900px) {
+  .db-grid-12 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.db-head-legend {
+  flex-wrap: wrap;
+}
+
+.db-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-ink-2);
+  font-size: var(--text-xs);
+
+  li {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3xs);
+  }
+}
+
+.db-key {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border-radius: 2px;
+
+  &.is-s1 { background: var(--chart-1); }
+  &.is-s2 { background: var(--chart-2); }
+
+  &.is-line {
+    height: 2px;
+    width: 14px;
+    border-radius: 1px;
+    background: var(--chart-3);
+  }
+}
+
+.db-combo {
+  margin-top: var(--space-xs);
+}
+
+// Plot leaves room on the left for the tick labels; ticks are hairlines, 0 is a stronger baseline.
+.db-combo-plot {
+  position: relative;
+  height: 15rem;
+  margin-left: 2.75rem;
+}
+
+.db-combo-tick {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: var(--rule-hair) dashed var(--color-rule);
+
+  span {
+    position: absolute;
+    right: calc(100% + var(--space-2xs));
+    top: 0;
+    color: var(--color-muted);
+    font-size: var(--text-2xs, 0.6875rem);
+    transform: translateY(-50%);
+    white-space: nowrap;
+  }
+
+  &.is-base {
+    border-top: var(--rule-hair) solid var(--color-rule-strong);
+  }
+}
+
+.db-combo-cols {
+  position: absolute;
+  inset: 0;
+  display: flex;
+}
+
+.db-combo-col {
+  position: relative;
+  flex: 1;
+  border-radius: var(--radius-control);
+
+  &.is-on {
+    background: color-mix(in oklch, var(--color-ink) 5%, transparent);
+  }
+}
+
+// Bars: thin, 2 px apart, rounded at the data end only.
+.db-combo-bar {
+  position: absolute;
+  width: 24%;
+  border-radius: 4px 4px 0 0;
+
+  &.is-s1 {
+    left: 26%;
+    background: var(--chart-1);
+  }
+
+  &.is-s2 {
+    left: calc(50% + 1px);
+    background: var(--chart-2);
+  }
+}
+
+.db-combo-cols:not(.has-p) .db-combo-bar.is-s1 {
+  left: 30%;
+  width: 40%;
+}
+
+.db-combo-line {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+
+  path {
+    fill: none;
+    stroke: var(--chart-3);
+    stroke-width: 2;
+    stroke-linejoin: round;
+  }
+}
+
+.db-combo-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--chart-3);
+  box-shadow: 0 0 0 2px var(--color-surface);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+
+  &.is-on {
+    width: 11px;
+    height: 11px;
+  }
+}
+
+// Opens down from the top of the plot (above it are the legend and the sticky topbar).
+.db-combo-tip {
+  min-width: 11rem;
+  gap: 3px;
+  transform: translate(-50%, 4px);
+
+  &.is-start {
+    transform: translate(-12%, 4px);
+  }
+
+  &.is-end {
+    transform: translate(-88%, 4px);
+  }
+
+  strong {
+    font-weight: 600;
+  }
+
+  span {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3xs);
+
+    b {
+      margin-left: auto;
+      padding-left: var(--space-xs);
+      color: var(--color-ink);
+      font-weight: 600;
+    }
+  }
+}
+
+.db-combo-axis {
+  display: flex;
+  margin: var(--space-3xs) 0 0 2.75rem;
+  color: var(--color-muted);
+  font-size: var(--text-2xs, 0.6875rem);
+  container-type: inline-size;
+
+  span {
+    flex: 1;
+    text-align: center;
+  }
+}
+
+@container (max-width: 26rem) {
+  .db-combo-axis span.is-minor {
+    visibility: hidden;
+  }
+}
+
+.db-cat-total {
+  display: flex;
+  flex-direction: column;
+  margin: var(--space-2xs) 0 var(--space-sm);
+
+  .num {
+    font-size: var(--text-lg);
+    font-weight: 600;
+  }
+
+  small {
+    color: var(--color-muted);
+    font-size: var(--text-xs);
+  }
+}
+
+.db-cat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-3xs) var(--space-xs);
+  }
+}
+
+.db-cat-name {
+  overflow: hidden;
+  color: var(--color-ink-2);
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.db-cat-figure {
+  color: var(--color-ink);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.db-cat-share {
+  margin-left: var(--space-2xs);
+  color: var(--color-muted);
+  font-weight: 400;
+}
+
+// One hue (magnitude): every group's bar is moss, length = its size against the largest.
+.db-cat-track {
+  grid-column: 1 / -1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-paper-2);
+
+  span {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+    background: var(--chart-1);
+  }
+}
