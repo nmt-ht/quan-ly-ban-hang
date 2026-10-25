@@ -24,6 +24,7 @@ import { DeliveryModule } from './modules/delivery/delivery.module.js';
 import { CashVouchersModule } from './modules/cash/cash-vouchers.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
 import { PricingModule } from './modules/pricing/pricing.module.js';
+import { PlatformModule } from './platform/platform.module.js';
 import { DecimalInterceptor } from './common/decimal.interceptor.js';
 import { PrismaExceptionFilter } from './common/prisma-exception.filter.js';
 
@@ -31,6 +32,8 @@ import { PrismaExceptionFilter } from './common/prisma-exception.filter.js';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    // Nhiều doanh nghiệp: picks each request's database (off unless PLATFORM_DATABASE_URL is set)
+    PlatformModule,
     AuditModule,
     AuthModule,
     // Đợt 1 — danh mục

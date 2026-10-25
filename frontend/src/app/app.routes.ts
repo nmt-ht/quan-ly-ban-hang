@@ -9,6 +9,12 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/login/login.component').then((m) => m.LoginComponent),
   },
   {
+    // Quản trị nền tảng (multi-tenant): the owner's page, its own sign-in, outside every doanh nghiệp.
+    path: 'quan-tri-nen-tang',
+    title: 'Quản trị nền tảng',
+    loadComponent: () => import('./features/platform/platform.component').then((m) => m.PlatformComponent),
+  },
+  {
     path: 'doi-mat-khau',
     canActivate: [signedInGuard],
     loadComponent: () => import('./features/auth/change-password/change-password.component').then((m) => m.ChangePasswordComponent),

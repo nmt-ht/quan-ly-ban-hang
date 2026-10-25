@@ -1,5 +1,5 @@
-import { ErrorHandler, Injectable } from '@angular/core';
-import { API_BASE } from '../api/api.config';
+import { ErrorHandler, Injectable, inject } from '@angular/core';
+import { ClientConfigService } from './client-config.service';
 
 type SentryBrowser = typeof import('@sentry/browser');
 
@@ -9,14 +9,13 @@ type SentryBrowser = typeof import('@sentry/browser');
  */
 @Injectable({ providedIn: 'root' })
 export class MonitoringService {
+  private readonly config = inject(ClientConfigService);
   private sentry: SentryBrowser | null = null;
 
   /** Not awaited at start-up: errors before it finishes still reach the console. */
   async start(): Promise<void> {
     try {
-      const res = await fetch(`${API_BASE}/client-config`);
-      if (!res.ok) return;
-      const cfg = (await res.json()) as { sentryDsn: string | null; release: string | null; environment: string };
+      const cfg = await this.config.load();
       if (!cfg.sentryDsn) return;
       const sentry = await import('@sentry/browser');
       sentry.init({ dsn: cfg.sentryDsn, release: cfg.release ?? undefined, environment: cfg.environment, tracesSampleRate: 0 });

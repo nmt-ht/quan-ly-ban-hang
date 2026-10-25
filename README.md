@@ -15,10 +15,11 @@ Phần mềm quản lý bán hàng, kho, sản xuất, giao hàng, công nợ v�
 3. [Chạy trên máy](#chạy-trên-máy)
 4. [Quy trình làm việc với mã nguồn](#quy-trình-làm-việc-với-mã-nguồn)
 5. [Triển khai](#triển-khai-render--neon)
-6. [Vận hành](#vận-hành)
-7. [Quy ước bắt buộc khi sửa mã](#quy-ước-bắt-buộc-khi-sửa-mã)
-8. [Ghi chú kỹ thuật theo phân hệ](#ghi-chú-kỹ-thuật-theo-phân-hệ)
-9. [Chưa làm](#chưa-làm)
+6. [Nhiều doanh nghiệp](#nhiều-doanh-nghiệp)
+7. [Vận hành](#vận-hành)
+8. [Quy ước bắt buộc khi sửa mã](#quy-ước-bắt-buộc-khi-sửa-mã)
+9. [Ghi chú kỹ thuật theo phân hệ](#ghi-chú-kỹ-thuật-theo-phân-hệ)
+10. [Chưa làm](#chưa-làm)
 
 ## Quy trình nghiệp vụ chính
 
@@ -153,7 +154,7 @@ Một web service trên Render build giao diện Angular rồi phục vụ nó t
 
 1. **Neon:** tạo project (vùng Singapore), chép chuỗi kết nối **trực tiếp** (`…neon.tech/neondb?sslmode=require`).
 2. **Render:** New › Blueprint › chọn repository này (đọc `render.yaml`), rồi điền các biến môi trường dưới đây.
-3. **Mỗi lần khởi động** chạy `npm run start:render`: `prisma migrate deploy`, rồi `prisma/bootstrap.ts` seed nếu DB chưa có người dùng nào, rồi chạy app với `NODE_ENV=production`.
+3. **Mỗi lần khởi động** chạy `npm run start:render`: `prisma migrate deploy`, rồi `prisma/bootstrap.ts` seed nếu DB chưa có người dùng nào, rồi `prisma/migrate-tenants.ts` (chỉ khi bật [nhiều doanh nghiệp](#nhiều-doanh-nghiệp)), rồi chạy app với `NODE_ENV=production`.
 
 | Biến | Bắt buộc | Ý nghĩa |
 |---|---|---|
@@ -166,6 +167,44 @@ Một web service trên Render build giao diện Angular rồi phục vụ nó t
 | `LOGIN_LIMIT_IP`, `LOGIN_LIMIT_ACCOUNT` | không | Giới hạn số lần thử đăng nhập |
 
 Gói miễn phí của Render ngủ sau 15 phút không có truy cập; lần truy cập đầu tiên sau đó chờ khoảng một phút.
+
+## Nhiều doanh nghiệp
+
+Một bản triển khai phục vụ được nhiều doanh nghiệp, **mỗi doanh nghiệp một cơ sở dữ liệu riêng** trên cùng máy chủ Neon. Chỉ chủ nền tảng tạo và quản lý doanh nghiệp, ở trang `/quan-tri-nen-tang`. Không đặt `PLATFORM_DATABASE_URL` thì app vẫn là bản một doanh nghiệp như trước.
+
+```mermaid
+flowchart LR
+  U[Người dùng] -->|Mã doanh nghiệp + email + mật khẩu| API[/api, header X-Tenant/]
+  API --> M{TenantMiddleware}
+  M -->|ninhtrang| DB1[(DATABASE_URL)]
+  M -->|hoa-mai| DB2[(nt_hoa_mai)]
+  O[Chủ nền tảng] -->|mật khẩu + mã TOTP| P[/api/platform/]
+  P --> PDB[(platform: danh sách doanh nghiệp, nhật ký)]
+```
+
+**Bật lên** (thêm biến trên Render rồi deploy lại):
+
+| Biến | Ý nghĩa |
+|---|---|
+| `PLATFORM_DATABASE_URL` | Chuỗi kết nối **trực tiếp** tới database quản lý, cùng máy chủ Neon, ví dụ đổi `/neondb` thành `/platform`. Chưa có thì app tự tạo. Người dùng của chuỗi này cần quyền tạo database (vai trò mặc định của Neon có quyền này). |
+| `PLATFORM_SECRET` | Chuỗi ngẫu nhiên từ 32 ký tự: ký phiên quản trị nền tảng và mã hoá chuỗi kết nối của từng doanh nghiệp. Đổi giá trị này là mất khả năng đọc các chuỗi kết nối đã lưu. |
+| `PLATFORM_OWNER_EMAIL`, `PLATFORM_OWNER_PASSWORD` | Tài khoản chủ nền tảng (mật khẩu từ 12 ký tự). Không lưu trong database nào. |
+| `DEFAULT_TENANT_CODE` | Mã của doanh nghiệp đang dùng `DATABASE_URL`, mặc định `ninhtrang`. |
+| `PLATFORM_TOTP_RESET` | `true` một lần để xoá mã xác thực khi mất điện thoại; đăng ký lại xong thì bỏ biến này. |
+| `TENANT_POOL_MAX` | Số kết nối tối đa mỗi doanh nghiệp, mặc định 3. |
+
+**Lần khởi động đầu** ở chế độ này, doanh nghiệp đang dùng `DATABASE_URL` được ghi thành doanh nghiệp đầu tiên (mã `ninhtrang`): dữ liệu không đổi, người dùng chỉ cần nhập thêm mã doanh nghiệp một lần (trình duyệt nhớ cho lần sau). Phiên đăng nhập cũ hết hiệu lực, mọi người đăng nhập lại.
+
+**Quản trị nền tảng** (`/quan-tri-nen-tang`):
+
+1. Đăng nhập bằng email + mật khẩu chủ nền tảng. Lần đầu trang hiện mã QR: quét bằng Google Authenticator / Microsoft Authenticator / 1Password rồi nhập mã 6 số. Từ đó mỗi lần đăng nhập cần mã 6 số; mã đã dùng không dùng lại được.
+2. **Thêm doanh nghiệp:** tên, mã (người dùng nhập khi đăng nhập, không đổi được), email quản trị. App tạo database `nt_<mã>`, chạy migration, nạp danh mục ban đầu (quyền, chức vụ, danh mục thu chi, một "Kho chính", quỹ tiền mặt và ngân hàng) và tài khoản quản trị chức vụ CEO. Mật khẩu tạm hiện **một lần** kèm đường dẫn `…/login?dn=<mã>`; người quản trị phải đổi mật khẩu ở lần đăng nhập đầu. Có thể chọn nạp dữ liệu mẫu (cho doanh nghiệp dùng thử) hoặc dùng một database có sẵn (dán chuỗi kết nối, được mã hoá khi lưu).
+3. **Tạm ngưng / Mở lại:** tạm ngưng chặn ngay mọi đăng nhập và thao tác của doanh nghiệp đó, dữ liệu giữ nguyên. Không có nút xoá doanh nghiệp: xoá database là việc làm tay trên Neon.
+4. **Cấp lại mật khẩu** cho tài khoản quản trị (hoặc email khác) của doanh nghiệp: mật khẩu tạm mới, các phiên cũ kết thúc, ghi vào Nhật ký hoạt động của doanh nghiệp đó với người thực hiện "Quản trị nền tảng".
+5. **Cập nhật cấu trúc dữ liệu:** mỗi lần khởi động, `prisma/migrate-tenants.ts` chạy migration cho mọi doanh nghiệp; doanh nghiệp nào lỗi hiện trên trang kèm lỗi, bấm cập nhật lại sau khi sửa.
+6. **Nhật ký nền tảng:** mọi lần đăng nhập (cả thất bại) và mọi thao tác trên doanh nghiệp, chỉ ghi thêm, không sửa xoá được.
+
+**Cách ly:** mỗi yêu cầu chạy với database của doanh nghiệp ghi trong header `X-Tenant`; token đăng nhập mang mã doanh nghiệp (`tid`) và bị từ chối nếu dùng cho doanh nghiệp khác; phiên quản trị nền tảng ký bằng khoá riêng nên không vào được API doanh nghiệp, và ngược lại. Mã nguồn: [`backend/src/platform`](backend/src/platform), test: [`backend/test/platform.e2e-spec.ts`](backend/test/platform.e2e-spec.ts) (cần Postgres cho phép tạo database; với `prisma dev` file này tự bỏ qua).
 
 ## Vận hành
 

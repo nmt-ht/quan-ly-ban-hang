@@ -1,0 +1,291 @@
+<div class="pf-screen">
+  <header class="pf-bar">
+    <div class="pf-title">
+      <span class="pf-mark" aria-hidden="true">NT</span>
+      <h1>Quản trị nền tảng</h1>
+    </div>
+    @if (api.token() && mode()?.multiTenant) {
+      <button type="button" class="btn" (click)="signOut()">Đăng xuất</button>
+    }
+  </header>
+
+  @if (loadError()) {
+    <p class="notice is-error" role="alert">{{ loadError() }}</p>
+  } @else if (!mode()) {
+    <p class="pf-muted" role="status">Đang tải…</p>
+  } @else if (!mode()!.multiTenant) {
+    <section class="card pf-narrow">
+      <h2>Chưa bật chế độ nhiều doanh nghiệp</h2>
+      <p>Máy chủ đang chạy cho một doanh nghiệp. Để quản lý nhiều doanh nghiệp, mỗi doanh nghiệp một cơ sở dữ liệu, đặt các biến môi trường sau trên máy chủ rồi khởi động lại:</p>
+      <dl class="pf-env">
+        <dt><code>PLATFORM_DATABASE_URL</code></dt><dd>chuỗi kết nối tới database quản lý danh sách doanh nghiệp (cùng máy chủ Neon, ví dụ database <code>platform</code>; chưa có sẽ tự tạo)</dd>
+        <dt><code>PLATFORM_SECRET</code></dt><dd>chuỗi ngẫu nhiên từ 32 ký tự, dùng ký phiên và mã hoá chuỗi kết nối</dd>
+        <dt><code>PLATFORM_OWNER_EMAIL</code>, <code>PLATFORM_OWNER_PASSWORD</code></dt><dd>tài khoản của bạn (mật khẩu từ 12 ký tự)</dd>
+      </dl>
+      <p class="pf-muted">Doanh nghiệp đang dùng (DATABASE_URL) tự trở thành doanh nghiệp đầu tiên, mã <code>ninhtrang</code>.</p>
+    </section>
+  } @else if (!mode()!.ownerConfigured) {
+    <section class="card pf-narrow">
+      <h2>Chưa có tài khoản chủ nền tảng</h2>
+      <p>Đặt <code>PLATFORM_OWNER_EMAIL</code> và <code>PLATFORM_OWNER_PASSWORD</code> (từ 12 ký tự) trên máy chủ rồi khởi động lại.</p>
+    </section>
+  } @else if (!api.token()) {
+    <form class="card pf-login" (ngSubmit)="signIn()">
+      @switch (step()) {
+        @case ('password') {
+          <h2>Đăng nhập</h2>
+          <p class="pf-muted">Chỉ chủ nền tảng. Mọi lần đăng nhập đều được ghi nhật ký.</p>
+          <div class="field">
+            <label for="pf-email">Email</label>
+            <input id="pf-email" type="email" name="email" [(ngModel)]="email" required autocomplete="username" autofocus />
+          </div>
+          <div class="field">
+            <label for="pf-password">Mật khẩu</label>
+            <input id="pf-password" type="password" name="password" [(ngModel)]="password" required autocomplete="current-password" />
+          </div>
+        }
+        @case ('enroll') {
+          <h2>Đăng ký ứng dụng xác thực</h2>
+          <p>Lần đầu đăng nhập: mở Google Authenticator, Microsoft Authenticator hoặc 1Password, quét mã dưới đây rồi nhập mã 6 số ứng dụng hiện ra.</p>
+          @if (enroll(); as e) {
+            <figure class="pf-qr">
+              <img [src]="e.qr" width="200" height="200" alt="Mã QR đăng ký ứng dụng xác thực" />
+              <figcaption>
+                Không quét được? Nhập khoá:
+                <span class="mono pf-secret">{{ e.secret }}</span>
+                <app-copy-button [text]="e.secret" label="khoá xác thực" />
+              </figcaption>
+            </figure>
+          }
+        }
+        @case ('totp') {
+          <h2>Mã xác thực</h2>
+          <p class="pf-muted">Nhập mã 6 số đang hiện trong ứng dụng xác thực của bạn.</p>
+        }
+      }
+      @if (step() !== 'password') {
+        <div class="field">
+          <label for="pf-code">Mã 6 số</label>
+          <input id="pf-code" name="code" [(ngModel)]="code" required inputmode="numeric" autocomplete="one-time-code" maxlength="7" class="mono pf-code" autofocus />
+        </div>
+      }
+      @if (loginError()) {
+        <p class="pf-error" role="alert">{{ loginError() }}</p>
+      }
+      <div class="pf-login-actions">
+        <button class="btn btn-primary" type="submit" [disabled]="signingIn()" [attr.aria-busy]="signingIn()">
+          {{ signingIn() ? 'Đang kiểm tra…' : step() === 'password' ? 'Tiếp tục' : 'Đăng nhập' }}
+        </button>
+        @if (step() !== 'password') {
+          <button class="link-btn" type="button" (click)="backToPassword()">Nhập lại mật khẩu</button>
+        }
+      </div>
+    </form>
+  } @else {
+    <main class="pf-main">
+      <section class="pf-summary" aria-label="Tổng quan">
+        <div><span class="num">{{ tenants().length }}</span> doanh nghiệp</div>
+        <div><span class="num">{{ counts().active }}</span> đang hoạt động</div>
+        @if (counts().suspended) { <div><span class="num">{{ counts().suspended }}</span> tạm ngưng</div> }
+        @if (counts().failed) { <div class="text-danger"><span class="num">{{ counts().failed }}</span> tạo lỗi</div> }
+        <div class="pf-version">
+          Cấu trúc dữ liệu mới nhất <span class="mono">{{ latestMigration() ?? '—' }}</span>
+          @if (counts().behind) {
+            <button type="button" class="btn" (click)="migrateAll()" [disabled]="!!busy()">
+              {{ busy() === 'all' ? 'Đang cập nhật…' : 'Cập nhật ' + counts().behind + ' doanh nghiệp' }}
+            </button>
+          }
+        </div>
+      </section>
+
+      @if (notice(); as n) {
+        <p class="notice" [class.is-error]="n.error" [attr.role]="n.error ? 'alert' : 'status'">
+          <span>{{ n.text }}</span>
+          <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set(null)">×</button>
+        </p>
+      }
+
+      @if (handover(); as h) {
+        <section class="card pf-handover" aria-live="polite">
+          <h2>{{ h.title }}</h2>
+          <p>Gửi cho người quản trị của doanh nghiệp. Mật khẩu chỉ hiện một lần; lần đăng nhập đầu họ phải đổi mật khẩu.</p>
+          <dl>
+            <dt>Đường dẫn</dt><dd><span class="mono">{{ loginLink(h.tenant) }}</span> <app-copy-button [text]="loginLink(h.tenant)" label="đường dẫn" /></dd>
+            <dt>Mã doanh nghiệp</dt><dd><span class="mono">{{ h.tenant }}</span> <app-copy-button [text]="h.tenant" label="mã doanh nghiệp" /></dd>
+            <dt>Email</dt><dd><span class="mono">{{ h.email }}</span> <app-copy-button [text]="h.email" label="email" /></dd>
+            <dt>Mật khẩu tạm</dt><dd><span class="mono pf-secret">{{ h.password }}</span> <app-copy-button [text]="h.password" label="mật khẩu" /></dd>
+          </dl>
+          <button type="button" class="btn" (click)="handover.set(null)">Đã gửi, ẩn đi</button>
+        </section>
+      }
+
+      <div class="pf-head">
+        <h2>Doanh nghiệp</h2>
+        @if (!creating()) {
+          <button type="button" class="btn btn-primary" (click)="openCreate()">Thêm doanh nghiệp</button>
+        }
+      </div>
+
+      @if (creating()) {
+        <form class="card pf-create" (ngSubmit)="create()">
+          <h3>Thêm doanh nghiệp</h3>
+          <p class="pf-muted">Tạo một cơ sở dữ liệu riêng trên cùng máy chủ, dựng cấu trúc, nạp danh mục ban đầu và tài khoản quản trị (chức vụ CEO). Mất khoảng nửa phút.</p>
+          <div class="pf-grid">
+            <div class="field">
+              <label for="nt-name">Tên doanh nghiệp <span class="required-mark">*</span></label>
+              <input id="nt-name" name="name" [(ngModel)]="form.name" (blur)="suggestCode()" required maxlength="200" autofocus />
+            </div>
+            <div class="field">
+              <label for="nt-code">Mã doanh nghiệp <span class="required-mark">*</span></label>
+              <input id="nt-code" name="code" [(ngModel)]="form.code" required maxlength="30" class="mono" autocapitalize="none" spellcheck="false" aria-describedby="nt-code-hint" />
+              <small class="hint" id="nt-code-hint">Người dùng nhập mã này khi đăng nhập. Chữ thường không dấu, số, gạch ngang; không đổi được về sau.</small>
+            </div>
+            <div class="field">
+              <label for="nt-email">Email quản trị <span class="required-mark">*</span></label>
+              <input id="nt-email" type="email" name="adminEmail" [(ngModel)]="form.adminEmail" required autocomplete="off" />
+            </div>
+            <div class="field">
+              <label for="nt-password">Mật khẩu ban đầu</label>
+              <input id="nt-password" name="adminPassword" [(ngModel)]="form.adminPassword" autocomplete="new-password" aria-describedby="nt-password-hint" />
+              <small class="hint" id="nt-password-hint">Để trống để hệ thống tự tạo. Từ 8 ký tự, có chữ và số.</small>
+            </div>
+          </div>
+          <label class="check-line">
+            <input type="checkbox" name="demo" [(ngModel)]="form.demo" />
+            <span>Nạp dữ liệu mẫu (khách hàng, hàng hoá, đơn hàng của Ninh Trang) — chỉ cho doanh nghiệp dùng thử</span>
+          </label>
+          <details class="pf-advanced">
+            <summary>Dùng cơ sở dữ liệu có sẵn</summary>
+            <div class="field">
+              <label for="nt-url">Chuỗi kết nối PostgreSQL</label>
+              <input id="nt-url" name="databaseUrl" [(ngModel)]="form.databaseUrl" class="mono" placeholder="postgresql://…" autocomplete="off" spellcheck="false" aria-describedby="nt-url-hint" />
+              <small class="hint" id="nt-url-hint">Để trống để tạo database mới <span class="mono">nt_{{ form.code || 'mã' }}</span>. Chuỗi kết nối được mã hoá khi lưu.</small>
+            </div>
+          </details>
+          @if (formError()) {
+            <p class="pf-error" role="alert">{{ formError() }}</p>
+          }
+          <div class="pf-form-actions">
+            <button type="submit" class="btn btn-primary" [disabled]="busy() === 'create'">{{ busy() === 'create' ? 'Đang gửi…' : 'Tạo doanh nghiệp' }}</button>
+            <button type="button" class="btn" (click)="creating.set(false)">Huỷ</button>
+          </div>
+        </form>
+      }
+
+      <div class="card pf-table">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Doanh nghiệp</th>
+                <th scope="col">Trạng thái</th>
+                <th scope="col">Quản trị</th>
+                <th scope="col">Cơ sở dữ liệu</th>
+                <th scope="col">Tạo lúc</th>
+                <th scope="col"><span class="visually-hidden">Thao tác</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (t of tenants(); track t.code) {
+                <tr [attr.aria-busy]="busy() === t.code">
+                  <td>
+                    @if (renaming() === t.code) {
+                      <form class="pf-inline" (ngSubmit)="saveRename(t)">
+                        <label class="visually-hidden" [for]="'rn-' + t.code">Tên mới của {{ t.code }}</label>
+                        <input [id]="'rn-' + t.code" name="rename" [(ngModel)]="renameValue" required maxlength="200" autofocus />
+                        <button type="submit" class="btn btn-primary" [disabled]="busy() === t.code">Lưu</button>
+                        <button type="button" class="btn" (click)="renaming.set(null)">Huỷ</button>
+                      </form>
+                    } @else {
+                      <strong>{{ t.name }}</strong>
+                    }
+                    <div class="pf-sub"><span class="mono">{{ t.code }}</span></div>
+                  </td>
+                  <td>
+                    <span class="badge" [class]="statusOf(t.status).tone">{{ statusOf(t.status).label }}</span>
+                    @if (t.needsMigration) { <div class="pf-sub text-warning">Cần cập nhật cấu trúc</div> }
+                  </td>
+                  <td>
+                    @if (resetting() === t.code) {
+                      <form class="pf-inline" (ngSubmit)="saveReset(t)">
+                        <label class="visually-hidden" [for]="'rs-' + t.code">Email tài khoản cần cấp lại mật khẩu</label>
+                        <input [id]="'rs-' + t.code" type="email" name="resetEmail" [(ngModel)]="resetEmail" required autofocus />
+                        <button type="submit" class="btn btn-primary" [disabled]="busy() === t.code">Cấp mật khẩu tạm</button>
+                        <button type="button" class="btn" (click)="resetting.set(null)">Huỷ</button>
+                      </form>
+                    } @else {
+                      {{ t.adminEmail ?? '—' }}
+                    }
+                  </td>
+                  <td>
+                    <span class="mono">{{ t.database }}</span>
+                    <div class="pf-sub">{{ t.managed ? 'Tạo bởi nền tảng' : 'Có sẵn' }}@if (t.migratedAt) {, cập nhật {{ t.migratedAt | date: 'dd/MM/yyyy HH:mm' }}}</div>
+                  </td>
+                  <td class="num">{{ t.createdAt | date: 'dd/MM/yyyy' }}</td>
+                  <td class="pf-actions">
+                    @switch (t.status) {
+                      @case ('PROVISIONING') { <span class="pf-muted" role="status">Đang tạo…</span> }
+                      @case ('FAILED') {
+                        <button type="button" class="btn" (click)="retry(t)" [disabled]="!!busy()">Chạy lại</button>
+                      }
+                      @default {
+                        <button type="button" class="btn" (click)="toggle(t)" [disabled]="!!busy()">{{ t.status === 'ACTIVE' ? 'Tạm ngưng' : 'Mở lại' }}</button>
+                        <details class="pf-more">
+                          <summary class="btn">Khác</summary>
+                          <div class="pf-more-panel">
+                            <button type="button" class="link-btn" (click)="startRename(t)">Đổi tên</button>
+                            <button type="button" class="link-btn" (click)="startReset(t)">Cấp lại mật khẩu</button>
+                            <button type="button" class="link-btn" (click)="migrate(t)" [disabled]="!!busy()">Cập nhật cấu trúc dữ liệu</button>
+                            <app-copy-button [text]="loginLink(t.code)" label="đường dẫn đăng nhập" />
+                          </div>
+                        </details>
+                      }
+                    }
+                  </td>
+                </tr>
+                @if (t.lastError) {
+                  <tr class="pf-error-row">
+                    <td colspan="6">
+                      <details>
+                        <summary>Lỗi gần nhất</summary>
+                        <pre class="mono">{{ t.lastError }}</pre>
+                      </details>
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="pf-head">
+        <h2>Nhật ký nền tảng</h2>
+        <button type="button" class="btn" (click)="toggleAudit()" [attr.aria-expanded]="!!audit()">{{ audit() ? 'Ẩn' : 'Xem' }}</button>
+      </div>
+      @if (audit(); as rows) {
+        <div class="card pf-table">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr><th scope="col">Thời gian</th><th scope="col">Doanh nghiệp</th><th scope="col">Nội dung</th><th scope="col">IP</th></tr>
+              </thead>
+              <tbody>
+                @for (r of rows; track r.id) {
+                  <tr>
+                    <td class="num">{{ r.at | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
+                    <td class="mono">{{ r.tenantCode ?? '—' }}</td>
+                    <td [class.text-danger]="r.action.endsWith('failed')">{{ r.summary }}</td>
+                    <td class="mono">{{ r.ip ?? '—' }}</td>
+                  </tr>
+                } @empty {
+                  <tr><td colspan="4" class="pf-muted">Chưa có dòng nào.</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+    </main>
+  }
+</div>

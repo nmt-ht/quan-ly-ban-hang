@@ -1,6 +1,7 @@
 import { DOCUMENT, Injectable, computed, effect, inject, signal } from '@angular/core';
 import { CatalogLoader } from '../api/catalog-loader.service';
 import { DataStore } from './data-store.service';
+import { TenantService } from './tenant.service';
 import { squareIcon, trimLogo } from '../../shared/company-letterhead/logo-image';
 
 const FALLBACK = 'Ninh Trang';
@@ -20,14 +21,17 @@ export function monogram(name: string): string {
   return name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0].toLocaleUpperCase('vi')).join('') || 'NT';
 }
 
-interface Cached { fullName: string; icon: string | null }
+/** `tenant`: the mã doanh nghiệp the brand belongs to (multi-tenant mode), '' otherwise. */
+interface Cached { fullName: string; icon: string | null; tenant: string }
 
 function readCache(): Cached {
   try {
     const raw = JSON.parse(localStorage.getItem(CACHE_KEY) ?? 'null');
-    if (raw && typeof raw.fullName === 'string') return { fullName: raw.fullName, icon: typeof raw.icon === 'string' ? raw.icon : null };
+    if (raw && typeof raw.fullName === 'string') {
+      return { fullName: raw.fullName, icon: typeof raw.icon === 'string' ? raw.icon : null, tenant: typeof raw.tenant === 'string' ? raw.tenant : '' };
+    }
   } catch { /* storage blocked: fall back to the defaults */ }
-  return { fullName: '', icon: null };
+  return { fullName: '', icon: null, tenant: '' };
 }
 
 /**
@@ -41,6 +45,9 @@ export class BrandService {
   private readonly catalog = inject(CatalogLoader);
   private readonly doc = inject(DOCUMENT);
   private readonly cached = readCache();
+  private readonly tenants = inject(TenantService);
+  /** Which doanh nghiệp the remembered brand is of: the login screen shows it only for that mã. */
+  readonly cachedTenant = this.cached.tenant;
 
   /** Until the catalog is read, the company signal is still empty: keep the remembered brand meanwhile. */
   private readonly loaded = computed(() => this.catalog.status() === 'ready');
@@ -84,7 +91,7 @@ export class BrandService {
       if (!this.loaded()) return;
       try {
         // name / monogram: what the boot splash in index.html shows before the app has started.
-        localStorage.setItem(CACHE_KEY, JSON.stringify({ fullName: this.fullName(), icon: this.icon(), name: this.name(), monogram: this.monogram() }));
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ fullName: this.fullName(), icon: this.icon(), name: this.name(), monogram: this.monogram(), tenant: this.tenants.code() }));
       } catch { /* storage blocked: nothing to remember */ }
     });
   }

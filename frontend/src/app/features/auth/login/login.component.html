@@ -1,12 +1,26 @@
 <div class="login-screen">
   <form class="login-card" (ngSubmit)="submit()">
     <div class="brand">
-      <span class="brand-mark" aria-hidden="true">{{ brand.monogram() }}</span>
-      <span>{{ brand.name() }}</span>
+      @if (knownBrand()) {
+        <span class="brand-mark" aria-hidden="true">{{ brand.monogram() }}</span>
+        <span>{{ brand.name() }}</span>
+      } @else {
+        <span>Đăng nhập</span>
+      }
     </div>
     <p class="subtitle">Đăng nhập để tiếp tục</p>
-    @if (expired && !error()) {
+    @if (suspended && !error()) {
+      <p class="session-note" role="status">Doanh nghiệp đang tạm ngưng sử dụng. Vui lòng liên hệ đơn vị cung cấp phần mềm.</p>
+    } @else if (expired && !error()) {
       <p class="session-note" role="status">Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.</p>
+    }
+
+    @if (multiTenant()) {
+      <div class="field">
+        <label for="login-tenant">Mã doanh nghiệp <span class="required-mark">*</span></label>
+        <input id="login-tenant" name="tenant" [(ngModel)]="tenant" required autocomplete="organization" autocapitalize="none" spellcheck="false" [attr.aria-invalid]="error() ? 'true' : null" aria-describedby="login-tenant-hint" />
+        <small class="hint" id="login-tenant-hint">Trình duyệt này sẽ nhớ mã cho lần sau.</small>
+      </div>
     }
 
     <div class="field">

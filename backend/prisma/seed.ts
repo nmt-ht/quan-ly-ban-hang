@@ -227,6 +227,14 @@ const CASH_CATEGORIES = [
   { code: 'CHI_KHAC', name: 'Chi khác', kind: 'CHI', partnerType: 'KHAC', isDefault: false, sortOrder: 3 },
 ] as const;
 
+// Một doanh nghiệp mới tạo từ Quản trị nền tảng (src/platform/tenants.service.ts) passes:
+//   SEED_PROFILE=tenant   one "Kho chính", no product groups (default "sample": Ninh Trang's warehouses and groups)
+//   SEED_COMPANY_NAME     the company name on the documents (default "Công ty Ninh Trang")
+//   SEED_ADMIN_EMAIL      the first CEO account (default admin@ninhtrang.local)
+//   SEED_ADMIN_NAME       its display name
+const PROFILE = process.env.SEED_PROFILE === 'tenant' ? 'tenant' : 'sample';
+const ADMIN_EMAIL = (process.env.SEED_ADMIN_EMAIL || 'admin@ninhtrang.local').trim().toLowerCase();
+
 async function main() {
   for (const module of PERMISSION_MODULES) {
     for (const perm of module.permissions) {
@@ -258,9 +266,43 @@ async function main() {
   await prisma.companyInfo.upsert({
     where: { id: 1 },
     update: {},
-    create: { id: 1, name: 'Công ty Ninh Trang' },
+    create: { id: 1, name: process.env.SEED_COMPANY_NAME?.trim() || 'Công ty Ninh Trang' },
   });
 
+  if (PROFILE === 'tenant') {
+    await prisma.warehouse.upsert({ where: { id: 'wh-main' }, update: {}, create: { id: 'wh-main', code: 'KHO0000001', name: 'Kho chính' } });
+  } else {
+    await sampleCatalog();
+  }
+
+  const cashAccounts = [
+    { id: 'acc-cash', name: 'Quỹ tiền mặt', type: 'TIEN_MAT' as const, code: 'TM', isDefault: true, sortOrder: 0 },
+    { id: 'acc-bank', name: 'Tài khoản ngân hàng', type: 'NGAN_HANG' as const, sortOrder: 1 },
+  ];
+  for (const a of cashAccounts) await prisma.cashAccount.upsert({ where: { id: a.id }, update: {}, create: a });
+
+  const adminPasswordPlaceholder = process.env.SEED_ADMIN_PASSWORD ?? 'ChangeMe123!';
+  const passwordHash = await bcrypt.hash(adminPasswordPlaceholder, 10);
+  await prisma.user.upsert({
+    where: { email: ADMIN_EMAIL },
+    update: {},
+    create: {
+      id: 'user-admin', // same id as the frontend demo
+      name: process.env.SEED_ADMIN_NAME?.trim() || 'Quản trị hệ thống',
+      email: ADMIN_EMAIL,
+      passwordHash,
+      roleId: 'role-ceo',
+      status: 'ACTIVE',
+      // A doanh nghiệp's first admin gets a password from the platform owner: they choose their own.
+      mustChangePassword: PROFILE === 'tenant',
+    },
+  });
+
+  console.log(`Seed complete. Admin login: ${ADMIN_EMAIL} / (see SEED_ADMIN_PASSWORD or default placeholder — rotate immediately).`);
+}
+
+/** Ninh Trang's own warehouses and product groups, which the demo data refers to. */
+async function sampleCatalog() {
   // Stable ids, the same as the frontend demo (wh-…, cat-…, acc-…), so data that refers to them lines up.
   const warehouses = [
     { id: 'wh-ninhtrang', code: 'KHO0000001', name: 'Kho Ninh Trang' },
@@ -276,29 +318,6 @@ async function main() {
     { id: 'cat-pk', name: 'Phụ kiện' }, { id: 'cat-tp', name: 'TP' },
   ];
   for (const c of categories) await prisma.productCategory.upsert({ where: { id: c.id }, update: {}, create: c });
-
-  const cashAccounts = [
-    { id: 'acc-cash', name: 'Quỹ tiền mặt', type: 'TIEN_MAT' as const, code: 'TM', isDefault: true, sortOrder: 0 },
-    { id: 'acc-bank', name: 'Tài khoản ngân hàng', type: 'NGAN_HANG' as const, sortOrder: 1 },
-  ];
-  for (const a of cashAccounts) await prisma.cashAccount.upsert({ where: { id: a.id }, update: {}, create: a });
-
-  const adminPasswordPlaceholder = process.env.SEED_ADMIN_PASSWORD ?? 'ChangeMe123!';
-  const passwordHash = await bcrypt.hash(adminPasswordPlaceholder, 10);
-  await prisma.user.upsert({
-    where: { email: 'admin@ninhtrang.local' },
-    update: {},
-    create: {
-      id: 'user-admin', // same id as the frontend demo
-      name: 'Quản trị hệ thống',
-      email: 'admin@ninhtrang.local',
-      passwordHash,
-      roleId: 'role-ceo',
-      status: 'ACTIVE',
-    },
-  });
-
-  console.log('Seed complete. Admin login: admin@ninhtrang.local / (see SEED_ADMIN_PASSWORD or default placeholder — rotate immediately).');
 }
 
 main()

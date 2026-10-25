@@ -4,6 +4,7 @@ import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { checkPassword } from '../common/password.js';
+import { currentTenantCode } from '../platform/tenant.context.js';
 
 /** The signed-in user as every request sees it (`req.user`) and as /auth/me returns it. */
 export interface AuthUser {
@@ -20,6 +21,8 @@ export interface AuthUser {
 // request, so locking an account or editing a role in Chức vụ & phân quyền applies at once.
 export interface JwtPayload {
   sub: string;
+  /** Mã doanh nghiệp the token was issued for (multi-tenant mode only); JwtStrategy compares it with X-Tenant. */
+  tid?: string;
   iat?: number; // seconds, set by jsonwebtoken
 }
 
@@ -55,7 +58,7 @@ export class AuthService {
         summary: `Đăng nhập (${user.roleName})`, actor: { id: user.id, name: user.name },
       });
     });
-    const payload: JwtPayload = { sub: user.id };
+    const payload: JwtPayload = { sub: user.id, tid: currentTenantCode() };
     return { accessToken: await this.jwt.signAsync(payload), user };
   }
 
@@ -81,7 +84,7 @@ export class AuthService {
     });
     const user = await this.loadUser(id);
     if (!user) throw new UnauthorizedException('Phiên đăng nhập không còn hiệu lực');
-    const payload: JwtPayload = { sub: id };
+    const payload: JwtPayload = { sub: id, tid: currentTenantCode() };
     return { accessToken: await this.jwt.signAsync(payload), user };
   }
 

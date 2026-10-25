@@ -31,6 +31,18 @@ services:
       # Password of the demo accounts (quan.ly@, ke.toan@, sale1@, thu.kho@ …ninhtrang.local), ≥ 8 characters.
       - key: DEMO_USER_PASSWORD
         sync: false
+      # Nhiều doanh nghiệp (optional, README › Nhiều doanh nghiệp): leave PLATFORM_DATABASE_URL empty to stay single-company.
+      # Neon direct connection string to the platform database on the same server, e.g. …neon.tech/platform?sslmode=require
+      - key: PLATFORM_DATABASE_URL
+        sync: false
+      # ≥ 32 random characters; signs the owner's sessions and encrypts each company's connection string. Never change it.
+      - key: PLATFORM_SECRET
+        generateValue: true
+      # The owner's sign-in for /quan-tri-nen-tang (password ≥ 12 characters), plus an authenticator code.
+      - key: PLATFORM_OWNER_EMAIL
+        sync: false
+      - key: PLATFORM_OWNER_PASSWORD
+        sync: false
       # Optional error reporting (leave empty to keep it off): Sentry project DSNs for the server and the browser.
       - key: SENTRY_DSN
         sync: false

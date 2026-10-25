@@ -13,16 +13,20 @@ export class PageTitleStrategy extends TitleStrategy {
   private readonly title = inject(Title);
   private readonly brand = inject(BrandService);
   private readonly page = signal('');
+  /** Quản trị nền tảng belongs to no company: its tab carries no company name. */
+  private readonly bare = signal(false);
 
   constructor() {
     super();
     effect(() => {
       const page = this.page();
-      this.title.setTitle(page ? `${page} · ${this.brand.name()}` : this.brand.name());
+      if (this.bare()) this.title.setTitle(page);
+      else this.title.setTitle(page ? `${page} · ${this.brand.name()}` : this.brand.name());
     });
   }
 
   override updateTitle(snapshot: RouterStateSnapshot): void {
+    this.bare.set(snapshot.url.startsWith('/quan-tri-nen-tang'));
     this.page.set(this.buildTitle(snapshot) ?? this.fromMenu(snapshot.url));
   }
 

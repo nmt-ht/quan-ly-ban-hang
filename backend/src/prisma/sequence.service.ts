@@ -1,8 +1,8 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaService } from './prisma.service.js';
 
-type Db = PrismaService | Prisma.TransactionClient;
+type Db = PrismaService | PrismaClient | Prisma.TransactionClient;
 
 // Which table holds the codes of each prefix. On boot every sequence is raised to at least the
 // highest code already stored, so seeded or imported data never collides with new codes.

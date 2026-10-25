@@ -17,8 +17,8 @@ export interface SessionUser {
   mustChangePassword?: boolean;
 }
 
-/** What the login screen needs to tell the user. */
-export type LoginResult = 'ok' | 'invalid' | 'throttled' | 'offline' | 'error';
+/** What the login screen needs to tell the user; `tenant` carries the server's own sentence about the mã doanh nghiệp. */
+export type LoginResult = 'ok' | 'invalid' | 'throttled' | 'offline' | 'error' | { tenant: string };
 
 // Shape of POST /auth/login and GET /auth/me (backend src/auth/auth.service.ts › AuthUser).
 interface ApiUser {
@@ -177,6 +177,9 @@ export class AuthService {
 // account. When the backend is down the dev proxy answers 5xx without our JSON body; status 0 = no network.
 function loginFailure(e: unknown): LoginResult {
   if (!(e instanceof HttpErrorResponse)) return 'error';
+  // Multi-tenant refusals (no such doanh nghiệp, suspended, still being created) name the mã: show the server's message.
+  const body = e.error as { tenant?: string | null; message?: string } | null;
+  if (body && typeof body === 'object' && 'tenant' in body && typeof body.message === 'string') return { tenant: body.message };
   if (e.status === 429) return 'throttled';
   if (e.status === 400 || e.status === 401) return 'invalid';
   const fromApi = e.error && typeof e.error === 'object' && 'statusCode' in e.error;

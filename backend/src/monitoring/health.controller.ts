@@ -1,4 +1,5 @@
 import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
+import { multiTenant } from '../platform/secret-box.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 /**
@@ -33,6 +34,8 @@ export class HealthController {
       sentryDsn: process.env.SENTRY_FRONTEND_DSN ?? null,
       release: process.env.RENDER_GIT_COMMIT?.slice(0, 7) ?? null,
       environment: process.env.NODE_ENV ?? 'development',
+      // The login screen then asks for the mã doanh nghiệp.
+      multiTenant: multiTenant(),
     };
   }
 }
