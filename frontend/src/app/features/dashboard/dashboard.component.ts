@@ -1,4 +1,4 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, linkedSignal, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { PeriodFilterComponent, PeriodValue } from '../../shared/period-filter/period-filter.component';
@@ -86,6 +86,9 @@ const WEEKDAY = ['Chủ nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ N�
 
 // Tổng quan: số liệu theo kỳ đang chọn (so với kỳ liền trước cùng độ dài); tồn quỹ và công nợ là toàn bộ
 // lịch sử. The server computes the figures (GET /api/dashboard); this page decides what needs attention.
+const TOP_PAGE_SIZE = 5;
+const ISSUE_PAGE_SIZE = 10;
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -133,6 +136,11 @@ export class DashboardComponent {
   readonly leaks = computed(() => this.d().leaks);
   readonly byDay = computed(() => this.d().byDay);
   readonly topProducts = computed(() => this.d().topProducts);
+  /** Bán chạy: top 10 from the API, 5 a page; back to page 1 whenever the list changes (another period). */
+  readonly topPage = linkedSignal({ source: this.topProducts, computation: () => 1 });
+  readonly topPages = computed(() => Math.max(1, Math.ceil(this.topProducts().length / TOP_PAGE_SIZE)));
+  readonly topFrom = computed(() => (this.topPage() - 1) * TOP_PAGE_SIZE + 1);
+  readonly topPageItems = computed(() => this.topProducts().slice(this.topFrom() - 1, this.topFrom() - 1 + TOP_PAGE_SIZE));
   readonly cash = computed(() => this.d().cash);
   /** Lãi gộp is shown only to roles that may see giá vốn. */
   readonly showProfit = computed(() => this.kpis().profit !== undefined);
@@ -200,6 +208,11 @@ export class DashboardComponent {
 
     return [...out.filter((i) => i.level === 'bad'), ...out.filter((i) => i.level === 'warn')];
   });
+
+  /** Cần xử lý: 10 a page (serious ones first); back to page 1 whenever the list changes. */
+  readonly issuePage = linkedSignal({ source: this.issues, computation: () => 1 });
+  readonly issuePages = computed(() => Math.max(1, Math.ceil(this.issues().length / ISSUE_PAGE_SIZE)));
+  readonly issuePageItems = computed(() => this.issues().slice((this.issuePage() - 1) * ISSUE_PAGE_SIZE, this.issuePage() * ISSUE_PAGE_SIZE));
 
   readonly badCount = computed(() => this.issues().filter((i) => i.level === 'bad').length);
   readonly warnCount = computed(() => this.issues().filter((i) => i.level === 'warn').length);

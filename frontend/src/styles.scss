@@ -1,4 +1,5 @@
-/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
+/* Hallmark · genre: modern-minimal · shape: app screen · scope: app · theme: brand (moss, kept) · redesign: restyle · built: the project · v2.0.0
+ * critique: one hue per phân hệ (tokens.css › [data-module]) reaches the page through the accent: header rule, primary action, selected tab, figure tiles. */
 
 // Design tokens (colour, type, space, motion) live in tokens.css — see /design.md.
 @use 'tokens';
@@ -102,6 +103,7 @@ kbd,
 // ---------- page header ----------
 
 .page-header {
+  position: relative;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -110,6 +112,18 @@ kbd,
   padding-bottom: var(--space-sm);
   border-bottom: var(--rule-hair) solid var(--color-rule);
   flex-wrap: wrap;
+}
+
+// The page's phân hệ under its title: a short rule in the module hue over the hairline.
+.page-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 3rem;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-accent);
 }
 
 .page-header h1 {
@@ -672,7 +686,7 @@ input[appmoney] {
 .detail-tabs button[aria-selected='true'] {
   background: var(--color-surface);
   border-color: var(--color-rule);
-  color: var(--color-ink);
+  color: var(--color-accent);
   font-weight: 600;
 }
 
@@ -1136,20 +1150,16 @@ input[appmoney] {
   margin: 0 0 var(--space-sm);
 }
 
+// Figure tiles wear the page's phân hệ tint (a problem tile below switches to its status tint).
 .list-totals > div {
   display: flex;
   flex-direction: column;
   gap: 1px;
   min-width: 7.5rem;
   padding: var(--space-2xs) var(--space-sm);
-  border: var(--rule-hair) solid var(--color-rule);
+  border: var(--rule-hair) solid var(--color-accent-tint);
   border-radius: var(--radius-control);
-  background: var(--color-surface);
-}
-
-// Inside a card the tiles sit on paper so they don't vanish into the card's own surface.
-.card .list-totals > div {
-  background: var(--color-paper);
+  background: var(--color-accent-tint);
 }
 
 .list-totals dt {

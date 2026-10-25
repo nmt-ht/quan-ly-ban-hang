@@ -207,11 +207,16 @@
   grid-column: 1 / -1;
 }
 
-.co-lock {
-  margin-top: var(--space-4, 16px);
+.co-lock .hint {
+  max-width: 65ch;
 }
 
+// Date and its buttons on one line, bottoms aligned (the .field's own bottom margin would push the input down).
 .co-lock-row {
   align-items: flex-end;
   flex-wrap: wrap;
+
+  .field {
+    margin-bottom: 0;
+  }
 }

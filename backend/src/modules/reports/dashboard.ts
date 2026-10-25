@@ -182,7 +182,7 @@ export function dashboard({ data, cost, debt, showProfit, showPurchases, showSto
       return { id, code: p?.code ?? '', name: p?.name ?? id, unit: p?.baseUnit ?? '', qty: Math.round(v.qty * 100) / 100, value: Math.round(v.value), share: topTotal ? (v.value / topTotal) * 100 : 0 };
     })
     .sort((a, b) => b.value - a.value)
-    .slice(0, 6);
+    .slice(0, 10);
 
   // ---------- dòng tiền ----------
   const vs = data.cashVouchers().filter((v) => !v.isCancelled && inRange(v.date, range));

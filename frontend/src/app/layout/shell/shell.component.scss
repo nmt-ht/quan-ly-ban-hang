@@ -154,11 +154,10 @@
   }
 }
 
-// Folded = zero-height row (animated), links removed from tab order via [inert].
+// Folded = zero-height row (instant: a height is never animated), links removed from tab order via [inert].
 .nav-items {
   display: grid;
   grid-template-rows: 1fr;
-  transition: grid-template-rows var(--dur-medium) var(--ease-out);
 }
 
 .nav-items.is-closed {
@@ -174,7 +173,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nav-items,
   .nav-group-chevron {
     transition: none;
   }
@@ -195,8 +193,9 @@
   transition: background-color var(--dur-short) var(--ease-out);
 }
 
+// Every icon wears its phân hệ's hue (the group's data-module), so the menu reads as colour-coded areas.
 .nav-link-icon {
-  color: var(--color-muted);
+  color: var(--color-accent);
   transition: color var(--dur-short) var(--ease-out);
 }
 
@@ -207,7 +206,7 @@
 
 @media (hover: hover) {
   .nav-link:hover .nav-link-icon {
-    color: var(--color-ink);
+    color: var(--color-accent-hover);
   }
 }
 
@@ -238,7 +237,7 @@
   left: 0;
   top: 6px;
   bottom: 6px;
-  width: 2px;
+  width: 3px;
   border-radius: 2px;
   background: var(--color-accent);
 }
@@ -312,6 +311,8 @@
   padding: 0 var(--space-md);
   border-bottom: var(--rule-hair) solid var(--color-rule);
   background: var(--color-surface);
+  // The page's phân hệ along the top edge (moss on Tổng quan / Báo cáo).
+  box-shadow: inset 0 3px 0 var(--color-accent);
 }
 
 .topbar-spacer {

@@ -1,7 +1,7 @@
 import { Component, HostListener, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
-import { NAV_GROUPS, NavGroup } from '../nav-items';
+import { ModuleKey, NAV_GROUPS, NavGroup, moduleOf } from '../nav-items';
 import { NavIconComponent } from '../nav-icon/nav-icon.component';
 import { AccountMenuComponent } from '../account-menu/account-menu.component';
 import { CommandPaletteComponent } from '../command-palette/command-palette.component';
@@ -47,10 +47,13 @@ export class ShellComponent {
   readonly menuOpen = signal(false);
   /** Labels of the sub menus the user folded; remembered per browser. */
   readonly closedGroups = signal<string[]>(loadClosed());
+  /** Phân hệ of the page on screen: its hue colours the page area (tokens.css › [data-module]). */
+  readonly module = signal<ModuleKey | null>(moduleOf(this.router.url));
 
   constructor() {
     // Landing on a page inside a folded group (link, search, back button) unfolds it.
     this.router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd)).subscribe((e) => {
+      this.module.set(moduleOf(e.urlAfterRedirects));
       const g = this.navGroups().find((x) => x.label && x.links.some((l) => e.urlAfterRedirects === l.path || e.urlAfterRedirects.startsWith(l.path + '/') || e.urlAfterRedirects.startsWith(l.path + '?')));
       if (g?.label && this.closedGroups().includes(g.label)) this.setClosed(this.closedGroups().filter((x) => x !== g.label));
     });

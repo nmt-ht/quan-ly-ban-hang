@@ -97,6 +97,29 @@
         </div>
       </div>
     </div>
+    <!-- Khoá sổ kỳ kế toán (as MISA): its own permission and its own button (type=button, never the form's Lưu). -->
+    <section class="card section-block co-lock" aria-labelledby="co-lock-title">
+      <h3 id="co-lock-title" class="form-section-title">Khoá sổ kỳ kế toán</h3>
+      <p class="hint">
+        Chứng từ có ngày từ ngày khoá sổ trở về trước không lập mới, không sửa và không huỷ được: phiếu kho, giao hàng, nhận hàng,
+        trả hàng, phiếu thu chi. Số liệu kỳ đã báo cáo giữ nguyên.
+      </p>
+      <p>
+        @if (lockDate(); as d) { Đang khoá sổ đến hết ngày <strong class="num">{{ day(d) }}</strong>. } @else { Chưa khoá sổ kỳ nào. }
+      </p>
+      @if (canLock) {
+        <div class="toolbar co-lock-row">
+          <label class="field">
+            <span>Khoá sổ đến ngày</span>
+            <input type="date" [value]="lockDraft()" (input)="lockDraft.set($any($event.target).value)" (keydown.enter)="$event.preventDefault()" />
+          </label>
+          <button type="button" class="btn btn-primary" [disabled]="lockBusy() || !lockDraft() || lockDraft() === lockDate()" (click)="saveLock()">Khoá sổ</button>
+          @if (lockDate()) {
+            <button type="button" class="btn" [disabled]="lockBusy()" (click)="saveLock(true)">Bỏ khoá sổ</button>
+          }
+        </div>
+      }
+    </section>
     </div>
 
     <aside class="card section-block co-preview" aria-labelledby="co-preview-title">
@@ -150,27 +173,3 @@
     </div>
   </div>
 </form>
-
-<!-- Khoá sổ kỳ kế toán (as MISA): outside the form above — it has its own permission and its own Lưu. -->
-<section class="card section-block co-lock" aria-labelledby="co-lock-title">
-  <h3 id="co-lock-title" class="form-section-title">Khoá sổ kỳ kế toán</h3>
-  <p class="hint">
-    Chứng từ có ngày từ ngày khoá sổ trở về trước không lập mới, không sửa và không huỷ được: phiếu kho, giao hàng, nhận hàng,
-    trả hàng, phiếu thu chi. Số liệu kỳ đã báo cáo giữ nguyên.
-  </p>
-  <p>
-    @if (lockDate(); as d) { Đang khoá sổ đến hết ngày <strong class="num">{{ day(d) }}</strong>. } @else { Chưa khoá sổ kỳ nào. }
-  </p>
-  @if (canLock) {
-    <div class="toolbar co-lock-row">
-      <label class="field">
-        <span>Khoá sổ đến ngày</span>
-        <input type="date" [value]="lockDraft()" (input)="lockDraft.set($any($event.target).value)" />
-      </label>
-      <button type="button" class="btn btn-primary" [disabled]="lockBusy() || !lockDraft() || lockDraft() === lockDate()" (click)="saveLock()">Khoá sổ</button>
-      @if (lockDate()) {
-        <button type="button" class="btn" [disabled]="lockBusy()" (click)="saveLock(true)">Bỏ khoá sổ</button>
-      }
-    </div>
-  }
-</section>

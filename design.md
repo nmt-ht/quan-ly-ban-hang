@@ -4,7 +4,8 @@ A locked design system for the Ninh Trang ERP frontend (`frontend/`). Every page
 redesign reads this file before emitting code. Do not regenerate per page —
 extend or amend this file when the system needs to grow.
 
-Codename: **Sổ cái** (ledger) — ledger paper, moss ink, dense.
+Codename: **Sổ cái** (ledger) — ledger paper, moss ink, dense. Since 25/10/2026 (Hallmark redesign, restyle):
+**one hue per phân hệ** on that paper — fresh and friendly, moss stays the brand.
 
 ## Audience · use · tone
 - **Audience** — office, sales, warehouse and accounting staff at Ninh Trang who
@@ -44,6 +45,29 @@ pair; all pairs verified ≥ 5.4:1 light, ≥ 5.6:1 dark.
 
 Axes: light / geometric-sans / chromatic-moss.
 
+### Phân hệ colours (module hues)
+Each menu group is a phân hệ with its own hue; the page area and each sidebar group carry `data-module`
+(`layout/nav-items.ts` › `moduleOf(url)`, longest matching menu path), and `[data-module]` in tokens.css maps that
+module onto `--color-accent`, `--color-accent-hover`, `--color-accent-tint` and `--color-focus`. So everything that
+already reads the accent — primary buttons, links, selected tabs, focus rings, tints, the active menu item — takes
+the module's hue with no per-page CSS.
+
+| Phân hệ | Menu group | `data-module` | Light accent | Dark accent |
+|---|---|---|---|---|
+| Tổng quan, Báo cáo, đăng nhập | (ungrouped) | none — the brand | moss oklch(43% 0.11 160) | oklch(74% 0.11 160) |
+| Bán hàng (khách, báo giá, bảng giá, khuyến mãi, đơn bán, chuyến, xe, phải thu, nhắc nợ) | Bán hàng | `sell` | blue oklch(48% 0.15 258) | oklch(75% 0.12 258) |
+| Kho & sản xuất (hàng hoá, tồn kho, phiếu kho, lệnh SX) | Nghiệp vụ | `stock` | orange oklch(52% 0.15 48) | oklch(76% 0.13 55) |
+| Mua hàng (NCC, đơn nhập, phải trả) | Mua hàng | `purchase` | violet oklch(48% 0.16 300) | oklch(76% 0.12 300) |
+| Dòng tiền (thu chi, tuổi nợ) | Dòng tiền | `cash` | teal oklch(48% 0.09 195) | oklch(76% 0.10 195) |
+| Thiết lập | Thiết lập | `settings` | slate oklch(44% 0.04 255) | oklch(78% 0.04 255) |
+
+Every module passes ≥ 5:1 for white text on its fill, its text on the surface and its text on its tint, in both
+modes. Where the hue shows: menu icons (always, in their group's hue), the active menu item, a 3 px rule along the
+top of the topbar, a 3 rem rule under the page title, primary actions, selected tabs, links, focus, and the figure
+tiles of `dl.list-totals` (accent tint; a warning / danger tile keeps its status tint). Status colours never change
+with the module, and charts keep `--chart-*`. A new menu group names its `module`; a new module = one palette block
+(light + dark) and one `[data-module]` rule in tokens.css, contrast checked.
+
 ## Typography
 - Display: Be Vietnam Pro 600, tracking -0.01em, roman only (no italic headings)
 - Body: Be Vietnam Pro 400 (same weight in dark mode — the font is static, 350 is not available)
@@ -68,8 +92,8 @@ Compact: controls and table rows 36 px; nav links 30 px (44 px on touch
 widths); table text 13 px.
 
 ## Shape
-- `--radius-control` 6 px (buttons, inputs, badges)
-- `--radius-card` 8 px
+- `--radius-control` 8 px (buttons, inputs, badges) — softened from 6 px with the phân hệ colours
+- `--radius-card` 12 px (from 8 px)
 - Hairline 1 px borders define surfaces. One shadow only (`--shadow-pop`): floating menus and panels.
 
 ## Motion
@@ -92,13 +116,13 @@ widths); table text 13 px.
 - No emoji or pictographs in labels or headings.
 
 ## Navigation
-N3 side-rail (232 px, collapsible to 64 px). Active item = accent tint + 2 px
-accent bar. Under 768 px the rail becomes an off-canvas drawer opened by the
+N3 side-rail (232 px, collapsible to 64 px). Active item = its phân hệ's tint + 3 px
+bar in its hue. Folding a group is instant (a height is never animated). Under 768 px the rail becomes an off-canvas drawer opened by the
 "Menu" button (Esc / scrim closes).
 
 Icons: one hand-drawn set in `frontend/src/app/layout/nav-icon/` — 24 px grid,
-1.75 stroke, round caps/joins, `currentColor`, rendered at 18 px. Muted at rest,
-ink on hover, accent when active. Collapsed rail shows icon only; the label
+1.75 stroke, round caps/joins, `currentColor`, rendered at 18 px. In the menu every
+icon wears its group's phân hệ hue (hover: the darker step). Collapsed rail shows icon only; the label
 stays as the accessible name + `title`. Add new icons to that component — never
 mix in a second icon library or emoji.
 

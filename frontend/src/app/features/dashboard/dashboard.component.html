@@ -1,7 +1,7 @@
 <div class="page-header db-header">
   <div>
     <h1>Tổng quan</h1>
-    <p class="subtitle">Tình hình bán hàng, kho, công nợ và dòng tiền · <span class="num">{{ day(range().from) }} → {{ day(range().to) }}</span></p>
+    <p class="subtitle">Tình hình bán hàng, kho, công nợ và dòng tiền từ <span class="num">{{ day(range().from) }}</span> đến <span class="num">{{ day(range().to) }}</span></p>
   </div>
   <span class="db-today num">{{ todayLong() }}</span>
 </div>
@@ -27,208 +27,311 @@
 @let fl = flows();
 @let hl = heroLine();
 
-<!-- Hero: doanh thu kỳ (with its 12-month line) on the left, the line in the middle, tồn kho an toàn on the right. -->
-<section class="db-hero" aria-labelledby="db-hero-title">
-  <div class="db-hero-main">
-    <h2 id="db-hero-title" class="db-eyebrow">Doanh thu · {{ periodLabel() }}</h2>
-    <p class="db-hero-value num">{{ money(k.revenue) }}</p>
-    <p class="db-hero-compare">
-      @if (change(k.revenue, p.revenue); as ch) {
-        <span class="db-hero-delta num" [class.is-up]="ch > 0" [class.is-down]="ch < 0">{{ pct(ch) }}</span>
-        <span>so với kỳ trước (<span class="num">{{ compact(p.revenue) }}</span>)</span>
-      } @else {
-        <span>Kỳ trước chưa có doanh thu để so sánh</span>
-      }
-    </p>
-    <dl class="db-hero-stats">
-      <div><dt>Đơn đã giao</dt><dd class="num">{{ k.orders.toLocaleString('vi-VN') }}</dd></div>
-      <div><dt>Giá trị TB / đơn</dt><dd class="num">{{ compact(k.avg) }}</dd></div>
-      @if (debts(); as dt) {
-        <div><dt>Khách còn nợ</dt><dd class="num">{{ compact(dt.receivableTotal) }}</dd></div>
-      } @else {
-        <div><dt>Tồn quỹ</dt><dd class="num">{{ compact(c.balance) }}</dd></div>
-      }
-    </dl>
-    <div class="db-hero-actions">
-      <a class="btn db-hero-primary" allowedLink routerLink="/don-hang/them-moi"><app-nav-icon name="plus" />Lập đơn hàng</a>
-      <a class="btn db-hero-ghost" allowedLink routerLink="/thu-chi/lap/thu"><app-nav-icon name="cash" />Lập phiếu thu</a>
-    </div>
-  </div>
-
-  <div class="db-hero-chart">
-    <header class="db-hero-chart-head">
-      <span>Doanh thu 12 tháng gần nhất</span>
-      @if (hl.peak >= 0) { <span>Cao nhất <b class="num">{{ compact(hl.max) }}</b> · {{ hl.pts[hl.peak].m.label }}/{{ hl.pts[hl.peak].m.year }}</span> }
-    </header>
-    @if (hl.max > 0) {
-      <div class="db-hero-plot" (mouseleave)="heroHover.set(null)">
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-          <path class="db-hero-area" [attr.d]="hl.area" />
-          <path class="db-hero-line" [attr.d]="hl.line" vector-effect="non-scaling-stroke" />
-        </svg>
-        @for (pt of hl.pts; track pt.m.key; let i = $index; let last = $last) {
-          <span class="db-hero-dot" [class.is-last]="last" [class.is-on]="heroHover() === i" [style.left.%]="pt.x" [style.top.%]="pt.y"></span>
-          <span class="db-hero-hit" [style.left.%]="pt.x" [style.width.%]="100 / hl.pts.length" (mouseenter)="heroHover.set(i)"></span>
-        }
-        @if (heroHover() !== null) {
-          @let hp = hl.pts[heroHover()!];
-          <div class="db-hero-tip" [style.left.%]="hp.x" [class.is-start]="hp.x < 20" [class.is-end]="hp.x > 80">
-            <span>Tháng {{ hp.m.label.slice(1) }}/{{ hp.m.year }}</span><b class="num">{{ money(hp.m.revenue) }}</b>
-          </div>
-        }
-      </div>
-      <div class="db-hero-axis" aria-hidden="true">
-        @for (a of hl.axis; track $index) { <span class="num" [style.left.%]="a.x">{{ a.label }}</span> }
-      </div>
-      <div class="visually-hidden">
-<table>
-        <caption>Doanh thu 12 tháng gần nhất</caption>
-        <thead><tr><th scope="col">Tháng</th><th scope="col">Doanh thu</th></tr></thead>
-        <tbody>@for (pt of hl.pts; track pt.m.key) { <tr><td>{{ pt.m.label }}/{{ pt.m.year }}</td><td>{{ money(pt.m.revenue) }}</td></tr> }</tbody>
-      </table>
-</div>
-    } @else {
-      <p class="db-hero-empty">Chưa có doanh thu trong 12 tháng gần nhất.</p>
-    }
-  </div>
-
-  <a class="db-hero-ring" routerLink="/kho/ton-kho" [queryParams]="{ belowMin: true }" aria-labelledby="db-ring-label">
-    @if (safety(); as sf) {
-      <span class="db-ring" [attr.data-level]="sf.level">
-        <svg viewBox="0 0 100 100" aria-hidden="true">
-          <circle class="db-ring-track" cx="50" cy="50" r="42" />
-          <circle class="db-ring-fill" cx="50" cy="50" r="42" [attr.stroke-dasharray]="sf.dash" />
-        </svg>
-        <span class="db-ring-text"><b class="num">{{ sf.pct }}%</b><small>đủ tồn an toàn</small></span>
-      </span>
-      <span id="db-ring-label" class="db-ring-label"><b class="num">{{ st.safe }}/{{ st.tracked }}</b> mặt hàng đủ tồn tối thiểu</span>
-      <span class="db-ring-note"><span class="num">{{ st.out }}</span> hết hàng · <span class="num">{{ st.low }}</span> sắp hết</span>
-    } @else {
-      <span id="db-ring-label" class="db-ring-label">Chưa đặt tồn tối thiểu</span>
-      <span class="db-ring-note"><span class="num">{{ st.out }}</span> mặt hàng hết hàng / <span class="num">{{ st.goods }}</span></span>
-    }
-  </a>
-</section>
-
-<!-- Bốn thẻ: nhãn + chip so sánh → con số của kỳ → một dòng ngữ cảnh → đường 12 tháng ở chân. -->
-@let sp = sparks();
-<div class="db-cards">
-  @if (fl.purchases !== null) {
-    <a class="db-card" routerLink="/mua-hang">
-      <span class="db-card-head">
-        <span class="db-card-icon is-in" aria-hidden="true"><app-nav-icon name="download" /></span>
-        <span class="db-card-label">Nhập hàng</span>
-        @if (change(fl.purchases, fl.prevPurchases ?? 0); as ch) {
-          <span class="db-delta num" [class.is-good]="ch > 0" [class.is-bad]="ch < 0">{{ pct(ch) }}</span>
-        }
-      </span>
-      <span class="db-card-value num">{{ money(fl.purchases) }}</span>
-      <span class="db-card-note">Giá nhập hàng đã nhận trong kỳ · <span class="num">{{ attention().poWaiting }}</span> đơn chờ hàng</span>
-      @if (sp.purchases; as s) {
-        <svg class="db-spark is-s2" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-          <path class="db-spark-area" [attr.d]="s.area" /><path class="db-spark-line" [attr.d]="s.line" vector-effect="non-scaling-stroke" />
-        </svg>
-      }
-    </a>
-  }
-  @if (showProfit()) {
-    <a class="db-card" routerLink="/bao-cao" [queryParams]="{ name: 'loi-nhuan' }">
-      <span class="db-card-head">
-        <span class="db-card-icon is-profit" aria-hidden="true"><app-nav-icon name="report" /></span>
-        <span class="db-card-label">Lãi gộp</span>
-        @if (p.revenue > 0) {
-          @let pts = points(k.margin, p.margin);
-          <span class="db-delta num" [class.is-good]="pts > 0" [class.is-bad]="pts < 0">{{ pointsLabel(pts) }}</span>
-        }
-      </span>
-      <span class="db-card-value num" [class.amt-neg]="(k.profit ?? 0) < 0">{{ money(k.profit ?? 0) }}</span>
-      <span class="db-card-note">Tỷ suất <span class="num">{{ percent(k.margin) }}</span> trên doanh thu · giá vốn chốt lúc xuất</span>
-      @if (sp.profit; as s) {
-        <svg class="db-spark is-s3" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-          <path class="db-spark-area" [attr.d]="s.area" /><path class="db-spark-line" [attr.d]="s.line" vector-effect="non-scaling-stroke" />
-        </svg>
-      }
-    </a>
-  }
-  <a class="db-card" routerLink="/thu-chi">
-    <span class="db-card-head">
-      <span class="db-card-icon is-cash" aria-hidden="true"><app-nav-icon name="money-in" /></span>
-      <span class="db-card-label">Tiền thu về</span>
-      @if (change(fl.thu, fl.prevThu); as ch) {
-        <span class="db-delta num" [class.is-good]="ch > 0" [class.is-bad]="ch < 0">{{ pct(ch) }}</span>
-      }
-    </span>
-    <span class="db-card-value num">{{ money(fl.thu) }}</span>
-    <span class="db-card-note">Chi <span class="num">{{ money(c.chi) }}</span> · tồn quỹ <span class="num" [class.amt-neg]="c.balance < 0">{{ money(c.balance) }}</span></span>
-    @if (sp.thu; as s) {
-      <svg class="db-spark is-s1" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-        <path class="db-spark-area" [attr.d]="s.area" /><path class="db-spark-line" [attr.d]="s.line" vector-effect="non-scaling-stroke" />
-      </svg>
-    }
-  </a>
-  <a class="db-card" routerLink="/don-hang">
-    <span class="db-card-head">
-      <span class="db-card-icon is-orders" aria-hidden="true"><app-nav-icon name="receipt" /></span>
-      <span class="db-card-label">Đơn đã giao</span>
-      @if (change(k.orders, p.orders); as ch) {
-        <span class="db-delta num" [class.is-good]="ch > 0" [class.is-bad]="ch < 0">{{ pct(ch) }}</span>
-      }
-    </span>
-    <span class="db-card-value num">{{ k.orders.toLocaleString('vi-VN') }}<small> đơn</small></span>
-    <span class="db-card-note"><span class="num">{{ attention().pendingProduction + attention().shipping }}</span> đơn đang xử lý · <span class="num">{{ attention().late }}</span> trễ hẹn</span>
-    @if (sp.orders; as s) {
-      <svg class="db-spark is-s1" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-        <path class="db-spark-area" [attr.d]="s.area" /><path class="db-spark-line" [attr.d]="s.line" vector-effect="non-scaling-stroke" />
-      </svg>
-    }
-  </a>
-</div>
-<p class="db-cards-hint subtitle">Con số theo kỳ đang xem; đường nhỏ ở chân mỗi thẻ là 12 tháng gần nhất.</p>
-
-<!-- 1. Vấn đề: việc đầu tiên khách cần thấy. Nghiêm trọng trước, rồi cần theo dõi. -->
-<section class="card db-issues" aria-labelledby="db-iss">
-  <header class="db-issues-head">
-    <div>
-      <h2 id="db-iss">Cần xử lý</h2>
-      <p class="subtitle">
-        @if (issues().length) {
-          Có {{ issues().length }} vấn đề đang cần bạn xem. Bấm vào từng dòng để mở đúng chỗ cần sửa.
+<!-- 1. Đầu trang: doanh thu của kỳ (con số, so sánh, 12 tháng) cạnh "Cần xử lý", để việc cần làm hiện ngay màn đầu. -->
+<div class="db-lead">
+  <section class="db-hero" aria-labelledby="db-hero-title">
+    <div class="db-hero-main">
+      <h2 id="db-hero-title" class="db-hero-title">Doanh thu {{ periodLabel().toLowerCase() }}</h2>
+      <p class="db-hero-value num">{{ money(k.revenue) }}</p>
+      <p class="db-hero-compare">
+        @if (change(k.revenue, p.revenue); as ch) {
+          <span class="db-hero-delta num" [class.is-up]="ch > 0" [class.is-down]="ch < 0">{{ pct(ch) }}</span>
+          <span>so với kỳ trước (<span class="num">{{ compact(p.revenue) }}</span>)</span>
         } @else {
-          Chưa phát hiện vấn đề nào trong kỳ đang xem.
+          <span>Kỳ trước chưa có doanh thu để so sánh</span>
         }
       </p>
-    </div>
-    @if (issues().length) {
-      <div class="db-counts">
-        @if (badCount()) { <span class="db-count is-bad"><b class="num">{{ badCount() }}</b> nghiêm trọng</span> }
-        @if (warnCount()) { <span class="db-count is-warn"><b class="num">{{ warnCount() }}</b> cần theo dõi</span> }
+      <dl class="db-hero-stats">
+        <div><dt>Đơn đã giao</dt><dd class="num">{{ k.orders.toLocaleString('vi-VN') }}</dd></div>
+        <div><dt>Giá trị TB / đơn</dt><dd class="num">{{ compact(k.avg) }}</dd></div>
+        @if (debts(); as dt) {
+          <div><dt>Khách còn nợ</dt><dd class="num">{{ compact(dt.receivableTotal) }}</dd></div>
+        } @else {
+          <div><dt>Tồn quỹ</dt><dd class="num">{{ compact(c.balance) }}</dd></div>
+        }
+      </dl>
+      <div class="db-hero-actions">
+        <a class="btn db-hero-primary" allowedLink routerLink="/don-hang/them-moi"><app-nav-icon name="plus" />Lập đơn hàng</a>
+        <a class="btn db-hero-ghost" allowedLink routerLink="/thu-chi/lap/thu"><app-nav-icon name="cash" />Lập phiếu thu</a>
       </div>
-    }
-  </header>
+    </div>
 
-  @if (issues().length) {
-    <ul class="db-issue-list">
-      @for (i of issues(); track i.key) {
-        <li>
-          <a class="db-issue" [class.is-bad]="i.level === 'bad'" [class.is-warn]="i.level === 'warn'" [routerLink]="i.to" [queryParams]="i.query">
-            <span class="db-level">{{ i.level === 'bad' ? 'Nghiêm trọng' : 'Theo dõi' }}</span>
-            <span class="db-issue-main">
-              <strong>{{ i.title }}</strong>
-              <span>{{ i.detail }}</span>
-            </span>
-            <span class="db-issue-area">{{ areaName[i.area] }}</span>
-            <span class="db-issue-go">{{ i.cta }}<app-nav-icon name="chevron-right" /></span>
-          </a>
-        </li>
+    <div class="db-hero-chart">
+      <header class="db-hero-chart-head">
+        <span>Doanh thu 12 tháng gần nhất</span>
+        @if (hl.peak >= 0) { <span>Cao nhất <b class="num">{{ compact(hl.max) }}</b> vào {{ hl.pts[hl.peak].m.label }}/{{ hl.pts[hl.peak].m.year }}</span> }
+      </header>
+      @if (hl.max > 0) {
+        <div class="db-hero-plot" (mouseleave)="heroHover.set(null)">
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <path class="db-hero-area" [attr.d]="hl.area" />
+            <path class="db-hero-line" [attr.d]="hl.line" vector-effect="non-scaling-stroke" />
+          </svg>
+          @for (pt of hl.pts; track pt.m.key; let i = $index; let last = $last) {
+            <span class="db-hero-dot" [class.is-last]="last" [class.is-on]="heroHover() === i" [style.left.%]="pt.x" [style.top.%]="pt.y"></span>
+            <span class="db-hero-hit" [style.left.%]="pt.x" [style.width.%]="100 / hl.pts.length" (mouseenter)="heroHover.set(i)"></span>
+          }
+          @if (heroHover() !== null) {
+            @let hp = hl.pts[heroHover()!];
+            <div class="db-hero-tip" [style.left.%]="hp.x" [class.is-start]="hp.x < 20" [class.is-end]="hp.x > 80">
+              <span>Tháng {{ hp.m.label.slice(1) }}/{{ hp.m.year }}</span><b class="num">{{ money(hp.m.revenue) }}</b>
+            </div>
+          }
+        </div>
+        <div class="db-hero-axis" aria-hidden="true">
+          @for (a of hl.axis; track $index) { <span class="num" [style.left.%]="a.x">{{ a.label }}</span> }
+        </div>
+        <div class="visually-hidden">
+  <table>
+          <caption>Doanh thu 12 tháng gần nhất</caption>
+          <thead><tr><th scope="col">Tháng</th><th scope="col">Doanh thu</th></tr></thead>
+          <tbody>@for (pt of hl.pts; track pt.m.key) { <tr><td>{{ pt.m.label }}/{{ pt.m.year }}</td><td>{{ money(pt.m.revenue) }}</td></tr> }</tbody>
+        </table>
+  </div>
+      } @else {
+        <p class="db-hero-empty">Chưa có doanh thu trong 12 tháng gần nhất.</p>
+      }
+    </div>
+  </section>
+
+  <section class="card db-issues" [class.has-bad]="badCount() > 0" aria-labelledby="db-iss">
+    <header class="db-issues-head">
+      <div>
+        <h2 id="db-iss">Cần xử lý</h2>
+        <p class="subtitle">
+          @if (issues().length) {
+            {{ issues().length }} việc, việc gấp ở trên. Bấm một dòng để mở đúng chỗ.
+          } @else {
+            Chưa phát hiện vấn đề nào trong kỳ đang xem.
+          }
+        </p>
+      </div>
+      @if (issues().length) {
+        <div class="db-counts">
+          @if (badCount()) { <span class="db-count is-bad"><b class="num">{{ badCount() }}</b> nghiêm trọng</span> }
+          @if (warnCount()) { <span class="db-count is-warn"><b class="num">{{ warnCount() }}</b> cần theo dõi</span> }
+        </div>
+      }
+    </header>
+
+    @if (issues().length) {
+      <ul class="db-issue-list">
+        @for (i of issuePageItems(); track i.key) {
+          <li>
+            <a class="db-issue" [class.is-bad]="i.level === 'bad'" [class.is-warn]="i.level === 'warn'" [routerLink]="i.to" [queryParams]="i.query">
+              <span class="db-issue-top">
+                <span class="db-level">{{ i.level === 'bad' ? 'Nghiêm trọng' : 'Theo dõi' }}</span>
+                <span class="db-issue-area">{{ areaName[i.area] }}</span>
+              </span>
+              <span class="db-issue-main">
+                <strong>{{ i.title }}</strong>
+                <span>{{ i.detail }}</span>
+              </span>
+              <span class="db-issue-go">{{ i.cta }}<app-nav-icon name="chevron-right" /></span>
+            </a>
+          </li>
+        }
+      </ul>
+      @if (issuePages() > 1) {
+        <nav class="db-top-pager db-issue-pager" aria-label="Phân trang việc cần xử lý">
+          <span>Trang <span class="num">{{ issuePage() }}/{{ issuePages() }}</span></span>
+          <button type="button" class="btn db-top-step" aria-label="Trang trước" [disabled]="issuePage() <= 1" (click)="issuePage.set(issuePage() - 1)">
+            <app-nav-icon name="chevron-left" />
+          </button>
+          <button type="button" class="btn db-top-step" aria-label="Trang sau" [disabled]="issuePage() >= issuePages()" (click)="issuePage.set(issuePage() + 1)">
+            <app-nav-icon name="chevron-right" />
+          </button>
+        </nav>
+      }
+    } @else {
+      <div class="db-allgood"><app-nav-icon name="check" />Đơn giao đúng hẹn, công nợ trong hạn, không bán dưới giá vốn, tồn kho và quỹ đều ổn.</div>
+    }
+  </section>
+</div>
+
+<!-- 2. Từng mảng: một thẻ cho mỗi phân hệ, trong màu của phân hệ đó (data-module). Trên cùng là con số của kỳ, so với kỳ
+     trước và đường 12 tháng; dưới là trạng thái Ổn / Cần theo dõi / Có vấn đề (lấy từ "Cần xử lý") và các dòng chi tiết. -->
+@let sp = sparks();
+@let a = attention();
+@let l = leaks();
+<header class="db-section-head">
+  <h2 class="db-section">Tình hình từng mảng</h2>
+  <p class="subtitle">Con số theo kỳ đang xem; đường nhỏ dưới mỗi con số là 12 tháng gần nhất.</p>
+</header>
+<div class="db-mods" [class.has-debt]="!!debts()">
+  <section class="card db-mod db-mod-sell" data-module="sell" [attr.data-level]="areaLevel('sell')" aria-labelledby="db-a-sell">
+    <header class="db-mod-head">
+      <h3 id="db-a-sell">Bán hàng &amp; giao hàng</h3>
+      <span class="db-chip">{{ levelName[areaLevel('sell')] }}</span>
+    </header>
+    <a class="db-kpi" routerLink="/don-hang">
+      <span class="db-kpi-label">Đơn đã giao
+        @if (change(k.orders, p.orders); as ch) { <span class="db-delta num" [class.is-good]="ch > 0" [class.is-bad]="ch < 0">{{ pct(ch) }}</span> }
+      </span>
+      <span class="db-kpi-value num">{{ k.orders.toLocaleString('vi-VN') }}<small> đơn</small></span>
+      @if (sp.orders; as s) {
+        <svg class="db-spark" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <path class="db-spark-area" [attr.d]="s.area" /><path class="db-spark-line" [attr.d]="s.line" vector-effect="non-scaling-stroke" />
+        </svg>
+      }
+    </a>
+    <p class="db-figure"><span class="num">{{ a.pendingProduction + a.shipping }}</span><small>đơn đang xử lý</small></p>
+    <ul class="db-rows">
+      <li><a class="db-row" routerLink="/don-hang" [queryParams]="{ status: 'PENDING' }"><span>Chờ sản xuất</span><b class="num">{{ a.pendingProduction }}</b></a></li>
+      <li><a class="db-row" routerLink="/don-hang" [queryParams]="{ status: 'SHIPPING' }"><span>Đang giao</span><b class="num">{{ a.shipping }}</b></a></li>
+      <li><a class="db-row" [class.is-bad]="a.late > 0" routerLink="/don-hang" [queryParams]="{ late: 1 }"><span>Trễ hẹn giao</span><b class="num">{{ a.late }}</b></a></li>
+      <li><a class="db-row" [class.is-warn]="l.stopped > 0" routerLink="/bao-cao" [queryParams]="{ name: 'khach-ngung-mua', ngay: 60 }"><span>Khách ngừng mua &gt; 60 ngày</span><b class="num">{{ l.stopped }}</b></a></li>
+    </ul>
+    <a class="db-more" allowedLink routerLink="/don-hang">Xem đơn hàng bán</a>
+  </section>
+
+  <section class="card db-mod db-mod-stock" data-module="stock" [attr.data-level]="areaLevel('stock')" aria-labelledby="db-a-stock">
+    <header class="db-mod-head">
+      <h3 id="db-a-stock">Kho &amp; mua hàng</h3>
+      <span class="db-chip">{{ levelName[areaLevel('stock')] }}</span>
+    </header>
+    @if (fl.purchases !== null) {
+      <a class="db-kpi" routerLink="/mua-hang">
+        <span class="db-kpi-label">Nhập hàng
+          @if (change(fl.purchases, fl.prevPurchases ?? 0); as ch) { <span class="db-delta num" [class.is-good]="ch > 0" [class.is-bad]="ch < 0">{{ pct(ch) }}</span> }
+        </span>
+        <span class="db-kpi-value num">{{ money(fl.purchases) }}</span>
+        <span class="db-kpi-note">Giá nhập hàng đã nhận trong kỳ</span>
+        @if (sp.purchases; as s) {
+          <svg class="db-spark" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <path class="db-spark-area" [attr.d]="s.area" /><path class="db-spark-line" [attr.d]="s.line" vector-effect="non-scaling-stroke" />
+          </svg>
+        }
+      </a>
+    }
+    <p class="db-figure" [class.is-warn]="a.belowMin > 0"><span class="num">{{ a.belowMin }}</span><small>mặt hàng dưới tồn tối thiểu</small></p>
+    <!-- Tồn kho an toàn: share of mặt hàng at or above their tồn tối thiểu; the whole line opens Tồn kho. -->
+    <a class="db-safety" routerLink="/kho/ton-kho" [queryParams]="{ belowMin: true }" aria-labelledby="db-ring-label">
+      @if (safety(); as sf) {
+        <span class="db-ring" [attr.data-level]="sf.level">
+          <svg viewBox="0 0 100 100" aria-hidden="true">
+            <circle class="db-ring-track" cx="50" cy="50" r="42" />
+            <circle class="db-ring-fill" cx="50" cy="50" r="42" [attr.stroke-dasharray]="sf.dash" />
+          </svg>
+          <span class="db-ring-text"><b class="num">{{ sf.pct }}%</b><small>đủ tồn an toàn</small></span>
+        </span>
+        <span id="db-ring-label" class="db-ring-label"><b class="num">{{ st.safe }}/{{ st.tracked }}</b> mặt hàng đủ tồn tối thiểu</span>
+        <span class="db-ring-note"><span class="num">{{ st.out }}</span> hết hàng, <span class="num">{{ st.low }}</span> sắp hết</span>
+      } @else {
+        <span id="db-ring-label" class="db-ring-label">Chưa đặt tồn tối thiểu</span>
+        <span class="db-ring-note"><span class="num">{{ st.out }}</span> mặt hàng hết hàng / <span class="num">{{ st.goods }}</span></span>
+      }
+    </a>
+    <ul class="db-rows">
+      <li><a class="db-row" [class.is-warn]="a.belowMin > 0" routerLink="/kho/ton-kho" [queryParams]="{ belowMin: true }"><span>Cần nhập thêm</span><b class="num">{{ a.belowMin }}</b></a></li>
+      <li><a class="db-row" routerLink="/mua-hang"><span>Đơn nhập chờ nhận hàng</span><b class="num">{{ a.poWaiting }}</b></a></li>
+    </ul>
+    <a class="db-more" allowedLink routerLink="/kho/ton-kho">Xem tồn kho</a>
+  </section>
+
+  <section class="card db-mod db-mod-profit" [attr.data-level]="areaLevel('profit')" aria-labelledby="db-a-profit">
+    <header class="db-mod-head">
+      <h3 id="db-a-profit">Lợi nhuận</h3>
+      <span class="db-chip">{{ levelName[areaLevel('profit')] }}</span>
+    </header>
+    @if (showProfit()) {
+      <a class="db-kpi" routerLink="/bao-cao" [queryParams]="{ name: 'loi-nhuan' }">
+        <span class="db-kpi-label">Lãi gộp
+          @if (p.revenue > 0) {
+            @let pts = points(k.margin, p.margin);
+            <span class="db-delta num" [class.is-good]="pts > 0" [class.is-bad]="pts < 0">{{ pointsLabel(pts) }}</span>
+          }
+        </span>
+        <span class="db-kpi-value num" [class.amt-neg]="(k.profit ?? 0) < 0">{{ money(k.profit ?? 0) }}</span>
+        <span class="db-kpi-note">Giá vốn chốt lúc xuất kho</span>
+        @if (sp.profit; as s) {
+          <svg class="db-spark" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <path class="db-spark-area" [attr.d]="s.area" /><path class="db-spark-line" [attr.d]="s.line" vector-effect="non-scaling-stroke" />
+          </svg>
+        }
+      </a>
+      <p class="db-figure"><span class="num">{{ percent(k.margin) }}</span><small>tỷ suất lãi gộp trên doanh thu</small></p>
+    } @else {
+      <p class="db-figure" [class.is-warn]="l.discountPct >= 10"><span class="num">{{ l.discountPct }}%</span><small>chiết khấu trên giá trị hàng</small></p>
+    }
+    <ul class="db-rows">
+      @if (showProfit()) {
+        <li><a class="db-row" [class.is-bad]="(l.belowCostLines ?? 0) > 0" routerLink="/bao-cao" [queryParams]="{ name: 'ban-duoi-gia-von' }">
+          <span>Bán dưới giá vốn</span><b class="num">{{ l.belowCostLines ?? 0 }} dòng@if ((l.belowCostLoss ?? 0) > 0) {, lỗ {{ money(l.belowCostLoss ?? 0) }} }</b>
+        </a></li>
+      }
+      <li><a class="db-row" [class.is-warn]="l.discountPct >= 10" routerLink="/bao-cao" [queryParams]="{ name: 'chiet-khau' }"><span>Chiết khấu đã cấp</span><b class="num">{{ money(l.discount) }}</b></a></li>
+    </ul>
+    <a class="db-more" allowedLink routerLink="/bao-cao" [queryParams]="{ name: showProfit() ? 'loi-nhuan' : 'chiet-khau' }">{{ showProfit() ? 'Xem báo cáo lãi gộp' : 'Xem báo cáo chiết khấu' }}</a>
+  </section>
+
+  <section class="card db-mod db-mod-cash" data-module="cash" [attr.data-level]="areaLevel('cash')" aria-labelledby="db-a-cash">
+    <header class="db-mod-head">
+      <h3 id="db-a-cash">Dòng tiền</h3>
+      <span class="db-chip">{{ levelName[areaLevel('cash')] }}</span>
+    </header>
+    <a class="db-kpi" routerLink="/thu-chi">
+      <span class="db-kpi-label">Tiền thu về
+        @if (change(fl.thu, fl.prevThu); as ch) { <span class="db-delta num" [class.is-good]="ch > 0" [class.is-bad]="ch < 0">{{ pct(ch) }}</span> }
+      </span>
+      <span class="db-kpi-value num">{{ money(fl.thu) }}</span>
+      @if (sp.thu; as s) {
+        <svg class="db-spark" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <path class="db-spark-area" [attr.d]="s.area" /><path class="db-spark-line" [attr.d]="s.line" vector-effect="non-scaling-stroke" />
+        </svg>
+      }
+    </a>
+    <p class="db-figure" [class.is-bad]="c.balance < 0"><span class="num">{{ money(c.balance) }}</span><small>tồn quỹ hiện tại, tính trên toàn bộ lịch sử</small></p>
+    <div class="db-flow" role="img" [attr.aria-label]="'Thu ' + money(c.thu) + ', chi ' + money(c.chi) + ' trong kỳ'">
+      <div class="db-flow-row">
+        <span>Thu trong kỳ</span>
+        <span class="db-flow-track"><span class="db-flow-bar is-in" [style.width.%]="flowPct(c.thu, c)"></span></span>
+        <b class="num amt-pos">{{ signed(c.thu) }}</b>
+      </div>
+      <div class="db-flow-row">
+        <span>Chi trong kỳ</span>
+        <span class="db-flow-track"><span class="db-flow-bar is-out" [style.width.%]="flowPct(c.chi, c)"></span></span>
+        <b class="num amt-neg">{{ signed(-c.chi) }}</b>
+      </div>
+    </div>
+    <ul class="db-rows">
+      <li><a class="db-row" [class.is-warn]="c.net < 0" routerLink="/thu-chi"><span>Thu − Chi</span><b class="num" [class]="'num ' + tone(c.net)">{{ signed(c.net) }}</b></a></li>
+      @for (acc of c.accounts; track acc.id) {
+        <li><a class="db-row is-sub" [class.is-bad]="acc.balance < 0" routerLink="/thu-chi"><span>{{ acc.name }}</span><b class="num">{{ money(acc.balance) }}</b></a></li>
       }
     </ul>
-  } @else {
-    <div class="db-allgood"><app-nav-icon name="check" />Đơn giao đúng hẹn, công nợ trong hạn, không bán dưới giá vốn, tồn kho và quỹ đều ổn.</div>
+    <a class="db-more" allowedLink routerLink="/thu-chi">Xem phiếu thu chi</a>
+  </section>
+
+  @if (debts(); as dt) {
+  <section class="card db-mod db-mod-debt" data-module="purchase" [attr.data-level]="areaLevel('debt')" aria-labelledby="db-a-debt">
+    <header class="db-mod-head">
+      <h3 id="db-a-debt">Công nợ</h3>
+      <span class="db-chip">{{ levelName[areaLevel('debt')] }}</span>
+    </header>
+    <div class="db-debt">
+      <div class="db-debt-side">
+        <a class="db-debt-total" routerLink="/cong-no/khach-hang"><small>Khách còn nợ mình</small><span class="num">{{ money(dt.receivableTotal) }}</span></a>
+        <ul class="db-rows">
+          <li><a class="db-row" [class.is-bad]="dt.receivableOverdue > 0" routerLink="/cong-no/tuoi-no" [queryParams]="{ loai: 'phai-thu' }">
+            <span>Quá hạn@if (dt.overdueCustomers) { · {{ dt.overdueCustomers }} khách }</span><b class="num">{{ money(dt.receivableOverdue) }}</b>
+          </a></li>
+        </ul>
+      </div>
+      <div class="db-debt-side">
+        <a class="db-debt-total" routerLink="/cong-no/nha-cung-cap"><small>Mình còn nợ nhà cung cấp</small><span class="num">{{ money(dt.payableTotal) }}</span></a>
+        <ul class="db-rows">
+          <li><a class="db-row" [class.is-bad]="dt.payableOverdue > 0" routerLink="/cong-no/tuoi-no"><span>Quá hạn</span><b class="num">{{ money(dt.payableOverdue) }}</b></a></li>
+          <li><a class="db-row" [class.is-warn]="dueSoon(dt) > 0" routerLink="/cong-no/tuoi-no"><span>Đến hạn trong 7 ngày</span><b class="num">{{ money(dueSoon(dt)) }}</b></a></li>
+        </ul>
+      </div>
+    </div>
+    <a class="db-more" allowedLink routerLink="/cong-no/tuoi-no">Xem tuổi nợ</a>
+  </section>
   }
-</section>
+</div>
 
-
-<!-- 12 tháng: doanh thu và nhập hàng (cột cạnh nhau) + lãi gộp (đường) trên một trục tiền · cơ cấu tồn kho theo nhóm. -->
+<!-- 3. Biểu đồ: 12 tháng (doanh thu, nhập hàng, lãi gộp) cạnh bán chạy; doanh thu theo ngày cạnh cơ cấu tồn kho. -->
 @let cb = combo();
 @let cat = categories();
 <div class="db-grid db-grid-12">
@@ -293,35 +396,43 @@
     }
   </section>
 
-  <section class="card db-block" aria-labelledby="db-cat">
-    <header class="db-head">
-      <h3 id="db-cat">Cơ cấu tồn kho theo nhóm</h3>
-      <a class="db-head-link" allowedLink routerLink="/kho/ton-kho">Xem tồn kho</a>
-    </header>
-    @if (!cat.rows.length) {
-      <div class="empty-state"><p>Kho đang trống</p></div>
+  <section class="card db-block" aria-labelledby="db-top">
+    <h3 id="db-top">Mặt hàng bán chạy</h3>
+    @if (topProducts().length === 0) {
+      <div class="empty-state"><p>Chưa có dữ liệu bán hàng trong kỳ</p></div>
     } @else {
-      <p class="db-cat-total">
-        @if (cat.byValue) { <span class="num">{{ money(st.value ?? 0) }}</span><small>giá trị tồn theo giá vốn bình quân</small> }
-        @else { <span class="num">{{ cat.total }}</span><small>mặt hàng còn tồn</small> }
-      </p>
-      <ul class="db-cat">
-        @for (g of cat.rows; track g.id) {
+      <!-- Name gets the full width (it is what people read); value and share sit on the line below. -->
+      <ol class="db-top">
+        @for (t of topPageItems(); track t.id; let i = $index) {
+          @let rank = topFrom() + i;
           <li>
-            <span class="db-cat-name" [title]="g.name">{{ g.name }}</span>
-            <span class="db-cat-figure">
-              @if (cat.byValue) { <span class="num">{{ compact(g.value ?? 0) }}</span> } @else { <span class="num">{{ g.items }}</span>&nbsp;mặt hàng }
-              <span class="db-cat-share num">{{ g.share.toFixed(0) }}%</span>
-            </span>
-            <span class="db-cat-track" aria-hidden="true"><span [style.width.%]="g.w"></span></span>
+            <span class="db-rank num" [class.is-first]="rank === 1">{{ rank }}</span>
+            <div class="db-top-body">
+              <a class="db-top-name" [routerLink]="['/hang-hoa', t.id]" [title]="t.code + ' · ' + t.name">{{ t.name }}</a>
+              <div class="db-top-meta">
+                <span [title]="t.share.toFixed(1) + '% doanh thu hàng hoá trong kỳ'"><span class="num">{{ t.qty.toLocaleString('vi-VN') }}</span>&nbsp;{{ t.unit }} · <span class="num">{{ t.share.toFixed(0) }}%</span></span>
+                <strong class="num">{{ money(t.value) }}</strong>
+              </div>
+              <span class="db-share" aria-hidden="true"><span [style.width.%]="t.share"></span></span>
+            </div>
           </li>
         }
-      </ul>
+      </ol>
+      @if (topPages() > 1) {
+        <nav class="db-top-pager" aria-label="Phân trang mặt hàng bán chạy">
+          <span>Trang <span class="num">{{ topPage() }}/{{ topPages() }}</span></span>
+          <button type="button" class="btn db-top-step" aria-label="Trang trước" [disabled]="topPage() <= 1" (click)="topPage.set(topPage() - 1)">
+            <app-nav-icon name="chevron-left" />
+          </button>
+          <button type="button" class="btn db-top-step" aria-label="Trang sau" [disabled]="topPage() >= topPages()" (click)="topPage.set(topPage() + 1)">
+            <app-nav-icon name="chevron-right" />
+          </button>
+        </nav>
+      }
     }
   </section>
 </div>
 
-<!-- 3. Xu hướng -->
 <div class="db-grid db-grid-wide">
   @let ch = chart();
   <section class="card db-block" aria-labelledby="db-chart">
@@ -379,138 +490,30 @@
     }
   </section>
 
-  <section class="card db-block" aria-labelledby="db-top">
-    <h3 id="db-top">Mặt hàng bán chạy</h3>
-    @if (topProducts().length === 0) {
-      <div class="empty-state"><p>Chưa có dữ liệu bán hàng trong kỳ</p></div>
+  <section class="card db-block" aria-labelledby="db-cat">
+    <header class="db-head">
+      <h3 id="db-cat">Cơ cấu tồn kho theo nhóm</h3>
+      <a class="db-head-link" allowedLink routerLink="/kho/ton-kho">Xem tồn kho</a>
+    </header>
+    @if (!cat.rows.length) {
+      <div class="empty-state"><p>Kho đang trống</p></div>
     } @else {
-      <!-- Name gets the full width (it is what people read); value and share sit on the line below. -->
-      <ol class="db-top">
-        @for (t of topProducts(); track t.id; let i = $index) {
+      <p class="db-cat-total">
+        @if (cat.byValue) { <span class="num">{{ money(st.value ?? 0) }}</span><small>giá trị tồn theo giá vốn bình quân</small> }
+        @else { <span class="num">{{ cat.total }}</span><small>mặt hàng còn tồn</small> }
+      </p>
+      <ul class="db-cat">
+        @for (g of cat.rows; track g.id) {
           <li>
-            <span class="db-rank num" [class.is-first]="i === 0">{{ i + 1 }}</span>
-            <div class="db-top-body">
-              <a class="db-top-name" [routerLink]="['/hang-hoa', t.id]" [title]="t.code + ' · ' + t.name">{{ t.name }}</a>
-              <div class="db-top-meta">
-                <span [title]="t.share.toFixed(1) + '% doanh thu hàng hoá trong kỳ'"><span class="num">{{ t.qty.toLocaleString('vi-VN') }}</span>&nbsp;{{ t.unit }} · <span class="num">{{ t.share.toFixed(0) }}%</span></span>
-                <strong class="num">{{ money(t.value) }}</strong>
-              </div>
-              <span class="db-share" aria-hidden="true"><span [style.width.%]="t.share"></span></span>
-            </div>
+            <span class="db-cat-name" [title]="g.name">{{ g.name }}</span>
+            <span class="db-cat-figure">
+              @if (cat.byValue) { <span class="num">{{ compact(g.value ?? 0) }}</span> } @else { <span class="num">{{ g.items }}</span>&nbsp;mặt hàng }
+              <span class="db-cat-share num">{{ g.share.toFixed(0) }}%</span>
+            </span>
+            <span class="db-cat-track" aria-hidden="true"><span [style.width.%]="g.w"></span></span>
           </li>
         }
-      </ol>
+      </ul>
     }
-  </section>
-</div>
-
-<!-- 4. Từng mảng: mỗi thẻ có trạng thái Ổn / Cần theo dõi / Có vấn đề, lấy từ cùng danh sách "Cần xử lý" -->
-@let a = attention();
-@let l = leaks();
-<h2 class="db-section">Tình hình từng mảng</h2>
-<!-- One card per area: chip (from issues()) → one headline figure → detail rows → "Xem …" pinned to the foot.
-     Whole rows are links; a row that is a problem gets a dot and the danger / warning colour. -->
-<div class="db-areas" [class.has-debt]="!!debts()">
-  <section class="card db-area db-area-sell" [attr.data-level]="areaLevel('sell')" aria-labelledby="db-a-sell">
-    <header class="db-area-head">
-      <h3 id="db-a-sell">Bán hàng &amp; giao hàng</h3>
-      <span class="db-chip">{{ levelName[areaLevel('sell')] }}</span>
-    </header>
-    <p class="db-figure"><span class="num">{{ a.pendingProduction + a.shipping }}</span><small>đơn đang xử lý</small></p>
-    <ul class="db-rows">
-      <li><a class="db-row" routerLink="/don-hang" [queryParams]="{ status: 'PENDING' }"><span>Chờ sản xuất</span><b class="num">{{ a.pendingProduction }}</b></a></li>
-      <li><a class="db-row" routerLink="/don-hang" [queryParams]="{ status: 'SHIPPING' }"><span>Đang giao</span><b class="num">{{ a.shipping }}</b></a></li>
-      <li><a class="db-row" [class.is-bad]="a.late > 0" routerLink="/don-hang" [queryParams]="{ late: 1 }"><span>Trễ hẹn giao</span><b class="num">{{ a.late }}</b></a></li>
-      <li><a class="db-row" [class.is-warn]="l.stopped > 0" routerLink="/bao-cao" [queryParams]="{ name: 'khach-ngung-mua', ngay: 60 }"><span>Khách ngừng mua &gt; 60 ngày</span><b class="num">{{ l.stopped }}</b></a></li>
-    </ul>
-    <a class="db-more" allowedLink routerLink="/don-hang">Xem đơn hàng bán</a>
-  </section>
-
-  <section class="card db-area db-area-stock" [attr.data-level]="areaLevel('stock')" aria-labelledby="db-a-stock">
-    <header class="db-area-head">
-      <h3 id="db-a-stock">Kho &amp; mua hàng</h3>
-      <span class="db-chip">{{ levelName[areaLevel('stock')] }}</span>
-    </header>
-    <p class="db-figure" [class.is-warn]="a.belowMin > 0"><span class="num">{{ a.belowMin }}</span><small>mặt hàng dưới tồn tối thiểu</small></p>
-    <ul class="db-rows">
-      <li><a class="db-row" [class.is-warn]="a.belowMin > 0" routerLink="/kho/ton-kho" [queryParams]="{ belowMin: true }"><span>Cần nhập thêm</span><b class="num">{{ a.belowMin }}</b></a></li>
-      <li><a class="db-row" routerLink="/mua-hang"><span>Đơn nhập chờ nhận hàng</span><b class="num">{{ a.poWaiting }}</b></a></li>
-    </ul>
-    <a class="db-more" allowedLink routerLink="/kho/ton-kho">Xem tồn kho</a>
-  </section>
-
-  <section class="card db-area db-area-profit" [attr.data-level]="areaLevel('profit')" aria-labelledby="db-a-profit">
-    <header class="db-area-head">
-      <h3 id="db-a-profit">Lợi nhuận</h3>
-      <span class="db-chip">{{ levelName[areaLevel('profit')] }}</span>
-    </header>
-    @if (showProfit()) {
-      <p class="db-figure"><span class="num">{{ percent(k.margin) }}</span><small>tỷ suất lãi gộp</small></p>
-    } @else {
-      <p class="db-figure" [class.is-warn]="l.discountPct >= 10"><span class="num">{{ l.discountPct }}%</span><small>chiết khấu trên giá trị hàng</small></p>
-    }
-    <ul class="db-rows">
-      @if (showProfit()) {
-        <li><a class="db-row" [class.is-bad]="(l.belowCostLines ?? 0) > 0" routerLink="/bao-cao" [queryParams]="{ name: 'ban-duoi-gia-von' }">
-          <span>Bán dưới giá vốn</span><b class="num">{{ l.belowCostLines ?? 0 }} dòng@if ((l.belowCostLoss ?? 0) > 0) { · lỗ {{ money(l.belowCostLoss ?? 0) }} }</b>
-        </a></li>
-      }
-      <li><a class="db-row" [class.is-warn]="l.discountPct >= 10" routerLink="/bao-cao" [queryParams]="{ name: 'chiet-khau' }"><span>Chiết khấu đã cấp</span><b class="num">{{ money(l.discount) }}</b></a></li>
-    </ul>
-    <a class="db-more" allowedLink routerLink="/bao-cao" [queryParams]="{ name: showProfit() ? 'loi-nhuan' : 'chiet-khau' }">{{ showProfit() ? 'Xem báo cáo lãi gộp' : 'Xem báo cáo chiết khấu' }}</a>
-  </section>
-
-  @if (debts(); as dt) {
-  <section class="card db-area db-area-debt" [attr.data-level]="areaLevel('debt')" aria-labelledby="db-a-debt">
-    <header class="db-area-head">
-      <h3 id="db-a-debt">Công nợ</h3>
-      <span class="db-chip">{{ levelName[areaLevel('debt')] }}</span>
-    </header>
-    <div class="db-debt">
-      <div class="db-debt-side">
-        <a class="db-debt-total" routerLink="/cong-no/khach-hang"><small>Khách còn nợ mình</small><span class="num">{{ money(dt.receivableTotal) }}</span></a>
-        <ul class="db-rows">
-          <li><a class="db-row" [class.is-bad]="dt.receivableOverdue > 0" routerLink="/cong-no/tuoi-no" [queryParams]="{ loai: 'phai-thu' }">
-            <span>Quá hạn@if (dt.overdueCustomers) { · {{ dt.overdueCustomers }} khách }</span><b class="num">{{ money(dt.receivableOverdue) }}</b>
-          </a></li>
-        </ul>
-      </div>
-      <div class="db-debt-side">
-        <a class="db-debt-total" routerLink="/cong-no/nha-cung-cap"><small>Mình còn nợ nhà cung cấp</small><span class="num">{{ money(dt.payableTotal) }}</span></a>
-        <ul class="db-rows">
-          <li><a class="db-row" [class.is-bad]="dt.payableOverdue > 0" routerLink="/cong-no/tuoi-no"><span>Quá hạn</span><b class="num">{{ money(dt.payableOverdue) }}</b></a></li>
-          <li><a class="db-row" [class.is-warn]="dueSoon(dt) > 0" routerLink="/cong-no/tuoi-no"><span>Đến hạn trong 7 ngày</span><b class="num">{{ money(dueSoon(dt)) }}</b></a></li>
-        </ul>
-      </div>
-    </div>
-    <a class="db-more" allowedLink routerLink="/cong-no/tuoi-no">Xem tuổi nợ</a>
-  </section>
-  }
-
-  <section class="card db-area db-area-cash" [attr.data-level]="areaLevel('cash')" aria-labelledby="db-a-cash">
-    <header class="db-area-head">
-      <h3 id="db-a-cash">Dòng tiền</h3>
-      <span class="db-chip">{{ levelName[areaLevel('cash')] }}</span>
-    </header>
-    <p class="db-figure" [class.is-bad]="c.balance < 0"><span class="num">{{ money(c.balance) }}</span><small>tồn quỹ hiện tại · tính trên toàn bộ lịch sử</small></p>
-    <div class="db-flow" role="img" [attr.aria-label]="'Thu ' + money(c.thu) + ', chi ' + money(c.chi) + ' trong kỳ'">
-      <div class="db-flow-row">
-        <span>Thu trong kỳ</span>
-        <span class="db-flow-track"><span class="db-flow-bar is-in" [style.width.%]="flowPct(c.thu, c)"></span></span>
-        <b class="num amt-pos">{{ signed(c.thu) }}</b>
-      </div>
-      <div class="db-flow-row">
-        <span>Chi trong kỳ</span>
-        <span class="db-flow-track"><span class="db-flow-bar is-out" [style.width.%]="flowPct(c.chi, c)"></span></span>
-        <b class="num amt-neg">{{ signed(-c.chi) }}</b>
-      </div>
-    </div>
-    <ul class="db-rows">
-      <li><a class="db-row" [class.is-warn]="c.net < 0" routerLink="/thu-chi"><span>Thu − Chi</span><b class="num" [class]="'num ' + tone(c.net)">{{ signed(c.net) }}</b></a></li>
-      @for (acc of c.accounts; track acc.id) {
-        <li><a class="db-row is-sub" [class.is-bad]="acc.balance < 0" routerLink="/thu-chi"><span>{{ acc.name }}</span><b class="num">{{ money(acc.balance) }}</b></a></li>
-      }
-    </ul>
-    <a class="db-more" allowedLink routerLink="/thu-chi">Xem phiếu thu chi</a>
   </section>
 </div>

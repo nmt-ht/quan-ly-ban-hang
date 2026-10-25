@@ -31,7 +31,7 @@
             <span class="nav-group-name">{{ group.label }}</span>
           </button>
         }
-        <div class="nav-items" [id]="'nav-group-' + i" [class.is-closed]="!isOpen(group)" [attr.inert]="isOpen(group) ? null : ''">
+        <div class="nav-items" [id]="'nav-group-' + i" [attr.data-module]="group.module ?? null" [class.is-closed]="!isOpen(group)" [attr.inert]="isOpen(group) ? null : ''">
           <div class="nav-items-inner">
             @for (link of group.links; track link.path) {
               <a
@@ -65,7 +65,7 @@
 
   <button class="scrim" type="button" aria-label="Đóng menu" tabindex="-1" (click)="closeMenu()"></button>
 
-  <div class="main">
+  <div class="main" [attr.data-module]="module()">
     <header class="topbar">
       <button
         class="menu-btn btn"

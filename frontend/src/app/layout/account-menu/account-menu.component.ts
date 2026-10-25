@@ -19,13 +19,16 @@ export class AccountMenuComponent {
   private readonly trigger = viewChild.required<ElementRef<HTMLButtonElement>>('trigger');
   private readonly menu = viewChild<ElementRef<HTMLElement>>('menu');
 
-  readonly themes: { value: ThemeMode; label: string; icon: NavIconName }[] = [
-    { value: 'light', label: 'Sáng', icon: 'sun' },
-    { value: 'dark', label: 'Tối', icon: 'moon' },
-    { value: 'system', label: 'Theo hệ thống', icon: 'monitor' },
+  /** short: the word on the segment; label: the full name, for screen readers. */
+  readonly themes: { value: ThemeMode; label: string; short: string; icon: NavIconName }[] = [
+    { value: 'light', label: 'Sáng', short: 'Sáng', icon: 'sun' },
+    { value: 'dark', label: 'Tối', short: 'Tối', icon: 'moon' },
+    { value: 'system', label: 'Theo hệ thống', short: 'Hệ thống', icon: 'monitor' },
   ];
 
   readonly densities = DENSITIES;
+  /** The chosen mật độ's hint, said once under the row instead of beside every option. */
+  readonly densityHint = computed(() => DENSITIES.find((d) => d.value === this.density.mode())?.hint ?? '');
 
   readonly user = computed(() => this.auth.user());
   readonly name = computed(() => this.user()?.name || 'Người dùng');
@@ -92,8 +95,11 @@ export class AccountMenuComponent {
       items.at(((to % items.length) + items.length) % items.length)?.focus();
     };
     switch (event.key) {
-      case 'ArrowDown': return move(i + 1);
-      case 'ArrowUp': return move(i - 1);
+      // Left / right walk a segmented row the way down / up walk the list.
+      case 'ArrowDown':
+      case 'ArrowRight': return move(i + 1);
+      case 'ArrowUp':
+      case 'ArrowLeft': return move(i - 1);
       case 'Home': return move(0);
       case 'End': return move(items.length - 1);
       case 'Escape':

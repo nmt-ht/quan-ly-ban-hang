@@ -20,6 +20,8 @@
 </button>
 
 @if (open()) {
+  <!-- Who is signed in, then Giao diện and Mật độ as two segmented rows (the chosen one raised, its hint under the row),
+       then the two account actions. Every option stays a menuitem / menuitemradio, so the arrows walk them in order. -->
   <div #menu id="account-menu" class="account-menu" role="menu" aria-label="Tài khoản" (keydown)="onMenuKey($event)">
     <div class="menu-header">
       <span class="avatar avatar-lg" aria-hidden="true">{{ initials() }}</span>
@@ -28,65 +30,63 @@
         @if (user()?.email) {
           <p class="menu-email">{{ user()?.email }}</p>
         }
-        @if (user()?.roleName) {
-          <span class="badge badge-muted">{{ user()?.roleName }}</span>
+      </div>
+      @if (user()?.roleName) {
+        <span class="menu-role">{{ user()?.roleName }}</span>
+      }
+    </div>
+
+    <section class="menu-pref" aria-labelledby="account-theme-label">
+      <p class="menu-label" id="account-theme-label">Giao diện</p>
+      <div class="menu-seg" role="group" aria-labelledby="account-theme-label">
+        @for (t of themes; track t.value) {
+          <button
+            type="button"
+            class="menu-seg-item"
+            role="menuitemradio"
+            tabindex="-1"
+            [attr.aria-label]="t.label"
+            [attr.aria-checked]="theme.mode() === t.value"
+            (click)="setTheme(t.value)"
+          >
+            <app-nav-icon [name]="t.icon" />
+            <span aria-hidden="true">{{ t.short }}</span>
+          </button>
         }
       </div>
+    </section>
+
+    <section class="menu-pref" aria-labelledby="account-density-label">
+      <p class="menu-label" id="account-density-label">Mật độ hiển thị</p>
+      <div class="menu-seg" role="group" aria-labelledby="account-density-label">
+        @for (d of densities; track d.value) {
+          <button
+            type="button"
+            class="menu-seg-item"
+            role="menuitemradio"
+            tabindex="-1"
+            [title]="d.hint"
+            [attr.aria-checked]="density.mode() === d.value"
+            [attr.aria-describedby]="density.mode() === d.value ? 'account-density-hint' : null"
+            (click)="setDensity(d.value)"
+          >
+            <span class="menu-density" [attr.data-d]="d.value" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span>{{ d.label }}</span>
+          </button>
+        }
+      </div>
+      <p class="menu-hint" id="account-density-hint">{{ densityHint() }}</p>
+    </section>
+
+    <div class="menu-actions">
+      <button type="button" class="menu-item" role="menuitem" tabindex="-1" (click)="changePassword()">
+        <app-nav-icon name="key" />
+        <span class="menu-item-label">Đổi mật khẩu</span>
+      </button>
+      <button type="button" class="menu-item menu-item-danger" role="menuitem" tabindex="-1" (click)="logout()">
+        <app-nav-icon name="log-out" />
+        <span class="menu-item-label">Đăng xuất</span>
+      </button>
     </div>
-
-    <div class="menu-sep" role="separator"></div>
-
-    <p class="menu-label" id="account-theme-label">Giao diện</p>
-    <div role="group" aria-labelledby="account-theme-label">
-      @for (t of themes; track t.value) {
-        <button
-          type="button"
-          class="menu-item"
-          role="menuitemradio"
-          tabindex="-1"
-          [attr.aria-checked]="theme.mode() === t.value"
-          (click)="setTheme(t.value)"
-        >
-          <app-nav-icon [name]="t.icon" />
-          <span class="menu-item-label">{{ t.label }}</span>
-          @if (theme.mode() === t.value) {
-            <app-nav-icon class="menu-check" name="check" />
-          }
-        </button>
-      }
-    </div>
-
-    <div class="menu-sep" role="separator"></div>
-
-    <p class="menu-label" id="account-density-label">Mật độ hiển thị</p>
-    <div role="group" aria-labelledby="account-density-label">
-      @for (d of densities; track d.value) {
-        <button
-          type="button"
-          class="menu-item"
-          role="menuitemradio"
-          tabindex="-1"
-          [title]="d.hint"
-          [attr.aria-checked]="density.mode() === d.value"
-          (click)="setDensity(d.value)"
-        >
-          <span class="menu-item-label">{{ d.label }}</span>
-          <span class="menu-item-hint">{{ d.hint }}</span>
-          @if (density.mode() === d.value) {
-            <app-nav-icon class="menu-check" name="check" />
-          }
-        </button>
-      }
-    </div>
-
-    <div class="menu-sep" role="separator"></div>
-
-    <button type="button" class="menu-item" role="menuitem" tabindex="-1" (click)="changePassword()">
-      <span class="menu-item-label">Đổi mật khẩu</span>
-    </button>
-    <button type="button" class="menu-item menu-item-danger" role="menuitem" tabindex="-1" (click)="logout()">
-      <app-nav-icon name="log-out" />
-      <span class="menu-item-label">Đăng xuất</span>
-    </button>
   </div>
 }

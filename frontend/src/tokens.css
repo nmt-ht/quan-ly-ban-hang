@@ -1,7 +1,9 @@
-/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app
- * theme: custom · vibe: "sổ cái — ledger paper, moss ink, dense" · paper: oklch(97.6% 0.008 90) · accent: oklch(43% 0.11 160)
- * display: Be Vietnam Pro 600 · body: Be Vietnam Pro 400 · mono: JetBrains Mono · axes: light / geometric-sans / chromatic-moss
- * studied: no · context: user-provided (direction + density chosen) · v1.1.0
+/* Hallmark · genre: modern-minimal · shape: app screen · scope: app · design-system: design.md · theme: brand (moss, kept) · redesign: restyle
+ * critique: the ledger stays the ground; colour now says where you are — each phân hệ wears its own hue on its icons, its top rule and its actions, moss stays the brand.
+ * vibe: "tươi, thân thiện — one hue per phân hệ on ledger paper" · paper: oklch(97.6% 0.008 90) · brand: oklch(43% 0.11 160)
+ * modules: bán hàng blue 258 · kho & sản xuất orange 48 · mua hàng violet 300 · dòng tiền teal 195 · thiết lập slate 255 · tổng quan moss 160
+ * display: Be Vietnam Pro 600 · body: Be Vietnam Pro 400 · mono: JetBrains Mono · contrast: every module ≥ 5:1 (fill/ink, text/surface, text/tint, light + dark)
+ * built: the project · v2.0.0
  */
 
 :root {
@@ -33,6 +35,29 @@
   --color-warning-tint: oklch(95.5% 0.035 80);
   --color-info:         oklch(47% 0.09 235);
   --color-info-tint:    oklch(95.5% 0.02 235);
+
+  /* ---------- phân hệ (module) hues — [data-module] below maps one onto the accent ---------- */
+  /* Text on white / on the tint and white text on the fill: all >= 5:1 (checked per pair, light + dark). */
+  --mod-sell:            oklch(48% 0.15 258);   /* bán hàng — blue */
+  --mod-sell-hover:      oklch(42% 0.14 258);
+  --mod-sell-tint:       oklch(95% 0.03 258);
+  --mod-sell-focus:      oklch(55% 0.17 258);
+  --mod-stock:           oklch(52% 0.15 48);    /* kho & sản xuất — orange */
+  --mod-stock-hover:     oklch(46% 0.14 48);
+  --mod-stock-tint:      oklch(95.5% 0.035 55);
+  --mod-stock-focus:     oklch(58% 0.16 48);
+  --mod-purchase:        oklch(48% 0.16 300);   /* mua hàng — violet */
+  --mod-purchase-hover:  oklch(42% 0.15 300);
+  --mod-purchase-tint:   oklch(95% 0.03 300);
+  --mod-purchase-focus:  oklch(55% 0.17 300);
+  --mod-cash:            oklch(48% 0.09 195);   /* dòng tiền — teal */
+  --mod-cash-hover:      oklch(42% 0.085 195);
+  --mod-cash-tint:       oklch(95% 0.03 195);
+  --mod-cash-focus:      oklch(55% 0.11 195);
+  --mod-settings:        oklch(44% 0.04 255);   /* thiết lập — slate */
+  --mod-settings-hover:  oklch(38% 0.04 255);
+  --mod-settings-tint:   oklch(95% 0.012 255);
+  --mod-settings-focus:  oklch(52% 0.08 255);
 
 
   /* User-chosen tag colours (Thiết lập → Màu hiển thị) only pick the hue; these fix the
@@ -89,9 +114,9 @@
   --topbar-h:  52px;     /* sticky topbar (shell) — sticky panels sit under it */
   --space-xl:  3rem;     /* 48 */
 
-  /* ---------- shape ---------- */
-  --radius-control: 6px;
-  --radius-card:    8px;
+  /* ---------- shape · softer corners for a friendlier workbench ---------- */
+  --radius-control: 8px;
+  --radius-card:    12px;
   --rule-hair:      1px;
 
   --control-h:      2.25rem; /* 36px — compact density */
@@ -153,6 +178,27 @@ body.dark-theme {
   --color-info:         oklch(77% 0.09 235);
   --color-info-tint:    oklch(28% 0.035 235);
 
+  --mod-sell:            oklch(75% 0.12 258);
+  --mod-sell-hover:      oklch(81% 0.10 258);
+  --mod-sell-tint:       oklch(29% 0.05 258);
+  --mod-sell-focus:      oklch(79% 0.13 258);
+  --mod-stock:           oklch(76% 0.13 55);
+  --mod-stock-hover:     oklch(82% 0.11 55);
+  --mod-stock-tint:      oklch(29% 0.05 55);
+  --mod-stock-focus:     oklch(80% 0.14 55);
+  --mod-purchase:        oklch(76% 0.12 300);
+  --mod-purchase-hover:  oklch(82% 0.10 300);
+  --mod-purchase-tint:   oklch(29% 0.05 300);
+  --mod-purchase-focus:  oklch(80% 0.13 300);
+  --mod-cash:            oklch(76% 0.10 195);
+  --mod-cash-hover:      oklch(82% 0.09 195);
+  --mod-cash-tint:       oklch(29% 0.045 195);
+  --mod-cash-focus:      oklch(80% 0.11 195);
+  --mod-settings:        oklch(78% 0.04 255);
+  --mod-settings-hover:  oklch(84% 0.035 255);
+  --mod-settings-tint:   oklch(29% 0.02 255);
+  --mod-settings-focus:  oklch(82% 0.06 255);
+
   --chart-1:            #3a9a6e;
   --chart-2:            #3987e5;
   --chart-3:            #c98500;
@@ -166,4 +212,43 @@ body.dark-theme {
   --tag-bg-c: var(--tag-bg-c-dark);
 
   --color-shadow:       oklch(8% 0.01 150 / 0.5);
+}
+
+/* ---------- phân hệ: the module of a region becomes its accent ----------
+   The shell sets data-module on the page area (from the route) and on each sidebar group, so every button, link,
+   active tab, focus ring and tint inside reads that module's hue. No data-module (Tổng quan, Báo cáo, sign-in) =
+   the moss brand. Status colours (danger / success / warning / info) never change. */
+[data-module='sell'] {
+  --color-accent: var(--mod-sell);
+  --color-accent-hover: var(--mod-sell-hover);
+  --color-accent-tint: var(--mod-sell-tint);
+  --color-focus: var(--mod-sell-focus);
+}
+
+[data-module='stock'] {
+  --color-accent: var(--mod-stock);
+  --color-accent-hover: var(--mod-stock-hover);
+  --color-accent-tint: var(--mod-stock-tint);
+  --color-focus: var(--mod-stock-focus);
+}
+
+[data-module='purchase'] {
+  --color-accent: var(--mod-purchase);
+  --color-accent-hover: var(--mod-purchase-hover);
+  --color-accent-tint: var(--mod-purchase-tint);
+  --color-focus: var(--mod-purchase-focus);
+}
+
+[data-module='cash'] {
+  --color-accent: var(--mod-cash);
+  --color-accent-hover: var(--mod-cash-hover);
+  --color-accent-tint: var(--mod-cash-tint);
+  --color-focus: var(--mod-cash-focus);
+}
+
+[data-module='settings'] {
+  --color-accent: var(--mod-settings);
+  --color-accent-hover: var(--mod-settings-hover);
+  --color-accent-tint: var(--mod-settings-tint);
+  --color-focus: var(--mod-settings-focus);
 }
