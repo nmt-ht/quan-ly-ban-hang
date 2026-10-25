@@ -92,11 +92,8 @@
     @if (draft().type === 'NGAN_HANG') {
       <label class="field">
         <span>Ngân hàng (cho mã VietQR)</span>
-        <select [ngModel]="otherBin() ? 'khac' : bankChoice()" (ngModelChange)="pickBank($event)">
-          <option value="">— Chưa chọn (không in mã QR) —</option>
-          @for (b of banks; track b.bin) { <option [value]="b.bin">{{ b.name }}</option> }
-          <option value="khac">Ngân hàng khác — nhập mã BIN</option>
-        </select>
+        <app-search-select ariaLabel="Ngân hàng (cho mã VietQR)" [options]="bankOptions" [value]="otherBin() ? 'khac' : bankChoice()" (valueChange)="pickBank($event)"
+          emptyLabel="— Chưa chọn (không in mã QR) —" placeholder="— Chưa chọn (không in mã QR) —" searchPlaceholder="Tìm tên ngân hàng hoặc mã BIN…" />
       </label>
       @if (otherBin() || bankChoice() === 'khac') {
         <label class="field">

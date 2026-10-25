@@ -28,13 +28,8 @@
       @if (needsPartner()) {
         <div class="field span-2">
           <label for="cv-partner">{{ text().partner }} <span class="required-mark">*</span></label>
-          <select id="cv-partner" name="partner" [ngModel]="partnerId()" (ngModelChange)="onPartnerChange($event)"
-            [attr.aria-invalid]="attempted() && !partnerId() ? 'true' : null">
-            <option value="">— {{ text().partnerPick }} —</option>
-            @for (p of partners(); track p.id) {
-              <option [value]="p.id">{{ p.code }} — {{ p.name }}</option>
-            }
-          </select>
+          <app-search-select inputId="cv-partner" [options]="partnerOptions()" [value]="partnerId()" (valueChange)="onPartnerChange($event)"
+            [placeholder]="'— ' + text().partnerPick + ' —'" [invalid]="attempted() && !partnerId()" />
         </div>
         <div class="field">
           <span class="field-label">Mã số thuế</span>

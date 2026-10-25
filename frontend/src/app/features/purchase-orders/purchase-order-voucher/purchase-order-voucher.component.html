@@ -43,13 +43,8 @@
         <div class="field">
           <label for="v-supplier">Nhà cung cấp @if (editable()) { <span class="required-mark">*</span> }</label>
           @if (editable()) {
-            <select id="v-supplier" [ngModel]="supplierId()" (ngModelChange)="supplierId.set($event)"
-              [attr.aria-invalid]="attempted() && !supplierId() ? 'true' : null">
-              <option value="">— Chọn nhà cung cấp —</option>
-              @for (s of supplierOptions(); track s.id) {
-                <option [value]="s.id">{{ s.code }} — {{ s.name }}</option>
-              }
-            </select>
+            <app-search-select inputId="v-supplier" [options]="supplierOptions()" [(value)]="supplierId"
+              placeholder="— Chọn nhà cung cấp —" searchPlaceholder="Tìm mã, tên, số điện thoại hoặc mã số thuế…" [invalid]="attempted() && !supplierId()" />
           } @else {
             <p class="field-value"><span class="num">{{ supplier()?.code }}</span></p>
           }

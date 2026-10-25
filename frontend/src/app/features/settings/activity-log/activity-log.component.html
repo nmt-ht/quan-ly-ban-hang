@@ -21,10 +21,8 @@
     [value]="search()"
     (input)="search.set($any($event.target).value)"
   />
-  <select id="al-user" aria-label="Người thực hiện" [value]="userId()" (change)="userId.set($any($event.target).value)">
-    <option value="">Mọi người dùng</option>
-    @for (u of users(); track u.id) { <option [value]="u.id">{{ u.name }}</option> }
-  </select>
+  <app-search-select inputId="al-user" ariaLabel="Người thực hiện" [options]="userOptions()" [(value)]="userId"
+    emptyLabel="Mọi người dùng" placeholder="Mọi người dùng" searchPlaceholder="Tìm tên hoặc email…" />
   <select id="al-type" aria-label="Loại đối tượng" [value]="entityType()" (change)="entityType.set($any($event.target).value)">
     <option value="">Mọi đối tượng</option>
     @for (t of entityTypes; track t[0]) { <option [value]="t[0]">{{ t[1] }}</option> }

@@ -83,7 +83,8 @@ export class BrandService {
     effect(() => {
       if (!this.loaded()) return;
       try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify({ fullName: this.fullName(), icon: this.icon() }));
+        // name / monogram: what the boot splash in index.html shows before the app has started.
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ fullName: this.fullName(), icon: this.icon(), name: this.name(), monogram: this.monogram() }));
       } catch { /* storage blocked: nothing to remember */ }
     });
   }

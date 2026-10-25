@@ -34,6 +34,7 @@ import { AuditHistoryComponent } from '../../../shared/audit/audit-history.compo
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 import { PickableWarehousesPipe } from '../../../shared/pickable-warehouses.pipe';
 import type { ReorderDraft } from '../../inventory/reorder.rules';
+import { SearchOption, SearchSelectComponent } from '../../../shared/search-select/search-select.component';
 
 type Mode = 'create' | 'edit' | 'view';
 
@@ -65,7 +66,7 @@ const emptyLine = (): DraftLine => ({
 @Component({
   selector: 'app-purchase-order-voucher',
   standalone: true,
-  imports: [PickableWarehousesPipe, FrozenColsDirective, 
+  imports: [SearchSelectComponent, PickableWarehousesPipe, FrozenColsDirective, 
     NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
     ReceiveGoodsDialogComponent, PurchaseReturnDialogComponent, PaginationComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent,
   ],
@@ -165,8 +166,11 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
   // ---------- lookups ----------
   private readonly productById = computed(() => new Map(this.data.products().map((p) => [p.id, p])));
   readonly supplier = computed(() => this.data.suppliers().find((s) => s.id === this.supplierId()));
-  readonly supplierOptions = computed(() =>
-    this.data.suppliers().filter((s) => s.isActive || s.id === this.supplierId()),
+  /** NCC đang hợp tác (và NCC đang chọn), Mã tăng dần — tìm theo mã, tên, số điện thoại, mã số thuế. */
+  readonly supplierOptions = computed<SearchOption[]>(() =>
+    this.data.suppliers().filter((s) => s.isActive || s.id === this.supplierId())
+      .sort((a, b) => a.code.localeCompare(b.code, 'vi', { numeric: true }))
+      .map((s) => ({ value: s.id, code: s.code, label: s.name, hint: s.contactPhone, search: s.taxCode })),
   );
   // Danh mục hàng của NCC đang chọn: productId → giá mua (đơn vị cơ bản).
   private readonly catalog = computed(() => {

@@ -232,6 +232,29 @@ mix in a second icon library or emoji.
   Rộng (44 px, 15 px). Everything reads `--control-h`, `--row-h` and the `--text-*` scale from
   tokens.css, so a new screen follows with no extra CSS — never hard-code a control height.
 - Phones: dashboard KPI cards go one per row under 480 px so figures are never clipped.
+- **Chọn từ danh sách dài** (khách hàng, nhà cung cấp, đối tượng thu chi, người dùng, mặt hàng của báo cáo, ngân
+  hàng): `app-search-select` — reads like a select, opens a panel with a search box (mã, tên, số điện thoại…, no
+  diacritics needed, every word must match), ↑↓ Enter Esc, at most 80 rows drawn ("còn N kết quả — gõ thêm"), so
+  1 000+ rows stay quick. Options are `SearchOption` (code · label · hint · extra search words); `emptyLabel` adds a
+  "Tất cả / Chưa chọn" row. Short fixed lists (loại, trạng thái, thuế, kho, tài khoản tiền) stay native `<select>`.
+- **Order**: every pick list is ascending — mã tăng dần for coded records (numeric-aware), A → Z for names.
+  CatalogLoader stores khách, NCC, kho, xe and bảng giá already sorted; option builders sort their own lists.
+- **Thanh lọc** is one step lower than forms (`--filter-h`: 32 / 36 / 40 px by density; the bar sets `--control-h`
+  for everything inside it) and the search box shrinks first (14–22 rem) so the filters stay on one line.
+- **Lọc theo cột** (data-table `filterable`): the filter row is hidden until "Lọc cột" in the actions header cell
+  opens it; it stays open while a column filter is set. Tables without an actions column keep the row.
+
+## Loading (khởi động và tải danh mục)
+- Two screens, one look — ledger paper (page ground with faint 32 px ruled lines), a centred surface card: brand mark
+  (logo, else the monogram on an ink tile) → company name (20 px, 600) → one muted line → 4 px progress bar (moss) →
+  muted step line.
+- **Boot splash** (`src/index.html`, inside `<app-root>`): shown from the first byte until Angular replaces it;
+  colours are tokens.css values written out (the stylesheet may not be applied yet); an inline script applies the
+  remembered theme (`nt.theme`) and brand (`nt.brand`: name, monogram, icon). Indeterminate bar; static under reduced
+  motion. CSP allows it by hash (backend `common/security.ts` hashes every inline script of the built index.html).
+- **Màn đang tải** (`layout/loading-screen`, shown by the root while `CatalogLoader.status()` is loading): determinate
+  bar from `CatalogLoader.progress` with the step named ("Đang tải: Đơn hàng bán và lệnh sản xuất · 3/7"); after 8 s a
+  warning-tint note says the connection is slow. A new load step = one entry in `LOAD_STEPS` + one `step(i)` call.
 
 ## Dashboard (Tổng quan)
 - Order (redesigned 25/10/2026 from the user's reference): header with a date chip → period tabs (Tháng này · Quý

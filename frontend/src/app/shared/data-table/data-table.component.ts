@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, Output, TemplateRef } from '@angular/co
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { CopyButtonComponent } from '../copy-button/copy-button.component';
+import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { FrozenColsDirective, identityColumns } from '../frozen-cols.directive';
 import { amountTone } from '../format.util';
 import { ColumnFilterKind, ColumnFilters, columnFilterKind, isActiveFilters, numberPredicate, selectOptions } from '../column-filter';
@@ -42,7 +43,7 @@ export interface DataTableColumn<T> {
 @Component({
   selector: 'app-data-table',
   standalone: true,
-  imports: [CommonModule, RouterLink, CopyButtonComponent, FrozenColsDirective],
+  imports: [CommonModule, RouterLink, CopyButtonComponent, FrozenColsDirective, NavIconComponent],
   template: `
     <div class="table-wrap card" *ngIf="rows.length || (filterable && hasFilters()); else empty">
       <table [appFrozenCols]="frozen" [class.fz-thumb]="columns[0]?.key === 'image'">
@@ -56,9 +57,21 @@ export interface DataTableColumn<T> {
             </th>
             <th *ngIf="actions" scope="col" class="actions-cell">
               <span class="visually-hidden">{{ actionsLabel }}</span>
+              <button
+                *ngIf="filterable"
+                type="button"
+                class="col-filter-toggle"
+                [attr.aria-pressed]="filterRowOpen()"
+                [attr.aria-label]="filterRowOpen() ? 'Ẩn lọc theo cột' : 'Lọc theo cột'"
+                [title]="filterRowOpen() ? 'Ẩn lọc theo cột' : 'Lọc theo cột'"
+                (click)="showFilterRow = !showFilterRow"
+              >
+                <app-nav-icon name="search" />
+                <span>Lọc cột</span>
+              </button>
             </th>
           </tr>
-          <tr *ngIf="filterable" class="filter-row">
+          <tr *ngIf="filterable && filterRowOpen()" class="filter-row">
             <th *ngFor="let col of columns" scope="col">
               <ng-container [ngSwitch]="kind(col)">
                 <select
@@ -206,6 +219,25 @@ export interface DataTableColumn<T> {
     .filter-row .is-set { border-color: var(--color-ink-2); }
     .filter-row [aria-invalid='true'] { border-color: var(--color-danger); }
     .filter-row .num-filter { text-align: right; font-family: var(--font-mono); }
+    .col-filter-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      --icon-size: 14px;
+      padding: 2px var(--space-2xs);
+      border: var(--rule-hair) solid transparent;
+      border-radius: var(--radius-control);
+      background: none;
+      color: var(--color-muted);
+      font: inherit;
+      font-size: var(--text-xs);
+      font-weight: 500;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .col-filter-toggle[aria-pressed='true'] { border-color: var(--color-rule); background: var(--color-surface); color: var(--color-ink); }
+    .col-filter-toggle:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 1px; }
+    @media (hover: hover) { .col-filter-toggle:hover { color: var(--color-ink); } }
     .clear-col-filters {
       border: none;
       background: none;
@@ -330,6 +362,14 @@ export class DataTableComponent<T extends Record<string, any> = any> {
 
   hasFilters(): boolean {
     return isActiveFilters(this.filters);
+  }
+
+  /** The row of column filters takes a row of the table: it opens from the header (or stays while a filter is set). */
+  showFilterRow = false;
+
+  filterRowOpen(): boolean {
+    // Without an actions column there is nowhere to put the toggle: the row stays as before.
+    return this.showFilterRow || this.hasFilters() || !this.actions;
   }
 
   invalidNumber(key: string): boolean {

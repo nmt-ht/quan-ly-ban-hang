@@ -95,6 +95,7 @@
   --rule-hair:      1px;
 
   --control-h:      2.25rem; /* 36px — compact density */
+  --filter-h:       2rem;    /* 32px — controls in a filters bar, one step under forms */
   --row-h:          2.25rem;
 
   /* ---------- motion ---------- */
@@ -109,6 +110,7 @@
 /* ---------- density · personal preference (DensityService → body[data-density]) ---------- */
 body[data-density='comfortable'] {
   --control-h: 2.5rem; /* 40 */
+  --filter-h: 2.25rem; /* 36 */
   --row-h: 2.5rem;
   --text-sm: 0.875rem; /* 14 */
   --text-xs: 0.8125rem; /* 13 */
@@ -116,6 +118,7 @@ body[data-density='comfortable'] {
 
 body[data-density='spacious'] {
   --control-h: 2.75rem; /* 44 */
+  --filter-h: 2.5rem; /* 40 */
   --row-h: 2.875rem;
   --text-sm: 0.9375rem; /* 15 */
   --text-base: 1rem;

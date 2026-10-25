@@ -14,6 +14,7 @@ import { ACCOUNT_TYPE_LABEL, KIND_TEXT, autoAllocate, categoryHint } from '../ca
 import { CashVoucherService } from '../cash-voucher.service';
 import { errorText } from '../../../core/api/api.service';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
+import { SearchOption, SearchSelectComponent } from '../../../shared/search-select/search-select.component';
 
 interface Partner {
   id: string;
@@ -29,7 +30,7 @@ interface Partner {
 @Component({
   selector: 'app-cash-voucher-form',
   standalone: true,
-  imports: [FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, MoneyInputDirective],
+  imports: [SearchSelectComponent, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, MoneyInputDirective],
   templateUrl: './cash-voucher-form.component.html',
   styleUrl: './cash-voucher-form.component.scss',
 })
@@ -120,6 +121,11 @@ export class CashVoucherFormComponent {
       : this.data.customers()
           .filter((c) => c.isActive || c.id === this.partnerId())
           .map((c) => ({ id: c.id, code: c.code, name: c.companyName || c.name, taxCode: c.companyTaxCode, phone: c.phone })),
+  );
+  /** Đối tượng as search options, Mã tăng dần — tìm theo mã, tên, số điện thoại, mã số thuế. */
+  readonly partnerOptions = computed<SearchOption[]>(() =>
+    [...this.partners()].sort((a, b) => a.code.localeCompare(b.code, 'vi', { numeric: true }))
+      .map((p) => ({ value: p.id, code: p.code, label: p.name, hint: p.phone ?? undefined, search: p.taxCode ?? undefined })),
   );
 
   readonly partner = computed(() => this.partners().find((p) => p.id === this.partnerId()));

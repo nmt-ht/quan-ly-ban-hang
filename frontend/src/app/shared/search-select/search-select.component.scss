@@ -1,0 +1,18 @@
+// On top of the product picker's look: the trigger reads like the app's <select> (same height, padding and text).
+
+.pp-trigger {
+  min-height: var(--control-h);
+  padding: 0 var(--space-2xs) 0 var(--space-xs);
+  font-size: var(--text-sm);
+}
+
+.pp-option.is-empty-choice .pp-name {
+  color: var(--color-muted);
+}
+
+// In a filters bar it sits inline like the selects beside it.
+:host-context(.filters-bar) {
+  display: inline-block;
+  flex: 0 1 16rem;
+  min-width: 12rem;
+}

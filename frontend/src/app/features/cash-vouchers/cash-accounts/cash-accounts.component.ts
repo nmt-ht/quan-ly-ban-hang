@@ -11,6 +11,7 @@ import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { errorText } from '../../../core/api/api.service';
 import { VN_BANKS, bankNameOf } from '../../../shared/vietqr/vietqr';
 import { VietQrComponent, qrReady } from '../../../shared/vietqr/vietqr.component';
+import { SearchOption, SearchSelectComponent } from '../../../shared/search-select/search-select.component';
 
 interface Draft {
   id?: string;
@@ -38,7 +39,7 @@ const EMPTY: Draft = {
 @Component({
   selector: 'app-cash-accounts',
   standalone: true,
-  imports: [FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, MoneyInputDirective, VietQrComponent],
+  imports: [SearchSelectComponent, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, MoneyInputDirective, VietQrComponent],
   templateUrl: './cash-accounts.component.html',
   styleUrls: [
     '../../purchase-orders/receive-goods-dialog/receive-goods-dialog.component.scss',
@@ -102,6 +103,11 @@ export class CashAccountsComponent {
 
   // ---------- VietQR (Pha 2) ----------
   readonly banks = VN_BANKS;
+  /** Ngân hàng A → Z, then "Ngân hàng khác" to type a BIN — searchable by tên, tên viết tắt, BIN. */
+  readonly bankOptions: SearchOption[] = [
+    ...[...VN_BANKS].sort((a, b) => a.name.localeCompare(b.name, 'vi')).map((b) => ({ value: b.bin, label: b.name, hint: b.bin })),
+    { value: 'khac', label: 'Ngân hàng khác — nhập mã BIN' },
+  ];
   readonly qrReady = qrReady;
   /** "" = chưa chọn, a BIN from the list, or "khac" to type one. */
   readonly bankChoice = computed(() => {

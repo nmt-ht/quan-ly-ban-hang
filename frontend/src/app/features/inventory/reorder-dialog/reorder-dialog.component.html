@@ -55,10 +55,8 @@
                     <span class="ro-unit">{{ r.product.baseUnit }}</span>
                   </td>
                   <td>
-                    <select [ngModel]="r.supplierId" (ngModelChange)="moveTo(r.product.id, $event)" [attr.aria-label]="'Nhà cung cấp cho ' + r.product.code">
-                      <option value="">— Chưa rõ —</option>
-                      @for (s of suppliers(); track s.id) { <option [value]="s.id">{{ s.name }}</option> }
-                    </select>
+                    <app-search-select [options]="supplierOptions()" [value]="r.supplierId" (valueChange)="moveTo(r.product.id, $event)"
+                      emptyLabel="— Chưa rõ —" placeholder="— Chưa rõ —" [ariaLabel]="'Nhà cung cấp cho ' + r.product.code" />
                   </td>
                   <td class="c-num num">{{ r.price ? money(r.price) : '—' }}</td>
                 </tr>

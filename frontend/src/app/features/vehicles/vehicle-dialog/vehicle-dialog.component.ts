@@ -7,12 +7,13 @@ import { PHONE_PATTERN } from '../../customers/customer.rules';
 import { VEHICLE_STATUSES, VEHICLE_TYPES } from '../vehicle.rules';
 import { VehicleService } from '../vehicle.service';
 import { errorText } from '../../../core/api/api.service';
+import { SearchOption, SearchSelectComponent } from '../../../shared/search-select/search-select.component';
 
 // "Thêm xe" / "Sửa xe <biển số>" — same fields as production.
 @Component({
   selector: 'app-vehicle-dialog',
   standalone: true,
-  imports: [FormsModule, NavIconComponent],
+  imports: [SearchSelectComponent, FormsModule, NavIconComponent],
   templateUrl: './vehicle-dialog.component.html',
   styleUrls: [
     '../../purchase-orders/receive-goods-dialog/receive-goods-dialog.component.scss',
@@ -50,7 +51,8 @@ export class VehicleDialogComponent {
     const roles = new Map(this.data.roles().map((r) => [r.id, r.name]));
     return this.data.users()
       .filter((u) => u.status === 'ACTIVE' || u.id === this.driverUserId())
-      .map((u) => ({ id: u.id, label: `${u.name} — ${roles.get(u.roleId) ?? ''}` }));
+      .map((u): SearchOption => ({ value: u.id, label: u.name, hint: roles.get(u.roleId) ?? '', search: u.email }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'vi'));
   });
 
   readonly duplicate = computed(() => this.svc.duplicatePlate(this.plate(), this.editing()?.id ?? null));

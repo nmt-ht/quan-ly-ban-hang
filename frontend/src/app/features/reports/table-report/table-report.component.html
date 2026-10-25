@@ -3,10 +3,8 @@
      says exactly which days the numbers cover (the period control may show a whole month that is not over yet). -->
 <div class="filters-bar rp-toolbar">
   @if (d.pick === 'product') {
-    <select class="rp-pick" aria-label="Mặt hàng" [value]="item()" (change)="item.set($any($event.target).value)">
-      <option value="">Chọn mặt hàng…</option>
-      @for (p of pickItems(); track p.id) { <option [value]="p.id" [selected]="p.id === item()">{{ p.code }} · {{ p.name }}</option> }
-    </select>
+    <app-search-select class="rp-pick" ariaLabel="Mặt hàng" [options]="pickItems()" [(value)]="item"
+      placeholder="Chọn mặt hàng…" searchPlaceholder="Tìm mã, mã đối chiếu hoặc tên hàng…" />
   }
   @if (d.groups) {
     <select aria-label="Cách nhóm" [value]="group()" (change)="group.set($any($event.target).value)">

@@ -39,13 +39,8 @@
         <div class="field">
           <label for="bg-customer">Khách hàng @if (editable()) { <span class="required-mark">*</span> }</label>
           @if (editable()) {
-            <select id="bg-customer" [ngModel]="customerId()" (ngModelChange)="setCustomer($event)"
-              [attr.aria-invalid]="attempted() && !customerId() ? 'true' : null">
-              <option value="">— Chọn khách hàng —</option>
-              @for (c of customerOptions(); track c.id) {
-                <option [value]="c.id">{{ c.code }} — {{ c.name }}{{ c.phone ? ' · ' + c.phone : '' }}</option>
-              }
-            </select>
+            <app-search-select inputId="bg-customer" [options]="customerOptions()" [value]="customerId()" (valueChange)="setCustomer($event)"
+              placeholder="— Chọn khách hàng —" [invalid]="attempted() && !customerId()" />
           } @else {
             <p class="field-value num">{{ customer()?.code }}</p>
           }
@@ -82,10 +77,8 @@
         <div class="field">
           <label for="bg-rep">Người báo giá</label>
           @if (editable()) {
-            <select id="bg-rep" [ngModel]="salesRep()" (ngModelChange)="salesRep.set($event)">
-              <option value="">— Chưa chọn —</option>
-              @for (u of repOptions(); track u.email) { <option [value]="u.email">{{ u.label }}</option> }
-            </select>
+            <app-search-select inputId="bg-rep" [options]="repOptions()" [(value)]="salesRep" emptyLabel="— Chưa chọn —"
+              placeholder="— Chưa chọn —" searchPlaceholder="Tìm tên hoặc email nhân viên…" />
           } @else {
             <p class="field-value">{{ userName(salesRep() || quote()?.createdBy || '') }}</p>
           }

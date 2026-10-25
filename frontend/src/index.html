@@ -8,8 +8,65 @@
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#f7f6f0">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <style>
+    /* Boot splash: shown the moment the page arrives, until Angular replaces <app-root>'s content. Same look as
+       app/layout/loading-screen (ledger paper, mark, name, progress); colours are tokens.css values written out,
+       since the stylesheet may not be applied yet. */
+    .boot { position: fixed; inset: 0; display: grid; place-items: center; padding: 24px;
+      background: repeating-linear-gradient(to bottom, transparent 0 31px, oklch(89% 0.010 95 / 0.55) 31px 32px), oklch(97.6% 0.008 90);
+      color: oklch(22% 0.015 160); font-family: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif; }
+    .boot-card { display: flex; flex-direction: column; align-items: center; width: min(22rem, 100%); padding: 32px 24px;
+      border: 1px solid oklch(89% 0.010 95); border-radius: 8px; background: oklch(99.3% 0.004 90); text-align: center; }
+    .boot-mark { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 12px;
+      background: oklch(22% 0.015 160); color: oklch(99.3% 0.004 90); font: 600 20px/1 "JetBrains Mono", ui-monospace, monospace; }
+    .boot-mark img { width: 100%; height: 100%; object-fit: contain; border-radius: 12px; background: oklch(99.3% 0.004 90); }
+    .boot-name { margin: 12px 0 0; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+    .boot-lead { margin: 4px 0 24px; color: oklch(47% 0.014 110); font-size: 13px; }
+    .boot-bar { position: relative; width: 100%; height: 4px; overflow: hidden; border-radius: 2px; background: oklch(95.2% 0.010 90); }
+    .boot-bar span { position: absolute; top: 0; left: 0; width: 35%; height: 100%; border-radius: 2px; background: oklch(43% 0.11 160);
+      animation: boot-slide 1.4s cubic-bezier(0.65, 0, 0.35, 1) infinite; }
+    @keyframes boot-slide { from { transform: translateX(-100%); } to { transform: translateX(290%); } }
+    @media (prefers-reduced-motion: reduce) { .boot-bar span { width: 100%; animation: none; opacity: 0.5; } }
+    html.boot-dark .boot { background: repeating-linear-gradient(to bottom, transparent 0 31px, oklch(30% 0.012 150 / 0.55) 31px 32px), oklch(16.5% 0.008 150);
+      color: oklch(94% 0.008 150); }
+    html.boot-dark .boot-card { border-color: oklch(30% 0.012 150); background: oklch(20% 0.009 150); }
+    html.boot-dark .boot-mark { background: oklch(94% 0.008 150); color: oklch(20% 0.009 150); }
+    html.boot-dark .boot-lead { color: oklch(72% 0.012 150); }
+    html.boot-dark .boot-bar { background: oklch(26% 0.010 150); }
+    html.boot-dark .boot-bar span { background: oklch(72% 0.12 160); }
+  </style>
 </head>
 <body>
-  <app-root></app-root>
+  <app-root>
+    <div class="boot" role="status" aria-live="polite">
+      <div class="boot-card">
+        <span class="boot-mark" id="boot-mark" aria-hidden="true">NT</span>
+        <p class="boot-name" id="boot-name">Ninh Trang</p>
+        <p class="boot-lead">Đang mở ứng dụng…</p>
+        <div class="boot-bar" aria-hidden="true"><span></span></div>
+      </div>
+    </div>
+  </app-root>
+  <script>
+    // Theme and brand remembered by ThemeService / BrandService, so the splash looks right from the first frame.
+    (function () {
+      try {
+        var t = localStorage.getItem('nt.theme');
+        if (t === 'dark' || (t !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('boot-dark');
+        var b = JSON.parse(localStorage.getItem('nt.brand') || 'null');
+        if (b && b.name) document.getElementById('boot-name').textContent = b.name;
+        var mark = document.getElementById('boot-mark');
+        if (b && typeof b.icon === 'string' && b.icon.indexOf('data:image/') === 0) {
+          var img = document.createElement('img');
+          img.src = b.icon;
+          img.alt = '';
+          mark.textContent = '';
+          mark.appendChild(img);
+        } else if (b && b.monogram) {
+          mark.textContent = b.monogram;
+        }
+      } catch (e) { /* storage blocked: the defaults stay */ }
+    })();
+  </script>
 </body>
 </html>

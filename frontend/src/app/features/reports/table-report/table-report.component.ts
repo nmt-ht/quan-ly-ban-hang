@@ -9,6 +9,7 @@ import { PeriodFilterComponent, PeriodValue } from '../../../shared/period-filte
 import { FrozenColsDirective, identityColumns } from '../../../shared/frozen-cols.directive';
 import { ReportCol, ReportDef, ReportResult, ReportRow } from '../report.types';
 import { DataStore } from '../../../core/services/data-store.service';
+import { SearchOption, SearchSelectComponent } from '../../../shared/search-select/search-select.component';
 
 const PAGE = 100;
 type Sort = { key: string; dir: 1 | -1 } | null;
@@ -19,7 +20,7 @@ type Sort = { key: string; dir: 1 | -1 } | null;
 @Component({
   selector: 'app-table-report',
   standalone: true,
-  imports: [RouterLink, NavIconComponent, PeriodFilterComponent, FrozenColsDirective],
+  imports: [SearchSelectComponent, RouterLink, NavIconComponent, PeriodFilterComponent, FrozenColsDirective],
   templateUrl: './table-report.component.html',
   styleUrl: './table-report.component.scss',
 })
@@ -99,9 +100,11 @@ export class TableReportComponent {
   }, { columns: [], rows: [] });
 
   /** Choices of a pick report: mặt hàng with stock (not dịch vụ), by mã. */
-  readonly pickItems = computed(() =>
+  /** Mặt hàng to report on, Mã tăng dần — searchable by mã, mã đối chiếu, tên. */
+  readonly pickItems = computed<SearchOption[]>(() =>
     this.def().pick === 'product'
-      ? this.data.products().filter((p) => p.type !== 'DICH_VU').sort((a, b) => a.code.localeCompare(b.code))
+      ? this.data.products().filter((p) => p.type !== 'DICH_VU').sort((a, b) => a.code.localeCompare(b.code, 'vi', { numeric: true }))
+        .map((p) => ({ value: p.id, code: p.code, label: p.name, search: p.crossRefCode ?? undefined }))
       : [],
   );
   readonly needsPick = computed(() => !!this.def().pick && !this.item());

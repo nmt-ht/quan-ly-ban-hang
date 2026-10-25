@@ -7,6 +7,7 @@ import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { NO_PERIOD, PeriodFilterComponent, PeriodValue } from '../../../shared/period-filter/period-filter.component';
 import { downloadWorkbook, exportFileName } from '../../../shared/excel.util';
 import { actionVerb, codeLink, ENTITY_LABEL, entityLink, formatAuditValue, listDelta } from '../../../shared/audit/audit-labels';
+import { SearchOption, SearchSelectComponent } from '../../../shared/search-select/search-select.component';
 
 const PAGE = 100;
 const SEARCH_DELAY_MS = 300;
@@ -25,7 +26,7 @@ const ACTIONS: { value: string; label: string }[] = [
 @Component({
   selector: 'app-activity-log',
   standalone: true,
-  imports: [RouterLink, NavIconComponent, PeriodFilterComponent],
+  imports: [SearchSelectComponent, RouterLink, NavIconComponent, PeriodFilterComponent],
   templateUrl: './activity-log.component.html',
   styleUrl: './activity-log.component.scss',
 })
@@ -50,6 +51,7 @@ export class ActivityLogComponent {
   readonly actions = ACTIONS;
   readonly entityTypes = Object.entries(ENTITY_LABEL).filter(([k]) => k !== 'Api').sort((a, b) => a[1].localeCompare(b[1], 'vi'));
   readonly users = computed(() => [...this.data.users()].sort((a, b) => a.name.localeCompare(b.name, 'vi')));
+  readonly userOptions = computed<SearchOption[]>(() => this.users().map((u) => ({ value: u.id, label: u.name, search: u.email })));
 
   readonly filtered = computed(() => !!(this.search() || this.userId() || this.entityType() || this.action() || this.period().range.from || this.period().range.to));
 

@@ -21,12 +21,8 @@
     (input)="setSearch($any($event.target).value)"
   />
   <app-filter-multi-select label="Trạng thái" [options]="statusOptions()" [(selected)]="statuses" />
-  <select aria-label="Nhà cung cấp" [value]="supplierId()" (change)="supplierId.set($any($event.target).value)">
-    <option value="all">Tất cả nhà cung cấp</option>
-    @for (s of data.suppliers(); track s.id) {
-      <option [value]="s.id">{{ s.code }} — {{ s.name }}</option>
-    }
-  </select>
+  <app-search-select ariaLabel="Nhà cung cấp" [options]="supplierOptions()" [(value)]="supplierId"
+    emptyLabel="Tất cả nhà cung cấp" emptyValue="all" placeholder="Tất cả nhà cung cấp" searchPlaceholder="Tìm mã, tên, số điện thoại…" />
   <app-period-filter [(value)]="period" />
   <app-filter-multi-select label="Người lập" [options]="creatorOptions()" [(selected)]="createdBy" />
   @if (prices) { <app-range-filter label="Giá trị đơn" [(value)]="value" /> }

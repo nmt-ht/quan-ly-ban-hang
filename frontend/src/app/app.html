@@ -1,1 +1,5 @@
 <router-outlet />
+<!-- While a fresh sign-in reads the danh mục (the shell waits for it): the loading screen over everything. -->
+@if (catalog.status() === 'loading') {
+  <app-loading-screen />
+}

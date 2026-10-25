@@ -21,6 +21,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { seesPurchasePrices } from '../../core/auth/purchase-prices';
 import { errorText } from '../../core/api/api.service';
 import { PurchaseOrderPage, PurchaseOrderPageQuery, PurchaseOrderService } from './purchase-order.service';
+import { SearchOption, SearchSelectComponent } from '../../shared/search-select/search-select.component';
 
 interface ActiveChip {
   label: string;
@@ -42,7 +43,7 @@ const EMPTY_PAGE: PurchaseOrderPage = { rows: [], total: 0, page: 1, pageSize: 2
 @Component({
   selector: 'app-purchase-orders',
   standalone: true,
-  imports: [
+  imports: [SearchSelectComponent, 
     CommonModule, RouterLink, AllowedLinkDirective, DataTableComponent, FilterMultiSelectComponent, PaginationComponent,
     PeriodFilterComponent, RangeFilterComponent, NavIconComponent,
   ],
@@ -75,6 +76,12 @@ export class PurchaseOrdersComponent {
 
   private readonly supplierById = computed(() => new Map(this.data.suppliers().map((s) => [s.id, s])));
   private readonly userByEmail = computed(() => new Map(this.data.users().map((u) => [u.email, u.name])));
+
+  /** Lọc theo NCC: every NCC, Mã tăng dần, searchable. */
+  readonly supplierOptions = computed<SearchOption[]>(() =>
+    [...this.data.suppliers()].sort((a, b) => a.code.localeCompare(b.code, 'vi', { numeric: true }))
+      .map((s) => ({ value: s.id, code: s.code, label: s.name, hint: s.contactPhone, search: s.taxCode })),
+  );
 
   // Người lập options: every user as "Tên — Chức vụ" (as in production).
   readonly creatorOptions = computed<FilterOption[]>(() => {

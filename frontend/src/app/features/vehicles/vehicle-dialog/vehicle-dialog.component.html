@@ -50,10 +50,8 @@
       <div class="th-body vd-driver-grid">
         <label class="field">
           <span>Nhân viên trong hệ thống</span>
-          <select [ngModel]="driverUserId()" (ngModelChange)="driverUserId.set($event)">
-            <option value="">— Không gắn —</option>
-            @for (u of userOptions(); track u.id) { <option [value]="u.id">{{ u.label }}</option> }
-          </select>
+          <app-search-select ariaLabel="Nhân viên trong hệ thống" [options]="userOptions()" [(value)]="driverUserId"
+            emptyLabel="— Không gắn —" placeholder="— Không gắn —" searchPlaceholder="Tìm tên hoặc email…" />
         </label>
         <label class="field">
           <span>Hoặc tên tài xế</span>

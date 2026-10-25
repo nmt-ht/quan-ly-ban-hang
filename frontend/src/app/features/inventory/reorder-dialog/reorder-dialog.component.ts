@@ -6,6 +6,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { formatVnd } from '../../../shared/format.util';
 import { ReorderDraft, ReorderLine, reorderLines } from '../reorder.rules';
+import { SearchOption, SearchSelectComponent } from '../../../shared/search-select/search-select.component';
 
 interface Row extends ReorderLine {
   picked: boolean;
@@ -25,7 +26,7 @@ interface Group {
 @Component({
   selector: 'app-reorder-dialog',
   standalone: true,
-  imports: [FormsModule, NavIconComponent],
+  imports: [SearchSelectComponent, FormsModule, NavIconComponent],
   templateUrl: './reorder-dialog.component.html',
   styleUrls: ['../../purchase-orders/receive-goods-dialog/receive-goods-dialog.component.scss', './reorder-dialog.component.scss'],
 })
@@ -39,6 +40,11 @@ export class ReorderDialogComponent {
   readonly money = formatVnd;
   readonly canBuy = computed(() => this.auth.can('purchase.create'));
   readonly suppliers = computed(() => this.data.suppliers().filter((s) => s.isActive));
+  /** NCC đang hợp tác, Mã tăng dần — searchable. */
+  readonly supplierOptions = computed<SearchOption[]>(() =>
+    [...this.suppliers()].sort((a, b) => a.code.localeCompare(b.code, 'vi', { numeric: true }))
+      .map((s) => ({ value: s.id, code: s.code, label: s.name, hint: s.contactPhone })),
+  );
 
   /** Rows by NCC: the known ones A → Z, "Chưa rõ nhà cung cấp" last. */
   readonly groups = computed<Group[]>(() => {

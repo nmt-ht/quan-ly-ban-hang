@@ -27,6 +27,7 @@ import { errorText } from '../../../core/api/api.service';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 import { SalesOrderService } from '../../sales-orders/sales-order.service';
+import { SearchOption, SearchSelectComponent } from '../../../shared/search-select/search-select.component';
 
 type Mode = 'create' | 'edit' | 'view';
 type Tab = 'hang' | 'nhat-ky';
@@ -71,7 +72,7 @@ const DEFAULT_VALID_DAYS = 7;
 @Component({
   selector: 'app-quotation-voucher',
   standalone: true,
-  imports: [
+  imports: [SearchSelectComponent, 
     FrozenColsDirective, NgClass, FormsModule, RouterLink, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
     PaginationComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent,
   ],
@@ -190,8 +191,11 @@ export class QuotationVoucherComponent implements HasUnsavedChanges {
     const p = id ? this.data.promotions().find((x) => x.id === id) : undefined;
     return p ? `${p.code} · ${p.name}` : '';
   }
-  readonly customerOptions = computed(() =>
-    this.data.customers().filter((c) => c.isActive || c.id === this.customerId()).sort((a, b) => a.code.localeCompare(b.code)),
+  /** Khách đang theo dõi (và khách đang chọn), Mã tăng dần — tìm theo mã, tên, công ty, số điện thoại. */
+  readonly customerOptions = computed<SearchOption[]>(() =>
+    this.data.customers().filter((c) => c.isActive || c.id === this.customerId())
+      .sort((a, b) => a.code.localeCompare(b.code, 'vi', { numeric: true }))
+      .map((c) => ({ value: c.id, code: c.code, label: c.name, hint: c.phone, search: c.companyName })),
   );
   readonly productOptions = computed(() =>
     this.data.products().filter((p) => p.isActive && p.isSellable).sort((a, b) => a.name.localeCompare(b.name, 'vi')),
@@ -203,7 +207,9 @@ export class QuotationVoucherComponent implements HasUnsavedChanges {
   });
   readonly repOptions = computed(() => {
     const roles = new Map(this.data.roles().map((r) => [r.id, r.name]));
-    return this.data.users().map((u) => ({ email: u.email, label: `${u.name} — ${roles.get(u.roleId) ?? ''}` }));
+    return this.data.users()
+      .map((u): SearchOption => ({ value: u.email, label: u.name, hint: roles.get(u.roleId) ?? '', search: u.email }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'vi'));
   });
   readonly addresses = computed(() =>
     [...(this.customer()?.addresses ?? [])].sort((a, b) => Number(b.isDefault) - Number(a.isDefault)),

@@ -42,6 +42,7 @@ import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 import { PickableWarehousesPipe } from '../../../shared/pickable-warehouses.pipe';
+import { SearchOption, SearchSelectComponent } from '../../../shared/search-select/search-select.component';
 
 type Mode = 'create' | 'edit' | 'view';
 type Tab = 'hang' | 'gia-von' | 'lsx' | 'pxk' | 'tra-hang' | 'cong-no' | 'nhat-ky';
@@ -87,7 +88,7 @@ const emptyLine = (): DraftLine => ({
 @Component({
   selector: 'app-sales-order-voucher',
   standalone: true,
-  imports: [PickableWarehousesPipe, FrozenColsDirective, 
+  imports: [SearchSelectComponent, PickableWarehousesPipe, FrozenColsDirective, 
     NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
     PaginationComponent, FilterMultiSelectComponent, DeliverDialogComponent, ReturnDialogComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent,
   ],
@@ -267,8 +268,11 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
     const p = id ? this.data.promotions().find((x) => x.id === id) : undefined;
     return p ? `${p.code} · ${p.name}` : '';
   }
-  readonly customerOptions = computed(() =>
-    this.data.customers().filter((c) => c.isActive || c.id === this.customerId()).sort((a, b) => a.code.localeCompare(b.code)),
+  /** Khách đang theo dõi (và khách đang chọn), Mã tăng dần — tìm theo mã, tên, công ty, số điện thoại. */
+  readonly customerOptions = computed<SearchOption[]>(() =>
+    this.data.customers().filter((c) => c.isActive || c.id === this.customerId())
+      .sort((a, b) => a.code.localeCompare(b.code, 'vi', { numeric: true }))
+      .map((c) => ({ value: c.id, code: c.code, label: c.name, hint: c.phone, search: c.companyName })),
   );
   /** Tài khoản nhận tiền cho "Thu tiền ngay" (tài khoản đang dùng). */
   readonly accounts = computed(() => this.data.cashAccounts().filter((a) => a.isActive !== false));
@@ -284,7 +288,9 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   });
   readonly repOptions = computed(() => {
     const roles = new Map(this.data.roles().map((r) => [r.id, r.name]));
-    return this.data.users().map((u) => ({ email: u.email, label: `${u.name} — ${roles.get(u.roleId) ?? ''}` }));
+    return this.data.users()
+      .map((u): SearchOption => ({ value: u.email, label: u.name, hint: roles.get(u.roleId) ?? '', search: u.email }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'vi'));
   });
   readonly tagOptions = computed<FilterOption[]>(() =>
     this.data.tags().filter((t) => t.isActive || this.tagIds().includes(t.id)).map((t) => ({ value: t.id, label: t.name })),
