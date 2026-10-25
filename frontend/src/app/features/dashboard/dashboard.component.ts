@@ -51,7 +51,17 @@ interface Dashboard {
   byDay: { unit: string; bars: { key: string; label: string; value: number; pct: number }[] };
   topProducts: { id: string; code: string; name: string; unit: string; qty: number; value: number; share: number }[];
   cash: { thu: number; chi: number; net: number; balance: number; accounts: { id: string; name: string; balance: number }[] };
+  /** 12 tháng đến tháng của ngày cuối kỳ. profit / purchases are null for roles that may not see them. */
+  months: { key: string; label: string; year: number; revenue: number; orders: number; profit: number | null; purchases: number | null; thu: number }[];
+  flows: { purchases: number | null; prevPurchases: number | null; thu: number; prevThu: number };
+  /** Tồn kho lúc này. value is null without stock.view_value / product.view_cost_price. */
+  stock: {
+    value: number | null; goods: number; tracked: number; safe: number; out: number; low: number;
+    byCategory: { id: string; name: string; value: number | null; items: number }[];
+  };
 }
+
+type MonthPoint = Dashboard['months'][number];
 
 const today = isoDay(new Date());
 const NO_KPIS: Kpis = { revenue: 0, orders: 0, avg: 0 };
@@ -60,7 +70,19 @@ const EMPTY: Dashboard = {
   attention: { pendingProduction: 0, shipping: 0, late: 0, belowMin: 0, poWaiting: 0 },
   leaks: { discount: 0, discountPct: 0, stopped: 0 }, byDay: { unit: 'ngày', bars: [] }, topProducts: [],
   cash: { thu: 0, chi: 0, net: 0, balance: 0, accounts: [] },
+  months: [], flows: { purchases: null, prevPurchases: null, thu: 0, prevThu: 0 },
+  stock: { value: null, goods: 0, tracked: 0, safe: 0, out: 0, low: 0, byCategory: [] },
 };
+
+/** The four period tabs over the hero (the period filter beside them picks any other range). */
+const TABS: { value: 'thisMonth' | 'thisQuarter' | 'thisYear' | 'all'; label: string }[] = [
+  { value: 'thisMonth', label: 'Tháng này' },
+  { value: 'thisQuarter', label: 'Quý này' },
+  { value: 'thisYear', label: 'Năm nay' },
+  { value: 'all', label: 'Tất cả' },
+];
+
+const WEEKDAY = ['Chủ nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
 
 // Tổng quan: số liệu theo kỳ đang chọn (so với kỳ liền trước cùng độ dài); tồn quỹ và công nợ là toàn bộ
 // lịch sử. The server computes the figures (GET /api/dashboard); this page decides what needs attention.
@@ -78,6 +100,17 @@ export class DashboardComponent {
   readonly day = formatDay;
 
   readonly period = signal<PeriodValue>({ preset: 'thisMonth', range: presetRange('thisMonth') });
+  readonly tabs = TABS;
+
+  pickTab(value: (typeof TABS)[number]['value']): void {
+    this.period.set({ preset: value, range: presetRange(value) });
+  }
+
+  /** "Thứ Bảy, 25/10/2026" — the date chip of the header. */
+  readonly todayLong = computed(() => {
+    const t = this.today();
+    return `${WEEKDAY[new Date(`${t}T00:00:00`).getDay()]}, ${formatDay(t)}`;
+  });
 
   // "Toàn bộ" starts at the first sale; the end is never past today (the server applies both).
   private readonly query = apiQuery<Dashboard>(
@@ -230,6 +263,107 @@ export class DashboardComponent {
   compact(n: number): string {
     return compactVnd(n);
   }
+
+  // ---------- bố cục mới: hero, thẻ có sparkline, 12 tháng, tồn kho ----------
+  readonly months = computed(() => this.d().months);
+  readonly flows = computed(() => this.d().flows);
+  readonly stock = computed(() => this.d().stock);
+  /** Month the user is pointing at in the hero line / the 12-month chart (index into months), or null. */
+  readonly heroHover = signal<number | null>(null);
+  readonly comboHover = signal<number | null>(null);
+
+  /** Doanh thu 12 tháng as a line in a 0–100 box: path, area under it, points, the highest month. */
+  readonly heroLine = computed(() => {
+    const ms = this.months();
+    const max = Math.max(0, ...ms.map((m) => m.revenue));
+    const pts = ms.map((m, i) => ({
+      x: ms.length > 1 ? (i / (ms.length - 1)) * 100 : 50,
+      y: max ? 100 - (Math.max(0, m.revenue) / max) * 88 - 6 : 94,
+      m,
+    }));
+    const line = pts.map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' ');
+    const peak = max > 0 ? ms.findIndex((m) => m.revenue === max) : -1;
+    return {
+      pts, line, area: pts.length ? `${line} L100,100 L0,100 Z` : '', max, peak,
+      // Axis: every other month, so twelve labels never crowd a narrow hero.
+      axis: pts.map((p, i) => ({ x: p.x, label: i % 2 === 1 || i === pts.length - 1 ? p.m.label : '' })),
+    };
+  });
+
+  /** A small area line (0–100 box) for one series of the 12 months; null when there is nothing to draw. */
+  spark(pick: (m: MonthPoint) => number | null): { line: string; area: string; last: { x: number; y: number } } | null {
+    const vs = this.months().map((m) => pick(m) ?? 0);
+    if (!vs.some((v) => v !== 0)) return null;
+    const min = Math.min(0, ...vs);
+    const max = Math.max(...vs);
+    const span = max - min || 1;
+    const pts = vs.map((v, i) => ({ x: vs.length > 1 ? (i / (vs.length - 1)) * 100 : 50, y: 92 - ((v - min) / span) * 80 }));
+    const line = pts.map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' ');
+    return { line, area: `${line} L100,100 L0,100 Z`, last: pts[pts.length - 1] };
+  }
+
+  readonly sparks = computed(() => ({
+    purchases: this.spark((m) => m.purchases),
+    profit: this.spark((m) => m.profit),
+    thu: this.spark((m) => m.thu),
+    orders: this.spark((m) => m.orders),
+  }));
+
+  /** Mặt hàng đủ tồn an toàn: share of those with a tồn tối thiểu; null when none has one. */
+  readonly safety = computed(() => {
+    const s = this.stock();
+    if (!s.tracked) return null;
+    const pct = Math.round((s.safe / s.tracked) * 100);
+    // The ring: a 2π·42 circumference, drawn as a dash of pct %.
+    const c = 2 * Math.PI * 42;
+    return { pct, dash: `${((c * pct) / 100).toFixed(2)} ${c.toFixed(2)}`, level: pct >= 80 ? 'good' : pct >= 50 ? 'warn' : 'bad' };
+  });
+
+  /**
+   * Doanh thu, nhập hàng (bars, side by side) and lãi gộp (line) of the 12 months on ONE money axis — "nice" top with
+   * gridlines at top / half / 0 (and below 0 when a month lost money). Series the role may not see are left out.
+   */
+  readonly combo = computed(() => {
+    const ms = this.months();
+    const showP = ms.some((m) => m.purchases !== null);
+    const showL = ms.some((m) => m.profit !== null);
+    const values = ms.flatMap((m) => [m.revenue, ...(showP ? [m.purchases ?? 0] : []), ...(showL ? [m.profit ?? 0] : [])]);
+    const top = niceCeil(Math.max(0, ...values));
+    const bottom = -niceCeil(Math.max(0, ...values.map((v) => -v)));
+    const span = top - bottom || 1;
+    const y = (v: number) => ((top - v) / span) * 100; // % from the top of the plot
+    const n = ms.length || 1;
+    const cols = ms.map((m, i) => ({
+      m,
+      x: ((i + 0.5) / n) * 100,
+      revTop: y(Math.max(0, m.revenue)), revH: (Math.abs(m.revenue) / span) * 100,
+      purTop: y(Math.max(0, m.purchases ?? 0)), purH: (Math.abs(m.purchases ?? 0) / span) * 100,
+      profitY: y(m.profit ?? 0),
+      edge: i < n * 0.25 ? 'start' : i >= n * 0.75 ? 'end' : '',
+    }));
+    const ticks = [...new Set([top, top / 2, 0, ...(bottom < 0 ? [bottom] : [])])].map((v) => ({ value: v, label: compactVnd(v), top: y(v) }));
+    const profitLine = showL ? cols.map((c, i) => `${i ? 'L' : 'M'}${c.x.toFixed(2)},${c.profitY.toFixed(2)}`).join(' ') : '';
+    const empty = !values.some((v) => v !== 0);
+    return { cols, ticks, zero: y(0), showP, showL, profitLine, empty, total: ms.reduce((s, m) => s + m.revenue, 0) };
+  });
+
+  /** Cơ cấu tồn kho theo nhóm: the six biggest groups, the rest as "Nhóm khác"; by value when allowed, else by mặt hàng. */
+  readonly categories = computed(() => {
+    const s = this.stock();
+    const byValue = s.value !== null;
+    const size = (g: { value: number | null; items: number }) => (byValue ? g.value ?? 0 : g.items);
+    const total = s.byCategory.reduce((t, g) => t + size(g), 0);
+    const head = s.byCategory.slice(0, 6).map((g) => ({ id: g.id, name: g.name, value: g.value, items: g.items, size: size(g) }));
+    const rest = s.byCategory.slice(6);
+    if (rest.length) {
+      head.push({
+        id: 'other', name: `Nhóm khác (${rest.length})`, value: byValue ? rest.reduce((t, g) => t + (g.value ?? 0), 0) : null,
+        items: rest.reduce((t, g) => t + g.items, 0), size: rest.reduce((t, g) => t + size(g), 0),
+      });
+    }
+    const max = Math.max(1, ...head.map((g) => g.size));
+    return { byValue, total, rows: head.map((g) => ({ ...g, share: total ? (g.size / total) * 100 : 0, w: (g.size / max) * 100 })) };
+  });
 }
 
 /** Round an axis maximum up to 1 · 1.2 · 1.5 · 2 · 2.5 · 3 · 4 · 5 · 6 · 8 × 10ⁿ. */

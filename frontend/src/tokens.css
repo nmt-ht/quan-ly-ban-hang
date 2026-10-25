@@ -53,6 +53,18 @@
   --color-shadow:       oklch(22% 0.015 160 / 0.12);
   --shadow-pop:         0 8px 24px var(--color-shadow); /* the one shadow: floating menus + panels */
 
+  /* ---------- charts (validated: dataviz validate_palette, all pairs, light + dark) ---------- */
+  --chart-1:            #1f7a55; /* doanh thu — moss */
+  --chart-2:            #2a78d6; /* nhập hàng — blue */
+  --chart-3:            #b97a00; /* lãi gộp — amber line */
+  /* Tổng quan hero band: deep moss, light ink on it (>= 7:1). */
+  --hero-1:             oklch(28% 0.05 168);
+  --hero-2:             oklch(36% 0.08 158);
+  --hero-ink:           oklch(97.5% 0.008 150);
+  --hero-muted:         oklch(85% 0.03 155);
+  --hero-rule:          oklch(100% 0 0 / 0.16);
+  --hero-line:          oklch(87% 0.11 158);
+
   /* ---------- type ---------- */
   --font-display: "Be Vietnam Pro", "Segoe UI", sans-serif;
   --font-body:    "Be Vietnam Pro", "Segoe UI", sans-serif;
@@ -137,6 +149,12 @@ body.dark-theme {
   --color-warning-tint: oklch(29% 0.04 80);
   --color-info:         oklch(77% 0.09 235);
   --color-info-tint:    oklch(28% 0.035 235);
+
+  --chart-1:            #3a9a6e;
+  --chart-2:            #3987e5;
+  --chart-3:            #c98500;
+  --hero-1:             oklch(23% 0.04 168);
+  --hero-2:             oklch(30% 0.065 158);
 
 
   --tag-fg-l: var(--tag-fg-l-dark);

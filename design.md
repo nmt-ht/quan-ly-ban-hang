@@ -234,9 +234,23 @@ mix in a second icon library or emoji.
 - Phones: dashboard KPI cards go one per row under 480 px so figures are never clipped.
 
 ## Dashboard (Tổng quan)
-- Order is the message: **Cần xử lý** (problems, worst first) → 4 headline numbers → trend (revenue chart, top
-  products) → **Tình hình từng mảng** (one card per area). A reader should know *where* the problem is without
-  reading a number.
+- Order (redesigned 25/10/2026 from the user's reference): header with a date chip → period tabs (Tháng này · Quý
+  này · Năm nay · Tất cả, segmented, plus the period filter for any other range) → **hero band** → 4 sparkline cards →
+  **Cần xử lý** → 12-month chart + cơ cấu tồn kho → daily revenue + bán chạy → **Tình hình từng mảng**.
+- Hero band — the one place the page leaves the paper: a deep-moss gradient (`--hero-1` → `--hero-2`, light ink
+  `--hero-ink` / `--hero-muted` ≥ 7:1, dark-mode steps in tokens.css). Left: eyebrow "Doanh thu · kỳ", the figure
+  (fluid 28–40 px mono), one comparison chip (status tints), three stats, Lập đơn hàng (light solid) + Lập phiếu thu
+  (ghost). Middle: doanh thu 12 tháng as a line in an inset panel (hover tooltip, last point ringed, peak in the head).
+  Right: ring "% mặt hàng đủ tồn an toàn" (moss ≥ 80 %, warning ≥ 50 %, danger below) linking to Tồn kho. Stacks to
+  two columns < 1180 px and one < 640 px.
+- Sparkline cards (`.db-card`): tinted icon in the series colour → label → comparison chip right → the period's
+  figure → one context line → a bleed-to-edge 12-month area spark. Cards a role may not see (nhập hàng without
+  giá nhập, lãi gộp without report.view_profit) are left out; the grid refills.
+- Chart colours are `--chart-1` moss (doanh thu) · `--chart-2` blue (nhập hàng) · `--chart-3` amber (lãi gộp line),
+  validated all-pairs in light and dark (dataviz validator). One money axis only; bars 2 px apart, rounded at the data
+  end; a legend over every multi-series chart and a visually-hidden table under it (wrap the table in a
+  `div.visually-hidden` — a table ignores overflow and would widen the page). Cơ cấu tồn kho uses one hue (magnitude).
+- A reader should still know *where* the problem is without reading a number: Cần xử lý keeps its ink rule.
 - Problems come from ONE list (`issues` in dashboard.component.ts). Each issue = level · title (what + amount) ·
   one-sentence detail (why it matters) · area · link that opens the screen where it is fixed. Level is shown as a
   word AND a colour: **Nghiêm trọng** (damage done / overdue: late orders, overdue receivables or payables,

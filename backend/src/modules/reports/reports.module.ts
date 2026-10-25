@@ -20,6 +20,7 @@ import { ReportDataService } from './report-data.service.js';
 import { GROUP_PERMISSION, ReportDef } from './report.types.js';
 import { costBook, inRange, isoDay, revenueLines, unitCosts } from './report.rules.js';
 import { dashboard } from './dashboard.js';
+import { seesPurchasePrices } from '../../common/purchase-prices.js';
 import { SALES_DEFS } from './defs/sales.defs.js';
 import { STOCK_DEFS } from './defs/stock.defs.js';
 import { OPS_DEFS } from './defs/ops.defs.js';
@@ -72,7 +73,10 @@ export class ReportsService {
     const today = isoDay();
     const data = await this.source.load();
     const debt = can('debt.view') ? { receivables: await this.receivables.rows(), payables: await this.payables.rows() } : null;
-    return dashboard({ data, cost: costBook(data), debt, showProfit: can('report.view_profit'), from, to: to ?? today, today });
+    return dashboard({
+      data, cost: costBook(data), debt, showProfit: can('report.view_profit'), showPurchases: seesPurchasePrices(user),
+      showStockValue: can('stock.view_value') || can('product.view_cost_price'), from, to: to ?? today, today,
+    });
   }
 }
 

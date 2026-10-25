@@ -32,13 +32,17 @@ export interface DashboardInput {
   debt: { receivables: DebtRow[]; payables: DebtRow[] } | null;
   /** Without report.view_profit, lãi gộp and giá vốn stay out. */
   showProfit: boolean;
+  /** Without seesPurchasePrices, giá trị nhập hàng stays out. */
+  showPurchases: boolean;
+  /** Without stock.view_value / product.view_cost_price, giá trị tồn kho stays out. */
+  showStockValue: boolean;
   /** Kỳ đang xem; `from` missing = from the first sale. */
   from?: string;
   to: string;
   today: string;
 }
 
-export function dashboard({ data, cost, debt, showProfit, from: askedFrom, to: askedTo, today }: DashboardInput) {
+export function dashboard({ data, cost, debt, showProfit, showPurchases, showStockValue, from: askedFrom, to: askedTo, today }: DashboardInput) {
   // Never past today, so "Quý này" compares quarter-to-date with the same number of days before it.
   const to = askedTo > today ? today : askedTo;
   const from = askedFrom ?? data.salesOrders().map((o) => o.orderDate.slice(0, 10)).sort()[0] ?? today;
@@ -187,5 +191,63 @@ export function dashboard({ data, cost, debt, showProfit, from: askedFrom, to: a
   const accounts = data.cashAccounts().filter((a) => a.isActive !== false).map((a) => ({ id: a.id, name: a.name, balance: a.balance }));
   const cash = { thu, chi, net: thu - chi, balance: accounts.reduce((s, a) => s + a.balance, 0), accounts };
 
-  return { today, range, previousRange, kpis: kpi(current), prevKpis: kpi(previous), attention, debt: debts, leaks, byDay, topProducts, cash };
+  // ---------- 12 tháng gần nhất (đến tháng của ngày cuối kỳ) ----------
+  // Giá trị nhập = hàng nhận theo đơn nhập, theo giá nhập (chưa thuế), on the phiếu nhập kho's date. Older phiếu only
+  // name their đơn in the lý do ("Nhập hàng theo đơn DN…").
+  const receipts = data.warehouseVouchers()
+    .filter((v) => v.type === 'NHAP' && !v.isCancelled && (!!v.purchaseOrderId || /theo đơn DN\d+/.test(v.reason ?? '')))
+    .map((v) => ({ date: v.date.slice(0, 10), value: v.lines.reduce((s, l) => s + (l.unitPrice ?? 0) * l.quantity, 0) }));
+  const thuOf = (r: { from: string; to: string }) =>
+    data.cashVouchers().filter((v) => !v.isCancelled && v.kind === 'THU' && inRange(v.date, r)).reduce((s, v) => s + v.amount, 0);
+  const purchasesOf = (r: { from: string; to: string }) => Math.round(receipts.filter((x) => inRange(x.date, r)).reduce((s, x) => s + x.value, 0));
+  const lastMonth = to.slice(0, 7);
+  const months = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(`${lastMonth}-01T00:00:00Z`);
+    d.setUTCMonth(d.getUTCMonth() - (11 - i));
+    const key = d.toISOString().slice(0, 7);
+    const end = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).toISOString().slice(0, 10);
+    const r = { from: `${key}-01`, to: end };
+    const k = kpi(sales.filter((s) => inRange(s.date, r)));
+    return {
+      key, label: `T${+key.slice(5)}`, year: +key.slice(0, 4), revenue: k.revenue, orders: k.orders, profit: k.profit,
+      purchases: showPurchases ? purchasesOf(r) : null, thu: thuOf(r),
+    };
+  });
+  const flows = {
+    purchases: showPurchases ? purchasesOf(range) : null, prevPurchases: showPurchases ? purchasesOf(previousRange) : null,
+    thu: cash.thu, prevThu: thuOf(previousRange),
+  };
+
+  // ---------- tồn kho lúc này ----------
+  const goods = data.products().filter((p) => p.type !== 'DICH_VU' && p.isActive);
+  const avg = data.averageCosts();
+  const valueOf = (id: string) => Math.max(0, stock.get(id) ?? 0) * (avg[id] ?? 0);
+  const tracked = goods.filter((p) => p.minStock > 0);
+  const categories = new Map(data.categories().map((c) => [c.id, c.name]));
+  const byCategory = new Map<string, { name: string; value: number; items: number }>();
+  for (const p of goods) {
+    const key = p.categoryId ?? '';
+    const g = byCategory.get(key) ?? { name: categories.get(key) ?? 'Chưa phân nhóm', value: 0, items: 0 };
+    g.value += valueOf(p.id);
+    if ((stock.get(p.id) ?? 0) > 0) g.items++;
+    byCategory.set(key, g);
+  }
+  const stockSummary = {
+    value: showStockValue ? Math.round(goods.reduce((s, p) => s + valueOf(p.id), 0)) : null,
+    goods: goods.length,
+    tracked: tracked.length,
+    safe: tracked.filter((p) => (stock.get(p.id) ?? 0) >= p.minStock).length,
+    out: goods.filter((p) => (stock.get(p.id) ?? 0) <= 0).length,
+    low: tracked.filter((p) => (stock.get(p.id) ?? 0) > 0 && (stock.get(p.id) ?? 0) < p.minStock).length,
+    // Theo nhóm hàng: giá trị (who may see it), else the number of mặt hàng còn tồn.
+    byCategory: [...byCategory.entries()]
+      .map(([id, g]) => ({ id, name: g.name, value: showStockValue ? Math.round(g.value) : null, items: g.items }))
+      .filter((g) => (g.value ?? g.items) > 0)
+      .sort((a, b) => (b.value ?? b.items) - (a.value ?? a.items)),
+  };
+
+  return {
+    today, range, previousRange, kpis: kpi(current), prevKpis: kpi(previous), attention, debt: debts, leaks, byDay, topProducts, cash,
+    months, flows, stock: stockSummary,
+  };
 }
