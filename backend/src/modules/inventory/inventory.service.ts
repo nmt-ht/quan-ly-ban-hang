@@ -4,6 +4,7 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import { SequenceService } from '../../prisma/sequence.service.js';
 import { fromDay, toDay } from '../../common/text.js';
 import { AuditService } from '../../audit/audit.service.js';
+import { VoucherLookups, WarehouseVoucherPageQuery, relatedWhere, voucherPageOf, voucherWhere } from './warehouse-voucher-page.js';
 
 const TYPE_LABEL: Record<WarehouseVoucherType, string> = { NHAP: 'phiếu nhập kho', XUAT: 'phiếu xuất kho', CHUYEN: 'phiếu chuyển kho', KIEM_KE: 'phiếu kiểm kê' };
 
@@ -74,6 +75,9 @@ export const voucherToApi = ({ lines, createdBy, createdById: _c, date, ...v }: 
   lines: lines.map(({ id: _i, voucherId: _v, sortOrder: _s, unitCost: _c, ...l }) => l),
 });
 
+/** A phiếu kho without giá nhập (roles that may not see purchase prices). */
+export const withoutLinePrices = <V extends { lines: { unitPrice?: unknown }[] }>(v: V): V => ({ ...v, lines: v.lines.map((l) => ({ ...l, unitPrice: null })) });
+
 /**
  * Phiếu kho: the one place that moves stock. NHAP +, XUAT −, CHUYEN − kho xuất / + kho nhận,
  * KIEM_KE ± chênh lệch (số đếm − tồn sổ sách lúc lưu). Cancelling applies the same movement in reverse.
@@ -99,9 +103,59 @@ export class InventoryService {
     return rows.map(({ product, ...s }) => ({ ...s, minStock: product.minStock }));
   }
 
-  async vouchers() {
-    const rows = await this.prisma.warehouseVoucher.findMany({ include: INCLUDE, orderBy: [{ date: 'desc' }, { code: 'desc' }] });
+  /**
+   * Phiếu kho. `since`: only those dated from then (what the app loads at sign-in, Pha 1.1). `pick`: just these, by id or
+   * mã. `related`: those of one chứng từ gốc (its id, or its mã in the lý do) — for screens showing older ones.
+   */
+  async vouchers(since?: Date, pick?: { ids?: string[]; codes?: string[] }, related?: { id?: string; code?: string }) {
+    const where: Prisma.WarehouseVoucherWhereInput = pick?.ids?.length || pick?.codes?.length
+      ? { OR: [...(pick.ids?.length ? [{ id: { in: pick.ids } }] : []), ...(pick.codes?.length ? [{ code: { in: pick.codes } }] : [])] }
+      : related?.id || related?.code ? relatedWhere(related.id, related.code)
+      : since ? { date: { gte: since } } : {};
+    const rows = await this.prisma.warehouseVoucher.findMany({ where, include: INCLUDE, orderBy: [{ date: 'desc' }, { code: 'desc' }] });
     return rows.map(voucherToApi);
+  }
+
+  /** Danh sách phiếu kho theo trang (Pha 1.1), see warehouse-voucher-page.ts. Without `prices` giá nhập is left out first. */
+  async page(q: WarehouseVoucherPageQuery, prices: boolean) {
+    const [rows, products, warehouses, users, po, so, lsx, trips] = await Promise.all([
+      this.prisma.warehouseVoucher.findMany({ where: voucherWhere(q), include: INCLUDE }),
+      this.prisma.product.findMany({ select: { id: true, code: true, name: true } }),
+      this.prisma.warehouse.findMany({ select: { id: true, name: true } }),
+      this.prisma.user.findMany({ select: { email: true, name: true } }),
+      this.prisma.purchaseOrder.findMany({ select: { id: true, code: true } }),
+      this.prisma.salesOrder.findMany({ select: { id: true, code: true } }),
+      this.prisma.productionOrder.findMany({ select: { id: true, code: true } }),
+      this.prisma.deliveryTrip.findMany({ select: { id: true, code: true } }),
+    ]);
+    const lk: VoucherLookups = {
+      products: new Map(products.map((p) => [p.id, p])),
+      warehouses: new Map(warehouses.map((w) => [w.id, w.name])),
+      users: new Map(users.map((u) => [u.email, u.name])),
+      docs: new Map([
+        ...po.map((d) => [d.id, `Đơn nhập hàng ${d.code}`] as const), ...so.map((d) => [d.id, `Đơn hàng bán ${d.code}`] as const),
+        ...lsx.map((d) => [d.id, `Lệnh sản xuất ${d.code}`] as const), ...trips.map((d) => [d.id, `Chuyến giao hàng ${d.code}`] as const),
+      ]),
+    };
+    const api = rows.map(voucherToApi).map((v) => (prices ? v : withoutLinePrices(v)));
+    return voucherPageOf(api, q, lk);
+  }
+
+  /** Số phiếu kho and số dòng chứng từ (đơn nhập, đơn bán, chuyến) per kho over the whole history — Thiết lập › Kho. */
+  async warehouseUsage() {
+    const [from, to, poLines, soLines, loads] = await Promise.all([
+      this.prisma.warehouseVoucher.groupBy({ by: ['warehouseId'], _count: { _all: true } }),
+      this.prisma.warehouseVoucher.groupBy({ by: ['targetWarehouseId'], where: { targetWarehouseId: { not: null } }, _count: { _all: true } }),
+      this.prisma.purchaseOrderLine.groupBy({ by: ['warehouseId'], where: { warehouseId: { not: null } }, _count: { _all: true } }),
+      this.prisma.salesOrderLine.groupBy({ by: ['warehouseId'], where: { warehouseId: { not: null } }, _count: { _all: true } }),
+      this.prisma.deliveryTripLoad.groupBy({ by: ['warehouseId'], where: { warehouseId: { not: null } }, _count: { _all: true } }),
+    ]);
+    const out: Record<string, { vouchers: number; lines: number }> = {};
+    const get = (id: string) => (out[id] ??= { vouchers: 0, lines: 0 });
+    for (const r of from) get(r.warehouseId).vouchers += r._count._all;
+    for (const r of to) if (r.targetWarehouseId) get(r.targetWarehouseId).vouchers += r._count._all;
+    for (const r of [...poLines, ...soLines, ...loads]) if (r.warehouseId) get(r.warehouseId).lines += r._count._all;
+    return out;
   }
 
   async voucher(id: string, db: Tx | PrismaService = this.prisma) {

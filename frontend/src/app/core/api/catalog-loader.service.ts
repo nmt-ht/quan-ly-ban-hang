@@ -9,6 +9,15 @@ import { ApiService, errorText } from './api.service';
 
 type DirectoryUser = Pick<AppUser, 'id' | 'name' | 'email' | 'roleId' | 'status'>;
 
+/** Chứng từ loaded at sign-in: those still open plus the last this many days (Pha 1.1). */
+export const RECENT_DAYS = 90;
+
+/** A fresh windowed read, plus the older rows read on demand before (they are not in the window). */
+function keepOlder<T extends { id: string }>(fresh: T[], had: T[]): T[] {
+  const ids = new Set(fresh.map((x) => x.id));
+  return [...fresh, ...had.filter((x) => !ids.has(x.id))];
+}
+
 /**
  * Loads every danh mục, tồn kho and chứng từ from the API into DataStore's
  * signals once per signed-in user, so the screens keep reading `data.products()` etc. unchanged.
@@ -41,14 +50,17 @@ export class CatalogLoader {
     return this.ensureLoaded();
   }
 
-  /** Tồn kho and phiếu kho; also used to re-read stock after a save elsewhere. */
+  /**
+   * Tồn kho and phiếu kho of the last 90 days (older ones are read when a screen needs them, Pha 1.1); also used to re-read
+   * stock after a save elsewhere — older phiếu already read stay.
+   */
   async loadInventory(): Promise<void> {
     const [stockLevels, vouchers] = await Promise.all([
       this.api.get<StockLevel[]>('/stock-levels'),
-      this.api.get<WarehouseVoucher[]>('/warehouse-vouchers'),
+      this.api.get<WarehouseVoucher[]>(`/warehouse-vouchers?recentDays=${RECENT_DAYS}`),
     ]);
     this.data.stockLevels.set(stockLevels);
-    this.data.warehouseVouchers.set(vouchers);
+    this.data.warehouseVouchers.update((had) => keepOlder(vouchers, had));
   }
 
   private async load(): Promise<void> {
@@ -57,10 +69,11 @@ export class CatalogLoader {
     const can = (c: string) => this.auth.can(c);
     try {
       await this.loadInventory();
-      this.data.purchaseOrders.set(await this.api.get<PurchaseOrder[]>('/purchase-orders'));
+      // Còn mở + 90 ngày gần nhất, as đơn bán below.
+      this.data.purchaseOrders.set(await this.api.get<PurchaseOrder[]>(`/purchase-orders?recentDays=${RECENT_DAYS}`));
       const [orders, lsx] = await Promise.all([
         // Còn mở + 90 ngày gần nhất; đơn cũ hơn đọc theo trang hoặc theo id khi mở (Pha 1.1).
-        this.api.get<SalesOrder[]>('/sales-orders?recentDays=90'),
+        this.api.get<SalesOrder[]>(`/sales-orders?recentDays=${RECENT_DAYS}`),
         this.api.get<ProductionOrder[]>('/production-orders'),
       ]);
       this.data.salesOrders.set(orders);
@@ -69,7 +82,7 @@ export class CatalogLoader {
       this.data.deliveryTrips.set(await this.api.get<DeliveryTrip[]>('/delivery-trips'));
       // Công nợ, the dashboard and the cash-flow report read them too (same rule as the server).
       const canRead = ['voucher.view', 'debt.view', 'report.cashflow', 'report.dashboard'].some((c) => can(c));
-      this.data.cashVouchers.set(canRead ? await this.api.get<CashVoucher[]>('/cash-vouchers') : []);
+      this.data.cashVouchers.set(canRead ? await this.api.get<CashVoucher[]>(`/cash-vouchers?recentDays=${RECENT_DAYS}`) : []);
       const [
         products, bomLines, categories, warehouses, customers, suppliers, supplierProducts, vehicles,
         cashAccounts, cashCategories, tags, company, tagColors, users, roles, priceLists, promotions,

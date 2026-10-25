@@ -5,6 +5,7 @@ import { SequenceService } from '../../prisma/sequence.service.js';
 import { InventoryService, VoucherLineInput } from '../inventory/inventory.service.js';
 import { fromDay, toDay } from '../../common/text.js';
 import { AuditService } from '../../audit/audit.service.js';
+import { OPEN_STATUSES, PurchaseOrderPageQuery, purchasePageOf, purchaseWhere } from './purchase-order-page.js';
 import { diff, vnd } from '../../audit/audit.diff.js';
 import {
   LineNumbers, STATUS_LABEL, canCancel, canComplete, canEdit, canReceive, canSend, receivedValueOf, round4, statusAfterReceipt,
@@ -64,6 +65,11 @@ export function orderToApi({ lines, createdBy, createdById: _c, date, sentDate, 
   };
 }
 
+/** A đơn nhập without giá nhập: đơn giá and the money totals are null. */
+export function withoutPrices(o: ReturnType<typeof orderToApi>) {
+  return { ...o, totalValue: null, receivedValue: null, lines: o.lines.map((l) => ({ ...l, unitPrice: null })) };
+}
+
 @Injectable()
 export class PurchaseOrdersService {
   constructor(
@@ -91,9 +97,38 @@ export class PurchaseOrdersService {
     };
   }
 
-  async findAll() {
-    const rows = await this.prisma.purchaseOrder.findMany({ include: INCLUDE, orderBy: [{ date: 'desc' }, { code: 'desc' }] });
+  /**
+   * Đơn nhập. `since`: open orders plus those dated from then (what the app loads at sign-in, Pha 1.1). `pick`: just
+   * these, by id or mã, for screens showing older ones.
+   */
+  async findAll(since?: Date, pick?: { ids?: string[]; codes?: string[] }) {
+    const where: Prisma.PurchaseOrderWhereInput = pick?.ids?.length || pick?.codes?.length
+      ? { OR: [...(pick.ids?.length ? [{ id: { in: pick.ids } }] : []), ...(pick.codes?.length ? [{ code: { in: pick.codes } }] : [])] }
+      : since ? { OR: [{ status: { in: OPEN_STATUSES } }, { date: { gte: since } }] } : {};
+    const rows = await this.prisma.purchaseOrder.findMany({ where, include: INCLUDE, orderBy: [{ date: 'desc' }, { code: 'desc' }] });
     return rows.map(orderToApi);
+  }
+
+  /** Danh sách đơn nhập theo trang (Pha 1.1), see purchase-order-page.ts. Without `prices` giá nhập is left out first. */
+  async page(q: PurchaseOrderPageQuery, prices: boolean) {
+    const [rows, suppliers, products, users] = await Promise.all([
+      this.prisma.purchaseOrder.findMany({ where: purchaseWhere(q), include: INCLUDE }),
+      this.prisma.supplier.findMany({ select: { id: true, code: true, name: true } }),
+      this.prisma.product.findMany({ select: { id: true, code: true, name: true, crossRefCode: true } }),
+      this.prisma.user.findMany({ select: { email: true, name: true } }),
+    ]);
+    const orders = rows.map((r) => (prices ? orderToApi(r) : withoutPrices(orderToApi(r))));
+    return purchasePageOf(orders, q, {
+      suppliers: new Map(suppliers.map((x) => [x.id, x])),
+      products: new Map(products.map((p) => [p.id, p])),
+      users: new Map(users.map((u) => [u.email, u.name])),
+    });
+  }
+
+  /** Số đơn nhập của từng nhà cung cấp trên toàn bộ lịch sử. */
+  async supplierStats() {
+    const rows = await this.prisma.purchaseOrder.groupBy({ by: ['supplierId'], _count: { _all: true } });
+    return Object.fromEntries(rows.map((r) => [r.supplierId, { orderCount: r._count._all }]));
   }
 
   async findOne(id: string, db: Tx | PrismaService = this.prisma) {

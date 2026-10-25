@@ -3,6 +3,7 @@ import { DataStore } from '../../core/services/data-store.service';
 import { CashAccount, CashAllocation, CashCategory, CashVoucher, VoucherKind } from '../../core/models/domain.models';
 import { PartnerType } from './cash-voucher.rules';
 import { ApiService, upsertById } from '../../core/api/api.service';
+import { onDemand, pageQuery } from '../../core/api/on-demand';
 
 export interface CashVoucherDraft {
   kind: VoucherKind;
@@ -19,12 +20,77 @@ export interface CashVoucherDraft {
   settledAmount: number;
 }
 
+/** Bộ lọc của danh sách phiếu thu chi theo trang (Pha 1.1) — the server's CashVoucherPageQuery. */
+export interface CashVoucherPageQuery {
+  page?: number;
+  pageSize?: number;
+  q?: string;
+  kind?: VoucherKind;
+  categories?: string[];
+  method?: 'TIEN_MAT' | 'NGAN_HANG';
+  accountId?: string;
+  partnerType?: PartnerType;
+  partnerId?: string;
+  createdBy?: string[];
+  from?: string;
+  to?: string;
+  min?: number;
+  max?: number;
+  cancelled?: boolean;
+  sort?: string;
+  dir?: 'asc' | 'desc';
+}
+
+export interface CashPeriodCards {
+  thu: number;
+  thuCash: number;
+  thuBank: number;
+  chi: number;
+  chiCash: number;
+  chiBank: number;
+  net: number;
+  count: number;
+}
+
+export interface CashVoucherPage {
+  rows: CashVoucher[];
+  total: number;
+  page: number;
+  pageSize: number;
+  categoryCounts: Record<string, number>;
+  cards: CashPeriodCards;
+}
+
 // Writes for Phiếu thu chi, tài khoản tiền and loại thu chi. The server numbers the phiếu, checks the
 // đối trừ and derives số dư quỹ.
 @Injectable({ providedIn: 'root' })
 export class CashVoucherService {
   private readonly api = inject(ApiService);
   private readonly data = inject(DataStore);
+
+  private readonly older = onDemand(this.api, this.data.cashVouchers, '/cash-vouchers');
+
+  // ---------- Pha 1.1: phiếu không nạp sẵn ----------
+
+  /** One page of the list, filtered, sorted and totalled on the server. */
+  page(q: CashVoucherPageQuery): Promise<CashVoucherPage> {
+    return this.api.get<CashVoucherPage>(`/cash-vouchers/page${pageQuery(q)}`);
+  }
+
+  /** Phiếu older than the window, by id or số phiếu. */
+  ensureMany(ids: string[], codes: string[] = []): Promise<void> {
+    return this.older.byIds(ids, codes);
+  }
+
+  /** Every phiếu naming a chứng từ (đối trừ chọn tay, or its mã in the diễn giải). */
+  ensureFor(ref: string): Promise<void> {
+    return this.older.where({ ref });
+  }
+
+  /** Số phiếu chưa huỷ của từng tài khoản và từng loại ("THU|Tên loại") trên toàn bộ lịch sử. */
+  usage(): Promise<{ accounts: Record<string, number>; categories: Record<string, number> }> {
+    return this.api.get('/cash-vouchers/usage');
+  }
 
   async create(d: CashVoucherDraft): Promise<CashVoucher> {
     const v = await this.api.post<CashVoucher>('/cash-vouchers', {

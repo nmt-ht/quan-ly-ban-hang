@@ -30,6 +30,8 @@ import {
   lineRemaining, linesNeedingLsx, needsProduction, orderTotals, priceFor,
 } from '../sales-order.rules';
 import { SalesOrderDraft, SalesOrderService } from '../sales-order.service';
+import { WarehouseVoucherService } from '../../warehouse-vouchers/warehouse-voucher.service';
+import { CashVoucherService } from '../../cash-vouchers/cash-voucher.service';
 import { QuotationService } from '../../quotations/quotation.service';
 import { activePromotions, applyLinePromotions, orderDiscountFor } from '../promotion.rules';
 import { HasUnsavedChanges, isSaveShortcut, warnBeforeUnload } from '../../../core/guards/unsaved-changes.guard';
@@ -102,6 +104,8 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   private readonly api = inject(ApiService);
   readonly cost = inject(CostService);
   private readonly auth = inject(AuthService);
+  private readonly warehouseVouchers = inject(WarehouseVoucherService);
+  private readonly cashVouchers = inject(CashVoucherService);
   private readonly deliverDialog = viewChild<DeliverDialogComponent>('deliverDialog');
   private readonly returnDialog = viewChild<ReturnDialogComponent>('returnDialog');
 
@@ -120,6 +124,15 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   readonly fetching = signal(false);
   readonly notFound = computed(() => !!this.id() && !this.order() && !this.fetching());
   private readonly hasOrder = computed(() => !!this.order());
+  // Phiếu xuất kho and phiếu thu of an older order are not loaded at sign-in either.
+  private readonly loadRelated = effect(() => {
+    const o = this.order();
+    if (!o) return;
+    untracked(() => {
+      void this.warehouseVouchers.ensureOf(o.id, o.code);
+      if (this.auth.can('voucher.view') || this.auth.can('debt.view')) void this.cashVouchers.ensureFor(o.code);
+    });
+  });
   private readonly fetchMissing = effect(() => {
     const id = this.id();
     if (!id || untracked(() => this.order())) return;

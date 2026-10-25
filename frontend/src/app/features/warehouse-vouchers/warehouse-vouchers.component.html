@@ -1,7 +1,7 @@
 <div class="page-header">
   <div>
     <h1>Phiếu kho</h1>
-    <p class="subtitle">{{ vouchers().length }} phiếu</p>
+    <p class="subtitle">{{ total() }} phiếu@if (loading()) { · đang tải… }</p>
   </div>
   <div class="toolbar wv-toolbar">
     <button type="button" class="btn" [disabled]="exporting()" (click)="exportExcel()">
@@ -47,7 +47,7 @@
     placeholder="Tìm mã phiếu, lý do, hàng hoá…"
     aria-label="Tìm phiếu kho"
     [value]="search()"
-    (input)="search.set($any($event.target).value)"
+    (input)="setSearch($any($event.target).value)"
   />
   <app-period-filter [(value)]="period" />
   <app-filter-multi-select label="Người lập" [options]="userOptions()" [(selected)]="createdBy" />
@@ -67,6 +67,8 @@
 }
 
 <!-- The count per loại phiếu is on the tabs; the strip keeps what the tabs cannot say. -->
+@if (error()) { <p class="form-note text-danger" role="alert">{{ error() }}</p> }
+
 @if (totals().value) {
   <dl class="list-totals">
     <div><dt>Giá trị nhập</dt><dd class="num">{{ totals().value.toLocaleString('vi-VN') }}₫</dd></div>
@@ -75,21 +77,17 @@
 
 <app-data-table
   [columns]="columns"
-  [rows]="paged()"
+  [rows]="rows()"
   [actions]="rowActions"
-  [filterable]="true"
-  [filters]="columnFilters()"
-  (filtersChange)="columnFilters.set($event)"
   [sortableColumns]="true"
   [sortBy]="headerSort()?.key ?? null"
   [sortDir]="headerSort()?.dir ?? 'asc'"
   (sortChange)="headerSort.set($event)"
-  [optionRows]="data.warehouseVouchers()"
   [emptyTitle]="chips().length || search() ? 'Không có phiếu phù hợp' : 'Chưa có phiếu kho nào'"
   [emptyHint]="chips().length || search() ? 'Thử bỏ bớt bộ lọc hoặc mở rộng khoảng ngày.' : 'Lập phiếu nhập, xuất, chuyển kho hoặc kiểm kê để bắt đầu.'"
 />
 
-<app-pagination [total]="vouchers().length" unit="phiếu" [(page)]="page" [(pageSize)]="pageSize" />
+<app-pagination [total]="total()" unit="phiếu" [(page)]="page" [(pageSize)]="pageSize" />
 </div>
 </div>
 </div>

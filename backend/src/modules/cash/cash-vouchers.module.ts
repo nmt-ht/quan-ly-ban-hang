@@ -1,8 +1,9 @@
 import {
-  BadRequestException, Body, Controller, ForbiddenException, Get, HttpCode, HttpStatus, Injectable, Module, NotFoundException, Param, Post, UseGuards,
+  BadRequestException, Body, Controller, ForbiddenException, Get, HttpCode, HttpStatus, Injectable, Module, NotFoundException, Param, Post, Query,
+  UseGuards,
 } from '@nestjs/common';
 import { Type } from 'class-transformer';
-import { PartnerType, VoucherKind } from '@prisma/client';
+import { PartnerType, Prisma, VoucherKind } from '@prisma/client';
 import { IsArray, IsEnum, IsNumber, IsOptional, IsPositive, Matches, Min, ValidateNested } from 'class-validator';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard.js';
 import { PermissionsGuard } from '../../auth/permissions.guard.js';
@@ -15,6 +16,8 @@ import { fromDay } from '../../common/text.js';
 import { CASH_INCLUDE, cashToApi } from './cash-voucher.mapper.js';
 import { AuditService } from '../../audit/audit.service.js';
 import { vnd } from '../../audit/audit.diff.js';
+import { listParam, parsePageQuery, windowStart } from '../../common/paging.js';
+import { CashVoucherPageQuery, cashPageOf, cashWhere, refWhere } from './cash-voucher-page.js';
 
 export class AllocationDto {
   @Text(30) ref!: string; // mã chứng từ công nợ (DN…/DH…, or a phiếu hoàn tiền)
@@ -55,9 +58,47 @@ export class CashVouchersService {
     private readonly audit: AuditService,
   ) {}
 
-  async findAll() {
-    const rows = await this.prisma.cashVoucher.findMany({ include: CASH_INCLUDE, orderBy: [{ date: 'desc' }, { code: 'desc' }] });
+  /**
+   * Phiếu thu chi. `since`: only those dated from then (what the app loads at sign-in, Pha 1.1). `pick`: just these, by id
+   * or mã. `ref`: those naming one chứng từ (đối trừ or diễn giải) — for screens showing older ones.
+   */
+  async findAll(since?: Date, pick?: { ids?: string[]; codes?: string[] }, ref?: string) {
+    const where: Prisma.CashVoucherWhereInput = pick?.ids?.length || pick?.codes?.length
+      ? { OR: [...(pick.ids?.length ? [{ id: { in: pick.ids } }] : []), ...(pick.codes?.length ? [{ code: { in: pick.codes } }] : [])] }
+      : ref ? refWhere(ref) : since ? { date: { gte: since } } : {};
+    const rows = await this.prisma.cashVoucher.findMany({ where, include: CASH_INCLUDE, orderBy: [{ date: 'desc' }, { code: 'desc' }] });
     return rows.map(cashToApi);
+  }
+
+  /** Danh sách phiếu thu chi theo trang (Pha 1.1), see cash-voucher-page.ts. */
+  async page(q: CashVoucherPageQuery) {
+    const [rows, customers, suppliers, accounts, users] = await Promise.all([
+      this.prisma.cashVoucher.findMany({ where: cashWhere(q), include: CASH_INCLUDE }),
+      this.prisma.customer.findMany({ select: { id: true, code: true, name: true, companyName: true } }),
+      this.prisma.supplier.findMany({ select: { id: true, code: true, name: true } }),
+      this.prisma.cashAccount.findMany({ select: { id: true, name: true, type: true } }),
+      this.prisma.user.findMany({ select: { email: true, name: true } }),
+    ]);
+    return cashPageOf(rows.map(cashToApi), q, {
+      partners: new Map([
+        ...customers.map((c) => [c.id, `${c.code} · ${c.companyName || c.name}`] as const),
+        ...suppliers.map((x) => [x.id, `${x.code} · ${x.name}`] as const),
+      ]),
+      accounts: new Map(accounts.map((a) => [a.id, a])),
+      users: new Map(users.map((u) => [u.email, u.name])),
+    });
+  }
+
+  /** Số phiếu chưa huỷ của từng tài khoản tiền và từng loại thu chi ("THU|Tên loại") trên toàn bộ lịch sử. */
+  async usage() {
+    const [accounts, categories] = await Promise.all([
+      this.prisma.cashVoucher.groupBy({ by: ['accountId'], where: { isCancelled: false }, _count: { _all: true } }),
+      this.prisma.cashVoucher.groupBy({ by: ['kind', 'category'], where: { isCancelled: false }, _count: { _all: true } }),
+    ]);
+    return {
+      accounts: Object.fromEntries(accounts.map((r) => [r.accountId, r._count._all])),
+      categories: Object.fromEntries(categories.map((r) => [`${r.kind}|${r.category}`, r._count._all])),
+    };
   }
 
   async create(dto: CashVoucherDto, user: AuthUser) {
@@ -144,10 +185,26 @@ export class CashVouchersController {
   constructor(private readonly vouchers: CashVouchersService) {}
 
   // Công nợ, the dashboard and the cash-flow report read them too.
+  // `?recentDays=90` (what the app loads at sign-in, Pha 1.1): the last 90 days. `?ids=` / `?codes=`: just those (at most
+  // 500). `?ref=DH0001`: those naming that chứng từ.
   @RequireAnyPermission('voucher.view', 'debt.view', 'report.cashflow', 'report.dashboard')
   @Get()
-  findAll() {
-    return this.vouchers.findAll();
+  findAll(@Query('recentDays') recentDays?: string, @Query('ids') ids?: string, @Query('codes') codes?: string, @Query('ref') ref?: string) {
+    return this.vouchers.findAll(windowStart(recentDays), { ids: listParam(ids), codes: listParam(codes) }, ref?.trim() || undefined);
+  }
+
+  /** Danh sách theo trang: lọc, tìm không dấu, sắp xếp, thẻ tổng của kỳ (Pha 1.1). Declared before :id routes. */
+  @RequireAnyPermission('voucher.view', 'debt.view', 'report.cashflow', 'report.dashboard')
+  @Get('page')
+  async page(@Query() raw: Record<string, unknown>) {
+    return this.vouchers.page(await parsePageQuery(CashVoucherPageQuery, raw, ['categories', 'createdBy']));
+  }
+
+  /** Số phiếu theo tài khoản tiền và loại thu chi — Thiết lập of those. */
+  @RequireAnyPermission('voucher.view', 'debt.view', 'report.cashflow', 'report.dashboard')
+  @Get('usage')
+  usage() {
+    return this.vouchers.usage();
   }
 
   @Post()

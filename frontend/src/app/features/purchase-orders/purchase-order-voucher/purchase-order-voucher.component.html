@@ -1,4 +1,6 @@
-@if (notFound()) {
+@if (fetching() && !order()) {
+  <p class="subtitle" role="status">Đang tải đơn nhập…</p>
+} @else if (notFound()) {
   <div class="card empty-state">
     <h3>Không tìm thấy đơn nhập</h3>
     <p>Đơn có thể đã bị xoá hoặc đường dẫn không đúng.</p>

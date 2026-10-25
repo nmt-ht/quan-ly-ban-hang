@@ -9,10 +9,9 @@ import { PaginationComponent } from '../../shared/pagination/pagination.componen
 import { PeriodFilterComponent, PeriodValue, NO_PERIOD } from '../../shared/period-filter/period-filter.component';
 import { NumberRange, RangeFilterComponent } from '../../shared/range-filter/range-filter.component';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
-import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
-import { ColumnSort, sortByColumn } from '../../shared/column-sort';
-import { foldVi, formatVnd } from '../../shared/format.util';
-import { PERIOD_PRESETS, formatDay, inRange, rangeLabel } from '../../shared/period';
+import { ColumnSort } from '../../shared/column-sort';
+import { formatVnd } from '../../shared/format.util';
+import { PERIOD_PRESETS, formatDay, rangeLabel } from '../../shared/period';
 import { PURCHASE_ORDER_STATUS_LABEL, purchaseOrderStatusClass } from '../../shared/status-labels';
 import { tagClass } from '../../shared/tag-class';
 import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
@@ -20,6 +19,8 @@ import { canEdit, receivedPercent } from './purchase-order.rules';
 import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 import { AuthService } from '../../core/services/auth.service';
 import { seesPurchasePrices } from '../../core/auth/purchase-prices';
+import { errorText } from '../../core/api/api.service';
+import { PurchaseOrderPage, PurchaseOrderPageQuery, PurchaseOrderService } from './purchase-order.service';
 
 interface ActiveChip {
   label: string;
@@ -28,6 +29,16 @@ interface ActiveChip {
 
 const ALL = 'all';
 
+/** Column header → server sort key. */
+const COLUMN_SORT: Record<string, string> = {
+  code: 'code', date: 'date', supplierId: 'supplier', lines: 'lines', totalValue: 'totalValue', receivedValue: 'receivedValue', status: 'status',
+  createdBy: 'createdBy',
+};
+
+const EMPTY_PAGE: PurchaseOrderPage = { rows: [], total: 0, page: 1, pageSize: 20, statusCounts: {}, totals: { value: 0, received: 0 } };
+
+// Đơn nhập hàng (Pha 1.1): every order, page by page from the server — search, filters, sort and the totals cover all
+// orders, not only those the app loaded at sign-in.
 @Component({
   selector: 'app-purchase-orders',
   standalone: true,
@@ -40,6 +51,7 @@ const ALL = 'all';
 export class PurchaseOrdersComponent {
   /** Giá nhập hidden from roles that only receive goods (the server sends no prices then). */
   private readonly auth = inject(AuthService);
+  private readonly svc = inject(PurchaseOrderService);
   readonly prices = seesPurchasePrices((c) => this.auth.can(c));
   readonly search = signal('');
   readonly statuses = signal<string[]>([]);
@@ -47,15 +59,21 @@ export class PurchaseOrdersComponent {
   readonly period = signal<PeriodValue>(NO_PERIOD);
   readonly createdBy = signal<string[]>([]);
   readonly value = signal<NumberRange>({ min: null, max: null });
-  readonly columnFilters = signal<ColumnFilters>({});
   // Clicking a column header sorts; again reverses; a third click goes back to the default order.
   readonly headerSort = signal<ColumnSort | null>(null);
   readonly page = signal(1);
   readonly pageSize = signal(20);
   readonly exporting = signal(false);
 
+  readonly result = signal<PurchaseOrderPage>(EMPTY_PAGE);
+  readonly loading = signal(false);
+  readonly error = signal('');
+  /** The search box waits for typing to pause before asking the server. */
+  private readonly searchQuery = signal('');
+  private searchTimer: ReturnType<typeof setTimeout> | undefined;
+  private requestSeq = 0;
+
   private readonly supplierById = computed(() => new Map(this.data.suppliers().map((s) => [s.id, s])));
-  private readonly productById = computed(() => new Map(this.data.products().map((p) => [p.id, p])));
   private readonly userByEmail = computed(() => new Map(this.data.users().map((u) => [u.email, u.name])));
 
   // Người lập options: every user as "Tên — Chức vụ" (as in production).
@@ -64,53 +82,32 @@ export class PurchaseOrdersComponent {
     return this.data.users().map((u) => ({ value: u.email, label: `${u.name} — ${roleName.get(u.roleId) ?? ''}` }));
   });
 
-  // Every filter except Trạng thái — feeds the result and the per-status counts.
-  private readonly matchedExceptStatus = computed(() => {
-    const q = foldVi(this.search().trim());
-    const sup = this.supplierId();
-    const range = this.period().range;
-    const by = this.createdBy();
-    const { min, max } = this.value();
-    return this.data.purchaseOrders().filter((o) => {
-      if (q && !this.searchText(o).includes(q)) return false;
-      if (sup !== ALL && o.supplierId !== sup) return false;
-      if (!inRange(o.date, range)) return false;
-      if (by.length && !by.includes(o.createdBy)) return false;
-      if (min !== null && (o.totalValue ?? 0) < min) return false;
-      if (max !== null && (o.totalValue ?? 0) > max) return false;
-      return true;
-    });
-  });
-
   readonly statusOptions = computed<FilterOption[]>(() => {
-    const counts = new Map<string, number>();
-    for (const o of this.matchedExceptStatus()) counts.set(o.status, (counts.get(o.status) ?? 0) + 1);
+    const counts = this.result().statusCounts;
     return (Object.keys(PURCHASE_ORDER_STATUS_LABEL) as PurchaseOrderStatus[]).map((s) => ({
       value: s,
       label: PURCHASE_ORDER_STATUS_LABEL[s],
-      count: counts.get(s) ?? 0,
+      count: counts[s] ?? 0,
       dotClass: tagClass('purchase-order', s),
     }));
   });
 
-  readonly orders = computed(() => {
-    const st = this.statuses();
-    const rows = this.matchedExceptStatus().filter((o) => !st.length || st.includes(o.status));
-    // Newest first, then by code.
-    const sorted = [...rows].sort((a, b) => a.code.localeCompare(b.code, 'vi', { numeric: true })); // default: Mã tăng dần
-    return sortByColumn(applyColumnFilters(sorted, this.columns, this.columnFilters()), this.columns, this.headerSort());
-  });
+  readonly rows = computed(() => this.result().rows);
+  readonly total = computed(() => this.result().total);
+  readonly totals = computed(() => this.result().totals);
 
-  readonly pagedOrders = computed(() => {
-    const start = (this.page() - 1) * this.pageSize();
-    return this.orders().slice(start, start + this.pageSize());
-  });
-
-  readonly totals = computed(() => {
-    const rows = this.orders().filter((o) => o.status !== 'HUY');
+  /** Everything the server needs for the current view (all pages). */
+  private readonly filters = computed<PurchaseOrderPageQuery>(() => {
+    const hs = this.headerSort();
+    const range = this.period().range;
+    const { min, max } = this.value();
+    const sup = this.supplierId();
     return {
-      value: rows.reduce((s, o) => s + (o.totalValue ?? 0), 0),
-      received: rows.reduce((s, o) => s + (o.receivedValue ?? 0), 0),
+      q: this.searchQuery().trim() || undefined,
+      status: this.statuses(), supplierId: sup === ALL ? undefined : sup, createdBy: this.createdBy(),
+      from: range.from || undefined, to: range.to || undefined, min: min ?? undefined, max: max ?? undefined,
+      // default: Mã tăng dần
+      ...(hs ? { sort: COLUMN_SORT[hs.key] ?? 'code', dir: hs.dir } : { sort: 'code', dir: 'asc' as const }),
     };
   });
 
@@ -138,10 +135,6 @@ export class PurchaseOrdersComponent {
       const t = min !== null && max !== null ? `${formatVnd(min)} – ${formatVnd(max)}` : min !== null ? `≥ ${formatVnd(min)}` : `≤ ${formatVnd(max!)}`;
       chips.push({ label: `Giá trị: ${t}`, clear: () => this.value.set({ min: null, max: null }) });
     }
-    for (const col of this.columns) {
-      const v = (this.columnFilters()[col.key] ?? '').trim();
-      if (v) chips.push({ label: `${col.label}: ${v}`, clear: () => this.columnFilters.update((f) => ({ ...f, [col.key]: '' })) });
-    }
     return chips;
   });
 
@@ -149,14 +142,13 @@ export class PurchaseOrdersComponent {
     { key: 'code', label: 'Mã đơn', copy: true, link: (r) => ['/mua-hang', r.id] },
     { key: 'date', label: 'Ngày đặt', format: (r) => formatDay(r.date), mono: true },
     { key: 'supplierId', sortByText: true, label: 'Nhà cung cấp', format: (r) => this.supplierById().get(r.supplierId)?.name ?? r.supplierId },
-    { key: 'lines', label: 'Mặt hàng', align: 'right', format: (r) => String(r.lines.length), filterValue: (r) => r.lines.length },
-    { key: 'totalValue', label: 'Giá trị đơn', align: 'right', format: (r) => formatVnd(r.totalValue ?? 0), filterValue: (r) => r.totalValue ?? 0 },
+    { key: 'lines', label: 'Mặt hàng', align: 'right', format: (r) => String(r.lines.length) },
+    { key: 'totalValue', label: 'Giá trị đơn', align: 'right', format: (r) => formatVnd(r.totalValue ?? 0) },
     {
       key: 'receivedValue',
       label: 'Đã nhận',
       align: 'right',
       format: (r) => (r.receivedValue ? `${formatVnd(r.receivedValue)} · ${receivedPercent(r)}%` : '—'),
-      filterValue: (r) => r.receivedValue ?? 0,
     },
     {
       key: 'status', sortByText: true,
@@ -173,10 +165,38 @@ export class PurchaseOrdersComponent {
   readonly canEdit = canEdit;
 
   constructor(readonly data: DataStore) {
+    // New filters start again from page 1.
     effect(() => {
-      this.orders();
+      this.filters();
       untracked(() => this.page.set(1));
     });
+    // Ask the server whenever the filters, the page or the orders in memory change (a save elsewhere).
+    effect(() => {
+      const query = { ...this.filters(), page: this.page(), pageSize: this.pageSize() };
+      this.data.purchaseOrders();
+      untracked(() => void this.load(query));
+    });
+  }
+
+  setSearch(text: string): void {
+    this.search.set(text);
+    clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => this.searchQuery.set(text), 300);
+  }
+
+  private async load(query: PurchaseOrderPageQuery): Promise<void> {
+    const seq = ++this.requestSeq;
+    this.loading.set(true);
+    try {
+      const res = await this.svc.page(query);
+      if (seq !== this.requestSeq) return; // a newer request answered first
+      this.result.set(res);
+      this.error.set('');
+    } catch (e) {
+      if (seq === this.requestSeq) this.error.set(errorText(e));
+    } finally {
+      if (seq === this.requestSeq) this.loading.set(false);
+    }
   }
 
   userName(email: string): string {
@@ -193,12 +213,13 @@ export class PurchaseOrdersComponent {
     this.period.set(NO_PERIOD);
     this.createdBy.set([]);
     this.value.set({ min: null, max: null });
-    this.columnFilters.set({});
   }
 
+  /** Every matching order (not only this page), in the list's order. */
   async exportExcel(): Promise<void> {
     this.exporting.set(true);
     try {
+      const all = (await this.svc.page({ ...this.filters(), page: 1, pageSize: 5000 })).rows;
       await downloadWorkbook(exportFileName('Đơn nhập hàng'), [{
         name: 'Đơn nhập hàng',
         columns: [
@@ -216,7 +237,7 @@ export class PurchaseOrdersComponent {
           { header: 'Người lập', width: 22 },
           { header: 'Ghi chú', width: 30 },
         ],
-        rows: this.orders().map((o) => {
+        rows: all.map((o) => {
           const s = this.supplierById().get(o.supplierId);
           return [
             o.code, formatDay(o.date), s?.code ?? '', s?.name ?? o.supplierId, o.lines.length,
@@ -225,17 +246,10 @@ export class PurchaseOrdersComponent {
           ];
         }),
       }]);
+    } catch (e) {
+      this.error.set(errorText(e));
     } finally {
       this.exporting.set(false);
     }
-  }
-
-  private searchText(o: PurchaseOrder): string {
-    const s = this.supplierById().get(o.supplierId);
-    const items = o.lines.map((l) => {
-      const p = this.productById().get(l.productId);
-      return `${p?.code ?? ''} ${p?.name ?? ''} ${p?.crossRefCode ?? ''}`;
-    });
-    return foldVi([o.code, s?.code ?? '', s?.name ?? '', o.note ?? '', ...items].join(' '));
   }
 }

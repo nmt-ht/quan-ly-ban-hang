@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
@@ -6,6 +6,7 @@ import { DataStore } from '../../../../core/services/data-store.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { CostService } from '../../../../core/services/cost.service';
 import { WarehouseVoucher } from '../../../../core/models/domain.models';
+import { WarehouseVoucherService } from '../../../warehouse-vouchers/warehouse-voucher.service';
 import { NavIconComponent } from '../../../../layout/nav-icon/nav-icon.component';
 import { CopyButtonComponent } from '../../../../shared/copy-button/copy-button.component';
 import { AuditHistoryComponent } from '../../../../shared/audit/audit-history.component';
@@ -39,6 +40,7 @@ export class WarehouseDetailComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
+  private readonly warehouseVouchers = inject(WarehouseVoucherService);
   private readonly form = viewChild.required(WarehouseFormDialogComponent);
 
   readonly canUpdate = this.auth.can('warehouse.update');
@@ -78,12 +80,17 @@ export class WarehouseDetailComponent {
       .sort((a, b) => a.code.localeCompare(b.code, 'vi', { numeric: true })),
   );
 
-  /** Phiếu from or into this kho, Mã tăng dần (as every coded grid). */
-  readonly vouchers = computed(() =>
-    this.data.warehouseVouchers()
-      .filter((v) => v.warehouseId === this.id() || v.targetWarehouseId === this.id())
-      .sort((a, b) => a.code.localeCompare(b.code, 'vi', { numeric: true })),
-  );
+  /** Phiếu from or into this kho, older ones included — read from the server (Pha 1.1), Mã tăng dần as every coded grid. */
+  readonly vouchers = signal<WarehouseVoucher[]>([]);
+  private readonly loadVouchers = effect(() => {
+    const id = this.id();
+    this.data.warehouseVouchers(); // read again after a save
+    untracked(() => {
+      if (!id) return;
+      this.warehouseVouchers.page({ warehouseId: id, cancelled: true, pageSize: 5000, sort: 'code', dir: 'asc' })
+        .then((p) => this.vouchers.set(p.rows), () => undefined);
+    });
+  });
 
   private readonly whName = computed(() => new Map(this.data.warehouses().map((w) => [w.id, w.name])));
   /** "→ Kho X" / "← Kho Y" on a chuyển kho, seen from this kho. */

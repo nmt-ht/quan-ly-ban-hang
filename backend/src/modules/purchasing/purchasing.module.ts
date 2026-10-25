@@ -7,7 +7,9 @@ import { CurrentUser, RequirePermissions } from '../../auth/permissions.decorato
 import type { AuthUser } from '../../auth/auth.service.js';
 import { OptionalText, Text } from '../../common/dto.js';
 import { InventoryModule } from '../inventory/inventory.module.js';
-import { PurchaseOrdersService, orderToApi } from './purchase-orders.service.js';
+import { PurchaseOrdersService, withoutPrices } from './purchase-orders.service.js';
+import { listParam, parsePageQuery, windowStart } from '../../common/paging.js';
+import { PurchaseOrderPageQuery } from './purchase-order-page.js';
 import { seesPurchasePrices } from '../../common/purchase-prices.js';
 import { PayablesService } from './payables.service.js';
 
@@ -49,13 +51,6 @@ export class CancelDto {
   @OptionalText(300) reason?: string;
 }
 
-type ApiOrder = ReturnType<typeof orderToApi>;
-
-/** A đơn nhập without giá nhập: đơn giá and the money totals are null. */
-function withoutPrices(o: ApiOrder) {
-  return { ...o, totalValue: null, receivedValue: null, lines: o.lines.map((l) => ({ ...l, unitPrice: null })) };
-}
-
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('purchase-orders')
 export class PurchaseOrdersController {
@@ -63,10 +58,24 @@ export class PurchaseOrdersController {
 
   // Reads are open to every signed-in user: stock ("sắp về"), suppliers and debts show them — giá nhập only to who may
   // see it (seesPurchasePrices); Thủ kho receives goods by quantity.
+  // `?recentDays=90` (what the app loads at sign-in, Pha 1.1): open orders plus the last 90 days. `?ids=` / `?codes=`: just
+  // those (at most 500), for screens showing older ones.
   @Get()
-  async findAll(@CurrentUser() user: AuthUser) {
-    const rows = await this.orders.findAll();
+  async findAll(@CurrentUser() user: AuthUser, @Query('recentDays') recentDays?: string, @Query('ids') ids?: string, @Query('codes') codes?: string) {
+    const rows = await this.orders.findAll(windowStart(recentDays), { ids: listParam(ids), codes: listParam(codes) });
     return seesPurchasePrices(user) ? rows : rows.map(withoutPrices);
+  }
+
+  /** Danh sách theo trang: lọc, tìm không dấu, sắp xếp, tổng của mọi đơn khớp (Pha 1.1). Declared before :id. */
+  @Get('page')
+  async page(@Query() raw: Record<string, unknown>, @CurrentUser() user: AuthUser) {
+    return this.orders.page(await parsePageQuery(PurchaseOrderPageQuery, raw, ['status', 'createdBy']), seesPurchasePrices(user));
+  }
+
+  /** Số đơn nhập của từng nhà cung cấp trên toàn bộ lịch sử. */
+  @Get('supplier-stats')
+  supplierStats() {
+    return this.orders.supplierStats();
   }
 
   @Get(':id')

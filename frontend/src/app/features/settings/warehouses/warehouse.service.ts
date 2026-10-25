@@ -1,4 +1,4 @@
-import { Injectable, computed, inject } from '@angular/core';
+import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { DataStore } from '../../../core/services/data-store.service';
 import { CostService } from '../../../core/services/cost.service';
 import { Warehouse } from '../../../core/models/domain.models';
@@ -45,6 +45,19 @@ export class WarehouseService {
   private readonly api = inject(ApiService);
   private readonly data = inject(DataStore);
   private readonly cost = inject(CostService);
+  /** Phiếu kho and lines of đơn / chuyến per kho over the whole history, from the server (Pha 1.1). */
+  private readonly history = signal<Record<string, { vouchers: number; lines: number }>>({});
+
+  constructor() {
+    // Read again whenever a chứng từ is saved here (the lists in memory change).
+    effect(() => {
+      this.data.warehouseVouchers();
+      this.data.purchaseOrders();
+      this.data.salesOrders();
+      this.data.deliveryTrips();
+      untracked(() => this.api.get<Record<string, { vouchers: number; lines: number }>>('/warehouse-vouchers/usage').then((x) => this.history.set(x), () => undefined));
+    });
+  }
 
   readonly usage = computed(() => {
     const m = new Map<string, WarehouseUsage>();
@@ -54,14 +67,12 @@ export class WarehouseService {
       if (s.quantity !== 0) u.items++;
       u.value += Math.round(Math.max(0, s.quantity) * this.cost.costOf(s.productId));
     }
-    for (const v of this.data.warehouseVouchers()) {
-      get(v.warehouseId)!.vouchers++;
-      if (v.targetWarehouseId && v.targetWarehouseId !== v.warehouseId) get(v.targetWarehouseId)!.vouchers++;
+    for (const [id, h] of Object.entries(this.history())) {
+      const u = get(id)!;
+      u.vouchers = h.vouchers;
+      u.lines = h.lines;
     }
     for (const p of this.data.products()) { const u = get(p.defaultWarehouseId); if (u) u.defaults++; }
-    for (const o of this.data.purchaseOrders()) for (const l of o.lines) { const u = get(l.warehouseId); if (u) u.lines++; }
-    for (const o of this.data.salesOrders()) for (const l of o.lines) { const u = get(l.warehouseId); if (u) u.lines++; }
-    for (const t of this.data.deliveryTrips()) for (const l of t.loads ?? []) { const u = get(l.warehouseId); if (u) u.lines++; }
     return m;
   });
 

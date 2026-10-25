@@ -1,4 +1,4 @@
-import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { DataStore } from '../../../core/services/data-store.service';
@@ -60,18 +60,19 @@ export class CashAccountsComponent {
   readonly draft = signal<Draft>({ ...EMPTY });
   readonly attempted = signal(false);
 
+  /** Phiếu chưa huỷ per tài khoản over the whole history, from the server (Pha 1.1). */
+  private readonly voucherCount = signal<Record<string, number>>({});
+
   constructor() {
     void this.svc.refreshBalances();
+    effect(() => {
+      this.data.cashVouchers();
+      untracked(() => this.svc.usage().then((u) => this.voucherCount.set(u.accounts), () => undefined));
+    });
   }
 
-  private readonly voucherCount = computed(() => {
-    const m = new Map<string, number>();
-    for (const v of this.data.cashVouchers()) if (!v.isCancelled) m.set(v.accountId, (m.get(v.accountId) ?? 0) + 1);
-    return m;
-  });
-
   count(id: string): number {
-    return this.voucherCount().get(id) ?? 0;
+    return this.voucherCount()[id] ?? 0;
   }
 
   readonly groups = computed(() => {

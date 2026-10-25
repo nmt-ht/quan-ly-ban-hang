@@ -1,4 +1,4 @@
-import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { DataStore } from '../../../core/services/data-store.service';
@@ -44,14 +44,15 @@ export class CashCategoriesComponent {
   readonly isActive = signal(true);
   readonly attempted = signal(false);
 
-  private readonly usage = computed(() => {
-    const m = new Map<string, number>();
-    for (const v of this.data.cashVouchers()) if (!v.isCancelled) m.set(`${v.kind}|${v.category}`, (m.get(`${v.kind}|${v.category}`) ?? 0) + 1);
-    return m;
+  /** Phiếu chưa huỷ per loại ("THU|Tên") over the whole history, from the server (Pha 1.1). */
+  private readonly usage = signal<Record<string, number>>({});
+  private readonly loadUsage = effect(() => {
+    this.data.cashVouchers();
+    untracked(() => this.svc.usage().then((u) => this.usage.set(u.categories), () => undefined));
   });
 
   used(c: CashCategory): number {
-    return this.usage().get(`${c.kind}|${c.name}`) ?? 0;
+    return this.usage()[`${c.kind}|${c.name}`] ?? 0;
   }
 
   readonly groups = computed(() =>

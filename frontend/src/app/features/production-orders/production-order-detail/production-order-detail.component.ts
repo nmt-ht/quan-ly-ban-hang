@@ -108,6 +108,12 @@ export class ProductionOrderDetailComponent {
     return qty > 0 ? Math.round(this.materialCost() / qty) : 0;
   });
 
+  // Phiếu kho of an older lệnh are read on demand (Pha 1.1).
+  private readonly loadVouchers = effect(() => {
+    const x = this.lsx();
+    if (x) untracked(() => void this.stock.ensureOf(x.id, x.code));
+  });
+
   readonly vouchers = computed(() => {
     const x = this.lsx();
     if (!x) return [];

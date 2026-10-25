@@ -6,7 +6,9 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { DataStore } from '../../../core/services/data-store.service';
 import { DebtService } from '../../../core/services/debt.service';
-import { Product, PurchaseOrder } from '../../../core/models/domain.models';
+import { CashVoucher, Product, PurchaseOrder } from '../../../core/models/domain.models';
+import { PurchaseOrderService } from '../../purchase-orders/purchase-order.service';
+import { CashVoucherService } from '../../cash-vouchers/cash-voucher.service';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { CopyButtonComponent } from '../../../shared/copy-button/copy-button.component';
 import { ProductPickerComponent } from '../../../shared/product-picker/product-picker.component';
@@ -50,8 +52,11 @@ export class SupplierDetailComponent {
   readonly data = inject(DataStore);
   private readonly debt = inject(DebtService);
   private readonly svc = inject(SupplierService);
+  private readonly auth = inject(AuthService);
+  private readonly purchaseOrders = inject(PurchaseOrderService);
+  private readonly cashVouchers = inject(CashVoucherService);
   /** Giá mua and giá trị đơn nhập only for roles that see purchase prices (not Thủ kho). */
-  readonly prices = seesPurchasePrices((c) => inject(AuthService).can(c));
+  readonly prices = seesPurchasePrices((c) => this.auth.can(c));
 
   readonly id = toSignal(this.route.paramMap.pipe(map((p) => p.get('id') ?? '')), { initialValue: this.route.snapshot.paramMap.get('id') ?? '' });
   readonly supplier = computed(() => this.data.suppliers().find((s) => s.id === this.id()));
@@ -135,11 +140,16 @@ export class SupplierDetailComponent {
   }
 
   // ---------- đơn nhập ----------
-  readonly orders = computed<PurchaseOrder[]>(() =>
-    this.data.purchaseOrders()
-      .filter((o) => o.supplierId === this.id())
-      .sort((a, b) => a.code.localeCompare(b.code, 'vi', { numeric: true })), // Mã tăng dần, as every coded grid
-  );
+  /** Every order of the NCC, older ones included — read from the server (Pha 1.1), Mã tăng dần as every coded grid. */
+  readonly orders = signal<PurchaseOrder[]>([]);
+  private readonly loadOrders = effect(() => {
+    const id = this.id();
+    this.data.purchaseOrders(); // read again after a save
+    untracked(() => {
+      if (!id) return;
+      this.purchaseOrders.page({ supplierId: id, pageSize: 5000, sort: 'code', dir: 'asc' }).then((p) => this.orders.set(p.rows), () => undefined);
+    });
+  });
 
   readonly orderTotals = computed(() => {
     const rows = this.orders().filter((o) => o.status !== 'HUY');
@@ -148,11 +158,17 @@ export class SupplierDetailComponent {
 
   // ---------- công nợ ----------
   readonly debtRow = computed(() => this.debt.payables().find((r) => r.partnerId === this.id()));
-  readonly payments = computed(() =>
-    this.data.cashVouchers()
-      .filter((v) => !v.isCancelled && v.partnerType === 'NHA_CUNG_CAP' && v.partnerId === this.id())
-      .sort((a, b) => b.date.localeCompare(a.date)),
-  );
+  /** Phiếu chi / thu chưa huỷ of the NCC over the whole history (server), newest first. */
+  readonly payments = signal<CashVoucher[]>([]);
+  private readonly loadPayments = effect(() => {
+    const id = this.id();
+    this.data.cashVouchers(); // read again after a save
+    untracked(() => {
+      if (!id || !['voucher.view', 'debt.view', 'report.cashflow', 'report.dashboard'].some((c) => this.auth.can(c))) return;
+      this.cashVouchers.page({ partnerType: 'NHA_CUNG_CAP', partnerId: id, pageSize: 5000, sort: 'date', dir: 'desc' })
+        .then((p) => this.payments.set(p.rows), () => undefined);
+    });
+  });
   readonly paidTotal = computed(() => this.payments().reduce((s, v) => s + (v.kind === 'CHI' ? v.amount : -v.amount), 0));
 
   accountName(id: string): string {

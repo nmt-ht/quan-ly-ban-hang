@@ -1,4 +1,4 @@
-import { Injectable, computed, inject } from '@angular/core';
+import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { DataStore } from '../../core/services/data-store.service';
 import { DebtService } from '../../core/services/debt.service';
 import { Supplier, SupplierProduct } from '../../core/models/domain.models';
@@ -20,17 +20,26 @@ const EMPTY_STATS: SupplierStats = { productCount: 0, orderCount: 0, payable: 0,
 export class SupplierService {
   private readonly api = inject(ApiService);
 
+  /** Số đơn nhập per NCC over the whole history, from the server (the app holds only recent orders — Pha 1.1). */
+  private readonly orderCounts = signal<Record<string, { orderCount: number }>>({});
+
   constructor(
     private readonly data: DataStore,
     private readonly debt: DebtService,
-  ) {}
+  ) {
+    // Read again whenever an order is saved here (the list in memory changes).
+    effect(() => {
+      this.data.purchaseOrders();
+      untracked(() => this.api.get<Record<string, { orderCount: number }>>('/purchase-orders/supplier-stats').then((x) => this.orderCounts.set(x), () => undefined));
+    });
+  }
 
   /** Mặt hàng (danh mục theo NCC), số đơn nhập, công nợ — derived, never stored on the supplier. */
   readonly stats = computed(() => {
     const map = new Map<string, SupplierStats>();
     const get = (id: string) => map.get(id) ?? (map.set(id, { ...EMPTY_STATS }), map.get(id)!);
     for (const c of this.data.supplierProducts()) get(c.supplierId).productCount++;
-    for (const o of this.data.purchaseOrders()) get(o.supplierId).orderCount++;
+    for (const [id, c] of Object.entries(this.orderCounts())) get(id).orderCount = c.orderCount;
     for (const r of this.debt.payables()) {
       const s = get(r.partnerId);
       s.payable = r.balance;

@@ -143,6 +143,8 @@
       <div><dt>Viết bằng chữ:</dt><dd>{{ words(v.amount) }}</dd></div>
     </dl>
   </app-print-document>
+} @else if (fetching()) {
+  <p class="subtitle" role="status">Đang tải phiếu…</p>
 } @else {
   <div class="card empty-state">
     <h3>Không tìm thấy phiếu</h3>

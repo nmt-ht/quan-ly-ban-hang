@@ -27,6 +27,7 @@ import { errorText } from '../../../core/api/api.service';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 import { SalesOrderService } from '../../sales-orders/sales-order.service';
+import { WarehouseVoucherService } from '../../warehouse-vouchers/warehouse-voucher.service';
 
 type Tab = 'don' | 'hang' | 'phieu' | 'chi-phi' | 'nhat-ky';
 type PrintMode = 'soan' | 'giao' | null;
@@ -76,6 +77,7 @@ export class DeliveryTripVoucherComponent {
     if (ids.length) untracked(() => void this.salesOrders.ensureMany(ids));
   });
   private readonly svc = inject(DeliveryTripService);
+  private readonly warehouseVouchers = inject(WarehouseVoucherService);
   private readonly headerDialog = viewChild.required<TripHeaderDialogComponent>('headerDialog');
   private readonly addDialog = viewChild.required<ElementRef<HTMLDialogElement>>('addDialog');
   private readonly confirmDialog = viewChild.required<ElementRef<HTMLDialogElement>>('confirmDialog');
@@ -230,6 +232,11 @@ export class DeliveryTripVoucherComponent {
   );
 
   readonly vouchers = computed(() => (this.trip() ? this.svc.vouchersOf(this.trip()!) : []));
+  // Phiếu kho of an older chuyến are read on demand (Pha 1.1).
+  private readonly loadVouchers = effect(() => {
+    const t = this.trip();
+    if (t) untracked(() => void this.warehouseVouchers.ensureOf(t.id, t.code));
+  });
 
   // ---------- permissions ----------
   readonly can = computed(() => {

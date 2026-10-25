@@ -1,7 +1,7 @@
 <div class="page-header">
   <div>
     <h1>Phiếu thu chi</h1>
-    <p class="subtitle">{{ vouchers().length }} phiếu</p>
+    <p class="subtitle">{{ total() }} phiếu@if (loading()) { · đang tải… }</p>
   </div>
   <div class="toolbar">
     <button type="button" class="btn" [disabled]="exporting()" (click)="exportExcel()">
@@ -72,7 +72,7 @@
     placeholder="Tìm số phiếu, đối tượng, diễn giải…"
     aria-label="Tìm phiếu"
     [value]="search()"
-    (input)="search.set($any($event.target).value)"
+    (input)="setSearch($any($event.target).value)"
   />
   <select aria-label="Thu hoặc chi" [value]="kind()" (change)="kind.set($any($event.target).value)">
     <option value="all">Thu và chi</option>
@@ -109,24 +109,22 @@
   </div>
 }
 
+@if (error()) { <p class="form-note text-danger" role="alert">{{ error() }}</p> }
+
 <app-data-table
   [columns]="columns"
-  [rows]="paged()"
+  [rows]="rows()"
   [actions]="rowActions"
-  [filterable]="true"
-  [filters]="columnFilters()"
-  (filtersChange)="columnFilters.set($event)"
   [sortableColumns]="true"
   [sortBy]="headerSort()?.key ?? null"
   [sortDir]="headerSort()?.dir ?? 'asc'"
   (sortChange)="headerSort.set($event)"
-  [optionRows]="data.cashVouchers()"
   [emptyAction]="chips().length || search() ? null : createCta"
   [emptyTitle]="chips().length || search() ? 'Không có phiếu phù hợp' : 'Chưa có phiếu thu chi nào'"
   [emptyHint]="chips().length || search() ? 'Thử bỏ bớt bộ lọc hoặc mở rộng khoảng ngày.' : 'Lập phiếu thu khi nhận tiền, phiếu chi khi trả tiền — mỗi phiếu gắn đúng một tài khoản tiền.'"
 />
 
-<app-pagination [total]="vouchers().length" unit="phiếu" [(page)]="page" [(pageSize)]="pageSize" />
+<app-pagination [total]="total()" unit="phiếu" [(page)]="page" [(pageSize)]="pageSize" />
 
 <ng-template #createCta>
   <a class="btn btn-primary" routerLink="/thu-chi/lap/thu"><app-nav-icon name="plus" />Lập phiếu thu</a>

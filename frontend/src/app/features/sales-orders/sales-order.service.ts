@@ -4,6 +4,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { CashVoucher, ProductionOrder, SalesOrder, SalesOrderLine, SalesReturn, SalesReturnDraft, WarehouseVoucher } from '../../core/models/domain.models';
 import { ApiService, upsertById } from '../../core/api/api.service';
 import { CatalogLoader } from '../../core/api/catalog-loader.service';
+import { pageQuery } from '../../core/api/on-demand';
 import { CashVoucherService } from '../cash-vouchers/cash-voucher.service';
 import { canCancel, canClose, canDeliver, canEdit } from './sales-order.rules';
 
@@ -65,16 +66,6 @@ export interface CustomerOrderStats {
   openOrders: number;
 }
 
-/** "?a=1&b=x,y" from the set fields; arrays as comma lists. */
-export function queryString(q: object): string {
-  const parts: string[] = [];
-  for (const [k, v] of Object.entries(q)) {
-    if (v === undefined || v === null || v === '' || (Array.isArray(v) && !v.length) || v === false) continue;
-    parts.push(`${k}=${encodeURIComponent(Array.isArray(v) ? v.join(',') : String(v))}`);
-  }
-  return parts.length ? `?${parts.join('&')}` : '';
-}
-
 export interface DeliveryItem {
   lineIndex: number;
   quantity: number; // theo ĐVT của dòng
@@ -124,7 +115,7 @@ export class SalesOrderService {
 
   /** One page of the list, filtered, sorted and totalled on the server. */
   page(q: SalesOrderPageQuery): Promise<SalesOrderPage> {
-    return this.api.get<SalesOrderPage>(`/sales-orders/page${queryString(q)}`);
+    return this.api.get<SalesOrderPage>(`/sales-orders/page${pageQuery(q)}`);
   }
 
   /**
@@ -152,7 +143,7 @@ export class SalesOrderService {
     if (!missingIds.length && !missingCodes.length) return;
     for (const k of [...missingIds, ...missingCodes]) this.asked.add(k);
     try {
-      const rows = await this.api.get<SalesOrder[]>(`/sales-orders${queryString({ ids: missingIds, codes: missingCodes })}`);
+      const rows = await this.api.get<SalesOrder[]>(`/sales-orders${pageQuery({ ids: missingIds, codes: missingCodes })}`);
       if (rows.length) this.data.salesOrders.update((list) => rows.reduce((acc, o) => upsertById(acc, o, true), list));
     } catch {
       /* the screen shows what it has */

@@ -1,4 +1,4 @@
-import { Body, Controller, ForbiddenException, Get, HttpCode, HttpStatus, Module, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, HttpCode, HttpStatus, Module, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { Type } from 'class-transformer';
 import { WarehouseVoucherType } from '@prisma/client';
 import { ArrayMinSize, IsArray, IsEnum, IsNumber, IsOptional, Matches, Min, ValidateNested } from 'class-validator';
@@ -8,7 +8,9 @@ import { seesPurchasePrices } from '../../common/purchase-prices.js';
 import { CurrentUser, RequirePermissions } from '../../auth/permissions.decorator.js';
 import type { AuthUser } from '../../auth/auth.service.js';
 import { OptionalText, Text } from '../../common/dto.js';
-import { InventoryService } from './inventory.service.js';
+import { listParam, parsePageQuery, windowStart } from '../../common/paging.js';
+import { InventoryService, withoutLinePrices } from './inventory.service.js';
+import { WarehouseVoucherPageQuery } from './warehouse-voucher-page.js';
 
 export class VoucherLineDto {
   @Text(60) productId!: string;
@@ -42,8 +44,6 @@ const CREATE_PERMISSION: Record<WarehouseVoucherType, string[]> = {
   KIEM_KE: ['stock.adjust', 'stock.stocktake'],
 };
 
-const withoutLinePrices = <V extends { lines: { unitPrice?: unknown }[] }>(v: V): V => ({ ...v, lines: v.lines.map((l) => ({ ...l, unitPrice: null })) });
-
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller()
 export class InventoryController {
@@ -56,10 +56,27 @@ export class InventoryController {
   }
 
   // Giá nhập on phiếu nhập only to who may see purchase prices (not Thủ kho, Sale, giao hàng, xưởng).
+  // `?recentDays=90` (what the app loads at sign-in, Pha 1.1): the last 90 days. `?ids=` / `?codes=`: just those (at most
+  // 500). `?relatedId=&relatedCode=`: those of one đơn / lệnh / chuyến — for screens showing older ones.
   @Get('warehouse-vouchers')
-  async vouchers(@CurrentUser() user: AuthUser) {
-    const rows = await this.inventory.vouchers();
+  async vouchers(
+    @CurrentUser() user: AuthUser, @Query('recentDays') recentDays?: string, @Query('ids') ids?: string, @Query('codes') codes?: string,
+    @Query('relatedId') relatedId?: string, @Query('relatedCode') relatedCode?: string,
+  ) {
+    const rows = await this.inventory.vouchers(windowStart(recentDays), { ids: listParam(ids), codes: listParam(codes) }, { id: relatedId, code: relatedCode });
     return seesPurchasePrices(user) ? rows : rows.map(withoutLinePrices);
+  }
+
+  /** Danh sách theo trang: lọc, tìm không dấu, sắp xếp, số phiếu theo loại / kho (Pha 1.1). Declared before :id. */
+  @Get('warehouse-vouchers/page')
+  async page(@Query() raw: Record<string, unknown>, @CurrentUser() user: AuthUser) {
+    return this.inventory.page(await parsePageQuery(WarehouseVoucherPageQuery, raw, ['createdBy']), seesPurchasePrices(user));
+  }
+
+  /** Số phiếu và số dòng chứng từ của từng kho trên toàn bộ lịch sử. */
+  @Get('warehouse-vouchers/usage')
+  usage() {
+    return this.inventory.warehouseUsage();
   }
 
   @Get('warehouse-vouchers/:id')

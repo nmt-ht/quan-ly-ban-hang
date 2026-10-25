@@ -10,13 +10,13 @@ import { PaginationComponent } from '../../shared/pagination/pagination.componen
 import { PeriodFilterComponent, PeriodValue, NO_PERIOD } from '../../shared/period-filter/period-filter.component';
 import { NumberRange, RangeFilterComponent } from '../../shared/range-filter/range-filter.component';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
-import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
-import { ColumnSort, sortByColumn } from '../../shared/column-sort';
-import { amountTone, foldVi, formatVnd, formatVndSigned } from '../../shared/format.util';
-import { PERIOD_PRESETS, formatDay, inRange, rangeLabel } from '../../shared/period';
+import { ColumnSort } from '../../shared/column-sort';
+import { amountTone, formatVnd, formatVndSigned } from '../../shared/format.util';
+import { PERIOD_PRESETS, formatDay, rangeLabel } from '../../shared/period';
 import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { ACCOUNT_TYPE_LABEL } from './cash-voucher.rules';
-import { CashVoucherService } from './cash-voucher.service';
+import { CashVoucherPage, CashVoucherPageQuery, CashVoucherService } from './cash-voucher.service';
+import { errorText } from '../../core/api/api.service';
 import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 
 interface ActiveChip {
@@ -26,6 +26,19 @@ interface ActiveChip {
 
 const KIND_LABEL = { THU: 'Phiếu thu', CHI: 'Phiếu chi' } as const;
 
+/** Column header → server sort key. */
+const COLUMN_SORT: Record<string, string> = {
+  code: 'code', date: 'date', category: 'category', partnerId: 'partner', accountId: 'account', amount: 'amount', description: 'description',
+  createdBy: 'createdBy',
+};
+
+const EMPTY_PAGE: CashVoucherPage = {
+  rows: [], total: 0, page: 1, pageSize: 20, categoryCounts: {},
+  cards: { thu: 0, thuCash: 0, thuBank: 0, chi: 0, chiCash: 0, chiBank: 0, net: 0, count: 0 },
+};
+
+// Phiếu thu chi (Pha 1.1): every phiếu, page by page from the server — search, filters, sort and the period cards cover
+// all of them, not only those the app loaded at sign-in.
 @Component({
   selector: 'app-cash-vouchers',
   standalone: true,
@@ -51,7 +64,6 @@ export class CashVouchersComponent {
   readonly createdBy = signal<string[]>([]);
   readonly amount = signal<NumberRange>({ min: null, max: null });
   readonly showCancelled = signal(false);
-  readonly columnFilters = signal<ColumnFilters>({});
   // Clicking a column header sorts; again reverses; a third click goes back to the default order.
   readonly headerSort = signal<ColumnSort | null>(null);
   readonly page = signal(1);
@@ -62,13 +74,49 @@ export class CashVouchersComponent {
   readonly tone = amountTone;
   readonly accountTypeLabel = ACCOUNT_TYPE_LABEL;
 
+  readonly result = signal<CashVoucherPage>(EMPTY_PAGE);
+  readonly loading = signal(false);
+  readonly error = signal('');
+  /** The search box waits for typing to pause before asking the server. */
+  private readonly searchQuery = signal('');
+  private searchTimer: ReturnType<typeof setTimeout> | undefined;
+  private requestSeq = 0;
+
   constructor() {
     // Số dư quỹ as of now (another user may have lập phiếu since the list was loaded).
     void this.svc.refreshBalances();
+    // New filters start again from page 1.
     effect(() => {
-      this.vouchers();
+      this.filters();
       untracked(() => this.page.set(1));
     });
+    // Ask the server whenever the filters, the page or the phiếu in memory change (a save elsewhere).
+    effect(() => {
+      const query = { ...this.filters(), page: this.page(), pageSize: this.pageSize() };
+      this.data.cashVouchers();
+      untracked(() => void this.load(query));
+    });
+  }
+
+  setSearch(text: string): void {
+    this.search.set(text);
+    clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => this.searchQuery.set(text), 300);
+  }
+
+  private async load(query: CashVoucherPageQuery): Promise<void> {
+    const seq = ++this.requestSeq;
+    this.loading.set(true);
+    try {
+      const res = await this.svc.page(query);
+      if (seq !== this.requestSeq) return; // a newer request answered first
+      this.result.set(res);
+      this.error.set('');
+    } catch (e) {
+      if (seq === this.requestSeq) this.error.set(errorText(e));
+    } finally {
+      if (seq === this.requestSeq) this.loading.set(false);
+    }
   }
 
   private readonly accountById = computed(() => new Map(this.data.cashAccounts().map((a) => [a.id, a])));
@@ -117,10 +165,9 @@ export class CashVouchersComponent {
   }
 
   readonly categoryOptions = computed<FilterOption[]>(() => {
-    const counts = new Map<string, number>();
-    for (const v of this.data.cashVouchers()) counts.set(v.category, (counts.get(v.category) ?? 0) + 1);
-    const names = new Set([...this.data.cashCategories().map((c) => c.name), ...counts.keys()]);
-    return [...names].map((n) => ({ value: n, label: n, count: counts.get(n) ?? 0 }));
+    const counts = this.result().categoryCounts;
+    const names = new Set([...this.data.cashCategories().map((c) => c.name), ...Object.keys(counts)]);
+    return [...names].map((n) => ({ value: n, label: n, count: counts[n] ?? 0 }));
   });
 
   readonly userOptions = computed<FilterOption[]>(() => {
@@ -128,53 +175,26 @@ export class CashVouchersComponent {
     return this.data.users().map((u) => ({ value: u.email, label: `${u.name} — ${roles.get(u.roleId) ?? ''}` }));
   });
 
-  /** Every filter (except kind & cancelled) — the period cards use the same set. */
-  private readonly matched = computed(() => {
-    const q = foldVi(this.search().trim());
-    const cats = this.categories();
-    const method = this.method();
-    const acc = this.accountId();
-    const range = this.period().range;
-    const by = this.createdBy();
-    const { min, max } = this.amount();
-    return this.data.cashVouchers().filter((v) => {
-      if (q && !foldVi(`${v.code} ${this.partnerName(v)} ${v.description ?? ''} ${v.category}`).includes(q)) return false;
-      if (cats.length && !cats.includes(v.category)) return false;
-      if (method !== 'all' && this.accountById().get(v.accountId)?.type !== method) return false;
-      if (acc !== 'all' && v.accountId !== acc) return false;
-      if (!inRange(v.date, range)) return false;
-      if (by.length && !by.includes(v.createdBy)) return false;
-      if (min !== null && v.amount < min) return false;
-      if (max !== null && v.amount > max) return false;
-      return true;
-    });
-  });
-
-  readonly vouchers = computed(() => {
-    const k = this.kind();
-    const rows = this.matched()
-      .filter((v) => (k === 'all' || v.kind === k) && (this.showCancelled() || !v.isCancelled))
-      .sort((a, b) => a.code.localeCompare(b.code, 'vi', { numeric: true })); // default: Mã tăng dần
-    return sortByColumn(applyColumnFilters(rows, this.columns, this.columnFilters()), this.columns, this.headerSort());
-  });
-
-  readonly paged = computed(() => {
-    const start = (this.page() - 1) * this.pageSize();
-    return this.vouchers().slice(start, start + this.pageSize());
-  });
-
+  readonly rows = computed(() => this.result().rows);
+  readonly total = computed(() => this.result().total);
   /** Thẻ tổng theo kỳ đang lọc (phiếu huỷ không tính); Tồn quỹ là toàn bộ lịch sử. */
-  readonly cards = computed(() => {
-    const rows = this.matched().filter((v) => !v.isCancelled);
-    const sum = (kind: 'THU' | 'CHI', type?: 'TIEN_MAT' | 'NGAN_HANG') =>
-      rows.filter((v) => v.kind === kind && (!type || this.accountById().get(v.accountId)?.type === type)).reduce((s, v) => s + v.amount, 0);
-    const thu = sum('THU');
-    const chi = sum('CHI');
+  readonly cards = computed(() => this.result().cards);
+
+  /** Everything the server needs for the current view (all pages). */
+  private readonly filters = computed<CashVoucherPageQuery>(() => {
+    const hs = this.headerSort();
+    const range = this.period().range;
+    const { min, max } = this.amount();
+    const k = this.kind();
+    const m = this.method();
+    const a = this.accountId();
     return {
-      thu, thuCash: sum('THU', 'TIEN_MAT'), thuBank: sum('THU', 'NGAN_HANG'),
-      chi, chiCash: sum('CHI', 'TIEN_MAT'), chiBank: sum('CHI', 'NGAN_HANG'),
-      net: thu - chi,
-      count: rows.length,
+      q: this.searchQuery().trim() || undefined,
+      kind: k === 'all' ? undefined : k, categories: this.categories(), method: m === 'all' ? undefined : m, accountId: a === 'all' ? undefined : a,
+      from: range.from || undefined, to: range.to || undefined, createdBy: this.createdBy(),
+      min: min ?? undefined, max: max ?? undefined, cancelled: this.showCancelled() || undefined,
+      // default: Mã tăng dần
+      ...(hs ? { sort: COLUMN_SORT[hs.key] ?? 'code', dir: hs.dir } : { sort: 'code', dir: 'asc' as const }),
     };
   });
 
@@ -196,10 +216,6 @@ export class CashVouchersComponent {
       chips.push({ label: `Số tiền: ${t}`, clear: () => this.amount.set({ min: null, max: null }) });
     }
     if (this.showCancelled()) chips.push({ label: 'Gồm phiếu đã huỷ', clear: () => this.showCancelled.set(false) });
-    for (const col of this.columns) {
-      const v = (this.columnFilters()[col.key] ?? '').trim();
-      if (v) chips.push({ label: `${col.label}: ${v}`, clear: () => this.columnFilters.update((f) => ({ ...f, [col.key]: '' })) });
-    }
     return chips;
   });
 
@@ -209,7 +225,7 @@ export class CashVouchersComponent {
     { key: 'category', label: 'Loại', format: (r) => `${KIND_LABEL[r.kind]} · ${r.category}` },
     { key: 'partnerId', sortByText: true, label: 'Đối tượng', format: (r) => this.partnerName(r) },
     { key: 'accountId', sortByText: true, label: 'Tài khoản', format: (r) => this.accountText(r) },
-    { key: 'amount', label: 'Số tiền', align: 'right', format: (r) => formatVndSigned(r.kind === 'THU' ? r.amount : -r.amount), filterValue: (r) => r.amount,
+    { key: 'amount', label: 'Số tiền', align: 'right', format: (r) => formatVndSigned(r.kind === 'THU' ? r.amount : -r.amount),
       tone: (r) => (r.isCancelled ? 0 : r.kind === 'THU' ? r.amount : -r.amount) },
     { key: 'settled', label: 'Đã đối trừ', align: 'right', format: (r) => this.settledText(r), filter: false },
     { key: 'description', label: 'Diễn giải', format: (r) => (r.isCancelled ? `[Đã huỷ] ` : '') + (r.description || '—') },
@@ -226,12 +242,13 @@ export class CashVouchersComponent {
     this.createdBy.set([]);
     this.amount.set({ min: null, max: null });
     this.showCancelled.set(false);
-    this.columnFilters.set({});
   }
 
+  /** Every matching phiếu (not only this page), in the list's order. */
   async exportExcel(): Promise<void> {
     this.exporting.set(true);
     try {
+      const all = (await this.svc.page({ ...this.filters(), page: 1, pageSize: 5000 })).rows;
       await downloadWorkbook(exportFileName('Phiếu thu chi'), [{
         name: 'Phiếu thu chi',
         columns: [
@@ -239,12 +256,14 @@ export class CashVouchersComponent {
           { header: 'Đối tượng', width: 34 }, { header: 'Tài khoản', width: 26 }, { header: 'Thu', width: 15, numFmt: '#,##0' },
           { header: 'Chi', width: 15, numFmt: '#,##0' }, { header: 'Diễn giải', width: 36 }, { header: 'Người lập', width: 20 }, { header: 'Trạng thái', width: 12 },
         ],
-        rows: this.vouchers().map((v) => [
+        rows: all.map((v) => [
           v.code, formatDay(v.date), KIND_LABEL[v.kind], v.category, this.partnerName(v), this.accountText(v),
           v.kind === 'THU' ? v.amount : '', v.kind === 'CHI' ? v.amount : '', v.description ?? '', this.userName(v.createdBy),
           v.isCancelled ? 'Đã huỷ' : '',
         ]),
       }]);
+    } catch (e) {
+      this.error.set(errorText(e));
     } finally {
       this.exporting.set(false);
     }

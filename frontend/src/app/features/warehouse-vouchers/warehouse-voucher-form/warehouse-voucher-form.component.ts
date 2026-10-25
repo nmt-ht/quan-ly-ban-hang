@@ -65,7 +65,15 @@ export class WarehouseVoucherFormComponent {
     return id ? this.data.warehouseVouchers().find((v) => v.id === id) : undefined;
   });
   readonly viewing = computed(() => !!this.params().id);
-  readonly notFound = computed(() => this.viewing() && !this.voucher());
+  /** A phiếu older than what the app loads at sign-in is read on demand (Pha 1.1). */
+  readonly fetching = signal(false);
+  readonly notFound = computed(() => this.viewing() && !this.voucher() && !this.fetching());
+  private readonly fetchMissing = effect(() => {
+    const id = this.params().id;
+    if (!id || untracked(() => this.voucher())) return;
+    this.fetching.set(true);
+    void this.svc.ensureMany([id]).finally(() => this.fetching.set(false));
+  });
   readonly type = computed<WarehouseVoucherType>(() => this.voucher()?.type ?? SLUG_KIND[this.params().kind ?? ''] ?? 'NHAP');
   readonly text = computed(() => KIND_TEXT[this.type()]);
   readonly kindLabel = computed(() => (this.voucher() ? VOUCHER_KIND_LABEL[kindOf(this.voucher()!)] : VOUCHER_KIND_LABEL[this.type()]));

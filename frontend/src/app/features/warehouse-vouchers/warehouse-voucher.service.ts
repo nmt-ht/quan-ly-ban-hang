@@ -4,6 +4,7 @@ import { StockLevel, WarehouseVoucher, WarehouseVoucherType } from '../../core/m
 import { round4 } from '../purchase-orders/purchase-order.rules';
 import { sourceOf } from './warehouse-voucher.rules';
 import { ApiService } from '../../core/api/api.service';
+import { onDemand, pageQuery } from '../../core/api/on-demand';
 
 export interface VoucherLineDraft {
   productId: string;
@@ -24,6 +25,35 @@ export interface VoucherDraft {
   lines: VoucherLineDraft[];
 }
 
+/** Bộ lọc của danh sách phiếu kho theo trang (Pha 1.1) — the server's WarehouseVoucherPageQuery. */
+export interface WarehouseVoucherPageQuery {
+  page?: number;
+  pageSize?: number;
+  q?: string;
+  kind?: string;
+  warehouseId?: string;
+  productId?: string;
+  createdBy?: string[];
+  from?: string;
+  to?: string;
+  cancelled?: boolean;
+  sort?: string;
+  dir?: 'asc' | 'desc';
+}
+
+export interface WarehouseVoucherPage {
+  rows: WarehouseVoucher[];
+  total: number;
+  page: number;
+  pageSize: number;
+  /** Per loại (Nhập trả về apart), within the chosen kho. */
+  kindCounts: Partial<Record<string, number>>;
+  /** Per kho, within the chosen loại; allCount is every kho. */
+  warehouseCounts: Record<string, number>;
+  allCount: number;
+  totals: { value: number };
+}
+
 /**
  * Phiếu kho lập tay: NHAP +, XUAT −, CHUYEN − kho xuất / + kho nhận, KIEM_KE ± chênh lệch (số đếm − sổ
  * sách lúc lưu). The server numbers the phiếu, computes the kiểm kê difference and moves stock; the
@@ -33,6 +63,30 @@ export interface VoucherDraft {
 export class WarehouseVoucherService {
   private readonly data = inject(DataStore);
   private readonly api = inject(ApiService);
+
+  private readonly older = onDemand(this.api, this.data.warehouseVouchers, '/warehouse-vouchers');
+
+  // ---------- Pha 1.1: phiếu không nạp sẵn ----------
+
+  /** One page of the list, filtered, sorted and counted on the server. */
+  page(q: WarehouseVoucherPageQuery): Promise<WarehouseVoucherPage> {
+    return this.api.get<WarehouseVoucherPage>(`/warehouse-vouchers/page${pageQuery(q)}`);
+  }
+
+  /** Phiếu older than the window, by id. */
+  ensureMany(ids: string[]): Promise<void> {
+    return this.older.byIds(ids);
+  }
+
+  /** Every phiếu of one đơn / lệnh / chuyến (its id, or its mã in the lý do of older phiếu). */
+  ensureOf(id: string, code?: string): Promise<void> {
+    return this.older.where({ relatedId: id, relatedCode: code });
+  }
+
+  /** Số phiếu và số dòng chứng từ của từng kho trên toàn bộ lịch sử. */
+  usage(): Promise<Record<string, { vouchers: number; lines: number }>> {
+    return this.api.get('/warehouse-vouchers/usage');
+  }
 
   stockAt(productId: string, warehouseId: string): number {
     return this.data.stockLevels().find((s) => s.productId === productId && s.warehouseId === warehouseId)?.quantity ?? 0;

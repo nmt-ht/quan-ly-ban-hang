@@ -1,10 +1,11 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { DataStore } from '../../../core/services/data-store.service';
-import { Product, UnitConversion, UnitOperation, WarehouseVoucherType } from '../../../core/models/domain.models';
+import { Product, UnitConversion, UnitOperation, WarehouseVoucher, WarehouseVoucherType } from '../../../core/models/domain.models';
+import { WarehouseVoucherService } from '../../warehouse-vouchers/warehouse-voucher.service';
 import { MEASURE_MODES, allowsUnitConversions } from '../product-type-rules';
 import { UNIT_OPERATIONS, describe, normalize } from '../unit-conversion';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
@@ -144,11 +145,23 @@ export class ProductDetailComponent {
   readonly historyWarehouse = signal('all');
   readonly voucherTypeLabel = VOUCHER_TYPE_LABEL;
 
+  /** Every phiếu (chưa huỷ) with this mặt hàng, older ones included — read from the server (Pha 1.1). */
+  private readonly vouchers = signal<WarehouseVoucher[]>([]);
+  private readonly warehouseVouchers = inject(WarehouseVoucherService);
+  private readonly loadVouchers = effect(() => {
+    const id = this.id();
+    this.data.warehouseVouchers(); // read again after a save
+    untracked(() => {
+      if (!id) return;
+      this.warehouseVouchers.page({ productId: id, pageSize: 5000, sort: 'date', dir: 'asc' }).then((p) => this.vouchers.set(p.rows), () => undefined);
+    });
+  });
+
   readonly movements = computed<Movement[]>(() => {
     const id = this.id();
     const wh = this.historyWarehouse();
     const rows: Omit<Movement, 'balance'>[] = [];
-    for (const v of this.data.warehouseVouchers()) {
+    for (const v of this.vouchers()) {
       if (v.isCancelled) continue;
       for (const l of v.lines ?? []) {
         if (l.productId !== id) continue;

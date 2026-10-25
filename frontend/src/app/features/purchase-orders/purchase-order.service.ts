@@ -4,6 +4,7 @@ import { PurchaseOrder, PurchaseOrderLine, WarehouseVoucher } from '../../core/m
 import { canCancel, canComplete, canEdit, canReceive, canSend } from './purchase-order.rules';
 import { ApiService, upsertById } from '../../core/api/api.service';
 import { CatalogLoader } from '../../core/api/catalog-loader.service';
+import { onDemand, pageQuery } from '../../core/api/on-demand';
 
 export interface OrderDraft {
   supplierId: string;
@@ -18,6 +19,32 @@ export interface ReceiptItem {
   warehouseId: string;
 }
 
+/** Bộ lọc của danh sách đơn nhập theo trang (Pha 1.1) — the server's PurchaseOrderPageQuery. */
+export interface PurchaseOrderPageQuery {
+  page?: number;
+  pageSize?: number;
+  q?: string;
+  status?: string[];
+  supplierId?: string;
+  createdBy?: string[];
+  from?: string;
+  to?: string;
+  min?: number;
+  max?: number;
+  sort?: string;
+  dir?: 'asc' | 'desc';
+}
+
+export interface PurchaseOrderPage {
+  rows: PurchaseOrder[];
+  total: number;
+  page: number;
+  pageSize: number;
+  statusCounts: Partial<Record<string, number>>;
+  /** 0 for roles without giá nhập. */
+  totals: { value: number; received: number };
+}
+
 // All writes for Đơn nhập hàng. The server checks the status rules, numbers the order and, on nhận
 // hàng, writes the phiếu nhập kho; the page checks the same rules first to say why a button is off.
 @Injectable({ providedIn: 'root' })
@@ -25,6 +52,25 @@ export class PurchaseOrderService {
   private readonly data = inject(DataStore);
   private readonly api = inject(ApiService);
   private readonly loader = inject(CatalogLoader);
+
+  private readonly older = onDemand(this.api, this.data.purchaseOrders, '/purchase-orders');
+
+  // ---------- Pha 1.1: đơn không nạp sẵn ----------
+
+  /** One page of the list, filtered, sorted and totalled on the server. */
+  page(q: PurchaseOrderPageQuery): Promise<PurchaseOrderPage> {
+    return this.api.get<PurchaseOrderPage>(`/purchase-orders/page${pageQuery(q)}`);
+  }
+
+  /** Đơn older than the window (closed), by id or mã. */
+  ensureMany(ids: string[], codes: string[] = []): Promise<void> {
+    return this.older.byIds(ids, codes);
+  }
+
+  /** Số đơn nhập của từng nhà cung cấp trên toàn bộ lịch sử. */
+  supplierStats(): Promise<Record<string, { orderCount: number }>> {
+    return this.api.get('/purchase-orders/supplier-stats');
+  }
 
   /** The order as the server returned it replaces the local copy. */
   private keep(o: PurchaseOrder): PurchaseOrder {

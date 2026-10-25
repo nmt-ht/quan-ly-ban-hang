@@ -24,6 +24,7 @@ import {
 } from '../purchase-order.rules';
 import { AuthService } from '../../../core/services/auth.service';
 import { seesPurchasePrices } from '../../../core/auth/purchase-prices';
+import { WarehouseVoucherService } from '../../warehouse-vouchers/warehouse-voucher.service';
 import { PurchaseOrderService } from '../purchase-order.service';
 import { ReceiveGoodsDialogComponent } from '../receive-goods-dialog/receive-goods-dialog.component';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
@@ -75,6 +76,7 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
   private readonly router = inject(Router);
   readonly data = inject(DataStore);
   private readonly orders = inject(PurchaseOrderService);
+  private readonly vouchers = inject(WarehouseVoucherService);
   private readonly auth = inject(AuthService);
   /** Giá nhập hidden from roles that only receive goods (Thủ kho…): the server sends no prices to them. */
   readonly prices = seesPurchasePrices((c) => this.auth.can(c));
@@ -89,7 +91,19 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
     const id = this.id();
     return id ? this.data.purchaseOrders().find((o) => o.id === id) : undefined;
   });
-  readonly notFound = computed(() => !!this.id() && !this.order());
+  /** An order older than what the app loads at sign-in is read on demand (Pha 1.1), with its phiếu nhập kho. */
+  readonly fetching = signal(false);
+  readonly notFound = computed(() => !!this.id() && !this.order() && !this.fetching());
+  private readonly fetchMissing = effect(() => {
+    const id = this.id();
+    if (!id || untracked(() => this.order())) return;
+    this.fetching.set(true);
+    void this.orders.ensureMany([id]).finally(() => this.fetching.set(false));
+  });
+  private readonly loadReceipts = effect(() => {
+    const o = this.order();
+    if (o) untracked(() => void this.vouchers.ensureOf(o.id, o.code));
+  });
   readonly mode = computed<Mode>(() => {
     if (!this.id()) return 'create';
     const o = this.order();

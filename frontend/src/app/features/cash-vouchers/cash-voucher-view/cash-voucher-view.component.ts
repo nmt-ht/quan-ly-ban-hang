@@ -40,6 +40,14 @@ export class CashVoucherViewComponent {
 
   readonly id = toSignal(inject(ActivatedRoute).paramMap.pipe(map((p) => p.get('id') ?? '')), { initialValue: '' });
   readonly voucher = computed(() => this.data.cashVouchers().find((v) => v.id === this.id()));
+  /** A phiếu older than what the app loads at sign-in is read on demand (Pha 1.1). */
+  readonly fetching = signal(false);
+  private readonly fetchMissing = effect(() => {
+    const id = this.id();
+    if (!id || untracked(() => this.voucher())) return;
+    this.fetching.set(true);
+    void this.svc.ensureMany([id]).finally(() => this.fetching.set(false));
+  });
 
   readonly money = formatVnd;
   readonly signed = formatVndSigned;
