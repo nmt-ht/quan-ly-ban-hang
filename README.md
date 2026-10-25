@@ -208,7 +208,7 @@ flowchart LR
 
 ## Vận hành
 
-- **Sao lưu:** [`backup-db.yml`](.github/workflows/backup-db.yml) chạy mỗi ngày lúc 03:17 (giờ Việt Nam): `pg_dump` Neon → khôi phục thử vào DB tạm → mã hoá AES-256 → lưu 30 ngày. Cần secret `BACKUP_DATABASE_URL` và `BACKUP_PASSPHRASE` (repo công khai nên bản sao lưu bắt buộc mã hoá). Cách khôi phục: [`tools/backup/README.md`](tools/backup/README.md).
+- **Sao lưu:** [`backup-db.yml`](.github/workflows/backup-db.yml) chạy mỗi ngày lúc 03:17 (giờ Việt Nam): `pg_dump` Neon → khôi phục thử vào DB tạm → mã hoá AES-256 → lưu 30 ngày. Cần secret `BACKUP_DATABASE_URL` và `BACKUP_PASSPHRASE` (repo công khai nên bản sao lưu bắt buộc mã hoá). Ở chế độ nhiều doanh nghiệp, thêm `PLATFORM_DATABASE_URL` và `PLATFORM_SECRET` thì workflow sao lưu cả database nền tảng và database của từng doanh nghiệp đang hoạt động hoặc tạm khoá. Cách khôi phục: [`tools/backup/README.md`](tools/backup/README.md).
 - **Kiểm tra sống:** `GET /api/health` trả 200 khi app và DB đều trả lời, 503 khi không. Render dùng làm health check; có thể trỏ UptimeRobot vào đây.
 - **Truy vết:** mỗi phản hồi có `X-Request-Id`; cùng mã đó nằm trong Nhật ký hoạt động và log lỗi.
 - **Bảo mật:** header bảo mật và CSP (helmet), giới hạn thử mật khẩu, máy chủ chặn mọi lệnh gọi khi người dùng còn phải đổi mật khẩu, giá nhập và giá vốn chỉ trả cho chức vụ được xem.

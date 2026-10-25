@@ -2,9 +2,13 @@
 # mã hoá AES-256 → lưu làm artifact 30 ngày. Repo này công khai nên file PHẢI mã hoá; không có
 # BACKUP_PASSPHRASE thì workflow dừng, không tải gì lên.
 #
-# Cần 2 secret (Settings › Secrets and variables › Actions):
-#   BACKUP_DATABASE_URL  chuỗi kết nối trực tiếp của Neon (nên tạo role chỉ đọc cho việc này)
-#   BACKUP_PASSPHRASE    cụm mật khẩu dài; mất nó là không giải mã được bản sao lưu
+# Secret (Settings › Secrets and variables › Actions):
+#   BACKUP_DATABASE_URL    chuỗi kết nối trực tiếp của Neon (nên tạo role chỉ đọc cho việc này)
+#   BACKUP_PASSPHRASE      cụm mật khẩu dài; mất nó là không giải mã được bản sao lưu
+# Nhiều doanh nghiệp (không đặt thì chỉ sao lưu BACKUP_DATABASE_URL như trước):
+#   PLATFORM_DATABASE_URL  database nền tảng; sao lưu nó và mọi doanh nghiệp ACTIVE/SUSPENDED trong platform_tenant
+#   PLATFORM_SECRET        giống trên Render; dùng để giải mã chuỗi kết nối của từng doanh nghiệp
+# Biến DEFAULT_TENANT_CODE (tuỳ chọn, mặc định ninhtrang): mã của doanh nghiệp nằm ở BACKUP_DATABASE_URL.
 # Khôi phục: xem tools/backup/README.md.
 name: Backup DB
 
@@ -19,7 +23,7 @@ permissions:
 jobs:
   backup:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 60
     services:
       scratch:
         image: postgres:17
@@ -31,30 +35,95 @@ jobs:
     env:
       BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
       BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+      PLATFORM_DATABASE_URL: ${{ secrets.PLATFORM_DATABASE_URL }}
+      PLATFORM_SECRET: ${{ secrets.PLATFORM_SECRET }}
+      DEFAULT_TENANT_CODE: ${{ vars.DEFAULT_TENANT_CODE || 'ninhtrang' }}
+      TARGETS: ${{ runner.temp }}/targets.tsv
     steps:
       - name: Kiểm tra secret
         run: |
-          test -n "$BACKUP_DATABASE_URL" || { echo "::error::Thiếu secret BACKUP_DATABASE_URL"; exit 1; }
           test -n "$BACKUP_PASSPHRASE" || { echo "::error::Thiếu secret BACKUP_PASSPHRASE (file sao lưu phải mã hoá)"; exit 1; }
-      - name: pg_dump
+          test -n "$BACKUP_DATABASE_URL$PLATFORM_DATABASE_URL" || { echo "::error::Thiếu secret BACKUP_DATABASE_URL"; exit 1; }
+      - uses: actions/checkout@v4
+        if: env.PLATFORM_DATABASE_URL != ''
+        with:
+          sparse-checkout: tools/backup
+      - name: Danh sách database
         run: |
-          docker run --rm -e BACKUP_DATABASE_URL postgres:17 \
-            sh -c 'pg_dump --format=custom --no-owner --no-privileges "$BACKUP_DATABASE_URL"' > backup.dump
-          ls -lh backup.dump
-      - name: Khôi phục thử vào DB tạm
+          # Mỗi dòng: <mã><TAB><chuỗi kết nối>. File chỉ nằm trên máy chạy, quyền 600, không in ra log.
+          umask 077
+          : > "$TARGETS"
+          if [ -n "$BACKUP_DATABASE_URL" ]; then
+            printf '%s\t%s\n' "$DEFAULT_TENANT_CODE" "$BACKUP_DATABASE_URL" >> "$TARGETS"
+          fi
+          [ -n "$PLATFORM_DATABASE_URL" ] || exit 0
+          # "_platform" không trùng mã doanh nghiệp nào (mã không có dấu gạch dưới).
+          printf '_platform\t%s\n' "$PLATFORM_DATABASE_URL" >> "$TARGETS"
+          psql_platform() {
+            docker run --rm -i -e PLATFORM_DATABASE_URL -e PGCONNECT_TIMEOUT=30 postgres:17 \
+              sh -c 'psql "$PLATFORM_DATABASE_URL" -v ON_ERROR_STOP=1 -tAq -f -'
+          }
+          table=$(echo "SELECT to_regclass('platform_tenant');" | psql_platform) || {
+            echo "::error::Không kết nối được database nền tảng"; echo "BACKUP_FAILED=1" >> "$GITHUB_ENV"; exit 0; }
+          if [ -z "$table" ]; then
+            echo "::warning::Database nền tảng chưa có danh sách doanh nghiệp"
+            exit 0
+          fi
+          # Doanh nghiệp ở BACKUP_DATABASE_URL đã có ở trên (thường là role chỉ đọc), không lấy lại bản lưu trong bảng.
+          skip=""; [ -n "$BACKUP_DATABASE_URL" ] && skip="$DEFAULT_TENANT_CODE"
+          set -o pipefail
+          psql_platform <<'SQL' | node tools/backup/tenant-urls.mjs "$RUNNER_TEMP/tenants.tsv" "$skip" || echo "BACKUP_FAILED=1" >> "$GITHUB_ENV"
+          SELECT code || E'\t' || database_url_enc FROM platform_tenant WHERE status IN ('ACTIVE', 'SUSPENDED') ORDER BY created_at;
+          SQL
+          [ -f "$RUNNER_TEMP/tenants.tsv" ] && cat "$RUNNER_TEMP/tenants.tsv" >> "$TARGETS"
+          rm -f "$RUNNER_TEMP/tenants.tsv"
+      - name: Sao lưu từng database
         run: |
-          docker run --rm --network host -e PGPASSWORD=scratch -v "$PWD:/b" postgres:17 sh -c '
-            createdb -h localhost -U postgres verify &&
-            pg_restore -h localhost -U postgres -d verify --no-owner --exit-on-error /b/backup.dump &&
-            psql -h localhost -U postgres -d verify -tAc "select count(*) from \"User\"" | tee /b/users.txt'
-          test "$(cat users.txt)" -ge 1 || { echo "::error::Bản sao lưu không có người dùng nào"; exit 1; }
-      - name: Mã hoá
-        run: |
-          openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:BACKUP_PASSPHRASE -in backup.dump -out "ninhtrang-$(date -u +%Y%m%d).dump.enc"
-          rm backup.dump
+          # Một database lỗi không chặn các database khác; bước cuối báo lỗi nếu có.
+          mkdir -p out
+          day=$(date -u +%Y%m%d)
+          ok=0; failed=""
+          while IFS=$'\t' read -r code url <&3; do
+            echo "::group::$code"
+            if [ "$code" = "_platform" ]; then
+              check='select count(*) from platform_tenant'
+            else
+              check='select count(*) from "User"'
+            fi
+            if DB_URL="$url" docker run --rm -e DB_URL postgres:17 \
+                 sh -c 'pg_dump --format=custom --no-owner --no-privileges "$DB_URL"' > backup.dump &&
+               ls -lh backup.dump &&
+               docker run --rm --network host -e PGPASSWORD=scratch -e CHECK="$check" -v "$PWD:/b" postgres:17 sh -c '
+                 dropdb -h localhost -U postgres --if-exists verify &&
+                 createdb -h localhost -U postgres verify &&
+                 pg_restore -h localhost -U postgres -d verify --no-owner --exit-on-error /b/backup.dump &&
+                 psql -h localhost -U postgres -d verify -tAc "$CHECK"' > rows.txt &&
+               { [ "$(cat rows.txt)" -ge 1 ] || { echo "::error::Bản sao lưu $code trống (không có dòng nào: $check)"; false; }; } &&
+               openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:BACKUP_PASSPHRASE \
+                 -in backup.dump -out "out/$code-$day.dump.enc"
+            then
+              echo "$code: $(cat rows.txt) dòng kiểm tra, đã mã hoá"
+              ok=$((ok + 1))
+            else
+              echo "::error::Sao lưu $code thất bại"
+              rm -f "out/$code-$day.dump.enc"
+              failed="$failed $code"
+            fi
+            rm -f backup.dump rows.txt
+            echo "::endgroup::"
+          done 3< "$TARGETS"
+          rm -f "$TARGETS"
+          echo "Đã sao lưu $ok database${failed:+; lỗi:$failed}"
+          [ -z "$failed" ] || echo "BACKUP_FAILED=1" >> "$GITHUB_ENV"
       - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
         with:
           name: ninhtrang-db-backup
-          path: ninhtrang-*.dump.enc
+          path: out/*.dump.enc
           retention-days: 30
           if-no-files-found: error
+      - name: Kết quả
+        if: env.BACKUP_FAILED == '1'
+        run: |
+          echo "::error::Có database chưa sao lưu được, xem các dòng lỗi ở trên"
+          exit 1
