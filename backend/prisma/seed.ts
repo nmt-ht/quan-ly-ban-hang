@@ -106,6 +106,7 @@ const PERMISSION_MODULES: { key: string; permissions: { code: string; label: str
     { code: 'order.update', label: 'Sửa đơn hàng' },
     { code: 'order.cancel', label: 'Huỷ đơn hàng' },
     { code: 'order.update_price', label: 'Sửa đơn giá trên đơn' },
+    { code: 'order.discount', label: 'Chiết khấu ngoài khuyến mãi' },
     { code: 'order.return', label: 'Nhận hàng trả lại' },
   ]},
   { key: 'quote', permissions: [
@@ -173,7 +174,7 @@ const ALL_PERMISSION_CODES = PERMISSION_MODULES.flatMap((m) => m.permissions.map
 
 // Default grants of the 7 built-in roles. Keep identical to the frontend's
 // features/settings/roles-permissions/role.rules.ts (same ids, same codes):
-// CEO 107 · Quản lý 98 · Kế toán 50 · Sale 20 · Thủ kho 19 · NV giao hàng 6 · NV xưởng 5.
+// CEO 108 · Quản lý 99 · Kế toán 50 · Sale 20 · Thủ kho 19 · NV giao hàng 6 · NV xưởng 5.
 const WITHOUT_ADMIN = [
   'user.create', 'user.update', 'user.delete', 'user.reset_password',
   'position.create', 'position.update', 'position.delete', 'position.assign_permission',

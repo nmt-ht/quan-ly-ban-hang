@@ -91,12 +91,14 @@ describe('Bán hàng, sản xuất & công nợ phải thu (e2e)', () => {
       { productId: item, unit: 'Cái', quantity: 4, unitPrice: 50000, discountRate: 10 },
       { productId: service, unit: 'Lần', quantity: 1, unitPrice: 20000, vatRate: 10 },
     ];
-    const o = (await sale.post('/api/sales-orders', order(lines, { discountAmount: 30000, payNowAccountId: 'acc-cash' })).expect(201)).body;
+    // Chiết khấu ngoài khuyến mãi needs order.discount: Sale is refused, Quản lý lập the đơn for Sale's khách.
+    await sale.post('/api/sales-orders', order(lines, { discountAmount: 30000, payNowAccountId: 'acc-cash' })).expect(403);
+    const o = (await manager.post('/api/sales-orders', order(lines, { discountAmount: 30000, payNowAccountId: 'acc-cash' })).expect(201)).body;
     orders.push(o.id);
     // gross 520 000; CK dòng 20 000; CK đơn 30 000 chia 18 000 / 10 800 / 1 200; VAT 10% of 18 800 on the service.
     expect(o).toMatchObject({
       code: expect.stringMatching(/^DH\d{7}$/), status: 'CHO_SAN_XUAT', totalGoods: 520_000, vatAmount: 1_880, totalOrder: 471_880,
-      receivedValue: 0, salesRep: 'sale1@ninhtrang.local', createdBy: 'sale1@ninhtrang.local',
+      receivedValue: 0, salesRep: 'sale1@ninhtrang.local', createdBy: 'quan.ly@ninhtrang.local',
     });
     expect(o.lines[1]).toMatchObject({ discountRate: 10, discountAmount: 20_000, lineTotal: 200_000 });
 

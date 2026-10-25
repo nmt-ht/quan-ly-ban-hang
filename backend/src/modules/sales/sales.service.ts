@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import { Prisma, SalesOrderStatus } from '@prisma/client';
+import { CustomerType, Prisma, SalesOrderStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { SequenceService } from '../../prisma/sequence.service.js';
 import { InventoryService, VoucherLineInput } from '../inventory/inventory.service.js';
@@ -16,6 +16,8 @@ import {
   linesNeedingLsx, orderTotals, priceFor, receivedValueOf, round4,
 } from './sales-order.rules.js';
 import { SalesOrderPageQuery, orderWhere, pageOf } from './sales-order-page.js';
+import { lockOrderFor, orderVisibleTo } from './order-access.js';
+import { activeWhere, forCustomer, giftsFor, lineDiscountFor, orderDiscountFor, toRule } from '../pricing/promotion.rules.js';
 
 type Tx = Prisma.TransactionClient;
 
@@ -63,8 +65,19 @@ export interface SalesOrderInput {
   updatedAt?: string;
 }
 
-/** A line already priced on a chứng từ: an order's own line, or the báo giá it comes from. */
-type PricedLine = { productId: string; unitName: string | null; unitPrice: Prisma.Decimal };
+/** A line already on a chứng từ: an order's own line, or the báo giá it comes from — its giá and chiết khấu are kept. */
+type PricedLine = {
+  productId: string; unitName: string | null; unitPrice: Prisma.Decimal; discountAmount: Prisma.Decimal; isGift: boolean;
+  quantity: Prisma.Decimal; ratioToBase: Prisma.Decimal;
+};
+
+/** Đơn đang nằm trên một chuyến chưa xong (gom đơn / đã xuất kho): mã chuyến, or null. */
+export async function activeTripOf(tx: Tx, orderId: string): Promise<{ code: string; status: string } | null> {
+  const link = await tx.deliveryTripOrder.findFirst({
+    where: { orderId, trip: { status: { in: ['GOM_DON', 'DA_XUAT_KHO'] } } }, select: { trip: { select: { code: true, status: true } } },
+  });
+  return link?.trip ?? null;
+}
 
 export interface DeliveryInput {
   date: string;
@@ -176,14 +189,9 @@ export class SalesService {
 
   // ---------- đọc ----------
 
-  /**
-   * "Xem đơn của mọi người bán": a seller (order.create) without order.view_all sees only the orders
-   * they sell or made. Roles that do not sell (Thủ kho, giao hàng) see every order: they ship them.
-   */
+  /** The orders `user` sees, see order-access.ts. */
   visibleTo(user: AuthUser): Prisma.SalesOrderWhereInput {
-    const perms = user.permissions;
-    if (perms.includes('order.view_all') || !perms.includes('order.create')) return {};
-    return { OR: [{ salesRepId: user.id }, { createdById: user.id }] };
+    return orderVisibleTo(user);
   }
 
   /**
@@ -289,7 +297,7 @@ export class SalesService {
   create(input: SalesOrderInput, user: AuthUser) {
     return this.prisma.$transaction(async (tx) => {
       const quote = input.quotationId ? await this.openQuotation(tx, input.quotationId, input.customerId) : null;
-      const refs = await this.checkInput(tx, input, user, quote?.lines ?? []);
+      const refs = await this.checkInput(tx, input, user, quote?.lines ?? [], quote?.discountAmount.toNumber() ?? 0);
       const credit = await this.checkCredit(input, user);
       const lines = lineRows(input.lines);
       const status = deriveStatus({ status: 'CHO_SAN_XUAT', lines: lines.map(rowToSaleLine), receivedValue: 0 }, [], refs.isTp);
@@ -322,13 +330,13 @@ export class SalesService {
   /** Before production starts and before any delivery. Draft lệnh sản xuất follow the thành phẩm lines. */
   update(id: string, input: SalesOrderInput, user: AuthUser) {
     return this.prisma.$transaction(async (tx) => {
-      const o = await this.locked(tx, id);
+      const o = await this.lockedFor(tx, id, user);
       if (input.updatedAt && new Date(input.updatedAt).getTime() !== o.updatedAt.getTime()) {
         throw new ConflictException(`${o.code} vừa được người khác lưu — tải lại để xem bản mới rồi sửa tiếp.`);
       }
       const lsx = await tx.productionOrder.findMany({ where: { sourceOrderId: id } });
       if (!canEdit(this.state(o), lsx)) throw new BadRequestException('Đơn đã sản xuất hoặc đã giao, không sửa được.');
-      const refs = await this.checkInput(tx, input, user, o.lines);
+      const refs = await this.checkInput(tx, input, user, o.lines, o.discountAmount.toNumber());
       const credit = await this.checkCredit(input, user, id);
       const lines = lineRows(input.lines);
       const before = await this.described(tx, { ...o, tagIds: o.tags.map((t) => t.tagId) });
@@ -365,10 +373,12 @@ export class SalesService {
     });
   }
 
-  cancel(id: string, reason: string | undefined) {
+  cancel(id: string, reason: string | undefined, user: AuthUser) {
     return this.prisma.$transaction(async (tx) => {
-      const o = await this.locked(tx, id);
+      const o = await this.lockedFor(tx, id, user);
       if (!canCancel(this.state(o))) throw new BadRequestException(`Đơn ${STATUS_LABEL[o.status].toLowerCase()} — không huỷ được.`);
+      const trip = await activeTripOf(tx, id);
+      if (trip) throw new BadRequestException(`Đơn ${o.code} đang nằm trên chuyến ${trip.code} — bỏ đơn khỏi chuyến trước khi huỷ.`);
       const open = await tx.productionOrder.findMany({ where: { sourceOrderId: id, status: { in: ['NHAP', 'DANG_SAN_XUAT'] } } });
       await tx.productionOrder.updateMany({
         where: { id: { in: open.map((x) => x.id) } },
@@ -386,10 +396,12 @@ export class SalesService {
   }
 
   /** Kết thúc đơn: the customer will not take the rest — stays Giao một phần, no more deliveries. */
-  close(id: string) {
+  close(id: string, user: AuthUser) {
     return this.prisma.$transaction(async (tx) => {
-      const o = await this.locked(tx, id);
+      const o = await this.lockedFor(tx, id, user);
       if (!canClose(this.state(o))) throw new BadRequestException('Chỉ kết thúc được đơn đang giao một phần.');
+      const trip = await activeTripOf(tx, id);
+      if (trip) throw new BadRequestException(`Đơn ${o.code} đang nằm trên chuyến ${trip.code} — bỏ đơn khỏi chuyến trước khi kết thúc.`);
       await tx.salesOrder.update({ where: { id }, data: { closedDate: fromDay(new Date().toISOString()) } });
       await this.audit.log(tx, {
         action: 'sales_order.close', entityType: 'SalesOrder', entityId: id, entityCode: o.code,
@@ -406,8 +418,11 @@ export class SalesService {
    */
   deliver(id: string, input: DeliveryInput, user: AuthUser) {
     return this.prisma.$transaction(async (tx) => {
-      const o = await this.locked(tx, id);
+      const o = await this.lockedFor(tx, id, user);
       if (!canDeliver(this.state(o))) throw new BadRequestException('Đơn này không ở trạng thái giao hàng được.');
+      // Hàng của đơn đang trên xe: giao qua chuyến (chốt giao), không giao tay thêm lần nữa.
+      const trip = await activeTripOf(tx, id);
+      if (trip?.status === 'DA_XUAT_KHO') throw new BadRequestException(`Hàng của đơn ${o.code} đang trên chuyến ${trip.code} — chốt giao trên chuyến.`);
       const types = await this.productTypes(tx, o.lines.map((l) => l.productId));
       const nums = o.lines.map(saleLine);
       const before = receivedValueOf(nums, o.discountAmount.toNumber());
@@ -421,10 +436,13 @@ export class SalesService {
         if (qty <= 0) continue;
         line.receivedQuantity = round4(line.receivedQuantity + qty);
         moved = true;
-        if (types.get(line.productId) !== 'DICH_VU' && it.warehouseId) {
-          const m = byWarehouse.get(it.warehouseId) ?? new Map<string, number>();
+        if (types.get(line.productId) !== 'DICH_VU') {
+          // Hàng hoá always leaves a kho: the one chosen, else the kho on the order line.
+          const warehouseId = it.warehouseId || o.lines[it.lineIndex].warehouseId;
+          if (!warehouseId) throw new BadRequestException(`Dòng ${it.lineIndex + 1}: chọn kho xuất.`);
+          const m = byWarehouse.get(warehouseId) ?? new Map<string, number>();
           m.set(line.productId, round4((m.get(line.productId) ?? 0) + qty * line.ratioToBase));
-          byWarehouse.set(it.warehouseId, m);
+          byWarehouse.set(warehouseId, m);
         }
       }
       if (!moved) throw new BadRequestException('Không có số lượng nào để giao — các dòng đã giao đủ hoặc số giao bằng 0.');
@@ -506,7 +524,7 @@ export class SalesService {
   /** One lệnh sản xuất (Nháp) per thành phẩm line that has none yet, with the định mức as it is now. */
   createProductionOrders(orderId: string, user: AuthUser) {
     return this.prisma.$transaction(async (tx) => {
-      const o = await this.locked(tx, orderId);
+      const o = await this.lockedFor(tx, orderId, user);
       const types = await this.productTypes(tx, o.lines.map((l) => l.productId));
       const isTp = (p: string) => types.get(p) === 'THANH_PHAM';
       const lsx = await tx.productionOrder.findMany({ where: { sourceOrderId: orderId } });
@@ -668,6 +686,12 @@ export class SalesService {
     return o;
   }
 
+  /** As `locked`, for a change made by `user`: a seller may only change the orders they see (visibleTo). */
+  async lockedFor(tx: Tx, id: string, user: AuthUser) {
+    await lockOrderFor(tx, id, user);
+    return this.locked(tx, id);
+  }
+
   private async lockedLsx(tx: Tx, id: string) {
     await tx.$queryRaw`SELECT "id" FROM "ProductionOrder" WHERE "id" = ${id} FOR UPDATE`;
     const x = await tx.productionOrder.findUnique({ where: { id } });
@@ -699,8 +723,8 @@ export class SalesService {
     return ` · vượt hạn mức công nợ (${detail})`;
   }
 
-  private async checkInput(tx: Tx, input: SalesOrderInput, user: AuthUser, existing: PricedLine[]) {
-    const { byId } = await checkPartyAndPrices(tx, input, user, existing);
+  private async checkInput(tx: Tx, input: SalesOrderInput, user: AuthUser, existing: PricedLine[], existingDiscount: number) {
+    const { byId } = await checkPartyAndPrices(tx, { ...input, date: input.orderDate }, user, existing, existingDiscount);
 
     let salesRepId: string | null = null;
     if (input.salesRep) {
@@ -716,11 +740,14 @@ export class SalesService {
 }
 
 /**
- * Customer and products must exist. Without order.update_price each line keeps the list price for the customer
- * type, or the price it already had (on the order, or on the báo giá it comes from). Shared with báo giá.
+ * Customer and products must exist; each line's tỷ lệ quy đổi comes from the mặt hàng's ĐVT, never from the form.
+ * Without order.update_price each line keeps the list price for the customer type, or the price it already had (on the
+ * order, or on the báo giá it comes from). Without order.discount chiết khấu and hàng tặng stay within the khuyến mãi
+ * running on the chứng từ's date, or what the chứng từ already had. Shared with báo giá.
  */
 export async function checkPartyAndPrices(
-  tx: Tx, input: { customerId: string; lines: SaleLineInput[] }, user: AuthUser, existing: PricedLine[],
+  tx: Tx, input: { customerId: string; date: string; discountAmount: number; lines: SaleLineInput[] }, user: AuthUser,
+  existing: PricedLine[], existingDiscount = 0,
 ) {
   const customer = await tx.customer.findUnique({
     where: { id: input.customerId }, include: { priceList: { select: { isActive: true, items: true } } },
@@ -734,6 +761,17 @@ export async function checkPartyAndPrices(
   const products = await tx.product.findMany({ where: { id: { in: ids } }, include: { unitConversions: true } });
   if (products.length !== ids.length) throw new BadRequestException('Có mặt hàng không tồn tại');
   const byId = new Map(products.map((p) => [p.id, p]));
+
+  // ĐVT: the base unit (no unitName) is 1; a conversion unit takes its ratio from the mặt hàng.
+  for (const [i, l] of input.lines.entries()) {
+    const p = byId.get(l.productId)!;
+    if (!l.unitName) l.ratioToBase = 1;
+    else {
+      const uc = p.unitConversions.find((u) => u.unitName === l.unitName);
+      if (!uc) throw new BadRequestException(`Dòng ${i + 1}: ${p.code} không có ĐVT "${l.unitName}".`);
+      l.ratioToBase = uc.ratioToBaseUnit.toNumber();
+    }
+  }
 
   if (!user.permissions.includes('order.update_price')) {
     for (const [i, l] of input.lines.entries()) {
@@ -750,7 +788,57 @@ export async function checkPartyAndPrices(
       if (l.unitPrice !== listed && !kept) throw new ForbiddenException(`Dòng ${i + 1}: chức vụ của bạn chưa có quyền sửa đơn giá trên đơn.`);
     }
   }
+
+  if (!user.permissions.includes('order.discount')) await checkDiscounts(tx, input, customer, byId, existing, existingDiscount);
   return { customer, byId };
+}
+
+const NEEDS_DISCOUNT = 'cần quyền "Chiết khấu ngoài khuyến mãi"';
+
+/**
+ * Chiết khấu dòng, hàng tặng and chiết khấu cả đơn of a role without order.discount: no more than the best khuyến mãi
+ * running on the date allows (the same rules the form applies), or than the chứng từ already had (approved earlier).
+ */
+async function checkDiscounts(
+  tx: Tx, input: { date: string; discountAmount: number; lines: SaleLineInput[] },
+  customer: { type: CustomerType; priceListId: string | null },
+  byId: Map<string, { id: string; code: string; categoryId: string | null }>, existing: PricedLine[], existingDiscount: number,
+) {
+  const promos = forCustomer((await tx.promotion.findMany({ where: activeWhere(fromDay(input.date)!) })).map(toRule), customer);
+  const rows = lineRows(input.lines);
+  const keptDiscount = (productId: string, unitName: string | null) =>
+    Math.max(0, ...existing.filter((e) => !e.isGift && e.productId === productId && (e.unitName ?? null) === unitName).map((e) => e.discountAmount.toNumber()));
+
+  let net = 0;
+  for (const [i, r] of rows.entries()) {
+    if (r.isGift) continue;
+    const allowed = Math.max(
+      lineDiscountFor(promos, byId.get(r.productId), { quantity: r.quantity, unitPrice: r.unitPrice, ratio: r.ratioToBase }),
+      keptDiscount(r.productId, r.unitName),
+    );
+    if (r.discountAmount > allowed) {
+      throw new ForbiddenException(`Dòng ${i + 1}: chiết khấu ${vnd(r.discountAmount)} vượt mức khuyến mãi cho phép (${vnd(allowed)}) — ${NEEDS_DISCOUNT}.`);
+    }
+    net += Math.round(r.quantity * r.unitPrice) - r.discountAmount;
+  }
+
+  // Hàng tặng (ĐVT chính) per mặt hàng tặng: what TANG_HANG gives for the goods bought, or what the chứng từ already had.
+  const bought = rows.filter((r) => !r.isGift).map((r) => ({ productId: r.productId, baseQuantity: r.quantity * r.ratioToBase }));
+  const gifts = giftsFor(promos, bought, (id) => byId.get(id));
+  const given = new Map<string, number>();
+  for (const r of rows.filter((x) => x.isGift)) given.set(r.productId, round4((given.get(r.productId) ?? 0) + r.quantity * r.ratioToBase));
+  for (const [productId, qty] of given) {
+    const had = existing.filter((e) => e.isGift && e.productId === productId).reduce((s, e) => s + e.quantity.toNumber() * e.ratioToBase.toNumber(), 0);
+    const allowed = Math.max(gifts.get(productId) ?? 0, round4(had));
+    if (qty > allowed) {
+      throw new ForbiddenException(`Hàng tặng ${byId.get(productId)?.code ?? productId}: ${qty} vượt số khuyến mãi cho phép (${allowed}) — ${NEEDS_DISCOUNT}.`);
+    }
+  }
+
+  const allowedOrder = Math.max(orderDiscountFor(promos, net), existingDiscount);
+  if ((input.discountAmount || 0) > allowedOrder) {
+    throw new ForbiddenException(`Chiết khấu cả đơn ${vnd(input.discountAmount)} vượt mức khuyến mãi cho phép (${vnd(allowedOrder)}) — ${NEEDS_DISCOUNT}.`);
+  }
 }
 
 function headerFields(input: SalesOrderInput) {

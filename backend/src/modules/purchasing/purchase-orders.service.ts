@@ -294,7 +294,18 @@ export class PurchaseOrdersService {
     if (!supplier) throw new BadRequestException('Nhà cung cấp không tồn tại');
     if (!input.lines.length) throw new BadRequestException('Thêm ít nhất một dòng hàng');
     const ids = [...new Set(input.lines.map((l) => l.productId))];
-    if ((await tx.product.count({ where: { id: { in: ids } } })) !== ids.length) throw new BadRequestException('Có mặt hàng không tồn tại');
+    const products = await tx.product.findMany({ where: { id: { in: ids } }, include: { unitConversions: true } });
+    if (products.length !== ids.length) throw new BadRequestException('Có mặt hàng không tồn tại');
+    // Tỷ lệ quy đổi comes from the mặt hàng's ĐVT, never from the form: it decides how much stock a receipt adds.
+    for (const [i, l] of input.lines.entries()) {
+      const p = products.find((x) => x.id === l.productId)!;
+      if (!l.unitName) l.ratioToBase = 1;
+      else {
+        const uc = p.unitConversions.find((u) => u.unitName === l.unitName);
+        if (!uc) throw new BadRequestException(`Dòng ${i + 1}: ${p.code} không có ĐVT "${l.unitName}".`);
+        l.ratioToBase = uc.ratioToBaseUnit.toNumber();
+      }
+    }
   }
 }
 

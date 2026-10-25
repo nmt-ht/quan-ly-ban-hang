@@ -49,8 +49,8 @@ describe('Đơn nhập hàng & công nợ phải trả (e2e)', () => {
     storekeeper = await as('thu.kho@ninhtrang.local');
     accountant = await as('ke.toan@ninhtrang.local');
     sale = await as('sale1@ninhtrang.local');
-    for (const name of ['E2E Nhập hộp', 'E2E Nhập lẻ']) {
-      const p = (await manager.post('/api/products', { name, type: 'VAT_TU', baseUnit: 'Cái' }).expect(201)).body;
+    for (const [name, units] of [['E2E Nhập hộp', [{ unitName: 'Hộp', ratioToBaseUnit: 12, price: 0 }]], ['E2E Nhập lẻ', []]] as const) {
+      const p = (await manager.post('/api/products', { name, type: 'VAT_TU', baseUnit: 'Cái', unitConversions: units }).expect(201)).body;
       products.push(p.id);
     }
     [boxed, loose] = products;

@@ -380,14 +380,14 @@
                     </td>
                     <td class="c-num num">{{ (c?.gross ?? 0).toLocaleString('vi-VN') }}</td>
                     <td class="c-num c-pct">
-                      @if (editable() && !l.isGift) {
+                      @if (editable() && !l.isGift && freeDiscount()) {
                         <input type="number" min="0" max="100" step="any" class="num-input" [ngModel]="l.discountRate"
                           (ngModelChange)="patch(i, { discountRate: $event })" [attr.aria-label]="'Tỷ lệ chiết khấu dòng ' + (i + 1)"
                           [attr.aria-invalid]="(l.discountRate ?? 0) > 100 ? 'true' : null" />
                       } @else { <span class="num">{{ l.discountRate ? l.discountRate + '%' : '—' }}</span> }
                     </td>
                     <td class="c-num">
-                      @if (editable() && !l.isGift) {
+                      @if (editable() && !l.isGift && freeDiscount()) {
                         <input type="text" appMoney [ngModel]="l.discountAmount" (ngModelChange)="patch(i, { discountAmount: $event })"
                           [attr.aria-label]="'Tiền chiết khấu dòng ' + (i + 1)" />
                       } @else { <span class="num">{{ (c?.discount ?? 0).toLocaleString('vi-VN') }}</span> }
@@ -470,7 +470,7 @@
               <div class="so-order-disc">
                 <dt><label for="so-orderdisc">Chiết khấu cả đơn</label></dt>
                 <dd>
-                  @if (editable()) {
+                  @if (editable() && freeDiscount()) {
                     <input id="so-orderdisc" type="text" appMoney placeholder="0" [ngModel]="orderDiscount()" (ngModelChange)="setOrderDiscount($event)"
                       [attr.aria-invalid]="(orderDiscount() ?? 0) > totals().goods - totals().lineDiscount ? 'true' : null" />
                   } @else { <span class="num">{{ money(totals().orderDiscount) }}</span> }

@@ -196,6 +196,10 @@ export class TripsService {
       const orderCodes: string[] = [];
       for (const link of t.orders) {
         const o = await this.sales.locked(tx, link.orderId);
+        // Only goods still owed leave the kho: a đơn huỷ or kết thúc since it was xếp lên xe must come off the chuyến first.
+        if (o.status === 'HUY' || o.closedDate) {
+          throw new BadRequestException(`Đơn ${o.code} đã ${o.status === 'HUY' ? 'huỷ' : 'kết thúc'} — bỏ đơn khỏi chuyến rồi xuất kho.`);
+        }
         orderCodes.push(o.code);
         const products = new Map((await tx.product.findMany({ where: { id: { in: o.lines.map((l) => l.productId) } } })).map((p) => [p.id, p]));
         for (const line of o.lines) {
@@ -211,7 +215,7 @@ export class TripsService {
             byWarehouse.set(wh, m);
           }
         }
-        if (o.status !== 'HUY') await tx.salesOrder.update({ where: { id: o.id }, data: { status: 'DANG_GIAO' } });
+        await tx.salesOrder.update({ where: { id: o.id }, data: { status: 'DANG_GIAO' } });
       }
       const voucherIds: string[] = [];
       for (const [warehouseId, m] of byWarehouse) {
@@ -239,11 +243,14 @@ export class TripsService {
       if (!link) throw new BadRequestException('Đơn không nằm trên chuyến này.');
       if (link.confirmedAt) throw new BadRequestException('Đơn này đã chốt giao.');
       const o = await this.sales.locked(tx, orderId);
+      if (o.status === 'HUY') throw new BadRequestException(`Đơn ${o.code} đã huỷ — không chốt giao được.`);
       const today = new Date().toISOString().slice(0, 10);
       const before = receivedValueOf(o.lines.map(saleLine), o.discountAmount.toNumber());
       for (const load of t.loads.filter((l) => l.orderLine.orderId === orderId)) {
         const asked = lines.find((x) => x.lineIndex === load.orderLine.sortOrder)?.received ?? 0;
-        const received = Math.min(Math.max(0, round4(asked)), load.quantity.toNumber());
+        // No more than went on the truck, nor than the line still owes.
+        const owed = lineRemaining(saleLine(o.lines.find((x) => x.id === load.orderLineId)!));
+        const received = Math.min(Math.max(0, round4(asked)), load.quantity.toNumber(), owed);
         await tx.deliveryTripLoad.update({ where: { id: load.id }, data: { receivedQuantity: received } });
         if (received > 0) await tx.salesOrderLine.update({ where: { id: load.orderLineId }, data: { receivedQuantity: { increment: received } } });
       }

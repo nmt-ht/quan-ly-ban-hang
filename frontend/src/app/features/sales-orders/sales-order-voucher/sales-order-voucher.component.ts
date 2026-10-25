@@ -104,6 +104,8 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   private readonly api = inject(ApiService);
   readonly cost = inject(CostService);
   private readonly auth = inject(AuthService);
+  /** Chiết khấu gõ tay — without it only the khuyến mãi applied by the form (the server checks the same). */
+  readonly freeDiscount = computed(() => this.auth.can('order.discount'));
   private readonly warehouseVouchers = inject(WarehouseVoucherService);
   private readonly cashVouchers = inject(CashVoucherService);
   private readonly deliverDialog = viewChild<DeliverDialogComponent>('deliverDialog');
@@ -629,7 +631,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
 
   // ---------- status & actions (view) ----------
   readonly canEdit = computed(() => !!this.order() && canEdit(this.order()!, this.lsx()));
-  readonly canCancel = computed(() => !!this.order() && canCancel(this.order()!));
+  readonly canCancel = computed(() => !!this.order() && canCancel(this.order()!) && !this.activeTrip());
   /** Đơn đang nằm trên chuyến giao hàng chưa xong: giao qua chuyến, không giao trực tiếp. */
   readonly activeTrip = computed(() => {
     const id = this.order()?.tripId;
@@ -637,7 +639,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
     return t && (t.status === 'GOM_DON' || t.status === 'DA_XUAT_KHO') ? t : undefined;
   });
   readonly canDeliver = computed(() => !!this.order() && canDeliver(this.order()!) && !this.activeTrip());
-  readonly canClose = computed(() => !!this.order() && canClose(this.order()!));
+  readonly canClose = computed(() => !!this.order() && canClose(this.order()!) && !this.activeTrip());
   readonly lsxNeeded = computed(() => {
     const o = this.order();
     return o ? linesNeedingLsx(o, this.lsx(), (pid) => needsProduction(this.product(pid))).length : 0;

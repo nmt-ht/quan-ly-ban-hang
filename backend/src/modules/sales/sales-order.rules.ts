@@ -127,7 +127,8 @@ export const canEdit = (o: OrderState, lsx: LsxState[]) =>
 export const canCancel = (o: OrderState) => o.status !== 'HUY' && !isDelivered(o) && o.status !== 'DANG_GIAO';
 
 export const canDeliver = (o: OrderState) =>
-  (o.status === 'CHO_GIAO_HANG' || o.status === 'GIAO_MOT_PHAN' || o.status === 'DANG_GIAO') &&
+  // Đang giao: hàng đang trên xe — giao qua chốt giao của chuyến.
+  (o.status === 'CHO_GIAO_HANG' || o.status === 'GIAO_MOT_PHAN') &&
   !o.closedDate && o.lines.some((l) => lineRemaining(l) > 0);
 
 export const canClose = (o: OrderState) => o.status === 'GIAO_MOT_PHAN' && !o.closedDate;

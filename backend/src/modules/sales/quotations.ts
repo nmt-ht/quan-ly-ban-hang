@@ -131,7 +131,7 @@ export class QuotationsService {
 
   create(dto: QuotationDto, user: AuthUser) {
     return this.prisma.$transaction(async (tx) => {
-      const { customer, salesRepId } = await this.check(tx, dto, user, []);
+      const { customer, salesRepId } = await this.check(tx, dto, user, [], 0);
       const lines = quoteLines(dto.lines);
       const q = await tx.quotation.create({
         data: { ...header(dto), code: await this.sequences.nextCode('BG', tx), salesRepId, createdById: user.id, lines: { create: lines } },
@@ -153,7 +153,7 @@ export class QuotationsService {
         throw new ConflictException(`${q.code} vừa được người khác lưu — tải lại để xem bản mới rồi sửa tiếp.`);
       }
       if (q.status !== 'MOI') throw new BadRequestException(`Báo giá ${q.code} ${q.status === 'HUY' ? 'đã huỷ' : 'đã lập đơn'} — không sửa được.`);
-      const { salesRepId } = await this.check(tx, dto, user, q.lines);
+      const { salesRepId } = await this.check(tx, dto, user, q.lines, q.discountAmount.toNumber());
       const lines = quoteLines(dto.lines);
       const before = await this.described(tx, { ...q, discountAmount: q.discountAmount.toNumber() });
       await tx.quotationLine.deleteMany({ where: { quotationId: id } });
@@ -188,9 +188,9 @@ export class QuotationsService {
   }
 
   /** Customer, products and the list-price rule as on an order; the người báo giá must exist. */
-  private async check(tx: Tx, dto: QuotationDto, user: AuthUser, existing: Parameters<typeof checkPartyAndPrices>[3]) {
+  private async check(tx: Tx, dto: QuotationDto, user: AuthUser, existing: Parameters<typeof checkPartyAndPrices>[3], existingDiscount: number) {
     if (dto.validUntil && dto.validUntil < dto.quoteDate) throw new BadRequestException('Ngày hiệu lực trước ngày báo giá.');
-    const { customer } = await checkPartyAndPrices(tx, dto, user, existing);
+    const { customer } = await checkPartyAndPrices(tx, { ...dto, date: dto.quoteDate }, user, existing, existingDiscount);
     let salesRepId: string | null = null;
     if (dto.salesRep) {
       const rep = await tx.user.findUnique({ where: { email: dto.salesRep.toLowerCase() } });

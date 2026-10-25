@@ -138,15 +138,15 @@ export class SalesController {
   @RequirePermissions('order.cancel')
   @Post('sales-orders/:id/cancel')
   @HttpCode(HttpStatus.OK)
-  cancel(@Param('id') id: string, @Body() dto: ReasonDto) {
-    return this.sales.cancel(id, dto.reason);
+  cancel(@Param('id') id: string, @Body() dto: ReasonDto, @CurrentUser() user: AuthUser) {
+    return this.sales.cancel(id, dto.reason, user);
   }
 
   @RequirePermissions('order.update')
   @Post('sales-orders/:id/close')
   @HttpCode(HttpStatus.OK)
-  close(@Param('id') id: string) {
-    return this.sales.close(id);
+  close(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.sales.close(id, user);
   }
 
   // Giao hàng tại kho / tại quầy: the seller or the storekeeper who hands the goods over.

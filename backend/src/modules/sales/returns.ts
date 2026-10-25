@@ -14,6 +14,7 @@ import { AuditService } from '../../audit/audit.service.js';
 import { vnd } from '../../audit/audit.diff.js';
 import { InventoryService, VoucherLineInput } from '../inventory/inventory.service.js';
 import { SaleLine, orderTotals, round4 } from './sales-order.rules.js';
+import { lockOrderFor } from './order-access.js';
 
 type Tx = Prisma.TransactionClient;
 
@@ -73,6 +74,8 @@ export class SalesReturnsService {
 
   async create(orderId: string, dto: SalesReturnDto, user: AuthUser) {
     return this.prisma.$transaction(async (tx) => {
+      // Locked: two phiếu trả at once cannot both take the same received quantity. A seller only the orders they see.
+      await lockOrderFor(tx, orderId, user);
       const o = await tx.salesOrder.findUnique({
         where: { id: orderId },
         include: { lines: { orderBy: { sortOrder: 'asc' }, include: { product: { select: { code: true, type: true } } } }, returns: { where: { isCancelled: false }, include: { lines: true } } },
@@ -139,8 +142,9 @@ export class SalesReturnsService {
   }
 
   /** Huỷ phiếu trả: the phiếu nhập trả về is undone, the value counts against công nợ again. The phiếu stays, marked huỷ. */
-  async cancel(orderId: string, returnId: string, reason: string | undefined) {
+  async cancel(orderId: string, returnId: string, reason: string | undefined, user: AuthUser) {
     return this.prisma.$transaction(async (tx: Tx) => {
+      await lockOrderFor(tx, orderId, user);
       const r = await tx.salesReturn.findUnique({ where: { id: returnId }, include: { order: { select: { id: true, code: true } } } });
       if (!r || r.orderId !== orderId) throw new NotFoundException('Không tìm thấy phiếu trả hàng');
       if (r.isCancelled) throw new BadRequestException(`${r.code} đã huỷ rồi.`);
@@ -172,7 +176,7 @@ export class SalesReturnsController {
   @RequirePermissions('order.return')
   @Post(':returnId/cancel')
   @HttpCode(HttpStatus.OK)
-  cancel(@Param('id') id: string, @Param('returnId') returnId: string, @Body() dto: CancelReturnDto) {
-    return this.returns.cancel(id, returnId, dto.reason);
+  cancel(@Param('id') id: string, @Param('returnId') returnId: string, @Body() dto: CancelReturnDto, @CurrentUser() user: AuthUser) {
+    return this.returns.cancel(id, returnId, dto.reason, user);
   }
 }

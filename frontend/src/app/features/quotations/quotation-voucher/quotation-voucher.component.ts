@@ -90,6 +90,8 @@ export class QuotationVoucherComponent implements HasUnsavedChanges {
   });
   private readonly quotes = inject(QuotationService);
   private readonly auth = inject(AuthService);
+  /** Chiết khấu gõ tay — without it only the khuyến mãi applied by the form (the server checks the same). */
+  readonly freeDiscount = computed(() => this.auth.can('order.discount'));
 
   readonly id = toSignal(this.route.paramMap.pipe(map((p) => p.get('id'))), { initialValue: this.route.snapshot.paramMap.get('id') });
   private readonly editRoute = this.route.snapshot.url.at(-1)?.path === 'sua';
