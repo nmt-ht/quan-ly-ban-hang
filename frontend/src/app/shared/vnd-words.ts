@@ -1,7 +1,7 @@
 // "Số tiền bằng chữ" on phiếu thu / phiếu chi: 1.250.000 → "Một triệu hai trăm năm mươi nghìn đồng".
 
 const DIGITS = ['không', 'một', 'hai', 'ba', 'bốn', 'năm', 'sáu', 'bảy', 'tám', 'chín'];
-const UNITS = ['', ' nghìn', ' triệu', ' tỷ'];
+const UNITS = ['', ' nghìn', ' triệu'];
 
 /** Read a 0–999 group; `full` = there is a higher group, so "không trăm" / "lẻ" are spelled out. */
 function readGroup(n: number, full: boolean): string {
@@ -27,22 +27,24 @@ function readGroup(n: number, full: boolean): string {
   return parts.join(' ');
 }
 
+/** Read 0 < n < 1 tỷ; `full` = a "tỷ" part comes before it. */
+function readBelowBillion(n: number, full: boolean): string {
+  const groups = [n % 1000, Math.floor(n / 1000) % 1000, Math.floor(n / 1_000_000)];
+  const top = groups[2] ? 2 : groups[1] ? 1 : 0;
+  const words: string[] = [];
+  for (let i = top; i >= 0; i--) {
+    if (groups[i] === 0) continue;
+    words.push(readGroup(groups[i], full || i < top) + UNITS[i]);
+  }
+  return words.join(' ');
+}
+
 function readInteger(n: number): string {
   if (n === 0) return 'không';
-  const groups: number[] = [];
-  let x = n;
-  while (x > 0) {
-    groups.push(x % 1000);
-    x = Math.floor(x / 1000);
-  }
-  const words: string[] = [];
-  for (let i = groups.length - 1; i >= 0; i--) {
-    const g = groups[i];
-    if (g === 0) continue;
-    // Above "tỷ" the unit cycles: 1.000 tỷ = "nghìn tỷ".
-    const unit = UNITS[i % 4] + (i >= 4 ? ' tỷ'.repeat(Math.floor(i / 4)) : '');
-    words.push(readGroup(g, i < groups.length - 1) + unit);
-  }
+  // Above "tỷ" the part before it is read as a number of its own: 1.500 tỷ = "một nghìn năm trăm tỷ".
+  const high = Math.floor(n / 1_000_000_000);
+  const low = n % 1_000_000_000;
+  const words = [high ? `${readInteger(high)} tỷ` : '', low ? readBelowBillion(low, high > 0) : ''];
   return words.join(' ').replace(/\s+/g, ' ').trim();
 }
 
