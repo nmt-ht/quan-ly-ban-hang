@@ -27,7 +27,7 @@ import { formatDay, isoDay } from '../../../shared/period';
 import { VAT_RATES, round4 } from '../../purchase-orders/purchase-order.rules';
 import {
   CUSTOMER_PRICE_LABEL, CUSTOMER_TYPE_LABEL, canCancel, canClose, canDeliver, canEdit, defaultWarehouse, deliveredPercent,
-  lineRemaining, linesNeedingLsx, needsProduction, orderTotals, priceFor,
+  lineRemaining, linesNeedingLsx, movesStock, needsProduction, orderTotals, priceFor,
   CURRENCIES, SALE_TYPE_LABEL, foreignCurrency, saleTypeIssue,
 } from '../sales-order.rules';
 import { InvoicePreviewComponent } from '../invoice-preview/invoice-preview.component';
