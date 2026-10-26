@@ -64,6 +64,32 @@
       }
     </section>
 
+    <!-- Loại chứng từ bán hàng: Bán trong nước / Xuất khẩu (như MISA) -->
+    <section class="card pay-bar" aria-label="Loại bán hàng">
+      <span class="pay-label">Loại bán hàng</span>
+      @if (editable()) {
+        <div class="segmented" role="group" aria-label="Loại bán hàng">
+          <button type="button" [attr.aria-pressed]="!exportSale()" (click)="setSaleType('TRONG_NUOC')">{{ saleTypeLabel.TRONG_NUOC }}</button>
+          <button type="button" [attr.aria-pressed]="exportSale()" (click)="setSaleType('XUAT_KHAU')">{{ saleTypeLabel.XUAT_KHAU }}</button>
+        </div>
+        @if (exportSale()) {
+          <select aria-label="Loại tiền" [ngModel]="currency()" (ngModelChange)="setCurrency($event)">
+            @for (c of currencies; track c) { <option [value]="c">{{ c }}</option> }
+          </select>
+          @if (currency() !== 'VND') {
+            <input type="number" min="0" step="any" class="num-input" placeholder="Tỷ giá" [attr.aria-label]="'Tỷ giá ' + currency() + ' ra VND'"
+              [ngModel]="exchangeRate()" (ngModelChange)="exchangeRate.set($event)"
+              [attr.aria-invalid]="attempted() && !((exchangeRate() ?? 0) > 0) ? 'true' : null" />
+          }
+          <p class="pay-hint">Hàng xuất khẩu chịu <strong>thuế GTGT 0%</strong> (cần hợp đồng, tờ khai hải quan, thanh toán qua ngân hàng). Số tiền trên đơn vẫn ghi bằng VND; tỷ giá dùng để quy đổi trên hoá đơn.</p>
+        }
+      } @else {
+        <span class="pay-state" [class.is-now]="exportSale()">
+          {{ saleTypeLabel[saleType()] }}@if (exportSale() && currency() !== 'VND') { · {{ currency() }} · tỷ giá <span class="num">{{ (exchangeRate() ?? 0).toLocaleString('vi-VN') }}</span> }
+        </span>
+      }
+    </section>
+
     <!-- Header: fields + totals panel -->
     <section class="card voucher-head">
       <div class="head-fields">
@@ -387,7 +413,8 @@
                     </td>
                     <td class="c-vat">
                       @if (editable()) {
-                        <select [ngModel]="l.vatRate" (ngModelChange)="patch(i, { vatRate: +$event })" [attr.aria-label]="'Thuế suất dòng ' + (i + 1)">
+                        <select [ngModel]="l.vatRate" (ngModelChange)="patch(i, { vatRate: +$event })" [attr.aria-label]="'Thuế suất dòng ' + (i + 1)"
+                          [disabled]="exportSale()" [title]="exportSale() ? 'Hàng xuất khẩu: thuế GTGT 0%' : ''">
                           @for (r of vatRates; track r) { <option [ngValue]="r">{{ r }}%</option> }
                         </select>
                       } @else { <span class="num">{{ l.vatRate }}%</span> }
@@ -752,6 +779,9 @@
           </button>
         } @else if (order(); as o) {
           <app-print-menu kind="sales-order" />
+          @if (o.status !== 'HUY') {
+            <button type="button" class="btn" (click)="openInvoicePreview()"><app-nav-icon name="eye" />Xem trước hoá đơn</button>
+          }
           @if (canCancel()) {
             <button type="button" class="btn btn-danger-ghost" (click)="confirmCancel.set(true)">Huỷ đơn</button>
           }
@@ -815,7 +845,9 @@
     @if (canReturn()) {
       <app-return-dialog #returnDialog [order]="o" (returned)="onReturned($event)" />
     }
+    <app-invoice-preview #invoicePreview [order]="o" (printing)="printingInvoice.set($event)" />
 
+    @if (!printingInvoice()) {
     <app-print-document
       title="ĐƠN HÀNG BÁN" [no]="o.code" [date]="o.orderDate" [status]="o.status === 'HUY' ? 'ĐÃ HUỶ' : undefined"
       [signers]="[
@@ -870,5 +902,6 @@
         <p class="pd-words">Bằng chữ: <strong>{{ words(pt.total) }}</strong></p>
       }
     </app-print-document>
+    }
   }
 }

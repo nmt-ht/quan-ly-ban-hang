@@ -1,7 +1,7 @@
 // Business rules for Đơn hàng bán — the same as the frontend's features/sales-orders/sales-order.rules.ts.
 // Chiết khấu & thuế (MISA): thành tiền = SL × đơn giá; trừ chiết khấu dòng; chiết khấu cả đơn chia
 // theo tỷ lệ giá trị từng dòng sau CK; thuế GTGT tính trên phần còn lại của từng dòng. VND, whole đồng.
-import { CustomerType, ProductType, SalesOrderStatus } from '@prisma/client';
+import { CustomerType, ProductType, SaleType, SalesOrderStatus } from '@prisma/client';
 
 export const round4 = (n: number) => Math.round(n * 10_000) / 10_000;
 
@@ -138,6 +138,41 @@ export function linesNeedingLsx(o: OrderState, lsx: LsxState[], isTp: (productId
   if (o.status === 'HUY' || isDelivered(o)) return [];
   const active = activeLsx(lsx);
   return o.lines.flatMap((l, i) => (isTp(l.productId) && !active.some((x) => x.productId === l.productId) ? [i] : []));
+}
+
+export const SALE_TYPE_LABEL: Record<SaleType, string> = { TRONG_NUOC: 'Bán trong nước', XUAT_KHAU: 'Xuất khẩu' };
+
+export interface SaleTypeInput {
+  saleType?: SaleType | null;
+  currency?: string | null;
+  exchangeRate?: number | null;
+  lines: { vatRate?: number | null }[];
+}
+
+/** Loại tiền as stored: null = VND (đồng tiền hạch toán). */
+export const foreignCurrency = (c: string | null | undefined): string | null => {
+  const code = (c ?? '').trim().toUpperCase();
+  return code && code !== 'VND' ? code : null;
+};
+
+/**
+ * Loại chứng từ bán hàng (MISA "Bán hàng hoá, dịch vụ trong nước" / "Bán hàng xuất khẩu"):
+ * - xuất khẩu: thuế GTGT 0% trên mọi dòng; được thu bằng ngoại tệ, khi đó phải có tỷ giá quy đổi ra VND;
+ * - trong nước: thu bằng VND, không ghi ngoại tệ.
+ * Answers the first problem, or null.
+ */
+export function saleTypeIssue(o: SaleTypeInput): string | null {
+  const exportSale = o.saleType === 'XUAT_KHAU';
+  const currency = foreignCurrency(o.currency);
+  if (exportSale) {
+    const i = o.lines.findIndex((l) => (l.vatRate ?? 0) !== 0);
+    if (i >= 0) return `Dòng ${i + 1}: hàng xuất khẩu chịu thuế GTGT 0%.`;
+    if (currency && !((o.exchangeRate ?? 0) > 0)) return `Nhập tỷ giá quy đổi ${currency} ra VND.`;
+    if (!currency && o.exchangeRate) return 'Chọn loại tiền cho tỷ giá, hoặc bỏ tỷ giá khi thu bằng VND.';
+    return null;
+  }
+  if (currency || o.exchangeRate) return 'Đơn bán trong nước thu bằng VND — bỏ loại tiền và tỷ giá, hoặc chọn loại Xuất khẩu.';
+  return null;
 }
 
 export const STATUS_LABEL: Record<SalesOrderStatus, string> = {

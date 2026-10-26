@@ -1,0 +1,367 @@
+/* Hallmark · component: dialog + hoá đơn GTGT (bản xem trước) · genre: modern-minimal · design-system: design.md § Print
+ * The paper is white with black ink on screen and in print, like every printout (shared/print/print.scss).
+ */
+
+.ip-dialog {
+  width: min(62rem, calc(100vw - 2 * var(--space-sm)));
+  max-height: calc(100vh - 2 * var(--space-lg));
+  padding: 0;
+  border: var(--rule-hair) solid var(--color-rule);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  box-shadow: 0 16px 48px var(--color-shadow);
+  --icon-size: 16px;
+}
+
+.ip-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.ip-dialog::backdrop {
+  background: var(--color-shadow);
+}
+
+.ip-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: var(--rule-hair) solid var(--color-rule);
+}
+
+.ip-head h2 {
+  margin: 0 0 var(--space-3xs);
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.ip-head .toolbar {
+  flex: none;
+}
+
+.ip-body {
+  flex: 1;
+  overflow: auto;
+  padding: var(--space-md);
+  background: var(--color-paper-2);
+}
+
+.ip-body .inv {
+  max-width: 210mm;
+  margin: 0 auto;
+  padding: 12mm 12mm 10mm;
+  box-shadow: 0 2px 12px var(--color-shadow);
+}
+
+// ---------- the paper ----------
+
+.inv {
+  --inv-ink: #000;
+  --inv-muted: #555;
+  --inv-rule: #7a7a7a;
+  --inv-hair: #bdbdbd;
+  --inv-fill: #f0f0f0;
+  --inv-accent: #1f3a6b;
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  color: var(--inv-ink);
+  font-size: 10pt;
+  line-height: 1.45;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.inv small {
+  color: var(--inv-muted);
+  font-size: 0.82em;
+  font-weight: 400;
+  font-style: italic;
+}
+
+.inv .num {
+  font-variant-numeric: tabular-nums;
+}
+
+.inv-watermark {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  margin: 0;
+  transform: translate(-50%, -50%) rotate(-28deg);
+  color: rgb(0 0 0 / 0.06);
+  font-size: 46pt;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.inv-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8mm;
+  padding-bottom: 3mm;
+  border-bottom: 1.5pt solid var(--inv-accent);
+}
+
+.inv-seller {
+  display: flex;
+  gap: 4mm;
+  min-width: 0;
+  font-size: 9.5pt;
+}
+
+.inv-logo {
+  flex: none;
+  max-width: 24mm;
+  max-height: 16mm;
+  object-fit: contain;
+}
+
+.inv-seller-name {
+  display: block;
+  margin-bottom: 1mm;
+  color: var(--inv-accent);
+  font-size: 11.5pt;
+  text-transform: uppercase;
+}
+
+.inv-k {
+  color: var(--inv-muted);
+}
+
+.inv-serial {
+  flex: none;
+  margin: 0;
+  min-width: 44mm;
+  font-size: 9.5pt;
+}
+
+.inv-serial div {
+  display: flex;
+  justify-content: space-between;
+  gap: 3mm;
+}
+
+.inv-serial dt {
+  color: var(--inv-muted);
+}
+
+.inv-serial dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.inv-pending {
+  color: var(--inv-muted);
+  font-style: italic;
+  font-weight: 400 !important;
+}
+
+.inv-titlebar {
+  margin: 5mm 0 4mm;
+  text-align: center;
+}
+
+.inv-title {
+  margin: 0;
+  color: var(--inv-accent);
+  font-size: 16pt;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.inv-title-en {
+  margin: 0;
+  font-size: 10pt;
+  font-weight: 600;
+}
+
+.inv-date,
+.inv-cqt {
+  margin: 1mm 0 0;
+  font-size: 10pt;
+}
+
+.inv-buyer {
+  display: grid;
+  gap: 1mm;
+  margin: 0 0 4mm;
+}
+
+.inv-buyer div,
+.inv-totals div {
+  display: flex;
+  gap: 2mm;
+  min-width: 0;
+}
+
+.inv-buyer dt {
+  flex: none;
+  color: var(--inv-muted);
+}
+
+.inv-buyer dd {
+  flex: 1;
+  margin: 0;
+  min-height: 1.45em;
+  border-bottom: 0.5pt dotted var(--inv-hair);
+}
+
+.inv-buyer .inv-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6mm;
+}
+
+.inv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9.5pt;
+}
+
+.inv-table th,
+.inv-table td {
+  padding: 1.2mm 1.6mm;
+  border: 0.5pt solid var(--inv-rule);
+  vertical-align: top;
+}
+
+.inv-table th {
+  background: var(--inv-fill);
+  font-weight: 600;
+  text-align: center;
+}
+
+.inv-table th small {
+  display: block;
+}
+
+.inv-colno td {
+  padding: 0.4mm 1mm;
+  color: var(--inv-muted);
+  font-size: 8pt;
+  font-style: italic;
+  text-align: center;
+}
+
+.inv-table .c-no,
+.inv-table .c-unit,
+.inv-table .c-rate {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.inv-table .c-n {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.inv-table tbody tr {
+  break-inside: avoid;
+}
+
+.inv-discount td {
+  font-style: italic;
+}
+
+.inv-sum {
+  margin-top: 3mm;
+}
+
+.inv-sum td:first-child {
+  white-space: nowrap;
+}
+
+.inv-totals {
+  margin: 3mm 0 0;
+  margin-left: auto;
+  max-width: 110mm;
+}
+
+.inv-totals div {
+  justify-content: space-between;
+  padding: 0.6mm 0;
+}
+
+.inv-totals dd {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.inv-grand {
+  border-top: 1pt solid var(--inv-ink);
+  font-weight: 700;
+}
+
+.inv-words {
+  margin: 2mm 0 0;
+}
+
+.inv-sign {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10mm;
+  margin-top: 6mm;
+  text-align: center;
+  break-inside: avoid;
+}
+
+.inv-sign div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1mm;
+  min-height: 28mm;
+}
+
+.inv-sign span {
+  color: var(--inv-muted);
+  font-size: 9pt;
+  font-style: italic;
+}
+
+.inv-sigbox {
+  margin-top: 3mm;
+  padding: 2mm 4mm;
+  border: 1pt dashed var(--inv-rule);
+  font-style: normal !important;
+}
+
+.inv-foot {
+  margin-top: 5mm;
+  padding-top: 2mm;
+  border-top: 0.5pt solid var(--inv-hair);
+  color: var(--inv-muted);
+  font-size: 8.5pt;
+  text-align: center;
+}
+
+@media (max-width: 40rem) {
+  .ip-head {
+    flex-wrap: wrap;
+  }
+
+  .ip-body {
+    padding: var(--space-xs);
+  }
+
+  .ip-body .inv {
+    padding: 6mm 4mm;
+  }
+
+  .inv-head,
+  .inv-seller {
+    flex-direction: column;
+  }
+
+  .inv-buyer .inv-pair {
+    grid-template-columns: 1fr;
+    gap: 1mm;
+  }
+}

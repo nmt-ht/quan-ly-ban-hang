@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { DataStore } from '../../core/services/data-store.service';
 import { AuthService } from '../../core/services/auth.service';
-import { CashVoucher, ProductionOrder, SalesOrder, SalesOrderLine, SalesReturn, SalesReturnDraft, WarehouseVoucher } from '../../core/models/domain.models';
+import { CashVoucher, ProductionOrder, SaleType, SalesOrder, SalesOrderLine, SalesReturn, SalesReturnDraft, WarehouseVoucher } from '../../core/models/domain.models';
 import { ApiService, upsertById } from '../../core/api/api.service';
 import { CatalogLoader } from '../../core/api/catalog-loader.service';
 import { pageQuery } from '../../core/api/on-demand';
@@ -27,6 +27,10 @@ export interface SalesOrderDraft {
   overrideCreditLimit?: boolean;
   /** Lập đơn từ báo giá (chỉ khi tạo đơn). */
   quotationId?: string;
+  /** Loại chứng từ bán hàng; xuất khẩu được ghi ngoại tệ và tỷ giá. */
+  saleType: SaleType;
+  currency?: string;
+  exchangeRate?: number;
   lines: SalesOrderLine[];
 }
 

@@ -1,5 +1,5 @@
 import {
-  CustomerType, PriceListItem, Product, ProductionOrder, SalesOrder, SalesOrderLine, SalesOrderStatus,
+  CustomerType, PriceListItem, Product, ProductionOrder, SaleType, SalesOrder, SalesOrderLine, SalesOrderStatus,
 } from '../../core/models/domain.models';
 import { round4 } from '../purchase-orders/purchase-order.rules';
 
@@ -141,4 +141,36 @@ export function linesNeedingLsx(o: SalesOrder, lsx: ProductionOrder[], isTp: (pr
   if (o.status === 'HUY' || isDelivered(o)) return [];
   const active = activeLsx(lsx);
   return o.lines.flatMap((l, i) => (isTp(l.productId) && !active.some((x) => x.productId === l.productId) ? [i] : []));
+}
+
+// ---------- Loại chứng từ bán hàng: trong nước / xuất khẩu (as MISA; the server's saleTypeIssue) ----------
+
+export const SALE_TYPE_LABEL: Record<SaleType, string> = { TRONG_NUOC: 'Bán trong nước', XUAT_KHAU: 'Xuất khẩu' };
+
+/** Ngoại tệ hay dùng khi xuất khẩu; VND = thu bằng đồng. */
+export const CURRENCIES = ['VND', 'USD', 'EUR', 'JPY', 'CNY', 'KRW', 'AUD', 'GBP', 'SGD', 'THB'] as const;
+
+/** Loại tiền as stored: null = VND. */
+export function foreignCurrency(c: string | null | undefined): string | null {
+  const code = (c ?? '').trim().toUpperCase();
+  return code && code !== 'VND' ? code : null;
+}
+
+/**
+ * Xuất khẩu: thuế GTGT 0% trên mọi dòng; thu bằng ngoại tệ thì phải có tỷ giá quy đổi ra VND.
+ * Trong nước: thu bằng VND. Answers the first problem, or null.
+ */
+export function saleTypeIssue(o: {
+  saleType?: SaleType | null; currency?: string | null; exchangeRate?: number | null; lines: { vatRate?: number | null }[];
+}): string | null {
+  const currency = foreignCurrency(o.currency);
+  if (o.saleType === 'XUAT_KHAU') {
+    const i = o.lines.findIndex((l) => (l.vatRate ?? 0) !== 0);
+    if (i >= 0) return `Dòng ${i + 1}: hàng xuất khẩu chịu thuế GTGT 0%.`;
+    if (currency && !((o.exchangeRate ?? 0) > 0)) return `Nhập tỷ giá quy đổi ${currency} ra VND.`;
+    if (!currency && o.exchangeRate) return 'Chọn loại tiền cho tỷ giá, hoặc bỏ tỷ giá khi thu bằng VND.';
+    return null;
+  }
+  if (currency || o.exchangeRate) return 'Đơn bán trong nước thu bằng VND — bỏ loại tiền và tỷ giá, hoặc chọn loại Xuất khẩu.';
+  return null;
 }

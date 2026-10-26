@@ -175,6 +175,30 @@ describe('Bán hàng, sản xuất & công nợ phải thu (e2e)', () => {
     expect(cancelled.order.status).toBe('CHO_SAN_XUAT');
   });
 
+  it('loại bán hàng (MISA): mặc định trong nước; xuất khẩu thuế GTGT 0%, ngoại tệ phải có tỷ giá', async () => {
+    const line = (vatRate: number) => [{ productId: item, unit: 'Cái', quantity: 2, unitPrice: 50000, vatRate }];
+    const domestic = (await sale.post('/api/sales-orders', order(line(10))).expect(201)).body;
+    orders.push(domestic.id);
+    expect(domestic).toMatchObject({ saleType: 'TRONG_NUOC', currency: null, exchangeRate: null, vatAmount: 10000 });
+
+    const refused = async (body: object, message: RegExp) =>
+      expect((await sale.post('/api/sales-orders', body).expect(400)).body.message).toMatch(message);
+    await refused(order(line(10), { saleType: 'XUAT_KHAU' }), /thuế GTGT 0%/);
+    await refused(order(line(0), { saleType: 'XUAT_KHAU', currency: 'USD' }), /tỷ giá/);
+    await refused(order(line(10), { currency: 'USD', exchangeRate: 25400 }), /trong nước/);
+    await sale.post('/api/sales-orders', order(line(0), { saleType: 'NHAP_KHAU' })).expect(400);
+
+    const exported = (await sale.post('/api/sales-orders', order(line(0), { saleType: 'XUAT_KHAU', currency: 'usd', exchangeRate: 25400 })).expect(201)).body;
+    orders.push(exported.id);
+    expect(exported).toMatchObject({ saleType: 'XUAT_KHAU', currency: 'USD', exchangeRate: 25400, vatAmount: 0, totalOrder: 100000 });
+
+    // Về trong nước: bỏ ngoại tệ, thuế suất theo mặt hàng; Nhật ký ghi đổi loại bán hàng.
+    const back = (await sale.put(`/api/sales-orders/${exported.id}`, { ...order(line(10)), updatedAt: exported.updatedAt }).expect(200)).body;
+    expect(back).toMatchObject({ saleType: 'TRONG_NUOC', currency: null, exchangeRate: null, vatAmount: 10000 });
+    const log = await prisma.auditLog.findFirst({ where: { entityId: exported.id, action: 'sales_order.update' } });
+    expect(log?.changes).toEqual(expect.arrayContaining([expect.objectContaining({ field: 'saleType', from: 'Xuất khẩu', to: 'Bán trong nước' })]));
+  });
+
   it('đơn giá: without order.update_price a line must keep the list price for the customer type', async () => {
     const role = (await admin.post('/api/roles', { name: 'E2E Bán không sửa giá' }).expect(201)).body;
     roleId = role.id;
