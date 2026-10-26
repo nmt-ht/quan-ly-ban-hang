@@ -105,11 +105,15 @@ export class ProductPickerComponent {
   private readonly search = viewChild<ElementRef<HTMLInputElement>>('search');
 
   readonly selected = computed(() => this.products().find((p) => p.id === this.value()));
+  // Như mọi ô chọn có mã: tăng dần theo mã (DV…, SP…, VT…), bất kể trang gọi truyền thứ tự nào.
+  private readonly sorted = computed(() =>
+    [...this.products()].sort((a, b) => a.code.localeCompare(b.code, 'vi', { numeric: true })),
+  );
   readonly visible = computed(() => {
     const q = foldVi(this.query().trim());
     const list = q
-      ? this.products().filter((p) => foldVi(`${p.code} ${p.crossRefCode ?? ''} ${p.name}`).includes(q))
-      : this.products();
+      ? this.sorted().filter((p) => foldVi(`${p.code} ${p.crossRefCode ?? ''} ${p.name}`).includes(q))
+      : this.sorted();
     return list.slice(0, 80);
   });
 

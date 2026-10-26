@@ -7,7 +7,7 @@
 //   e2e.json        vitest --reporter=json của toàn bộ e2e backend
 //   unit-be.json    vitest --reporter=json của unit test backend
 //   unit-fe.json    (tuỳ chọn) kết quả unit test frontend dạng vitest json
-//   ui.json         (tuỳ chọn) kiểm tra trang giao diện theo chức vụ: [{ role, page, label, expected, ... }]
+//   ui.json         (tuỳ chọn) tools/qa/ui-pages.mjs: kiểm tra trang giao diện theo chức vụ [{ role, page, label, expected, ... }]
 // Bước của các test e2e có sẵn được đọc thẳng từ mã nguồn test (các lệnh gọi API và các expect trong khối it).
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';

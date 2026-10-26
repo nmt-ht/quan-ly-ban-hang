@@ -67,6 +67,9 @@
 
   <div class="main" [attr.data-module]="module()">
     <header class="topbar">
+      @if (navigating()) {
+        <div class="nav-progress" role="progressbar" aria-label="Đang tải trang"></div>
+      }
       <button
         class="menu-btn btn"
         type="button"

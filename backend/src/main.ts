@@ -48,7 +48,8 @@ async function bootstrap() {
     });
     // Client-side routes (/don-hang/dh-14…) all load index.html; /api stays with Nest.
     app.use((req: Request, res: Response, next: NextFunction) => {
-      if (req.method !== 'GET' || req.path === '/api' || req.path.startsWith('/api/')) return next();
+      const path = req.path.toLowerCase(); // routes match case-insensitively, so /API/… is the API too
+      if (req.method !== 'GET' || path === '/api' || path.startsWith('/api/')) return next();
       res.setHeader('Cache-Control', 'no-cache');
       res.sendFile(join(STATIC_DIR, 'index.html'));
     });
