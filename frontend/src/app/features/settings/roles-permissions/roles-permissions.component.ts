@@ -261,7 +261,7 @@ export class RolesPermissionsComponent {
       this.notice.set(
         on
           ? `Đã dùng lại chức vụ "${r.name}".`
-          : `Đã ngừng dùng "${r.name}". Chức vụ này không còn hiện khi thêm người dùng mới${holders ? `; ${holders} người đang giữ vẫn giữ nguyên quyền` : ''}.`,
+          : `Đã ngừng dùng "${r.name}". Chức vụ này không còn hiện khi thêm người dùng mới${holders ? `; ${holders} người đang giữ chức vụ này bị đăng xuất và không đăng nhập được cho tới khi được chuyển sang chức vụ khác hoặc chức vụ được dùng lại` : ''}.`,
       );
     } catch (e) {
       this.failure.set(errorText(e));

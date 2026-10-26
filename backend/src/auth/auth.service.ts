@@ -97,7 +97,8 @@ export class AuthService {
       where: { id },
       include: { role: { include: { permissions: { select: { permissionCode: true } } } } },
     });
-    if (!user || user.status !== 'ACTIVE') return null;
+    // A role set to Ngừng dùng ends its people's access altogether: no sign-in, no session, not even the open danh mục reads.
+    if (!user || user.status !== 'ACTIVE' || !user.role.isActive) return null;
     if (issuedAt !== undefined && user.sessionsRevokedAt && issuedAt < Math.floor(user.sessionsRevokedAt.getTime() / 1000)) return null;
     return {
       id: user.id,
@@ -105,7 +106,7 @@ export class AuthService {
       name: user.name,
       roleId: user.roleId,
       roleName: user.role.name,
-      permissions: user.role.isActive ? user.role.permissions.map((p) => p.permissionCode) : [],
+      permissions: user.role.permissions.map((p) => p.permissionCode),
       mustChangePassword: user.mustChangePassword,
     };
   }

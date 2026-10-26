@@ -125,6 +125,8 @@ export class SalesOrderService {
   async ensure(id: string): Promise<SalesOrder | undefined> {
     const have = this.data.salesOrders().find((x) => x.id === id);
     if (have) return have;
+    // Without order.view the server refuses every read (Nhân viên xưởng on a lệnh): do not ask.
+    if (!this.auth.can('order.view')) return undefined;
     try {
       return this.keepOrder(await this.api.get<SalesOrder>(`/sales-orders/${id}`));
     } catch {
@@ -140,7 +142,7 @@ export class SalesOrderService {
     // Each id / mã is asked once: one the server does not return (gone, or another seller's) is not asked again.
     const missingIds = [...new Set(ids.filter(Boolean))].filter((id) => !have.some((o) => o.id === id) && !this.asked.has(id));
     const missingCodes = [...new Set(codes.filter(Boolean))].filter((c) => !have.some((o) => o.code === c) && !this.asked.has(c));
-    if (!missingIds.length && !missingCodes.length) return;
+    if ((!missingIds.length && !missingCodes.length) || !this.auth.can('order.view')) return;
     for (const k of [...missingIds, ...missingCodes]) this.asked.add(k);
     try {
       const rows = await this.api.get<SalesOrder[]>(`/sales-orders${pageQuery({ ids: missingIds, codes: missingCodes })}`);
