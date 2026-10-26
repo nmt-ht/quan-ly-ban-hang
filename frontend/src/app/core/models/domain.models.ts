@@ -270,6 +270,9 @@ export type SalesOrderStatus =
   | 'CHO_SAN_XUAT' | 'DANG_SAN_XUAT' | 'CHO_GIAO_HANG' | 'DANG_GIAO'
   | 'HOAN_THANH' | 'GIAO_MOT_PHAN' | 'TRA_TOAN_BO' | 'HUY';
 
+/** Loại chứng từ bán hàng (as MISA): bán hàng hoá, dịch vụ trong nước / bán hàng xuất khẩu (thuế GTGT 0%). */
+export type SaleType = 'TRONG_NUOC' | 'XUAT_KHAU';
+
 export interface SalesOrderLine {
   id: string;
   productId: string;
@@ -306,6 +309,11 @@ export interface SalesOrder {
   orderDate: string;
   neededByDate?: string;
   status: SalesOrderStatus;
+  /** Trong nước khi trống (đơn cũ). */
+  saleType?: SaleType;
+  /** Xuất khẩu thu bằng ngoại tệ: mã tiền (USD…) và tỷ giá quy đổi ra VND; số tiền trên đơn vẫn là VND. */
+  currency?: string | null;
+  exchangeRate?: number | null;
   lines: SalesOrderLine[];
   discountAmount: number;
   totalGoods: number;

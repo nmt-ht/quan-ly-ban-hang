@@ -566,6 +566,12 @@ enum SalesOrderStatus {
   HUY
 }
 
+/// Loại chứng từ bán hàng (as MISA): bán hàng hoá, dịch vụ trong nước / bán hàng xuất khẩu (thuế GTGT 0%).
+enum SaleType {
+  TRONG_NUOC
+  XUAT_KHAU
+}
+
 model SalesOrder {
   id              String           @id @default(uuid())
   code            String           @unique
@@ -582,6 +588,10 @@ model SalesOrder {
   deliveredDate   DateTime?        @db.Date
   closedDate      DateTime?        @db.Date // "Kết thúc đơn": khách không lấy phần còn lại
   status          SalesOrderStatus @default(CHO_SAN_XUAT)
+  saleType        SaleType         @default(TRONG_NUOC)
+  // Xuất khẩu thu bằng ngoại tệ: mã tiền (USD…) và tỷ giá quy đổi ra VND. Số tiền trên đơn vẫn là VND.
+  currency        String?
+  exchangeRate    Decimal?
   discountAmount  Decimal          @default(0)
   promotionId     String? // khuyến mãi theo tổng đơn đã áp vào Chiết khấu cả đơn (Pha 1.6)
   cancelReason    String?

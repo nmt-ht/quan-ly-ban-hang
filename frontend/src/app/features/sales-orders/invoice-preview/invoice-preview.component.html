@@ -1,0 +1,147 @@
+<dialog #dialog class="ip-dialog" aria-labelledby="ip-title">
+  <header class="ip-head">
+    <div>
+      <h2 id="ip-title">Xem trước hoá đơn — <span class="num">{{ order().code }}</span></h2>
+      <p class="subtitle">Hoá đơn GTGT dựng từ đơn và thông tin công ty. Bản xem trước: chưa phát hành, chưa có số hoá đơn, mã của cơ quan thuế và chữ ký số.</p>
+    </div>
+    <div class="toolbar">
+      <app-print-menu kind="vat-invoice-preview" [papers]="['A4']" label="In bản xem trước" [down]="true"
+        (prepare)="beforePrint()" (done)="afterPrint()" />
+      <button type="button" class="icon-action" aria-label="Đóng" (click)="close()"><app-nav-icon name="x" /></button>
+    </div>
+  </header>
+  <div class="ip-body">
+    <ng-container *ngTemplateOutlet="paper" />
+  </div>
+</dialog>
+
+@if (printNow()) {
+  <div class="print-only"><ng-container *ngTemplateOutlet="paper" /></div>
+}
+
+<ng-template #paper>
+  @let inv = invoice();
+  @let b = buyer();
+  @let en = exportSale();
+  <article class="inv">
+    <p class="inv-watermark" aria-hidden="true">BẢN XEM TRƯỚC</p>
+
+    <header class="inv-head">
+      <div class="inv-seller">
+        @if (company().logo) { <img class="inv-logo" [src]="company().logo" alt="Logo công ty" /> }
+        <div>
+          <strong class="inv-seller-name">{{ company().name }}</strong>
+          <div><span class="inv-k">Mã số thuế@if (en) { <small> (Tax code)</small> }:</span> <span class="num">{{ company().taxCode || '—' }}</span></div>
+          <div><span class="inv-k">Địa chỉ@if (en) { <small> (Address)</small> }:</span> {{ company().address || '—' }}</div>
+          @if (company().phone) { <div><span class="inv-k">Điện thoại@if (en) { <small> (Tel)</small> }:</span> <span class="num">{{ company().phone }}</span></div> }
+          @if (sellerBank()) { <div><span class="inv-k">Số tài khoản@if (en) { <small> (Account No.)</small> }:</span> <span class="num">{{ sellerBank() }}</span></div> }
+        </div>
+      </div>
+      <dl class="inv-serial">
+        <div><dt>Mẫu số@if (en) { <small> (Form)</small> }:</dt><dd class="num">1</dd></div>
+        <div><dt>Ký hiệu@if (en) { <small> (Serial)</small> }:</dt><dd class="num" title="Ký hiệu theo mẫu đã đăng ký — cấp khi phát hành">{{ serial() }}</dd></div>
+        <div><dt>Số@if (en) { <small> (No.)</small> }:</dt><dd class="inv-pending">Chưa cấp số</dd></div>
+      </dl>
+    </header>
+
+    <div class="inv-titlebar">
+      <h1 class="inv-title">HOÁ ĐƠN GIÁ TRỊ GIA TĂNG</h1>
+      @if (en) { <p class="inv-title-en">(VAT INVOICE)</p> }
+      <p class="inv-date">Ngày <span class="num">{{ dateParts().d }}</span> tháng <span class="num">{{ dateParts().m }}</span> năm <span class="num">{{ dateParts().y }}</span>
+        @if (en) { <small> (Date)</small> }</p>
+      <p class="inv-cqt">Mã của cơ quan thuế: <span class="inv-pending">cấp khi phát hành</span></p>
+    </div>
+
+    <dl class="inv-buyer">
+      <div><dt>Họ tên người mua hàng@if (en) { <small> (Buyer)</small> }:</dt><dd>{{ b.person }}</dd></div>
+      <div><dt>Tên đơn vị@if (en) { <small> (Company)</small> }:</dt><dd>{{ b.company }}</dd></div>
+      <div><dt>Mã số thuế@if (en) { <small> (Tax code)</small> }:</dt><dd class="num">{{ b.taxCode }}</dd></div>
+      @if (b.idNumber) { <div><dt>Số định danh cá nhân:</dt><dd class="num">{{ b.idNumber }}</dd></div> }
+      <div><dt>Địa chỉ@if (en) { <small> (Address)</small> }:</dt><dd>{{ b.address }}</dd></div>
+      <div class="inv-pair">
+        <div><dt>Hình thức thanh toán@if (en) { <small> (Payment method)</small> }:</dt><dd>{{ payment() }}</dd></div>
+        <div><dt>Số tài khoản@if (en) { <small> (Account No.)</small> }:</dt><dd></dd></div>
+      </div>
+      <div class="inv-pair">
+        <div><dt>Đồng tiền thanh toán@if (en) { <small> (Currency)</small> }:</dt><dd>VND</dd></div>
+        @if (foreign(); as f) {
+          <div><dt>Tỷ giá@if (en) { <small> (Exchange rate)</small> }:</dt><dd class="num">1 {{ f.code }} = {{ money(f.rate) }} VND</dd></div>
+        }
+      </div>
+    </dl>
+
+    <table class="inv-table">
+      <thead>
+        <tr>
+          <th class="c-no">STT@if (en) { <small>(No.)</small> }</th>
+          <th>Tên hàng hoá, dịch vụ@if (en) { <small>(Description)</small> }</th>
+          <th class="c-unit">Đơn vị tính@if (en) { <small>(Unit)</small> }</th>
+          <th class="c-n">Số lượng@if (en) { <small>(Quantity)</small> }</th>
+          <th class="c-n">Đơn giá@if (en) { <small>(Unit price)</small> }</th>
+          @if (multiRate()) { <th class="c-rate">Thuế suất@if (en) { <small>(VAT rate)</small> }</th> }
+          <th class="c-n">Thành tiền chưa có thuế GTGT@if (en) { <small>(Amount)</small> }</th>
+        </tr>
+        <tr class="inv-colno">
+          <td>1</td><td>2</td><td>3</td><td>4</td><td>5</td>
+          @if (multiRate()) { <td>6</td><td>7 = 4 × 5</td> } @else { <td>6 = 4 × 5</td> }
+        </tr>
+      </thead>
+      <tbody>
+        @for (r of inv.rows; track r.no) {
+          <tr [class.inv-discount]="r.kind === 'discount'">
+            <td class="c-no num">{{ r.no }}</td>
+            <td>{{ r.name }}</td>
+            <td class="c-unit">{{ r.unit }}</td>
+            <td class="c-n num">{{ r.quantity === null ? '' : r.quantity.toLocaleString('vi-VN') }}</td>
+            <td class="c-n num">{{ money(r.unitPrice) }}</td>
+            @if (multiRate()) { <td class="c-rate num">{{ r.vatRate === null ? '' : r.vatRate + '%' }}</td> }
+            <td class="c-n num">{{ money(r.amount) }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    @if (multiRate()) {
+      <table class="inv-table inv-sum">
+        <thead>
+          <tr><th>Tổng hợp theo thuế suất</th><th class="c-n">Thành tiền chưa có thuế GTGT</th><th class="c-n">Tiền thuế GTGT</th><th class="c-n">Cộng tiền thanh toán</th></tr>
+        </thead>
+        <tbody>
+          @for (g of inv.groups; track g.vatRate) {
+            <tr><td>Thuế suất {{ g.vatRate }}%</td><td class="c-n num">{{ money(g.taxable) }}</td><td class="c-n num">{{ money(g.vat) }}</td><td class="c-n num">{{ money(g.taxable + g.vat) }}</td></tr>
+          }
+        </tbody>
+      </table>
+    }
+
+    <dl class="inv-totals">
+      <div><dt>Cộng tiền hàng@if (en) { <small> (Total amount)</small> }:</dt><dd class="num">{{ money(inv.taxable) }}</dd></div>
+      <div>
+        <dt>@if (multiRate()) {Tổng tiền thuế GTGT} @else {Thuế suất GTGT: <span class="num">{{ inv.groups[0]?.vatRate ?? 0 }}%</span> · Tiền thuế GTGT}@if (en) {<small> (VAT amount)</small>}:</dt>
+        <dd class="num">{{ money(inv.vat) }}</dd>
+      </div>
+      <div class="inv-grand"><dt>Tổng tiền thanh toán@if (en) { <small> (Total payment)</small> }:</dt><dd class="num">{{ money(inv.total) }}</dd></div>
+      @if (foreign(); as f) {
+        <div><dt>Quy đổi@if (en) { <small> (Equivalent)</small> }:</dt><dd class="num">{{ f.amount }} {{ f.code }}</dd></div>
+      }
+    </dl>
+    <p class="inv-words">Số tiền viết bằng chữ@if (en) { <small> (In words)</small> }: <strong>{{ words(inv.total) }}</strong></p>
+
+    <div class="inv-sign">
+      <div>
+        <strong>Người mua hàng@if (en) { <small> (Buyer)</small> }</strong>
+        <span>(Chữ ký số, chữ ký điện tử nếu có)</span>
+      </div>
+      <div>
+        <strong>Người bán hàng@if (en) { <small> (Seller)</small> }</strong>
+        <span>(Chữ ký điện tử, chữ ký số)</span>
+        <span class="inv-sigbox">Chưa ký số — bản xem trước</span>
+      </div>
+    </div>
+
+    <footer class="inv-foot">
+      Bản xem trước dựng từ đơn hàng <span class="num">{{ order().code }}</span> — chưa phát hành, không có giá trị pháp lý.
+      Hoá đơn điện tử chính thức lập và ký số qua nhà cung cấp hoá đơn điện tử.
+    </footer>
+  </article>
+</ng-template>

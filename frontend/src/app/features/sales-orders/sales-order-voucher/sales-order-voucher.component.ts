@@ -8,7 +8,7 @@ import { DataStore } from '../../../core/services/data-store.service';
 import { DebtService } from '../../../core/services/debt.service';
 import { CostService } from '../../../core/services/cost.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { Product, Quotation, SalesOrder, SalesOrderLine, SalesReturn } from '../../../core/models/domain.models';
+import { Product, Quotation, SaleType, SalesOrder, SalesOrderLine, SalesReturn } from '../../../core/models/domain.models';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { CopyButtonComponent } from '../../../shared/copy-button/copy-button.component';
 import { MoneyInputDirective } from '../../../shared/money-input.directive';
@@ -27,8 +27,10 @@ import { formatDay, isoDay } from '../../../shared/period';
 import { VAT_RATES, round4 } from '../../purchase-orders/purchase-order.rules';
 import {
   CUSTOMER_PRICE_LABEL, CUSTOMER_TYPE_LABEL, canCancel, canClose, canDeliver, canEdit, defaultWarehouse, deliveredPercent,
-  lineRemaining, linesNeedingLsx, movesStock, needsProduction, orderTotals, priceFor,
+  lineRemaining, linesNeedingLsx, needsProduction, orderTotals, priceFor,
+  CURRENCIES, SALE_TYPE_LABEL, foreignCurrency, saleTypeIssue,
 } from '../sales-order.rules';
+import { InvoicePreviewComponent } from '../invoice-preview/invoice-preview.component';
 import { SalesOrderDraft, SalesOrderService } from '../sales-order.service';
 import { WarehouseVoucherService } from '../../warehouse-vouchers/warehouse-voucher.service';
 import { CashVoucherService } from '../../cash-vouchers/cash-voucher.service';
@@ -91,6 +93,7 @@ const emptyLine = (): DraftLine => ({
   imports: [SearchSelectComponent, PickableWarehousesPipe, FrozenColsDirective, 
     NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
     PaginationComponent, FilterMultiSelectComponent, DeliverDialogComponent, ReturnDialogComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent,
+    InvoicePreviewComponent,
   ],
   templateUrl: './sales-order-voucher.component.html',
   styleUrls: ['../../../shared/voucher/voucher.scss', './sales-order-voucher.component.scss'],
@@ -170,6 +173,16 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   readonly payNow = signal(false);
   readonly payAccountId = signal('');
   readonly lines = signal<DraftLine[]>([emptyLine()]);
+  /** Loại chứng từ bán hàng (MISA): xuất khẩu = thuế GTGT 0% mọi dòng, được ghi ngoại tệ + tỷ giá. */
+  readonly saleType = signal<SaleType>('TRONG_NUOC');
+  readonly currency = signal('VND');
+  readonly exchangeRate = signal<number | null>(null);
+  readonly exportSale = computed(() => this.saleType() === 'XUAT_KHAU');
+  readonly saleTypeLabel = SALE_TYPE_LABEL;
+  readonly currencies = CURRENCIES;
+  /** Xem trước hoá đơn GTGT của đơn đã lưu; printingInvoice: bản in lúc này là hoá đơn, không phải đơn hàng. */
+  readonly invoicePreview = viewChild<InvoicePreviewComponent>('invoicePreview');
+  readonly printingInvoice = signal(false);
   /** Lập đơn từ báo giá (?quoteId=): saving links the two and marks the báo giá Đã lập đơn. */
   readonly fromQuote = signal<Quotation | null>(null);
   readonly attempted = signal(false);
@@ -228,6 +241,9 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
         this.payNow.set(!!o?.payNowAccountId);
         this.payAccountId.set(o?.payNowAccountId ?? this.defaultAccount());
         this.lines.set(o ? o.lines.map((l) => this.toDraft(l)) : quote ? quote.lines.map((l) => this.toDraft({ ...l, receivedQuantity: 0 })) : [emptyLine()]);
+        this.saleType.set(o?.saleType ?? 'TRONG_NUOC');
+        this.currency.set(o?.currency || 'VND');
+        this.exchangeRate.set(o?.exchangeRate ?? null);
         this.attempted.set(false);
         this.tab.set('hang');
         this.page.set(1);
@@ -474,6 +490,10 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
       if ((l.discountRate ?? 0) > 100) out.push(`Dòng ${i + 1}: tỷ lệ chiết khấu tối đa 100%`);
     });
     if (!this.validLines().length) out.push('Thêm ít nhất một dòng hàng có số lượng');
+    const saleIssue = saleTypeIssue({
+      saleType: this.saleType(), currency: this.currency(), exchangeRate: this.exchangeRate(), lines: this.validSaleLines(),
+    });
+    if (saleIssue) out.push(saleIssue);
     const goodsAfterLineDisc = this.totals().goods - this.totals().lineDiscount;
     if ((this.orderDiscount() ?? 0) > goodsAfterLineDisc) out.push('Chiết khấu đơn lớn hơn tiền hàng');
     return out;
@@ -511,8 +531,35 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
     return {
       ...emptyLine(), key: previous?.key ?? newKey(), productId, quantity, unitPrice: price, priceManual: false,
       discountRate: 100, discountAmount: Math.round(quantity * price), discountManual: true, promotionId, isGift: true,
-      vatRate: p?.vatRate ?? 0, warehouseId: previous?.warehouseId || defaultWarehouse(p), note: previous?.note ?? '',
+      vatRate: this.vatFor(p), warehouseId: previous?.warehouseId || defaultWarehouse(p), note: previous?.note ?? '',
     };
+  }
+
+  /** Thuế suất của mặt hàng; hàng xuất khẩu 0%. */
+  private vatFor(p: Product | undefined): number {
+    return this.exportSale() ? 0 : p?.vatRate ?? 0;
+  }
+
+  /**
+   * Đổi loại chứng từ (MISA): xuất khẩu đặt thuế GTGT 0% cho mọi dòng; về trong nước thì lấy lại thuế suất của mặt hàng
+   * và bỏ ngoại tệ, tỷ giá.
+   */
+  setSaleType(t: SaleType): void {
+    this.saleType.set(t);
+    if (t === 'TRONG_NUOC') {
+      this.currency.set('VND');
+      this.exchangeRate.set(null);
+    }
+    this.lines.update((ls) => ls.map((l) => (l.productId ? { ...l, vatRate: this.vatFor(this.product(l.productId)) } : l)));
+  }
+
+  setCurrency(c: string): void {
+    this.currency.set(c);
+    if (!foreignCurrency(c)) this.exchangeRate.set(null);
+  }
+
+  openInvoicePreview(): void {
+    this.invoicePreview()?.open();
   }
 
   setOrderDiscount(v: number | null): void {
@@ -563,7 +610,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
       unitName: '',
       unitPrice: p ? priceFor(p, this.customerType(), '', this.listItems()) : null,
       priceManual: false,
-      vatRate: p?.vatRate ?? 0,
+      vatRate: this.vatFor(p),
       warehouseId: defaultWarehouse(p),
       quantity: this.lines()[i].quantity ?? 1,
     });
@@ -661,6 +708,9 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
       payNowAccountId: this.payNow() && this.payAccountId() ? this.payAccountId() : undefined,
       overrideCreditLimit: overrideCredit || undefined,
       quotationId: this.mode() === 'create' ? this.fromQuote()?.id : undefined,
+      saleType: this.saleType(),
+      currency: foreignCurrency(this.currency()) ?? undefined,
+      exchangeRate: foreignCurrency(this.currency()) ? this.exchangeRate() ?? undefined : undefined,
       lines: this.validSaleLines(),
     };
     const id = this.id();
@@ -910,6 +960,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
       this.customerId(), this.recipientName(), this.recipientPhone(), this.deliveryAddress(), this.description(), this.source(),
       this.tagIds(), this.orderDate(), this.neededByDate(), this.salesRep(), this.orderDiscount(), this.payNow(), this.payAccountId(),
       this.lines().map(({ key, ...line }) => line),
+      this.saleType(), this.currency(), this.exchangeRate(),
     ]);
   }
 

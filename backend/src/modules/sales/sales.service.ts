@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import { CustomerType, Prisma, SalesOrderStatus } from '@prisma/client';
+import { CustomerType, Prisma, SaleType, SalesOrderStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { SequenceService } from '../../prisma/sequence.service.js';
 import { InventoryService, VoucherLineInput } from '../inventory/inventory.service.js';
@@ -12,8 +12,8 @@ import { ReceivablesService } from './receivables.service.js';
 import { RETURN_INCLUDE, returnToApi } from './returns.js';
 import { diff, vnd } from '../../audit/audit.diff.js';
 import {
-  ListPrice, LsxState, PriceSource, STATUS_LABEL, SaleLine, canCancel, canClose, canDeliver, canEdit, deriveStatus, lineDiscount, lineRemaining,
-  linesNeedingLsx, orderTotals, priceFor, receivedValueOf, round4,
+  ListPrice, LsxState, PriceSource, SALE_TYPE_LABEL, STATUS_LABEL, SaleLine, canCancel, canClose, canDeliver, canEdit, deriveStatus, lineDiscount, lineRemaining,
+  foreignCurrency, linesNeedingLsx, orderTotals, priceFor, receivedValueOf, round4, saleTypeIssue,
 } from './sales-order.rules.js';
 import { SalesOrderPageQuery, orderWhere, pageOf } from './sales-order-page.js';
 import { lockOrderFor, orderVisibleTo } from './order-access.js';
@@ -54,6 +54,11 @@ export interface SalesOrderInput {
   tagIds: string[];
   orderDate: string;
   neededByDate?: string;
+  /** Loại chứng từ bán hàng (MISA): trong nước (mặc định) / xuất khẩu. */
+  saleType?: SaleType;
+  /** Xuất khẩu thu bằng ngoại tệ: mã tiền và tỷ giá quy đổi ra VND. */
+  currency?: string;
+  exchangeRate?: number;
   salesRep?: string; // e-mail of the người bán, as the frontend keeps it
   discountAmount: number;
   payNowAccountId?: string;
@@ -100,14 +105,14 @@ const LSX_INCLUDE = { createdBy: { select: { email: true } } } as const satisfie
 
 const ORDER_FIELDS = {
   customer: 'Khách hàng', recipientName: 'Người nhận', recipientPhone: 'Điện thoại nhận', deliveryAddress: 'Địa chỉ giao',
-  description: 'Diễn giải', source: 'Nguồn đơn', orderDate: 'Ngày đặt', neededByDate: 'Ngày cần giao', salesRep: 'Người bán',
+  description: 'Diễn giải', source: 'Nguồn đơn', saleType: 'Loại bán hàng', currency: 'Loại tiền', exchangeRate: 'Tỷ giá', orderDate: 'Ngày đặt', neededByDate: 'Ngày cần giao', salesRep: 'Người bán',
   discountAmount: 'Chiết khấu cả đơn', payNow: 'Thu tiền ngay', tags: 'Thẻ', lines: 'Dòng hàng',
 };
 
 /** The parts of an order the Sửa đơn diff compares, before names are looked up. */
 interface OrderShape {
   customerId: string; recipientName: string | null; recipientPhone: string | null; deliveryAddress: string | null;
-  description: string | null; source: string | null; orderDate: Date | null; neededByDate: Date | null;
+  description: string | null; source: string | null; saleType: SaleType; currency: string | null; exchangeRate: unknown; orderDate: Date | null; neededByDate: Date | null;
   discountAmount: unknown; payNowAccountId: string | null; salesRepId: string | null; tagIds: string[];
   lines: { productId: string; quantity: unknown; unitName: string | null; unit: string; unitPrice: unknown; discountAmount: unknown; vatRate: unknown; length?: unknown; width?: unknown }[];
 }
@@ -123,13 +128,14 @@ const saleLine = (l: LineRow): SaleLine => ({
 
 /** The frontend's SalesOrder: day-only dates, e-mails for people, tagIds, totals derived from the lines. */
 export function orderToApi(o: OrderRow) {
-  const { lines, tags, createdBy, createdById: _c, salesRep, salesRepId: _r, deliveryTripOrders, returns, quotation, orderDate, neededByDate, dueDate, deliveredDate, closedDate, ...rest } = o;
+  const { lines, tags, createdBy, createdById: _c, salesRep, salesRepId: _r, deliveryTripOrders, returns, quotation, orderDate, neededByDate, dueDate, deliveredDate, closedDate, exchangeRate, ...rest } = o;
   const nums = lines.map(saleLine);
   const discount = o.discountAmount.toNumber();
   const t = orderTotals(nums, discount);
   const lastTrip = [...deliveryTripOrders].sort((a, b) => b.trip.date.getTime() - a.trip.date.getTime())[0];
   return {
     ...rest,
+    exchangeRate: exchangeRate?.toNumber() ?? null,
     orderDate: toDay(orderDate)!, neededByDate: toDay(neededByDate), dueDate: toDay(dueDate), deliveredDate: toDay(deliveredDate), closedDate: toDay(closedDate),
     tagIds: tags.map((x) => x.tagId),
     salesRep: salesRep?.email ?? '',
@@ -173,6 +179,7 @@ export class SalesService {
     return {
       ...o,
       customer: customer ? `${customer.code} · ${customer.name}` : o.customerId,
+      saleType: SALE_TYPE_LABEL[o.saleType],
       salesRep: rep?.name ?? null,
       payNow: account?.name ?? null,
       tags: tags.map((t) => t.name),
@@ -728,6 +735,8 @@ export class SalesService {
   }
 
   private async checkInput(tx: Tx, input: SalesOrderInput, user: AuthUser, existing: PricedLine[], existingDiscount: number) {
+    const saleIssue = saleTypeIssue(input);
+    if (saleIssue) throw new BadRequestException(saleIssue);
     const { byId } = await checkPartyAndPrices(tx, { ...input, date: input.orderDate }, user, existing, existingDiscount);
 
     let salesRepId: string | null = null;
@@ -849,6 +858,8 @@ function headerFields(input: SalesOrderInput) {
   return {
     customerId: input.customerId, recipientName: input.recipientName ?? null, recipientPhone: input.recipientPhone ?? null,
     deliveryAddress: input.deliveryAddress ?? null, description: input.description ?? null, source: input.source ?? null,
+    saleType: input.saleType ?? 'TRONG_NUOC', currency: foreignCurrency(input.currency),
+    exchangeRate: foreignCurrency(input.currency) ? input.exchangeRate ?? null : null,
     orderDate: fromDay(input.orderDate)!, neededByDate: fromDay(input.neededByDate), discountAmount: input.discountAmount || 0,
     payNowAccountId: input.payNowAccountId ?? null, promotionId: input.promotionId ?? null,
   };

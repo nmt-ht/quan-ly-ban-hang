@@ -1,7 +1,7 @@
 import { BadRequestException, Body, Controller, Get, HttpCode, HttpStatus, Module, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { Type, plainToInstance } from 'class-transformer';
 import {
-  validate, ArrayMinSize, IsArray, IsISO8601, IsInt, IsNumber, IsOptional, IsPositive, IsString, Matches, Max, Min, ValidateNested, IsBoolean } from 'class-validator';
+  validate, ArrayMinSize, IsArray, IsISO8601, IsIn, IsInt, IsNumber, IsOptional, IsPositive, IsString, Matches, Max, Min, ValidateNested, IsBoolean } from 'class-validator';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard.js';
 import { PermissionsGuard } from '../../auth/permissions.guard.js';
 import { CurrentUser, RequireAnyPermission, RequirePermissions } from '../../auth/permissions.decorator.js';
@@ -47,6 +47,10 @@ export class SalesOrderDto {
   @IsArray() @IsString({ each: true }) tagIds!: string[];
   @Matches(DAY, DAY_MESSAGE) orderDate!: string;
   @OptionalDay() neededByDate?: string;
+  /** Loại chứng từ bán hàng: trong nước (mặc định) / xuất khẩu — thuế suất, loại tiền kiểm ở sales-order.rules.ts. */
+  @IsOptional() @IsIn(['TRONG_NUOC', 'XUAT_KHAU'], { message: 'Loại bán hàng không hợp lệ' }) saleType?: 'TRONG_NUOC' | 'XUAT_KHAU';
+  @IsOptional() @Matches(/^[A-Za-z]{3}$/, { message: 'Loại tiền là mã 3 chữ cái, VD USD' }) currency?: string;
+  @IsOptional() @IsNumber() @IsPositive({ message: 'Tỷ giá phải lớn hơn 0' }) exchangeRate?: number;
   @OptionalText(200) salesRep?: string;
   @IsNumber() @Min(0) discountAmount!: number;
   @OptionalText(60) payNowAccountId?: string;
