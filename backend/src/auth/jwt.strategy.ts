@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { multiTenant } from '../platform/secret-box.js';
 import { currentTenantCode } from '../platform/tenant.context.js';
 import { AuthService, AuthUser, JwtPayload } from './auth.service.js';
 
@@ -24,6 +25,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: JwtPayload): Promise<AuthUser> {
     // A token works only for the doanh nghiệp it was issued for: user ids of two databases may collide.
     if ((payload.tid ?? null) !== (currentTenantCode() ?? null)) throw new UnauthorizedException('Phiên đăng nhập không thuộc doanh nghiệp này');
+    // Multi-tenant mode issues every token for a doanh nghiệp; one without `tid` came from outside the lookup.
+    if (multiTenant() && !payload.tid) throw new UnauthorizedException('Phiên đăng nhập không thuộc doanh nghiệp này');
     const user = await this.auth.loadUser(payload.sub, payload.iat);
     if (!user) throw new UnauthorizedException('Phiên đăng nhập không còn hiệu lực');
     return user;

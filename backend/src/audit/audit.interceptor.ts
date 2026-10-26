@@ -22,7 +22,7 @@ export class AuditContextInterceptor implements NestInterceptor {
       id?: string; method: string; ip?: string; originalUrl?: string; route?: { path?: string }; user?: AuthUser;
     }>();
     // Quản trị nền tảng belongs to no doanh nghiệp: it logs to platform_audit (src/platform).
-    if (req.originalUrl?.startsWith('/api/platform')) return next.handle();
+    if (req.originalUrl?.toLowerCase().startsWith('/api/platform')) return next.handle();
     const ctx: AuditContext = {
       requestId: req.id ?? randomUUID(),
       ip: req.ip ?? null,

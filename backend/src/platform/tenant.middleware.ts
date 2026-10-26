@@ -23,7 +23,9 @@ export class TenantMiddleware implements NestMiddleware {
   ) {}
 
   async use(req: Request, res: Response, next: NextFunction): Promise<void> {
-    const path = req.originalUrl.split('?')[0];
+    // Express matches routes case-insensitively: /API/auth/login reaches the same controller, so it must
+    // not slip past the doanh nghiệp lookup (and its tạm ngưng check) onto DATABASE_URL.
+    const path = req.originalUrl.split('?')[0].toLowerCase();
     if (!multiTenant() || !(path === '/api' || path.startsWith('/api/')) || OPEN.has(path)) return next();
     if (path === PLATFORM || path.startsWith(`${PLATFORM}/`)) return runInTenant({ code: null, client: null }, next);
 

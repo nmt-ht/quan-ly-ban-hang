@@ -179,6 +179,23 @@ describe.skipIf(!enabled)('Nhiều doanh nghiệp (e2e)', () => {
     await api().post('/api/auth/login').set(tenant('e2e-a')).send({ email: 'giam.doc@e2e-a.local', password: 'MatKhauMoi2026' }).expect(200);
   });
 
+  it('Đường /API viết hoa vẫn qua kiểm tra doanh nghiệp: doanh nghiệp đầu tiên tạm ngưng thì không vào được', async () => {
+    const admin = { email: 'admin@ninhtrang.local', password: ADMIN_PASSWORD };
+    const main = (await api().post('/api/auth/login').set(tenant('ninhtrang')).send(admin).expect(200)).body.accessToken as string;
+    await api().post('/api/platform/tenants/ninhtrang/suspend').set(bearer(owner)).expect(200);
+    try {
+      for (const path of ['/API/auth/login', '/Api/Auth/Login']) {
+        await api().post(path).send(admin).expect(400); // no X-Tenant: not a login on DATABASE_URL
+        await api().post(path).set(tenant('ninhtrang')).send(admin).expect(403);
+      }
+      await api().get('/API/customers').set(bearer(main)).expect(400);
+      await api().post('/API/customers').set(tenant('ninhtrang')).set(bearer(main)).send({ name: 'Không được tạo' }).expect(403);
+    } finally {
+      await api().post('/api/platform/tenants/ninhtrang/reopen').set(bearer(owner)).expect(200);
+    }
+    await api().get('/API/auth/me').set(tenant('ninhtrang')).set(bearer(main)).expect(200);
+  });
+
   it('Cấp lại mật khẩu quản trị, đổi tên, cập nhật cấu trúc; mọi việc vào nhật ký nền tảng', async () => {
     const reset = await api().post('/api/platform/tenants/e2e-a/reset-password').set(bearer(owner)).send({}).expect(200);
     expect(reset.body.email).toBe('giam.doc@e2e-a.local');
