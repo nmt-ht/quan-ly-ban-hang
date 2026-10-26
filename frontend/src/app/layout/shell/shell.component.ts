@@ -1,5 +1,7 @@
 import { Component, HostListener, computed, inject, signal } from '@angular/core';
-import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import {
+  NavigationCancel, NavigationEnd, NavigationError, NavigationStart, Router, RouterLink, RouterLinkActive, RouterOutlet,
+} from '@angular/router';
 import { filter } from 'rxjs';
 import { ModuleKey, NAV_GROUPS, NavGroup, moduleOf } from '../nav-items';
 import { NavIconComponent } from '../nav-icon/nav-icon.component';
@@ -49,8 +51,20 @@ export class ShellComponent {
   readonly closedGroups = signal<string[]>(loadClosed());
   /** Phân hệ of the page on screen: its hue colours the page area (tokens.css › [data-module]). */
   readonly module = signal<ModuleKey | null>(moduleOf(this.router.url));
+  /** Thanh tải trên topbar khi chuyển trang (tải mã trang, guard). Chỉ hiện nếu quá 120 ms để khỏi nháy. */
+  readonly navigating = signal(false);
+  private navTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor() {
+    this.router.events.subscribe((e) => {
+      if (e instanceof NavigationStart) {
+        clearTimeout(this.navTimer);
+        this.navTimer = setTimeout(() => this.navigating.set(true), 120);
+      } else if (e instanceof NavigationEnd || e instanceof NavigationCancel || e instanceof NavigationError) {
+        clearTimeout(this.navTimer);
+        this.navigating.set(false);
+      }
+    });
     // Landing on a page inside a folded group (link, search, back button) unfolds it.
     this.router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd)).subscribe((e) => {
       this.module.set(moduleOf(e.urlAfterRedirects));
