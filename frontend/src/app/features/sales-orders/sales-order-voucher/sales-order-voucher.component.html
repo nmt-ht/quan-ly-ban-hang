@@ -278,6 +278,12 @@
           @if (editable() && !customer()) {
             <p class="grid-hint">Chọn khách hàng trước — đơn giá tự áp theo loại khách (sỉ / lẻ / dropship), sửa tay được.</p>
           }
+          @if (shortLines()) {
+            <p class="grid-hint so-short-hint" role="status">
+              {{ shortLines() }} dòng đặt vượt tồn tại kho xuất. Đơn vẫn lưu được; nhập thêm hàng, đổi kho
+              hoặc lập lệnh sản xuất trước khi giao.
+            </p>
+          }
           <div class="voucher-grid-scroll">
             <table appFrozenCols="2" class="voucher-grid so-grid">
               <thead>
@@ -363,6 +369,16 @@
                           (ngModelChange)="patch(i, { quantity: $event })" [attr.aria-label]="'Số lượng dòng ' + (i + 1)"
                           [attr.aria-invalid]="attempted() && l.productId && !((l.quantity ?? 0) > 0) ? 'true' : null" />
                       } @else { <span class="num">{{ (l.quantity ?? 0).toLocaleString('vi-VN') }}</span> }
+                      @if (lineStock().get(l.key); as s) {
+                        <span class="so-stock num" [class.is-short]="s.short > 0"
+                          [title]="s.others.length ? 'Tồn ở kho khác — ' + otherStockText(s.others) : 'Không kho nào khác còn hàng'">
+                          Tồn {{ s.available.toLocaleString('vi-VN') }}
+                          @if (s.short > 0) { · Thiếu {{ s.short.toLocaleString('vi-VN') }} }
+                        </span>
+                        @if (s.short > 0 && s.others.length) {
+                          <span class="so-stock">Kho khác: {{ otherStockText(s.others) }}</span>
+                        }
+                      }
                     </td>
                     <td class="c-num">
                       @if (editable() && !l.isGift) {

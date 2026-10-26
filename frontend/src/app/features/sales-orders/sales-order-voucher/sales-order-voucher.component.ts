@@ -27,7 +27,7 @@ import { formatDay, isoDay } from '../../../shared/period';
 import { VAT_RATES, round4 } from '../../purchase-orders/purchase-order.rules';
 import {
   CUSTOMER_PRICE_LABEL, CUSTOMER_TYPE_LABEL, canCancel, canClose, canDeliver, canEdit, defaultWarehouse, deliveredPercent,
-  lineRemaining, linesNeedingLsx, needsProduction, orderTotals, priceFor,
+  lineRemaining, linesNeedingLsx, movesStock, needsProduction, orderTotals, priceFor,
 } from '../sales-order.rules';
 import { SalesOrderDraft, SalesOrderService } from '../sales-order.service';
 import { WarehouseVoucherService } from '../../warehouse-vouchers/warehouse-voucher.service';
@@ -286,6 +286,49 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
     for (const s of this.data.stockLevels()) m.set(s.productId, (m.get(s.productId) ?? 0) + s.quantity);
     return m;
   });
+
+  /**
+   * Tồn tại kho xuất của từng dòng đang soạn, theo ĐVT của dòng, và phần thiếu khi số đặt vượt tồn.
+   * Dòng cùng hàng cùng kho (kể cả hàng tặng) dùng chung một tồn. Như MISA: đơn đặt hàng chỉ cảnh báo,
+   * vẫn lưu được; `others` là tồn ở các kho khác (MISA: Ctrl + F2 "Xem số tồn vật tư") để đổi kho xuất.
+   */
+  readonly lineStock = computed(() => {
+    const out = new Map<string, { available: number; short: number; others: { name: string; quantity: number }[] }>();
+    if (!this.editable()) return out;
+    const key = (productId: string, warehouseId: string) => `${productId}|${warehouseId}`;
+    const onHand = new Map<string, number>();
+    for (const s of this.data.stockLevels()) onHand.set(key(s.productId, s.warehouseId), s.quantity);
+    const stocked = this.lines().filter((l) => l.productId && l.warehouseId && movesStock(this.product(l.productId)));
+    const demand = new Map<string, number>();
+    for (const l of stocked) {
+      const k = key(l.productId, l.warehouseId);
+      demand.set(k, (demand.get(k) ?? 0) + Math.max(0, l.quantity ?? 0) * this.ratio(l));
+    }
+    for (const l of stocked) {
+      const k = key(l.productId, l.warehouseId);
+      const ratio = this.ratio(l);
+      const have = onHand.get(k) ?? 0;
+      const over = (demand.get(k) ?? 0) - have;
+      const others = this.data.stockLevels()
+        .filter((s) => s.productId === l.productId && s.warehouseId !== l.warehouseId && s.quantity > 0)
+        .map((s) => ({ name: this.warehouseName(s.warehouseId), quantity: round4(s.quantity / ratio) }))
+        .sort((a, b) => b.quantity - a.quantity);
+      out.set(l.key, {
+        available: round4(have / ratio),
+        short: over > 0 && (l.quantity ?? 0) > 0 ? round4(Math.min(over, (l.quantity ?? 0) * ratio) / ratio) : 0,
+        others,
+      });
+    }
+    return out;
+  });
+
+  /** "Kho A: 30 · Kho B: 12" — tồn ở các kho khác, theo ĐVT của dòng. */
+  otherStockText(others: { name: string; quantity: number }[]): string {
+    return others.map((o) => `${o.name}: ${o.quantity.toLocaleString('vi-VN')}`).join(' · ');
+  }
+
+  /** Số dòng đặt vượt tồn tại kho xuất (thanh cảnh báo phía trên lưới). */
+  readonly shortLines = computed(() => [...this.lineStock().values()].filter((s) => s.short > 0).length);
   readonly repOptions = computed(() => {
     const roles = new Map(this.data.roles().map((r) => [r.id, r.name]));
     return this.data.users()

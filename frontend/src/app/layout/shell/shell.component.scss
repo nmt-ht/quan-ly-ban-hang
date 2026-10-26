@@ -315,6 +315,31 @@
   box-shadow: inset 0 3px 0 var(--color-accent);
 }
 
+// Đang chuyển trang: một vệt màu phân hệ chạy dọc mép dưới topbar.
+.nav-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 3px;
+  overflow: hidden;
+  pointer-events: none;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 35%;
+    background: var(--color-accent);
+    animation: nav-progress 1s ease-in-out infinite;
+  }
+}
+
+@keyframes nav-progress {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(300%); }
+}
+
 .topbar-spacer {
   flex: 1;
 }
