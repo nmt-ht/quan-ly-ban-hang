@@ -339,6 +339,18 @@ export interface SalesOrder {
   /** Báo giá đơn được lập từ (Pha 1.4). */
   quotationId?: string | null;
   quotationCode?: string | null;
+  /** Đợt khách nhận hàng, theo thứ tự ghi (hoá đơn GTGT lập theo từng đợt). */
+  deliveries?: SalesOrderDelivery[];
+}
+
+/** Một đợt khách nhận hàng (giao tại kho, hoặc chốt giao trên chuyến) — chứng từ bán hàng của đợt đó. */
+export interface SalesOrderDelivery {
+  id: string;
+  date: string;
+  amount: number; // giá trị khách nhận thêm (gồm thuế, sau chiết khấu) = công nợ của đợt
+  tripId?: string | null;
+  /** Số nhận từng dòng (ĐVT của dòng); trống ở đợt ghi trước khi có chi tiết dòng. */
+  lines: { orderLineId: string; quantity: number }[];
 }
 
 /** MOI = đang mở (sửa, huỷ, lập đơn được); "Hết hạn" không lưu — màn hình suy ra từ validUntil. */

@@ -5,7 +5,7 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import { SequenceService } from '../../prisma/sequence.service.js';
 import { InventoryService, VoucherLineInput } from '../inventory/inventory.service.js';
 import type { AuthUser } from '../../auth/auth.service.js';
-import { fromDay, toDay } from '../../common/text.js';
+import { fromDay, toDay, vnDay } from '../../common/text.js';
 import { CASH_INCLUDE, cashToApi } from '../cash/cash-voucher.mapper.js';
 import { AuditService } from '../../audit/audit.service.js';
 import { ReceivablesService } from './receivables.service.js';
@@ -99,6 +99,7 @@ const ORDER_INCLUDE = {
   deliveryTripOrders: { select: { tripId: true, trip: { select: { date: true } } } },
   returns: { include: RETURN_INCLUDE, orderBy: { createdAt: 'asc' } },
   quotation: { select: { id: true, code: true } },
+  deliveries: { include: { lines: true }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] },
 } as const satisfies Prisma.SalesOrderInclude;
 
 const LSX_INCLUDE = { createdBy: { select: { email: true } } } as const satisfies Prisma.ProductionOrderInclude;
@@ -128,7 +129,7 @@ const saleLine = (l: LineRow): SaleLine => ({
 
 /** The frontend's SalesOrder: day-only dates, e-mails for people, tagIds, totals derived from the lines. */
 export function orderToApi(o: OrderRow) {
-  const { lines, tags, createdBy, createdById: _c, salesRep, salesRepId: _r, deliveryTripOrders, returns, quotation, orderDate, neededByDate, dueDate, deliveredDate, closedDate, exchangeRate, ...rest } = o;
+  const { lines, tags, createdBy, createdById: _c, salesRep, salesRepId: _r, deliveryTripOrders, returns, quotation, deliveries, orderDate, neededByDate, dueDate, deliveredDate, closedDate, exchangeRate, ...rest } = o;
   const nums = lines.map(saleLine);
   const discount = o.discountAmount.toNumber();
   const t = orderTotals(nums, discount);
@@ -147,6 +148,11 @@ export function orderToApi(o: OrderRow) {
     returnedValue: returns.filter((r) => !r.isCancelled).reduce((s, r) => s + r.amount.toNumber(), 0),
     quotationId: quotation?.id ?? null,
     quotationCode: quotation?.code ?? null,
+    // Đợt khách nhận hàng, in the order they were recorded (hoá đơn GTGT theo đợt); lines empty for đợt recorded before.
+    deliveries: deliveries.map((d) => ({
+      id: d.id, date: toDay(d.date)!, amount: d.amount.toNumber(), tripId: d.tripId,
+      lines: d.lines.map((x) => ({ orderLineId: x.orderLineId, quantity: x.quantity.toNumber() })),
+    })),
     lines: lines.map(({ orderId: _o, sortOrder: _s, ...l }, i) => ({ ...l, lineTotal: t.lines[i].gross })),
   };
 }
@@ -212,7 +218,7 @@ export class SalesService {
     const window: Prisma.SalesOrderWhereInput = pick?.ids?.length || pick?.codes?.length
       ? { OR: [...(pick.ids?.length ? [{ id: { in: pick.ids } }] : []), ...(pick.codes?.length ? [{ code: { in: pick.codes } }] : [])] }
       : since
-      ? { OR: [{ status: { notIn: ['HOAN_THANH', 'HUY', 'TRA_TOAN_BO'] }, closedDate: null }, { orderDate: { gte: fromDay(since.toISOString().slice(0, 10))! } }] }
+      ? { OR: [{ status: { notIn: ['HOAN_THANH', 'HUY', 'TRA_TOAN_BO'] }, closedDate: null }, { orderDate: { gte: fromDay(vnDay(since))! } }] }
       : {};
     const rows = await this.prisma.salesOrder.findMany({
       where: { AND: [this.visibleTo(user), window] }, include: ORDER_INCLUDE, orderBy: [{ orderDate: 'desc' }, { code: 'desc' }],
@@ -232,7 +238,7 @@ export class SalesService {
       customers: new Map(customers.map((c) => [c.id, c])),
       products: new Map(products.map((p) => [p.id, p])),
       users: new Map(users.map((u) => [u.email, u.name])),
-    }, new Date().toISOString().slice(0, 10));
+    }, vnDay());
   }
 
   /**
@@ -306,7 +312,7 @@ export class SalesService {
     return this.prisma.$transaction(async (tx) => {
       const quote = input.quotationId ? await this.openQuotation(tx, input.quotationId, input.customerId) : null;
       const refs = await this.checkInput(tx, input, user, quote?.lines ?? [], quote?.discountAmount.toNumber() ?? 0);
-      const credit = await this.checkCredit(input, user);
+      const credit = await this.checkCredit(tx, input, user);
       const lines = lineRows(input.lines);
       const status = deriveStatus({ status: 'CHO_SAN_XUAT', lines: lines.map(rowToSaleLine), receivedValue: 0 }, [], refs.isTp);
       const o = await tx.salesOrder.create({
@@ -345,7 +351,7 @@ export class SalesService {
       const lsx = await tx.productionOrder.findMany({ where: { sourceOrderId: id } });
       if (!canEdit(this.state(o), lsx)) throw new BadRequestException('Đơn đã sản xuất hoặc đã giao, không sửa được.');
       const refs = await this.checkInput(tx, input, user, o.lines, o.discountAmount.toNumber());
-      const credit = await this.checkCredit(input, user, id);
+      const credit = await this.checkCredit(tx, input, user, id);
       const lines = lineRows(input.lines);
       const before = await this.described(tx, { ...o, tagIds: o.tags.map((t) => t.tagId) });
 
@@ -410,7 +416,7 @@ export class SalesService {
       if (!canClose(this.state(o))) throw new BadRequestException('Chỉ kết thúc được đơn đang giao một phần.');
       const trip = await activeTripOf(tx, id);
       if (trip) throw new BadRequestException(`Đơn ${o.code} đang nằm trên chuyến ${trip.code} — bỏ đơn khỏi chuyến trước khi kết thúc.`);
-      await tx.salesOrder.update({ where: { id }, data: { closedDate: fromDay(new Date().toISOString()) } });
+      await tx.salesOrder.update({ where: { id }, data: { closedDate: fromDay(vnDay()) } });
       await this.audit.log(tx, {
         action: 'sales_order.close', entityType: 'SalesOrder', entityId: id, entityCode: o.code,
         summary: `Kết thúc đơn ${o.code}: khách không lấy phần còn lại`,
@@ -473,8 +479,17 @@ export class SalesService {
       const status = await this.refreshStatus(tx, id);
 
       const delta = receivedValueOf(nums, o.discountAmount.toNumber()) - before;
-      if (delta > 0) await tx.salesOrderDelivery.create({ data: { orderId: id, date: fromDay(input.date)!, amount: delta } });
-      const { receipts } = await this.syncPayNow(tx, o, delta, input.date, user.id);
+      // One đợt per giao, with what each dòng received — its hoá đơn GTGT is made from these (hàng tặng included).
+      const delivery = await tx.salesOrderDelivery.create({
+        data: {
+          orderId: id, date: fromDay(input.date)!, amount: delta,
+          lines: { create: o.lines.flatMap((l, i) => {
+            const quantity = round4(nums[i].receivedQuantity - l.receivedQuantity.toNumber());
+            return quantity > 0 ? [{ orderLineId: l.id, quantity }] : [];
+          }) },
+        },
+      });
+      const { receipts } = await this.syncPayNow(tx, o, delta, input.date, user.id, { deliveryId: delivery.id });
       await this.audit.log(tx, {
         action: 'sales_order.deliver', entityType: 'SalesOrder', entityId: id, entityCode: o.code,
         summary: `Giao hàng đơn ${o.code}: khách nhận ${vnd(delta)} · ${STATUS_LABEL[status]}`
@@ -487,47 +502,56 @@ export class SalesService {
   }
 
   /**
-   * "Thu tiền ngay": the customer received more → a phiếu thu for exactly that value, đối trừ thẳng vào
-   * đơn này. Received less (bỏ chốt giao on a chuyến) → the latest automatic phiếu thu that fit are
-   * cancelled so công nợ matches again. Returns the new receipts and the ids of the cancelled ones.
+   * "Thu tiền ngay": the customer received more → a phiếu thu for exactly that value of đợt `deliveryId`, đối trừ
+   * thẳng vào đơn này. Received less (bỏ chốt giao on a chuyến) → the phiếu thu of the đợt being removed are
+   * cancelled; phiếu tự lập before they carried their đợt are cancelled newest first, only whole ones that fit.
+   * Returns the new receipts and the ids of the cancelled ones.
    */
   async syncPayNow(
-    tx: Tx, o: { code: string; customerId: string; payNowAccountId: string | null; status: SalesOrderStatus }, delta: number, date: string, userId: string,
+    tx: Tx, o: { id: string; code: string; customerId: string; payNowAccountId: string | null; status: SalesOrderStatus },
+    delta: number, date: string, userId: string, link: { deliveryId?: string; removedDeliveryIds?: string[] } = {},
   ) {
-    const none = { receipts: [] as ReturnType<typeof cashToApi>[], cancelled: [] as string[] };
-    if (!o.payNowAccountId || o.status === 'HUY' || !delta) return none;
-    const marker = `Thu tiền ngay đơn ${o.code}`;
+    const out = { receipts: [] as ReturnType<typeof cashToApi>[], cancelled: [] as string[] };
+    if (!o.payNowAccountId || o.status === 'HUY' || !delta) return out;
     await assertOpenPeriod(tx, date, 'Phiếu thu tiền ngay');
     if (delta > 0) {
+      const description = `Thu tiền ngay đơn ${o.code}`;
       const v = await tx.cashVoucher.create({
         data: {
           code: await this.sequences.nextCode('PT', tx), date: fromDay(date)!, kind: 'THU', category: 'Thu tiền khách hàng',
           partnerType: 'KHACH_HANG', customerId: o.customerId, accountId: o.payNowAccountId, amount: delta, settledAmount: delta,
-          description: marker, createdById: userId, allocations: { create: [{ ref: o.code, amount: delta }] },
+          salesOrderId: o.id, salesOrderDeliveryId: link.deliveryId ?? null,
+          description, createdById: userId, allocations: { create: [{ ref: o.code, amount: delta }] },
         },
         include: CASH_INCLUDE,
       });
       const account = await tx.cashAccount.findUnique({ where: { id: o.payNowAccountId }, select: { name: true } });
       await this.audit.log(tx, {
         action: 'cash_voucher.create', entityType: 'CashVoucher', entityId: v.id, entityCode: v.code,
-        summary: `Tự lập phiếu thu ${v.code}: ${vnd(delta)} · ${marker} · ${account?.name ?? ''}`, related: [o.code],
+        summary: `Tự lập phiếu thu ${v.code}: ${vnd(delta)} · ${description} · ${account?.name ?? ''}`, related: [o.code],
       });
-      return { ...none, receipts: [cashToApi(v)] };
+      return { ...out, receipts: [cashToApi(v)] };
     }
+    const removed = link.removedDeliveryIds ?? [];
+    const own = removed.length
+      ? await tx.cashVoucher.findMany({ where: { isCancelled: false, salesOrderDeliveryId: { in: removed } }, orderBy: { createdAt: 'desc' } })
+      : [];
+    const legacy = own.length ? [] : await tx.cashVoucher.findMany({
+      where: { isCancelled: false, salesOrderId: o.id, salesOrderDeliveryId: null }, orderBy: { createdAt: 'desc' },
+    });
     let left = -delta;
-    const auto = await tx.cashVoucher.findMany({ where: { isCancelled: false, description: marker }, orderBy: { createdAt: 'desc' } });
-    for (const v of auto) {
+    for (const v of [...own, ...legacy]) {
       const amount = v.amount.toNumber();
-      if (left <= 0 || amount > left) continue;
+      if (!own.length && (left <= 0 || amount > left)) continue;
       await tx.cashVoucher.update({ where: { id: v.id }, data: { isCancelled: true, cancelReason: 'Khách bỏ nhận hàng — huỷ phiếu thu tự lập', cancelledAt: new Date() } });
       await this.audit.log(tx, {
         action: 'cash_voucher.cancel', entityType: 'CashVoucher', entityId: v.id, entityCode: v.code,
         summary: `Tự huỷ phiếu thu ${v.code} (${vnd(amount)}): khách bỏ nhận hàng đơn ${o.code}`, related: [o.code],
       });
-      none.cancelled.push(v.id);
+      out.cancelled.push(v.id);
       left -= amount;
     }
-    return none;
+    return out;
   }
 
   // ---------- lệnh sản xuất ----------
@@ -567,7 +591,7 @@ export class SalesService {
     return this.prisma.$transaction(async (tx) => {
       const x = await this.lockedLsx(tx, lsxId);
       if (x.status !== 'NHAP') throw new BadRequestException('Chỉ bắt đầu được lệnh đang ở trạng thái Nháp.');
-      const today = new Date().toISOString().slice(0, 10);
+      const today = vnDay();
       const bom = await this.bomOf(tx, x);
       const components = await tx.product.findMany({ where: { id: { in: bom.map((b) => b.componentId) } }, select: { id: true, type: true, defaultWarehouseId: true } });
       const fallback = (await tx.warehouse.findFirst({ orderBy: [{ isActive: 'desc' }, { name: 'asc' }], select: { id: true } }))?.id;
@@ -604,7 +628,7 @@ export class SalesService {
       const x = await this.lockedLsx(tx, lsxId);
       if (x.status !== 'DANG_SAN_XUAT') throw new BadRequestException('Chỉ nghiệm thu được lệnh đang sản xuất.');
       const qty = round4(Math.max(0, produced ?? x.quantity.toNumber()));
-      const today = new Date().toISOString().slice(0, 10);
+      const today = vnDay();
       let voucherId: string | null = null;
       if (qty > 0) {
         const target = (await tx.warehouse.findUnique({ where: { id: FINISHED_GOODS_WAREHOUSE } }))?.id
@@ -720,11 +744,14 @@ export class SalesService {
    * của khách (0 = không giới hạn). Người có debt.adjust được lưu tiếp bằng overrideCreditLimit; dòng nhật
    * ký ghi lại. Trả về đoạn chú thích cho dòng nhật ký ('' khi không vượt).
    */
-  private async checkCredit(input: SalesOrderInput, user: AuthUser, excludeOrderId?: string): Promise<string> {
-    const customer = await this.prisma.customer.findUnique({ where: { id: input.customerId }, select: { creditLimit: true, name: true } });
+  private async checkCredit(tx: Tx, input: SalesOrderInput, user: AuthUser, excludeOrderId?: string): Promise<string> {
+    // The khách is locked for the rest of the transaction: two orders saved at once are checked one after the other,
+    // so the second sees the first and cannot slip past the hạn mức with it.
+    await tx.$queryRaw`SELECT "id" FROM "Customer" WHERE "id" = ${input.customerId} FOR UPDATE`;
+    const customer = await tx.customer.findUnique({ where: { id: input.customerId }, select: { creditLimit: true, name: true } });
     const limit = customer?.creditLimit.toNumber() ?? 0;
     if (!customer || limit <= 0) return '';
-    const { owed, open } = await this.receivables.exposure(input.customerId, excludeOrderId);
+    const { owed, open } = await this.receivables.exposure(input.customerId, excludeOrderId, tx);
     const thisOrder = orderTotals(lineRows(input.lines).map(rowToSaleLine), input.discountAmount || 0).total;
     const after = owed + open + thisOrder;
     if (after <= limit) return '';

@@ -6,7 +6,7 @@ import { InventoryService } from '../inventory/inventory.service.js';
 import { SalesService } from '../sales/sales.service.js';
 import { SaleLine, deriveStatus, lineRemaining, orderTotals, receivedValueOf, round4 } from '../sales/sales-order.rules.js';
 import type { AuthUser } from '../../auth/auth.service.js';
-import { fromDay, toDay } from '../../common/text.js';
+import { fromDay, toDay, vnDay } from '../../common/text.js';
 import { AuditService } from '../../audit/audit.service.js';
 import { assertOpenPeriod } from '../../common/period-lock.js';
 import { diff, vnd } from '../../audit/audit.diff.js';
@@ -191,7 +191,7 @@ export class TripsService {
   ship(id: string, user: AuthUser) {
     return this.step(id, ['GOM_DON'], 'Chuyến đã xuất kho.', async (tx, t) => {
       if (!t.orders.length) throw new BadRequestException('Chuyến chưa có đơn nào.');
-      const today = new Date().toISOString().slice(0, 10);
+      const today = vnDay();
       const fallback = (await tx.warehouse.findFirst({ orderBy: [{ isActive: 'desc' }, { name: 'asc' }], select: { id: true } }))?.id;
       const byWarehouse = new Map<string, Map<string, number>>();
       const orderCodes: string[] = [];
@@ -244,25 +244,32 @@ export class TripsService {
       const link = t.orders.find((x) => x.orderId === orderId);
       if (!link) throw new BadRequestException('Đơn không nằm trên chuyến này.');
       if (link.confirmedAt) throw new BadRequestException('Đơn này đã chốt giao.');
-      await assertOpenPeriod(tx, new Date().toISOString().slice(0, 10), 'Chốt giao');
+      await assertOpenPeriod(tx, vnDay(), 'Chốt giao');
       const o = await this.sales.locked(tx, orderId);
       if (o.status === 'HUY') throw new BadRequestException(`Đơn ${o.code} đã huỷ — không chốt giao được.`);
-      const today = new Date().toISOString().slice(0, 10);
+      const today = vnDay();
       const before = receivedValueOf(o.lines.map(saleLine), o.discountAmount.toNumber());
+      const took: { orderLineId: string; quantity: number }[] = [];
       for (const load of t.loads.filter((l) => l.orderLine.orderId === orderId)) {
         const asked = lines.find((x) => x.lineIndex === load.orderLine.sortOrder)?.received ?? 0;
         // No more than went on the truck, nor than the line still owes.
         const owed = lineRemaining(saleLine(o.lines.find((x) => x.id === load.orderLineId)!));
         const received = Math.min(Math.max(0, round4(asked)), load.quantity.toNumber(), owed);
         await tx.deliveryTripLoad.update({ where: { id: load.id }, data: { receivedQuantity: received } });
-        if (received > 0) await tx.salesOrderLine.update({ where: { id: load.orderLineId }, data: { receivedQuantity: { increment: received } } });
+        if (received > 0) {
+          await tx.salesOrderLine.update({ where: { id: load.orderLineId }, data: { receivedQuantity: { increment: received } } });
+          took.push({ orderLineId: load.orderLineId, quantity: received });
+        }
       }
       await tx.deliveryTripOrder.update({ where: { tripId_orderId: { tripId: id, orderId } }, data: { confirmedAt: new Date(), confirmNote: note ?? null } });
-      const receipts = (await this.afterReceipt(tx, orderId, before, today, user, false)) as Awaited<ReturnType<SalesService['syncPayNow']>>['receipts'];
+      const now = (await this.ordersOf(tx, [orderId])).get(orderId)!;
+      const got = receivedValueOf(now.lines.map(saleLine), now.discountAmount.toNumber()) - before;
+      // One đợt công nợ for what the customer took off this chuyến, with each dòng's số nhận (its hoá đơn GTGT).
+      const delivery = took.length
+        ? await tx.salesOrderDelivery.create({ data: { orderId, date: fromDay(today)!, amount: got, tripId: id, lines: { create: took } } })
+        : null;
+      const { receipts } = await this.afterReceipt(tx, orderId, before, today, user, { deliveryId: delivery?.id });
       const after = (await this.ordersOf(tx, [orderId])).get(orderId)!;
-      const got = receivedValueOf(after.lines.map(saleLine), after.discountAmount.toNumber()) - before;
-      // One đợt công nợ for what the customer took off this chuyến.
-      if (got > 0) await tx.salesOrderDelivery.create({ data: { orderId, date: fromDay(today)!, amount: got, tripId: id } });
       await this.log(tx, t, 'delivery_trip.confirm',
         `Chốt giao đơn ${o.code} trên chuyến ${t.code}: khách ${STATUS_AFTER[after.status] ?? 'nhận'} (${vnd(got)})`
           + (receipts.length ? ` · thu tiền ngay ${receipts.map((r) => r.code).join(', ')}` : '') + (note ? ` · ${note}` : ''),
@@ -288,8 +295,10 @@ export class TripsService {
         await tx.deliveryTripLoad.update({ where: { id: load.id }, data: { receivedQuantity: null } });
       }
       await tx.deliveryTripOrder.update({ where: { tripId_orderId: { tripId: id, orderId } }, data: { confirmedAt: null, confirmNote: null } });
-      await tx.salesOrderDelivery.deleteMany({ where: { orderId, tripId: id } });
-      const cancelled = (await this.afterReceipt(tx, orderId, before, new Date().toISOString().slice(0, 10), user, true)) as string[];
+      const removed = (await tx.salesOrderDelivery.findMany({ where: { orderId, tripId: id }, select: { id: true } })).map((d) => d.id);
+      // Its phiếu thu tiền ngay are cancelled first, while they still point at the đợt.
+      const { cancelled } = await this.afterReceipt(tx, orderId, before, vnDay(), user, { removedDeliveryIds: removed });
+      await tx.salesOrderDelivery.deleteMany({ where: { id: { in: removed } } });
       const voided = cancelled.length ? (await tx.cashVoucher.findMany({ where: { id: { in: cancelled } }, select: { code: true } })).map((v) => v.code) : [];
       const after = (await this.ordersOf(tx, [orderId])).get(orderId)!;
       const back = before - receivedValueOf(after.lines.map(saleLine), after.discountAmount.toNumber());
@@ -302,7 +311,10 @@ export class TripsService {
   }
 
   // Status, ngày giao and thu tiền ngay after a chốt / bỏ chốt.
-  private async afterReceipt(tx: Tx, orderId: string, before: number, today: string, user: AuthUser, undo: boolean) {
+  private async afterReceipt(
+    tx: Tx, orderId: string, before: number, today: string, user: AuthUser, link: { deliveryId?: string; removedDeliveryIds?: string[] },
+  ) {
+    const undo = !!link.removedDeliveryIds;
     const o = (await this.ordersOf(tx, [orderId])).get(orderId)!;
     const lines = o.lines.map(saleLine);
     const anyReceived = lines.some((l) => l.receivedQuantity > 0);
@@ -312,8 +324,7 @@ export class TripsService {
     else status = 'TRA_TOAN_BO';
     await tx.salesOrder.update({ where: { id: orderId }, data: { status, deliveredDate: anyReceived ? fromDay(today) : null, dueDate: null } });
     const delta = receivedValueOf(lines, o.discountAmount.toNumber()) - before;
-    const r = await this.sales.syncPayNow(tx, { ...o, status }, delta, today, user.id);
-    return undo ? r.cancelled : r.receipts;
+    return this.sales.syncPayNow(tx, { ...o, status }, delta, today, user.id, link);
   }
 
   // ---------- xe về kho / hoàn tất / huỷ ----------
@@ -336,7 +347,7 @@ export class TripsService {
         byWarehouse.set(l.warehouseId, m);
         refs.add(o.code);
       }
-      const today = new Date().toISOString().slice(0, 10);
+      const today = vnDay();
       const voucherIds: string[] = [];
       const issued = byWarehouse.size ? await this.inventory.issuedCost(tx, { deliveryTripId: id }) : new Map<string, number>();
       for (const [warehouseId, m] of byWarehouse) {

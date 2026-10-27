@@ -1,5 +1,6 @@
 // Đối trừ công nợ — the same algorithm as the frontend's core/services/debt.service.ts › settle(),
 // so the server and the screens agree on every balance. Pure functions, no database.
+import { vnDay } from './text.js';
 
 export interface DebtAgingBucket {
   notDue: number;
@@ -59,7 +60,7 @@ export function addDays(day: string, days: number): string {
 }
 
 /** Midnight UTC of a YYYY-MM-DD (or today), the reference point for "quá hạn N ngày". */
-export const dayMs = (day: string = new Date().toISOString().slice(0, 10)) => new Date(day.slice(0, 10)).getTime();
+export const dayMs = (day: string = vnDay()) => new Date(day.slice(0, 10)).getTime();
 
 export const daysBetween = (fromDay: string, today: number) => Math.floor((today - new Date(fromDay).getTime()) / DAY);
 

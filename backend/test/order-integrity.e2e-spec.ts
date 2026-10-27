@@ -7,9 +7,10 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { vnDay } from '../src/common/text.js';
 
 const DEMO_PASSWORD = process.env.DEMO_USER_PASSWORD ?? 'demo1234';
-const today = new Date().toISOString().slice(0, 10);
+const today = vnDay();
 const WH = 'wh-ninhtrang';
 
 describe('Toàn vẹn đơn hàng (e2e)', () => {

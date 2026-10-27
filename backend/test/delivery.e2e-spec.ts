@@ -6,9 +6,10 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { vnDay } from '../src/common/text.js';
 
 const DEMO_PASSWORD = process.env.DEMO_USER_PASSWORD ?? 'demo1234';
-const today = new Date().toISOString().slice(0, 10);
+const today = vnDay();
 
 describe('Chuyến giao hàng (e2e)', () => {
   let app: INestApplication;
@@ -115,10 +116,17 @@ describe('Chuyến giao hàng (e2e)', () => {
     res = (await driver.post(`/api/delivery-trips/${t.id}/orders/${o1.id}/confirm`, { lines: [{ lineIndex: 0, received: 3 }, { lineIndex: 1, received: 1 }] }).expect(200)).body;
     expect(res.orders.find((o: any) => o.id === o1.id)).toMatchObject({ status: 'GIAO_MOT_PHAN', receivedValue: 170_000, deliveredDate: today });
     expect(res.receipts).toEqual([expect.objectContaining({ kind: 'THU', amount: 170_000, allocations: [{ ref: o1.code, amount: 170_000 }] })]);
+    // The đợt carries each dòng's số nhận (its hoá đơn GTGT), and the phiếu thu points at the đơn and the đợt.
+    const confirmed = res.orders.find((o: any) => o.id === o1.id);
+    expect(confirmed.deliveries).toEqual([expect.objectContaining({
+      date: today, amount: 170_000, tripId: t.id,
+      lines: [{ orderLineId: confirmed.lines[0].id, quantity: 3 }, { orderLineId: confirmed.lines[1].id, quantity: 1 }],
+    })]);
+    expect(res.receipts[0]).toMatchObject({ salesOrderId: o1.id, salesOrderDeliveryId: confirmed.deliveries[0].id });
     await driver.post(`/api/delivery-trips/${t.id}/orders/${o1.id}/confirm`, { lines: [] }).expect(400); // once
 
     res = (await driver.post(`/api/delivery-trips/${t.id}/orders/${o1.id}/unconfirm`).expect(200)).body;
-    expect(res.orders.find((o: any) => o.id === o1.id)).toMatchObject({ status: 'DANG_GIAO', receivedValue: 0 });
+    expect(res.orders.find((o: any) => o.id === o1.id)).toMatchObject({ status: 'DANG_GIAO', receivedValue: 0, deliveries: [] });
     expect(res.cancelledReceipts).toHaveLength(1);
     await driver.post(`/api/delivery-trips/${t.id}/orders/${o1.id}/confirm`, { lines: [{ lineIndex: 0, received: 3 }, { lineIndex: 1, received: 1 }] }).expect(200);
     res = (await driver.post(`/api/delivery-trips/${t.id}/orders/${o2.id}/confirm`, { lines: [{ lineIndex: 0, received: 0 }], note: 'Khách đi vắng' }).expect(200)).body;
@@ -151,6 +159,31 @@ describe('Chuyến giao hàng (e2e)', () => {
     expect((await manager.post(`/api/delivery-trips/${other.id}/cancel`, { reason: 'E2E' }).expect(200)).body.trip).toMatchObject({ status: 'HUY', orderIds: [] });
     const again = await newTrip();
     await manager.post(`/api/delivery-trips/${again.id}/orders`, { orderIds: [o3.id] }).expect(200);
+  });
+
+  it('bỏ chốt huỷ đúng phiếu thu tiền ngay của đợt đó — không đụng phiếu của đợt giao trước', async () => {
+    const o = await newOrder(manager, {
+      salesRep: 'quan.ly@ninhtrang.local', payNowAccountId: 'acc-cash',
+      lines: [{ productId: service, unit: 'Lần', quantity: 5, unitPrice: 20000 }],
+    });
+    // Đợt 1 giao tại chỗ: 4 lần → phiếu thu A 80.000.
+    const first = (await manager.post(`/api/sales-orders/${o.id}/deliver`, { date: today, items: [{ lineIndex: 0, quantity: 4 }] }).expect(200)).body;
+    const a = first.receipts[0];
+    expect(a).toMatchObject({ amount: 80_000, salesOrderId: o.id, salesOrderDeliveryId: first.order.deliveries[0].id });
+    // Đợt 2 trên chuyến: 1 lần → phiếu thu B 20.000, rồi kế toán huỷ tay B.
+    const t = await newTrip({ vehicleId: 'xe-1', driverName: 'Đặng Văn Tài' });
+    await manager.post(`/api/delivery-trips/${t.id}/orders`, { orderIds: [o.id] }).expect(200);
+    await storekeeper.post(`/api/delivery-trips/${t.id}/ship`).expect(200);
+    const second = (await driver.post(`/api/delivery-trips/${t.id}/orders/${o.id}/confirm`, { lines: [{ lineIndex: 0, received: 1 }] }).expect(200)).body;
+    const b = second.receipts[0];
+    expect(b).toMatchObject({ amount: 20_000, salesOrderId: o.id });
+    await (await as('ke.toan@ninhtrang.local')).post(`/api/cash-vouchers/${b.id}/cancel`, { reason: 'E2E huỷ tay' }).expect(200);
+
+    // Bỏ chốt đợt 2: nothing left to cancel for it, and A (đợt 1, khách vẫn giữ hàng) stays.
+    const undo = (await driver.post(`/api/delivery-trips/${t.id}/orders/${o.id}/unconfirm`).expect(200)).body;
+    expect(undo.cancelledReceipts).toEqual([]);
+    expect((await prisma.cashVoucher.findUniqueOrThrow({ where: { id: a.id } })).isCancelled).toBe(false);
+    expect(undo.orders.find((x: any) => x.id === o.id).deliveries).toHaveLength(1);
   });
 
   it('order.view_all: a seller sees only their own orders; Thủ kho and Quản lý see all', async () => {

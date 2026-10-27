@@ -27,3 +27,13 @@ export function toDay(d: Date | null | undefined): string | null {
 export function fromDay(s: string | null | undefined): Date | null {
   return s ? new Date(`${s.slice(0, 10)}T00:00:00Z`) : null;
 }
+
+const VN_DAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit' });
+
+/**
+ * Ngày nghiệp vụ "YYYY-MM-DD" theo giờ Việt Nam. The server runs on UTC, where 0h–7h sáng giờ Việt Nam is still the day
+ * before — every "hôm nay" of a chứng từ (ngày xuất kho, chốt giao, phiếu thu tự lập, khoá sổ) comes from here.
+ */
+export function vnDay(at: Date = new Date()): string {
+  return VN_DAY.format(at);
+}

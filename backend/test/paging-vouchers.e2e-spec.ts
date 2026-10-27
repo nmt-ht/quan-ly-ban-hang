@@ -6,9 +6,10 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { vnDay } from '../src/common/text.js';
 
 const DEMO_PASSWORD = process.env.DEMO_USER_PASSWORD ?? 'demo1234';
-const today = new Date().toISOString().slice(0, 10);
+const today = vnDay();
 const OLD = new Date('2025-01-15T00:00:00Z');
 const MARK = 'E2E phân trang chứng từ';
 

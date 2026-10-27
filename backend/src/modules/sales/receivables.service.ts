@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import { toDay } from '../../common/text.js';
+import { toDay, vnDay } from '../../common/text.js';
 import { addDays, dayMs } from '../../common/settle.js';
 import { DebtCharge, DebtRow, DebtSettlement, chargesOfOrder, debtRow } from '../../common/debt-rows.js';
 import { SaleLine, orderTotals, receivedValueOf } from './sales-order.rules.js';
@@ -15,15 +16,16 @@ import { SaleLine, orderTotals, receivedValueOf } from './sales-order.rules.js';
 export class ReceivablesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async rows(today = new Date().toISOString().slice(0, 10), onlyCustomerId?: string): Promise<DebtRow[]> {
+  /** `db`: a transaction, so a check made inside one reads what it has locked (hạn mức công nợ). */
+  async rows(today = vnDay(), onlyCustomerId?: string, db: Prisma.TransactionClient | PrismaService = this.prisma): Promise<DebtRow[]> {
     const who = onlyCustomerId ? { customerId: onlyCustomerId } : {};
     const [customers, orders, vouchers] = await Promise.all([
-      this.prisma.customer.findMany({ where: onlyCustomerId ? { id: onlyCustomerId } : {}, orderBy: { name: 'asc' } }),
-      this.prisma.salesOrder.findMany({
+      db.customer.findMany({ where: onlyCustomerId ? { id: onlyCustomerId } : {}, orderBy: { name: 'asc' } }),
+      db.salesOrder.findMany({
         where: { status: { not: 'HUY' }, ...who },
         include: { lines: true, returns: { where: { isCancelled: false } }, deliveries: { orderBy: [{ date: 'asc' }, { createdAt: 'asc' }] } },
       }),
-      this.prisma.cashVoucher.findMany({ where: { isCancelled: false, partnerType: 'KHACH_HANG', ...who }, include: { allocations: true } }),
+      db.cashVoucher.findMany({ where: { isCancelled: false, partnerType: 'KHACH_HANG', ...who }, include: { allocations: true } }),
     ]);
     const now = dayMs(today);
 
@@ -74,10 +76,12 @@ export class ReceivablesService {
    * (đã trừ phiếu thu; trả trước thì âm), `open` = giá trị phần chưa giao của các đơn còn mở — đơn đã đặt
    * nhưng chưa thành công nợ. `excludeOrderId` leaves out the đơn being edited.
    */
-  async exposure(customerId: string, excludeOrderId?: string): Promise<{ owed: number; open: number }> {
+  async exposure(
+    customerId: string, excludeOrderId?: string, db: Prisma.TransactionClient | PrismaService = this.prisma,
+  ): Promise<{ owed: number; open: number }> {
     const [rows, orders] = await Promise.all([
-      this.rows(undefined, customerId),
-      this.prisma.salesOrder.findMany({
+      this.rows(undefined, customerId, db),
+      db.salesOrder.findMany({
         where: { customerId, status: { notIn: ['HUY', 'HOAN_THANH', 'TRA_TOAN_BO'] }, closedDate: null, ...(excludeOrderId ? { id: { not: excludeOrderId } } : {}) },
         include: { lines: true },
       }),

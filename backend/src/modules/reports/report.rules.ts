@@ -2,6 +2,7 @@
 // as the frontend's shared/format.util.ts, shared/period.ts, CostService and revenue.rules.ts.
 import { lineGross, orderTotals } from '../sales/sales-order.rules.js';
 import type { ReportData } from './report-data.service.js';
+import { vnDay } from '../../common/text.js';
 
 const MINUS = '−'; // U+2212, as on screen
 
@@ -23,10 +24,9 @@ export function inRange(date: string, range: DayRange): boolean {
   return (!range.from || d >= range.from) && (!range.to || d <= range.to);
 }
 
-/** Today on the server's clock, YYYY-MM-DD (local, like the screens). */
+/** Today in Việt Nam, YYYY-MM-DD (like the screens), whatever zone the server's clock runs in. */
 export function isoDay(d: Date = new Date()): string {
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  return vnDay(d);
 }
 
 /**

@@ -5,7 +5,7 @@ import { DataStore } from '../../../core/services/data-store.service';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { PrintMenuComponent } from '../../../shared/print/print-menu.component';
 import { vndInWords } from '../../../shared/vnd-words';
-import { foreignCurrency, orderTotals } from '../sales-order.rules';
+import { LineSlice, deliverySlices, foreignCurrency, orderedSlices, receivedSlices, sliceCalc } from '../sales-order.rules';
 
 /** One row of the goods table: hàng hoá, hàng khuyến mại or a chiết khấu thương mại row (negative). */
 export interface InvoiceRow {
@@ -35,24 +35,26 @@ export interface InvoiceData {
 }
 
 /**
- * Hoá đơn GTGT dựng từ đơn bán (như MISA dựng hoá đơn từ chứng từ bán hàng): thành tiền = SL × đơn giá chưa thuế;
- * chiết khấu (dòng + cả đơn) ghi thành dòng "Chiết khấu thương mại" âm theo từng thuế suất; hàng tặng ghi số lượng,
- * thành tiền 0. Tiền thuế lấy đúng số trên đơn, nên tổng thanh toán khớp đơn.
+ * Hoá đơn GTGT dựng từ đơn bán (như MISA dựng hoá đơn từ chứng từ bán hàng): `slices` là phần của từng dòng trên hoá
+ * đơn — một đợt giao (thời điểm chuyển giao hàng hoá, NĐ 123), hoặc cả đơn khi chưa giao. Thành tiền = SL × đơn giá
+ * chưa thuế; chiết khấu (dòng + cả đơn) ghi thành dòng "Chiết khấu thương mại" âm theo từng thuế suất; hàng tặng ghi
+ * số lượng, thành tiền 0. Tiền thuế lấy đúng phần của đơn, nên tổng thanh toán khớp số tiền đợt đã ghi công nợ.
  */
-export function invoiceData(o: SalesOrder, productName: (id: string) => string): InvoiceData {
-  const t = orderTotals(o.lines, o.discountAmount);
+export function invoiceData(o: SalesOrder, slices: LineSlice[], productName: (id: string) => string): InvoiceData {
+  const calc = sliceCalc(o, slices);
   const rows: InvoiceRow[] = [];
   const groups = new Map<number, InvoiceRateGroup & { discount: number }>();
-  o.lines.forEach((l, i) => {
-    const c = t.lines[i];
+  slices.forEach((s, i) => {
+    const l = o.lines[s.index];
+    const c = calc[i];
     const size = l.length && l.width ? ` (${l.length}×${l.width} cm)` : '';
     const name = productName(l.productId) + size;
     if (l.isGift) {
-      rows.push({ no: 0, name: `${name} (Hàng khuyến mại không thu tiền)`, unit: l.unit, quantity: l.quantity, unitPrice: null, amount: 0, vatRate: null, kind: 'gift' });
+      rows.push({ no: 0, name: `${name} (Hàng khuyến mại không thu tiền)`, unit: l.unit, quantity: s.quantity, unitPrice: null, amount: 0, vatRate: null, kind: 'gift' });
       return;
     }
     const rate = l.vatRate ?? 0;
-    rows.push({ no: 0, name, unit: l.unit, quantity: l.quantity, unitPrice: l.unitPrice, amount: c.gross, vatRate: rate, kind: 'goods' });
+    rows.push({ no: 0, name, unit: l.unit, quantity: s.quantity, unitPrice: l.unitPrice, amount: c.gross, vatRate: rate, kind: 'goods' });
     const g = groups.get(rate) ?? { vatRate: rate, taxable: 0, vat: 0, discount: 0 };
     g.taxable += c.taxable;
     g.vat += c.vat;
@@ -69,10 +71,37 @@ export function invoiceData(o: SalesOrder, productName: (id: string) => string):
   return {
     rows,
     groups: sorted.map(({ vatRate, taxable, vat }) => ({ vatRate, taxable, vat })),
-    taxable: t.lines.reduce((s, c) => s + c.taxable, 0),
-    vat: t.vat,
-    total: t.total,
+    taxable: calc.reduce((s, c) => s + c.taxable, 0),
+    vat: calc.reduce((s, c) => s + c.vat, 0),
+    total: calc.reduce((s, c) => s + c.total, 0),
   };
+}
+
+/** Một hoá đơn có thể dựng từ đơn: một đợt giao, hàng đã giao gộp lại, hoặc cả đơn theo số đặt. */
+export interface InvoiceSource {
+  key: string;
+  label: string;
+  date: string; // ngày lập: ngày khách nhận hàng của đợt; chưa giao thì ngày đặt
+  slices: LineSlice[];
+}
+
+const dmy = (d: string) => d.slice(0, 10).split('-').reverse().join('/');
+
+/**
+ * Mỗi đợt giao có chi tiết dòng là một hoá đơn. Đơn chỉ có đợt ghi trước khi có chi tiết: hàng đã giao gộp một hoá
+ * đơn, ngày giao gần nhất. Chưa giao: cả đơn theo số đặt, ngày đặt.
+ */
+export function invoiceSources(o: SalesOrder): InvoiceSource[] {
+  const all = o.deliveries ?? [];
+  const detailed = all.flatMap((d, i) =>
+    d.lines.length
+      ? [{ key: d.id, label: `Đợt ${i + 1} · ${dmy(d.date)} · ${d.amount.toLocaleString('vi-VN')} ₫`, date: d.date, slices: deliverySlices(o, d.id) }]
+      : [],
+  );
+  if (detailed.length) return detailed;
+  const received = receivedSlices(o);
+  if (received.length) return [{ key: 'received', label: 'Hàng đã giao', date: o.deliveredDate ?? o.orderDate, slices: received }];
+  return [{ key: 'ordered', label: 'Theo số đặt (đơn chưa giao)', date: o.orderDate, slices: orderedSlices(o) }];
 }
 
 // "Xem trước hoá đơn" của đơn bán: hoá đơn GTGT (mẫu số 1) theo Nghị định 123/2020 và Thông tư 78/2021, dựng từ đơn và
@@ -99,15 +128,23 @@ export class InvoicePreviewComponent {
   readonly exportSale = computed(() => this.order().saleType === 'XUAT_KHAU');
   readonly words = vndInWords;
 
+  readonly sources = computed(() => invoiceSources(this.order()));
+  /** Đợt đang xem; null = đợt mới nhất. */
+  readonly sourceKey = signal<string | null>(null);
+  readonly source = computed(() => {
+    const list = this.sources();
+    return list.find((s) => s.key === this.sourceKey()) ?? list[list.length - 1];
+  });
+
   readonly invoice = computed(() => {
     const products = new Map(this.data.products().map((p) => [p.id, p.name]));
-    return invoiceData(this.order(), (id) => products.get(id) ?? id);
+    return invoiceData(this.order(), this.source().slices, (id) => products.get(id) ?? id);
   });
   readonly multiRate = computed(() => this.invoice().groups.length > 1);
 
-  /** Ngày lập: ngày khách nhận hàng (thời điểm chuyển giao hàng hoá), chưa giao thì ngày đặt. */
+  /** Ngày lập: ngày khách nhận hàng của đợt (thời điểm chuyển giao hàng hoá), chưa giao thì ngày đặt. */
   readonly dateParts = computed(() => {
-    const [y, m, d] = (this.order().deliveredDate ?? this.order().orderDate).slice(0, 10).split('-');
+    const [y, m, d] = this.source().date.slice(0, 10).split('-');
     return { d, m, y };
   });
   /** Mẫu số 1 = hoá đơn GTGT; C = có mã của cơ quan thuế; 2 số cuối của năm; T = doanh nghiệp đăng ký dùng. */
@@ -156,6 +193,7 @@ export class InvoicePreviewComponent {
   }
 
   open(): void {
+    this.sourceKey.set(null);
     this.dialog().nativeElement.showModal();
   }
 
