@@ -368,13 +368,21 @@ mix in a second icon library or emoji.
 - Search boxes in a filters bar are 22rem wide; global CSS ends an over-long placeholder with an ellipsis, but treat that as a safety net, not a layout.
 
 ## Reports (reference: Báo cáo)
-- `/bao-cao` is an **index**, laid out like an accounting suite's report list: title + counts left, "Tìm báo cáo…" right
-  on the same line (full row on a phone); one quiet line "Xem gần đây" of pill links (last 4 opened in this browser,
-  `nt.reportsRecent`, only reports the role may still open; hidden while searching); then the groups flowing down
-  newspaper columns (`columns: 16.5rem 4` → 4 at ~1600 px, 1 on a phone). A group is **not a card**: a 2 px ink rule,
-  muted icon + name + muted count of ready reports, then its reports as hover-filled rows (name 600 sm = the link,
-  one muted xs sentence under it, 2-line clamp; no chevrons). Not-built reports stay listed last, quieter, tagged
-  "Sắp có" — never hide them. The whole index fits one screen on a wide display.
+- `/bao-cao` is an **index**, read top-down by how often a report is needed: (1) title + "N báo cáo trong M nhóm" left,
+  the search box right on the same line (full row on a phone) — magnifier inside, a "/" key hint (clear button while
+  typing); "/" anywhere on the hub focuses it (the hub catches the key before the app-wide palette), diacritic-
+  insensitive, every word must match name or summary, hits marked with the warning tint, Enter opens the first hit,
+  Esc clears; no hit = "Không tìm thấy báo cáo" + a hint ("ton kho") + the Hay dùng reports as pills + Xoá tìm kiếm.
+  (2) "Xem gần đây": one quiet line of pill links (last 4 opened in this browser, `nt.reportsRecent`). (3) "Hay dùng"
+  (`FEATURED_REPORTS` in the registry: Doanh thu, Lãi gộp, Tồn kho hiện tại, Tuổi nợ, Sổ quỹ): cards with a 40 px icon
+  tile in the group's phân hệ tint, name + group; 2 across on a phone, 3 on a tablet, 5 wide. Both hidden while
+  searching. (4) "Tất cả báo cáo": an even grid of group cards (container queries on the page width: 1 → 2 → 3 → 4
+  columns; cards on one row share its height). A group card carries its phân hệ (`ReportGroup.module`: Bán hàng and
+  Giao hàng = sell, Kho and Sản xuất = stock, Mua hàng = purchase, Công nợ and Dòng tiền = cash, Lợi nhuận = moss):
+  small icon tile + name + count pill over a hairline, then its reports as whole-row links ≥ 48 px tall — report icon
+  (`reportIcon`, muted) · name 600 sm over a one-line muted xs summary (ellipsis; full text in `title`, two lines while
+  searching) · chevron; hover = paper-2 fill, name/icon/chevron in the accent. Only reports the role may open are
+  listed (group permission) and empty groups go. Not-built reports stay listed last, quieter, tagged "Sắp có".
 - `/bao-cao?name=<slug>` is one report in a **frame** of four layers, each said once: (1) title block — breadcrumb
   "Báo cáo › Nhóm", h1 = report name, the report's one-sentence summary; (2) the reports of the same group as an
   underline tab row (scrolls sideways on a phone, the open tab is scrolled into view; its line is the only rule under

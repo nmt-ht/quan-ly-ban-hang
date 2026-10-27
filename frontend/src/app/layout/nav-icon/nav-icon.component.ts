@@ -52,7 +52,10 @@ export type NavIconName =
   | 'log-out'
   | 'chevron-down'
   | 'calendar'
-  | 'printer';
+  | 'printer'
+  | 'trending-up'
+  | 'alert'
+  | 'percent';
 
 // Hand-drawn 24px line icons (stroke = currentColor) — one set for the whole app.
 @Component({
@@ -299,6 +302,19 @@ export type NavIconName =
         @case ('unlock') {
           <rect x="5" y="10.5" width="14" height="10" rx="2" />
           <path d="M8 10.5V7.5a4 4 0 0 1 7.6-1.7" />
+        }
+        @case ('trending-up') {
+          <path d="M3.5 17l6-6 4 4 7-7.5" />
+          <path d="M15 7.5h5.5V13" />
+        }
+        @case ('alert') {
+          <path d="M10.3 4.2 2.9 17.5A2 2 0 0 0 4.6 20.5h14.8a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z" />
+          <path d="M12 9.5v4.5M12 17.2v.1" />
+        }
+        @case ('percent') {
+          <path d="M18.5 5.5l-13 13" />
+          <circle cx="7" cy="7" r="2.5" />
+          <circle cx="17" cy="17" r="2.5" />
         }
       }
     </svg>
