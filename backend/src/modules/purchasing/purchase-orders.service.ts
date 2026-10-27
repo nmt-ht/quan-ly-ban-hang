@@ -3,7 +3,7 @@ import { Prisma, PurchaseOrderStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { SequenceService } from '../../prisma/sequence.service.js';
 import { InventoryService, VoucherLineInput } from '../inventory/inventory.service.js';
-import { fromDay, toDay } from '../../common/text.js';
+import { fromDay, toDay, vnDay } from '../../common/text.js';
 import { AuditService } from '../../audit/audit.service.js';
 import { PURCHASE_RETURN_INCLUDE, purchaseReturnToApi } from './purchase-returns.js';
 import { assertOpenPeriod } from '../../common/period-lock.js';
@@ -191,7 +191,7 @@ export class PurchaseOrdersService {
   }
 
   send(id: string) {
-    return this.transition(id, canSend, { status: 'DA_GUI_NCC', sentDate: fromDay(new Date().toISOString())! },
+    return this.transition(id, canSend, { status: 'DA_GUI_NCC', sentDate: fromDay(vnDay())! },
       'purchase_order.send', (c) => `Gửi đơn nhập hàng ${c} cho nhà cung cấp`);
   }
 

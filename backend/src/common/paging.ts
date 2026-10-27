@@ -2,7 +2,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import { fromDay } from './text.js';
+import { fromDay, vnDay } from './text.js';
 
 export const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -16,7 +16,7 @@ export const listParam = (v?: string): string[] | undefined => (v ? v.split(',')
 export function windowStart(recentDays?: string): Date | undefined {
   const days = Number(recentDays);
   if (!Number.isInteger(days) || days <= 0) return undefined;
-  return fromDay(new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10))!;
+  return fromDay(vnDay(new Date(Date.now() - days * 86_400_000)))!;
 }
 
 /** Query string → validated DTO; lists may come as "a,b" or repeated keys. */

@@ -71,6 +71,57 @@ export function receivedValueOf(o: Pick<SalesOrder, 'lines' | 'discountAmount'>)
   return o.lines.reduce((s, l, i) => (lineQty(l) > 0 ? s + Math.round((t.lines[i].total * lineDelivered(l)) / lineQty(l)) : s), 0);
 }
 
+/** Phần của một dòng trên hoá đơn: `quantity` nhận thêm sau `before` đã nhận (ĐVT của dòng). */
+export interface LineSlice {
+  index: number;
+  before: number;
+  quantity: number;
+}
+
+/**
+ * Tiền của từng phần dòng: phần của dòng theo số đã nhận cộng dồn, trừ phần đã tính trước đó — làm tròn như
+ * receivedValueOf, nên các đợt cộng lại đúng bằng giá trị khách nhận và mỗi đợt đúng số tiền đã ghi công nợ.
+ */
+export function sliceCalc(o: Pick<SalesOrder, 'lines' | 'discountAmount'>, slices: LineSlice[]): LineCalc[] {
+  const t = orderTotals(o.lines, o.discountAmount);
+  return slices.map(({ index, before, quantity }) => {
+    const c = t.lines[index];
+    const q = lineQty(o.lines[index]);
+    const part = (v: number) => (q > 0 ? Math.round((v * (before + quantity)) / q) - Math.round((v * before) / q) : 0);
+    const gross = part(c.gross);
+    const lineDiscountPart = part(c.lineDiscount);
+    const taxable = part(c.taxable);
+    const total = part(c.total);
+    return { gross, lineDiscount: lineDiscountPart, orderDiscount: gross - lineDiscountPart - taxable, taxable, vat: total - taxable, total };
+  });
+}
+
+/** Cả đơn theo số đặt (chưa giao). */
+export const orderedSlices = (o: Pick<SalesOrder, 'lines'>): LineSlice[] =>
+  o.lines.map((l, index) => ({ index, before: 0, quantity: lineQty(l) }));
+
+/** Mọi hàng khách đã nhận, gộp một lần. */
+export const receivedSlices = (o: Pick<SalesOrder, 'lines'>): LineSlice[] =>
+  o.lines.flatMap((l, index) => (lineDelivered(l) > 0 ? [{ index, before: 0, quantity: lineDelivered(l) }] : []));
+
+/**
+ * Các dòng của một đợt giao. Số đã nhận trước đợt = số đã nhận bây giờ − đợt này − các đợt ghi sau nó, so an đợt cũ
+ * without chi tiết dòng before it does not matter.
+ */
+export function deliverySlices(o: Pick<SalesOrder, 'lines' | 'deliveries'>, deliveryId: string): LineSlice[] {
+  const list = o.deliveries ?? [];
+  const at = list.findIndex((d) => d.id === deliveryId);
+  if (at < 0) return [];
+  const later = new Map<string, number>();
+  for (const d of list.slice(at + 1)) for (const x of d.lines) later.set(x.orderLineId, (later.get(x.orderLineId) ?? 0) + x.quantity);
+  return list[at].lines.flatMap((x) => {
+    const index = o.lines.findIndex((l) => l.id === x.orderLineId);
+    if (index < 0) return [];
+    const after = round4(lineDelivered(o.lines[index]) - (later.get(x.orderLineId) ?? 0));
+    return [{ index, before: Math.max(0, round4(after - x.quantity)), quantity: x.quantity }];
+  });
+}
+
 export function deliveredPercent(o: SalesOrder): number {
   return o.totalOrder > 0 ? Math.min(100, Math.round((o.receivedValue / o.totalOrder) * 100)) : 0;
 }

@@ -613,6 +613,7 @@ model SalesOrder {
   returns            SalesReturn[]
   quotation          Quotation?
   deliveries         SalesOrderDelivery[]
+  payNowReceipts     CashVoucher[]
 }
 
 /**
@@ -628,7 +629,25 @@ model SalesOrderDelivery {
   tripId    String?
   createdAt DateTime   @default(now())
 
+  lines    SalesOrderDeliveryLine[]
+  receipts CashVoucher[]
+
   @@index([orderId])
+}
+
+/**
+ * Số khách nhận của từng dòng đơn trong một đợt — the chứng từ bán hàng of that đợt, what its hoá đơn GTGT is made from.
+ * Đợt recorded before this table (several giao tay on one đơn) may have none.
+ */
+model SalesOrderDeliveryLine {
+  id          String             @id @default(uuid())
+  deliveryId  String
+  delivery    SalesOrderDelivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  orderLineId String
+  orderLine   SalesOrderLine     @relation(fields: [orderLineId], references: [id], onDelete: Cascade)
+  quantity    Decimal // in the order line's unit
+
+  @@index([deliveryId])
 }
 
 model SalesOrderTag {
@@ -666,6 +685,7 @@ model SalesOrderLine {
   isGift           Boolean    @default(false) // hàng tặng: chiết khấu 100%
 
   tripLoads   DeliveryTripLoad[]
+  deliveryLines SalesOrderDeliveryLine[]
   returnLines SalesReturnLine[]
 }
 
@@ -845,8 +865,17 @@ model CashVoucher {
   createdById   String
   createdBy     User        @relation("CashVoucherCreatedBy", fields: [createdById], references: [id])
   createdAt     DateTime    @default(now())
+  // "Thu tiền ngay": the đơn bán this phiếu thu was made for by itself (SalesService.syncPayNow), and the đợt giao it
+  // collects — bỏ chốt that đợt cancels exactly these. Both null = lập tay.
+  salesOrderId         String?
+  salesOrder           SalesOrder?         @relation(fields: [salesOrderId], references: [id])
+  salesOrderDeliveryId String?
+  salesOrderDelivery   SalesOrderDelivery? @relation(fields: [salesOrderDeliveryId], references: [id])
 
   allocations CashAllocation[]
+
+  @@index([salesOrderId])
+  @@index([salesOrderDeliveryId])
 }
 
 // Đối trừ "Chọn tay": amount taken off each debt document (mã đơn DN…/DH…).

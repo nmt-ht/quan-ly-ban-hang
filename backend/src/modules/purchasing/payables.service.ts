@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import { toDay } from '../../common/text.js';
+import { toDay, vnDay } from '../../common/text.js';
 import { addDays, dayMs } from '../../common/settle.js';
 import { DebtCharge, DebtRow, DebtSettlement, chargesOfOrder, debtRow } from '../../common/debt-rows.js';
 import { receivedValueOf } from './purchase-order.rules.js';
@@ -15,7 +15,7 @@ import { receivedValueOf } from './purchase-order.rules.js';
 export class PayablesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async rows(today = new Date().toISOString().slice(0, 10)): Promise<DebtRow[]> {
+  async rows(today = vnDay()): Promise<DebtRow[]> {
     const [suppliers, orders, vouchers, receipts] = await Promise.all([
       this.prisma.supplier.findMany({ orderBy: { name: 'asc' } }),
       this.prisma.purchaseOrder.findMany({

@@ -7,7 +7,7 @@ import { PermissionsGuard } from '../../auth/permissions.guard.js';
 import { CurrentUser, RequirePermissions } from '../../auth/permissions.decorator.js';
 import type { AuthUser } from '../../auth/auth.service.js';
 import { OptionalText, Text } from '../../common/dto.js';
-import { fromDay, toDay } from '../../common/text.js';
+import { fromDay, toDay, vnDay } from '../../common/text.js';
 import { assertOpenPeriod } from '../../common/period-lock.js';
 import { seesPurchasePrices } from '../../common/purchase-prices.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
@@ -86,7 +86,7 @@ export class PurchaseReturnsService {
       });
       if (!o) throw new NotFoundException('Không tìm thấy đơn nhập');
       if (o.status === 'HUY') throw new BadRequestException('Đơn đã huỷ — không có hàng để trả.');
-      const today = new Date().toISOString().slice(0, 10);
+      const today = vnDay();
       if (dto.date > today) throw new BadRequestException('Ngày trả hàng không được sau hôm nay.');
       if (dto.date < toDay(o.date)!) throw new BadRequestException('Ngày trả hàng không được trước ngày đặt đơn.');
       await assertOpenPeriod(tx, dto.date, 'Trả lại hàng mua');
