@@ -1,4 +1,5 @@
 import { UnitConversion, UnitOperation } from '../../core/models/domain.models';
+import { formatVnd } from '../../shared/format.util';
 
 export const UNIT_OPERATIONS: { value: UnitOperation; label: string }[] = [
   { value: 'MUL', label: 'Nhân (×)' },
@@ -16,6 +17,33 @@ export function ratioFor(op: UnitOperation, factor: number): number {
   if (op === 'MUL') return factor;
   if (op === 'DIV') return factor ? 1 / factor : 0;
   return 1;
+}
+
+/**
+ * Giá niêm yết thấp hơn giá bán tối thiểu: a Sale selling at exactly that price would be refused. Giá 0 = chưa đặt
+ * (an ĐVT quy đổi then takes the ĐVT chính's price × tỷ lệ) and is left out. One line per giá, ready to show.
+ */
+export function pricesBelowFloor(
+  minPrice: number,
+  base: { retailPrice: number; wholesalePrice: number; dropshipPrice: number },
+  units: Pick<UnitConversion, 'unitName' | 'ratioToBaseUnit' | 'price' | 'wholesalePrice' | 'dropshipPrice'>[],
+): string[] {
+  if (!(minPrice > 0)) return [];
+  const out: string[] = [];
+  const check = (label: string, price: number | undefined, floor: number) => {
+    if (price && price < floor) out.push(`${label} ${formatVnd(price)} thấp hơn giá tối thiểu ${formatVnd(floor)}`);
+  };
+  check('Giá lẻ', base.retailPrice, minPrice);
+  check('Giá sỉ', base.wholesalePrice, minPrice);
+  check('Giá dropship', base.dropshipPrice, minPrice);
+  for (const u of units) {
+    const floor = Math.round(minPrice * u.ratioToBaseUnit);
+    const name = u.unitName.trim() || 'đơn vị quy đổi';
+    check(`Giá lẻ (${name})`, u.price, floor);
+    check(`Giá sỉ (${name})`, u.wholesalePrice, floor);
+    check(`Giá dropship (${name})`, u.dropshipPrice, floor);
+  }
+  return out;
 }
 
 // Price of one of this unit, derived from the base-unit price.

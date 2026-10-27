@@ -779,9 +779,9 @@
             }
           </nav>
         }
-      <p class="actions-hint" [class.text-danger]="attempted() && issues().length" role="status">
+      <p class="actions-hint" [class.text-danger]="attempted() && issues().length" [class.text-warning]="!issues().length && floorWarning()" role="status">
         @if (editable()) {
-          {{ issues()[0] ?? 'Sẵn sàng lưu' }}
+          {{ issues()[0] ?? floorWarning() ?? 'Sẵn sàng lưu' }}
         } @else if (order(); as o) {
           Lập bởi {{ userName(o.createdBy) }} · ngày đặt <span class="num">{{ day(o.orderDate) }}</span>
         }

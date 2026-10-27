@@ -12,7 +12,7 @@ import { diff } from '../../audit/audit.diff.js';
 const PRODUCT_FIELDS = {
   name: 'Tên', baseUnit: 'ĐVT chính', measureMode: 'Cách tính', crossRefCode: 'Mã đối chiếu', category: 'Nhóm hàng',
   defaultWarehouse: 'Kho ngầm định', minStock: 'Tồn tối thiểu', vatRate: 'Thuế GTGT (%)', warrantyMonths: 'Bảo hành (tháng)',
-  origin: 'Nguồn gốc', retailPrice: 'Giá lẻ', wholesalePrice: 'Giá sỉ', dropshipPrice: 'Giá dropship', purchaseNote: 'Diễn giải khi mua',
+  origin: 'Nguồn gốc', retailPrice: 'Giá lẻ', wholesalePrice: 'Giá sỉ', dropshipPrice: 'Giá dropship', minPrice: 'Giá bán tối thiểu', purchaseNote: 'Diễn giải khi mua',
   saleNote: 'Diễn giải khi bán', description: 'Mô tả', isSellable: 'Được phép bán', isActive: 'Đang kinh doanh',
   units: 'Đơn vị quy đổi', images: 'Số ảnh',
 };
@@ -51,16 +51,16 @@ function fields(dto: CreateProductDto) {
     name: dto.name, baseUnit: dto.baseUnit, measureMode: dto.type === 'THANH_PHAM' ? (dto.measureMode ?? null) : null,
     crossRefCode: dto.crossRefCode ?? null, categoryId: dto.categoryId ?? null, defaultWarehouseId: dto.defaultWarehouseId ?? null,
     minStock: dto.minStock ?? 0, vatRate: dto.vatRate ?? 0, warrantyMonths: dto.warrantyMonths ?? 0, origin: dto.origin ?? null,
-    retailPrice: dto.retailPrice ?? 0, wholesalePrice: dto.wholesalePrice ?? 0, dropshipPrice: dto.dropshipPrice ?? 0,
+    retailPrice: dto.retailPrice ?? 0, wholesalePrice: dto.wholesalePrice ?? 0, dropshipPrice: dto.dropshipPrice ?? 0, minPrice: dto.minPrice ?? 0,
     purchaseNote: dto.purchaseNote ?? null, saleNote: dto.saleNote ?? null, description: dto.description ?? null,
     isSellable: dto.isSellable ?? true, isActive: dto.isActive ?? true,
   };
 }
 
 // Giá bán of a product and of its units, as one comparable string.
-const priceKey = (p: { retailPrice: unknown; wholesalePrice: unknown; dropshipPrice: unknown }, units: { unitName: string; price: unknown; wholesalePrice?: unknown; dropshipPrice?: unknown }[]) =>
+const priceKey = (p: { retailPrice: unknown; wholesalePrice: unknown; dropshipPrice: unknown; minPrice?: unknown }, units: { unitName: string; price: unknown; wholesalePrice?: unknown; dropshipPrice?: unknown }[]) =>
   JSON.stringify([
-    Number(p.retailPrice), Number(p.wholesalePrice), Number(p.dropshipPrice),
+    Number(p.retailPrice), Number(p.wholesalePrice), Number(p.dropshipPrice), Number(p.minPrice ?? 0),
     ...units.map((u) => [u.unitName, Number(u.price), Number(u.wholesalePrice ?? 0), Number(u.dropshipPrice ?? 0)]),
   ]);
 

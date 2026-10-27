@@ -98,10 +98,10 @@
 
 <ng-template #rowActions let-r>
   <span class="row-actions">
-    <a class="icon-action" [routerLink]="['/hang-hoa', r.product.id]" [queryParams]="{ tab: 'lich-su' }" [attr.aria-label]="'Thẻ kho ' + r.product.code" title="Thẻ kho (lịch sử nhập xuất)">
+    <a class="icon-action" [routerLink]="['/hang-hoa', r.product.code]" [queryParams]="{ tab: 'lich-su' }" [attr.aria-label]="'Thẻ kho ' + r.product.code" title="Thẻ kho (lịch sử nhập xuất)">
       <app-nav-icon name="clock" />
     </a>
-    <a class="icon-action" [routerLink]="['/hang-hoa', r.product.id]" [queryParams]="{ tab: 'ton-kho' }" [attr.aria-label]="'Tồn theo kho ' + r.product.code" title="Tồn theo kho">
+    <a class="icon-action" [routerLink]="['/hang-hoa', r.product.code]" [queryParams]="{ tab: 'ton-kho' }" [attr.aria-label]="'Tồn theo kho ' + r.product.code" title="Tồn theo kho">
       <app-nav-icon name="eye" />
     </a>
   </span>

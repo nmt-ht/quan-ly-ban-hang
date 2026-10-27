@@ -50,6 +50,24 @@ export function receivedValueOf(lines: SaleLine[], orderDiscount: number): numbe
   return lines.reduce((s, l, i) => (l.quantity > 0 ? s + Math.round((t.lines[i].total * l.receivedQuantity) / l.quantity) : s), 0);
 }
 
+/**
+ * Giá bán tối thiểu (giá sàn, as MISA): the đơn giá thực thu of a dòng — after its chiết khấu and its share of the chiết
+ * khấu cả đơn, before thuế — may not be below the mặt hàng's giá tối thiểu (ĐVT chính × tỷ lệ quy đổi). Hàng tặng are
+ * left out. Answers each dòng below it, with its giá sàn and its đơn giá thực thu.
+ */
+export function belowMinPrice(
+  lines: (SaleLine & { isGift?: boolean })[], orderDiscount: number, minPriceOf: (productId: string) => number,
+): { index: number; floor: number; net: number }[] {
+  const t = orderTotals(lines, orderDiscount);
+  return lines.flatMap((l, index) => {
+    const min = minPriceOf(l.productId);
+    if (!(min > 0) || l.isGift || !(l.quantity > 0)) return [];
+    const floor = Math.round(min * l.ratioToBase);
+    const net = Math.round(t.lines[index].taxable / l.quantity);
+    return net < floor ? [{ index, floor, net }] : [];
+  });
+}
+
 export interface PriceSource {
   type: ProductType;
   retailPrice: number;

@@ -2,6 +2,20 @@
   grid-column: 1 / -1;
 }
 
+// Mã + tên in one flex item of .field-value, so the space between them stays and a long tên ends in "…".
+.lsx-fv-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Quy cách theo đơn: one line per dòng of the đơn.
+.lsx-specs {
+  white-space: normal;
+  padding-block: var(--space-3xs);
+  line-height: 1.5;
+}
+
 .lsx-late {
   background: var(--color-danger-tint);
   color: var(--color-danger);

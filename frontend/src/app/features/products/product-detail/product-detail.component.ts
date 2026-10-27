@@ -14,6 +14,7 @@ import { PRODUCT_TYPE_CLASS, PRODUCT_TYPE_LABEL, businessStatusClass } from '../
 import { formatVnd } from '../../../shared/format.util';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
+import { findProduct } from '../product.service';
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 
 interface BomRow {
@@ -48,10 +49,19 @@ const VOUCHER_TYPE_LABEL: Record<WarehouseVoucherType, string> = {
   templateUrl: './product-detail.component.html',
 })
 export class ProductDetailComponent {
-  readonly id = toSignal(inject(ActivatedRoute).paramMap.pipe(map((p) => p.get('id') ?? '')), { initialValue: '' });
+  // The URL carries the mã (/hang-hoa/SP0000001); a link by id still opens and is rewritten to the mã.
+  private readonly route = inject(ActivatedRoute);
+  readonly ref = toSignal(this.route.paramMap.pipe(map((p) => p.get('id') ?? '')), { initialValue: '' });
   readonly measureLabel = (p: Product) => MEASURE_MODES.find((m) => m.value === p.measureMode)?.label;
 
-  readonly product = computed(() => this.data.products().find((p) => p.id === this.id()));
+  readonly product = computed(() => findProduct(this.data.products(), this.ref()));
+  readonly id = computed(() => this.product()?.id ?? '');
+  private readonly byCode = effect(() => {
+    const p = this.product();
+    if (p && this.ref() !== p.code) {
+      untracked(() => void this.router.navigate(['/hang-hoa', p.code], { replaceUrl: true, queryParamsHandling: 'preserve' }));
+    }
+  });
   readonly typeLabel = PRODUCT_TYPE_LABEL;
   readonly typeClass = PRODUCT_TYPE_CLASS;
   readonly statusClass = businessStatusClass;
@@ -103,7 +113,6 @@ export class ProductDetailComponent {
 
   // ---------- tabs (?tab=… keeps the tab in the URL) ----------
 
-  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly tabParam = toSignal(this.route.queryParamMap.pipe(map((q) => q.get('tab'))), { initialValue: null });
 

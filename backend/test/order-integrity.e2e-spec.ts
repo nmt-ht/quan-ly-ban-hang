@@ -104,9 +104,11 @@ describe('Toàn vẹn đơn hàng (e2e)', () => {
     const afterShip = await stock();
     await manager.post(`/api/sales-orders/${o.id}/deliver`, { date: today, items: [{ lineIndex: 0, quantity: 2, warehouseId: WH }] }).expect(400);
     expect(await stock()).toBe(afterShip);
-    // Older data: part already counted as received before the chốt — the chốt takes no more than what is still owed.
+    // Older data: part already counted as received before the chốt — the chốt refuses more than what is still owed.
     await prisma.salesOrderLine.updateMany({ where: { orderId: o.id }, data: { receivedQuantity: 1 } });
-    await manager.post(`/api/delivery-trips/${tripId}/orders/${o.id}/confirm`, { lines: [{ lineIndex: 0, received: 2 }] }).expect(200);
+    const over = await manager.post(`/api/delivery-trips/${tripId}/orders/${o.id}/confirm`, { lines: [{ lineIndex: 0, received: 2 }] }).expect(400);
+    expect(over.body.message).toContain('trên xe chỉ có 1');
+    await manager.post(`/api/delivery-trips/${tripId}/orders/${o.id}/confirm`, { lines: [{ lineIndex: 0, received: 1 }] }).expect(200);
     const after = (await manager.get(`/api/sales-orders/${o.id}`).expect(200)).body;
     expect(after.lines[0].receivedQuantity).toBe(2);
     expect(after.receivedValue).toBe(after.totalOrder);
@@ -129,6 +131,10 @@ describe('Toàn vẹn đơn hàng (e2e)', () => {
   it('lỗ 4: giao hàng hoá luôn trừ kho — kho trên dòng khi không chọn, không có kho thì từ chối', async () => {
     const o = await newOrder(manager, [line(4)]);
     const before = await stock();
+    // Giao nhiều hơn số còn phải giao bị từ chối, không tự cắt bớt.
+    const over = await manager.post(`/api/sales-orders/${o.id}/deliver`, { date: today, items: [{ lineIndex: 0, quantity: 5 }] }).expect(400);
+    expect(over.body.message).toBe('Dòng 1: còn phải giao 4, không giao được 5.');
+    expect(await stock()).toBe(before);
     await manager.post(`/api/sales-orders/${o.id}/deliver`, { date: today, items: [{ lineIndex: 0, quantity: 4 }] }).expect(200);
     expect(await stock()).toBe(before - 4);
     const bare = await newOrder(manager, [{ productId: other, unit: 'Cái', quantity: 1, unitPrice: 10000 }]);

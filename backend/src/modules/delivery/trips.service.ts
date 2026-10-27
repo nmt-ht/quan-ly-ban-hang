@@ -254,7 +254,11 @@ export class TripsService {
         const asked = lines.find((x) => x.lineIndex === load.orderLine.sortOrder)?.received ?? 0;
         // No more than went on the truck, nor than the line still owes.
         const owed = lineRemaining(saleLine(o.lines.find((x) => x.id === load.orderLineId)!));
-        const received = Math.min(Math.max(0, round4(asked)), load.quantity.toNumber(), owed);
+        const most = Math.min(load.quantity.toNumber(), owed);
+        const received = Math.max(0, round4(asked));
+        if (received > most) {
+          throw new BadRequestException(`Dòng ${load.orderLine.sortOrder + 1}: trên xe chỉ có ${most} cho đơn ${o.code}, không chốt nhận được ${received}.`);
+        }
         await tx.deliveryTripLoad.update({ where: { id: load.id }, data: { receivedQuantity: received } });
         if (received > 0) {
           await tx.salesOrderLine.update({ where: { id: load.orderLineId }, data: { receivedQuantity: { increment: received } } });

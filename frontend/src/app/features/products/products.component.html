@@ -124,7 +124,7 @@
     <ul class="product-grid">
       @for (p of pagedProducts(); track p.id) {
         <li class="product-card">
-          <a class="product-card-media" [routerLink]="['/hang-hoa', p.id]" tabindex="-1" aria-hidden="true">
+          <a class="product-card-media" [routerLink]="['/hang-hoa', p.code]" tabindex="-1" aria-hidden="true">
             @if (p.images?.[0]; as img) {
               <img [src]="img.url" alt="" loading="lazy" />
             } @else {
@@ -132,14 +132,14 @@
             }
           </a>
           <div class="product-card-head">
-            <span class="product-card-code"><a class="num code-link" [routerLink]="['/hang-hoa', p.id]">{{ p.code }}</a><app-copy-button [text]="p.code" label="mã" /></span>
+            <span class="product-card-code"><a class="num code-link" [routerLink]="['/hang-hoa', p.code]">{{ p.code }}</a><app-copy-button [text]="p.code" label="mã" /></span>
             @if (!p.isActive) {
               <span class="badge" [ngClass]="statusClass(p)">Ngừng kinh doanh</span>
             } @else if (belowMin(p)) {
               <span class="badge badge-warning">Dưới tối thiểu</span>
             }
           </div>
-          <a class="product-card-name" [routerLink]="['/hang-hoa', p.id]">{{ p.name }}</a>
+          <a class="product-card-name" [routerLink]="['/hang-hoa', p.code]">{{ p.name }}</a>
           <p class="product-card-meta">
             <span class="badge" [ngClass]="typeClass(p)">{{ typeLabel(p) }}</span>
             @if (categoryOf(p)) { <span>{{ categoryOf(p) }}</span> }
@@ -168,10 +168,10 @@
 
 <ng-template #rowActions let-p>
   <span class="row-actions">
-    <a class="icon-action" [routerLink]="['/hang-hoa', p.id]" [attr.aria-label]="'Xem chi tiết ' + p.code" title="Xem chi tiết">
+    <a class="icon-action" [routerLink]="['/hang-hoa', p.code]" [attr.aria-label]="'Xem chi tiết ' + p.code" title="Xem chi tiết">
       <app-nav-icon name="eye" />
     </a>
-    <a class="icon-action" [routerLink]="['/hang-hoa', p.id, 'sua']" [attr.aria-label]="'Sửa ' + p.code" title="Sửa">
+    <a class="icon-action" [routerLink]="['/hang-hoa', p.code, 'sua']" [attr.aria-label]="'Sửa ' + p.code" title="Sửa">
       <app-nav-icon name="pencil" />
     </a>
   </span>

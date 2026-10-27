@@ -164,7 +164,7 @@
                 <tbody>
                   @for (c of catalog(); track c.productId) {
                     <tr [class.is-editing]="newProductId() === c.productId">
-                      <td class="num"><a class="code-link" [routerLink]="['/hang-hoa', c.productId]">{{ c.product?.code ?? c.productId }}</a></td>
+                      <td class="num"><a class="code-link" [routerLink]="['/hang-hoa', c.product?.code ?? c.productId]">{{ c.product?.code ?? c.productId }}</a></td>
                       <td>{{ c.product?.name ?? '—' }}</td>
                       <td>
                         @if (c.product) {

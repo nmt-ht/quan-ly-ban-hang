@@ -408,7 +408,7 @@
           <li>
             <span class="db-rank num" [class.is-first]="rank === 1">{{ rank }}</span>
             <div class="db-top-body">
-              <a class="db-top-name" [routerLink]="['/hang-hoa', t.id]" [title]="t.code + ' · ' + t.name">{{ t.name }}</a>
+              <a class="db-top-name" [routerLink]="['/hang-hoa', t.code]" [title]="t.code + ' · ' + t.name">{{ t.name }}</a>
               <div class="db-top-meta">
                 <span [title]="t.share.toFixed(1) + '% doanh thu hàng hoá trong kỳ'"><span class="num">{{ t.qty.toLocaleString('vi-VN') }}</span>&nbsp;{{ t.unit }} · <span class="num">{{ t.share.toFixed(0) }}%</span></span>
                 <strong class="num">{{ money(t.value) }}</strong>

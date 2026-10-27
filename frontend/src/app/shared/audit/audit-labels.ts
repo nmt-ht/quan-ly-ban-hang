@@ -35,7 +35,8 @@ export function codeLink(data: DataStore, code: string): unknown[] | null {
   ];
   for (const [route, rows] of lists) {
     const hit = rows.find((r) => r.code === code);
-    if (hit) return [route, hit.id];
+    // Hàng hoá are opened by mã (/hang-hoa/SP0000001); the other pages by id.
+    if (hit) return [route, route === '/hang-hoa' ? hit.code : hit.id];
   }
   return null;
 }

@@ -108,7 +108,7 @@
                 <tbody>
                   @for (r of stockRows().slice(0, limit); track r.id) {
                     <tr>
-                      <td class="wd-code"><a class="code-link num" [routerLink]="['/hang-hoa', r.id]">{{ r.code }}</a></td>
+                      <td class="wd-code"><a class="code-link num" [routerLink]="['/hang-hoa', r.code]">{{ r.code }}</a></td>
                       <td>{{ r.name }}</td>
                       <td>{{ r.unit }}</td>
                       <td class="num align-right" [class.amt-neg]="r.qty < 0" [class.text-warning]="r.low && r.qty >= 0">{{ qty(r.qty) }}</td>

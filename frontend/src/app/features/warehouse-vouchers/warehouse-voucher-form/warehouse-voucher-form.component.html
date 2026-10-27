@@ -128,7 +128,7 @@
               @for (l of viewLines(); track l.i) {
                 <tr>
                   <td class="c-idx num">{{ l.i + 1 }}</td>
-                  <td class="c-product"><a class="code-link num" [routerLink]="['/hang-hoa', l.p?.id]">{{ l.p?.code }}</a> {{ l.p?.name }}</td>
+                  <td class="c-product"><a class="code-link num" [routerLink]="['/hang-hoa', l.p?.code]">{{ l.p?.code }}</a> {{ l.p?.name }}</td>
                   <td class="c-unit">{{ l.unit }}</td>
                   @if (type() === 'KIEM_KE') { <td class="c-num num">{{ l.book !== undefined ? qty(l.book) : '—' }}</td> }
                   <td class="c-num num">

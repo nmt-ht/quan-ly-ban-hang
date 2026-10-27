@@ -12,7 +12,7 @@ import type { AuthUser } from '../../auth/auth.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { SequenceService } from '../../prisma/sequence.service.js';
 import { OptionalText, Text } from '../../common/dto.js';
-import { fromDay } from '../../common/text.js';
+import { fromDay, toDay } from '../../common/text.js';
 import { assertOpenPeriod } from '../../common/period-lock.js';
 import { CASH_INCLUDE, cashToApi } from './cash-voucher.mapper.js';
 import { AuditService } from '../../audit/audit.service.js';
@@ -168,10 +168,13 @@ export class CashVouchersService {
   }
 
   /**
-   * Không chi vượt tồn quỹ (as MISA): the account's số dư on the phiếu's date and today must both cover the phiếu.
-   * The account row is locked so two phiếu chi at once queue up. voucher.overdraw saves anyway — the Nhật ký says so.
+   * Không chi vượt tồn quỹ (as MISA): the account's số dư on the phiếu's date and today must both cover the phiếu —
+   * a phiếu chi, or a phiếu thu being huỷ (`cancelling`, its code), which takes its money back out of the quỹ.
+   * The account row is locked so two at once queue up. voucher.overdraw saves anyway — the Nhật ký says so.
    */
-  private async overdraw(tx: Tx, account: { id: string; name: string; openingBalance: Prisma.Decimal }, day: string, amount: number, user: AuthUser) {
+  private async overdraw(
+    tx: Tx, account: { id: string; name: string; openingBalance: Prisma.Decimal }, day: string, amount: number, user: AuthUser, cancelling?: string,
+  ) {
     await tx.$queryRaw`SELECT "id" FROM "CashAccount" WHERE "id" = ${account.id} FOR UPDATE`;
     const balance = async (until?: Date) => {
       const sums = await tx.cashVoucher.groupBy({
@@ -182,24 +185,32 @@ export class CashVouchersService {
     const left = Math.min(await balance(fromDay(day)!), await balance());
     if (left >= amount) return '';
     if (!user.permissions.includes('voucher.overdraw')) {
-      throw new BadRequestException(`Tồn quỹ ${account.name} chỉ còn ${vnd(left)} — không chi được ${vnd(amount)}.`);
+      throw new BadRequestException(cancelling
+        ? `Tồn quỹ ${account.name} chỉ còn ${vnd(left)} — huỷ ${cancelling} (${vnd(amount)}) sẽ làm quỹ âm.`
+        : `Tồn quỹ ${account.name} chỉ còn ${vnd(left)} — không chi được ${vnd(amount)}.`);
     }
-    return ` · chi vượt tồn quỹ (còn ${vnd(left)})`;
+    return ` · ${cancelling ? 'huỷ làm quỹ âm' : 'chi vượt tồn quỹ'} (còn ${vnd(left)})`;
   }
 
-  /** Huỷ phiếu: the phiếu stays (shown as huỷ); it no longer counts in số dư quỹ or đối trừ, so công nợ reopens. */
-  async cancel(id: string, reason: string | undefined) {
-    const v = await this.prisma.cashVoucher.findUnique({ where: { id } });
-    if (!v) throw new NotFoundException('Không tìm thấy phiếu thu chi');
-    if (v.isCancelled) throw new BadRequestException(`${v.code} đã huỷ rồi.`);
+  /**
+   * Huỷ phiếu: the phiếu stays (shown as huỷ); it no longer counts in số dư quỹ or đối trừ, so công nợ reopens.
+   * Huỷ a phiếu thu takes its money out of the quỹ again: refused when that leaves the quỹ âm (see overdraw).
+   */
+  async cancel(id: string, reason: string | undefined, user: AuthUser) {
     const saved = await this.prisma.$transaction(async (tx) => {
+      // Locked: two huỷ at once cannot both pass, nor both take the money out of the quỹ.
+      await tx.$queryRaw`SELECT "id" FROM "CashVoucher" WHERE "id" = ${id} FOR UPDATE`;
+      const v = await tx.cashVoucher.findUnique({ where: { id }, include: { account: true } });
+      if (!v) throw new NotFoundException('Không tìm thấy phiếu thu chi');
+      if (v.isCancelled) throw new BadRequestException(`${v.code} đã huỷ rồi.`);
       await assertOpenPeriod(tx, v.date, `Huỷ ${v.code}:`);
+      const overdrawn = v.kind === 'THU' ? await this.overdraw(tx, v.account, toDay(v.date)!, v.amount.toNumber(), user, v.code) : '';
       const s = await tx.cashVoucher.update({
         where: { id }, data: { isCancelled: true, cancelReason: reason ?? null, cancelledAt: new Date() }, include: CASH_INCLUDE,
       });
       await this.audit.log(tx, {
         action: 'cash_voucher.cancel', entityType: 'CashVoucher', entityId: id, entityCode: v.code,
-        summary: `Huỷ ${v.kind === 'THU' ? 'phiếu thu' : 'phiếu chi'} ${v.code} (${vnd(v.amount)})${reason ? `: ${reason}` : ''}`,
+        summary: `Huỷ ${v.kind === 'THU' ? 'phiếu thu' : 'phiếu chi'} ${v.code} (${vnd(v.amount)})${reason ? `: ${reason}` : ''}${overdrawn}`,
       });
       return s;
     });
@@ -245,8 +256,8 @@ export class CashVouchersController {
   @RequirePermissions('voucher.cancel')
   @Post(':id/cancel')
   @HttpCode(HttpStatus.OK)
-  cancel(@Param('id') id: string, @Body() dto: CancelDto) {
-    return this.vouchers.cancel(id, dto.reason);
+  cancel(@Param('id') id: string, @Body() dto: CancelDto, @CurrentUser() user: AuthUser) {
+    return this.vouchers.cancel(id, dto.reason, user);
   }
 }
 

@@ -112,4 +112,25 @@ describe('Phiếu thu chi & đối trừ (e2e)', () => {
     expect((await accountant.get('/api/cash-vouchers').expect(200)).body.some((v: any) => v.id === pc.id)).toBe(true);
     await storekeeper.get('/api/cash-vouchers').expect(403); // Thủ kho has no voucher, debt or report rights
   });
+
+  it('huỷ phiếu thu không được làm quỹ âm, trừ khi có quyền chi vượt tồn quỹ', async () => {
+    const account = await prisma.cashAccount.create({ data: { name: 'E2E Quỹ huỷ thu', type: 'TIEN_MAT', openingBalance: 0 } });
+    try {
+      const khac = (kind: 'THU' | 'CHI', amount: number) => ({
+        kind, date: today, category: kind === 'THU' ? 'Thu khác' : 'Chi khác', partnerType: 'KHAC', accountId: account.id, amount, description: 'E2E',
+      });
+      const pt = (await accountant.post('/api/cash-vouchers', khac('THU', 100_000)).expect(201)).body;
+      await accountant.post('/api/cash-vouchers', khac('CHI', 60_000)).expect(201); // quỹ còn 40.000
+      const refused = (await accountant.post(`/api/cash-vouchers/${pt.id}/cancel`, { reason: 'E2E' }).expect(400)).body;
+      expect(refused.message).toMatch(/quỹ âm/);
+      // Quản lý có voucher.overdraw: huỷ được, nhật ký ghi lại.
+      await manager.post(`/api/cash-vouchers/${pt.id}/cancel`, { reason: 'E2E' }).expect(200);
+      expect(await balance(account.id)).toBe(-60_000);
+      const log = await prisma.auditLog.findFirst({ where: { action: 'cash_voucher.cancel', entityId: pt.id } });
+      expect(log?.summary).toContain('huỷ làm quỹ âm');
+    } finally {
+      await prisma.cashVoucher.deleteMany({ where: { accountId: account.id } });
+      await prisma.cashAccount.delete({ where: { id: account.id } });
+    }
+  });
 });

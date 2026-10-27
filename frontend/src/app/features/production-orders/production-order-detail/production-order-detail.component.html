@@ -26,7 +26,8 @@
         <div class="field span-2">
           <span class="field-label">Thành phẩm</span>
           <p class="field-value">
-            @if (product(); as p) { <a class="code-link num" [routerLink]="['/hang-hoa', p.id]">{{ p.code }}</a> {{ p.name }} } @else { — }
+            <!-- One flex item: .field-value is a flex row, which would drop the space between mã and tên. -->
+            <span class="lsx-fv-text">@if (product(); as p) { <a class="code-link num" [routerLink]="['/hang-hoa', p.code]">{{ p.code }}</a> {{ p.name }} } @else { — }</span>
           </p>
         </div>
         <div class="field">
@@ -41,16 +42,24 @@
         </div>
         <div class="field">
           <span class="field-label">Đơn bán</span>
-          <p class="field-value">@if (order(); as o) { <a class="code-link num" [routerLink]="['/don-hang', o.id]">{{ o.code }}</a> } @else { — }</p>
+          <p class="field-value">@if (order(); as o) { <a class="code-link num" [routerLink]="['/don-hang', o.id]">{{ o.code }}</a> } @else if (source(); as s) { <span class="num">{{ s.code }}</span> } @else { — }</p>
         </div>
         <div class="field span-2">
           <span class="field-label">Khách hàng</span>
-          <p class="field-value">@if (customer(); as c) { <a class="code-link" [routerLink]="['/khach-hang', c.id]">{{ c.name }}</a> } @else { — }</p>
+          <p class="field-value">@if (customer(); as c) { <a class="code-link" [routerLink]="['/khach-hang', c.id]">{{ c.name }}</a> } @else { {{ source()?.customerName ?? '—' }} }</p>
         </div>
         <div class="field">
           <span class="field-label">Cần giao</span>
-          <p class="field-value num" [class.amt-neg]="late()">{{ order()?.neededByDate ? day(order()!.neededByDate!) : '—' }}</p>
+          <p class="field-value num" [class.amt-neg]="late()">{{ (order()?.neededByDate ?? source()?.neededByDate) ? day((order()?.neededByDate ?? source()?.neededByDate)!) : '—' }}</p>
         </div>
+        @if (source()?.lines?.length) {
+          <div class="field span-full">
+            <span class="field-label">Quy cách theo đơn</span>
+            <p class="field-value lsx-specs">
+              <span>@for (l of source()!.lines; track $index) {<span class="num">{{ l.quantity.toLocaleString('vi-VN') }} {{ l.unit }}</span>@if (l.length && l.width) { · <span class="num">{{ l.length }}×{{ l.width }} cm</span>}@if (l.note) { · {{ l.note }}}@if (!$last) {<br />}}</span>
+            </p>
+          </div>
+        }
         <div class="field"><span class="field-label">Ngày lập</span><p class="field-value num">{{ day(x.createdDate) }}</p></div>
         <div class="field"><span class="field-label">Bắt đầu</span><p class="field-value num">{{ x.startDate ? day(x.startDate) : '—' }}</p></div>
         <div class="field"><span class="field-label">Hoàn tất</span><p class="field-value num">{{ x.completeDate ? day(x.completeDate) : '—' }}</p></div>
@@ -104,7 +113,7 @@
               @for (b of bom(); track b.i) {
                 <tr>
                   <td class="c-idx num">{{ b.i + 1 }}</td>
-                  <td class="c-product">@if (b.p) { <a class="code-link num" [routerLink]="['/hang-hoa', b.p.id]">{{ b.p.code }}</a> {{ b.p.name }} }</td>
+                  <td class="c-product">@if (b.p) { <a class="code-link num" [routerLink]="['/hang-hoa', b.p.code]">{{ b.p.code }}</a> {{ b.p.name }} }</td>
                   <td class="c-unit">{{ b.p?.baseUnit }}</td>
                   <td class="c-num num">{{ b.per.toLocaleString('vi-VN') }}</td>
                   <td class="c-num num">{{ b.need.toLocaleString('vi-VN') }}</td>

@@ -12,7 +12,7 @@ import { ReceivablesService } from './receivables.service.js';
 import { RETURN_INCLUDE, returnToApi } from './returns.js';
 import { diff, vnd } from '../../audit/audit.diff.js';
 import {
-  ListPrice, LsxState, PriceSource, SALE_TYPE_LABEL, STATUS_LABEL, SaleLine, canCancel, canClose, canDeliver, canEdit, deriveStatus, lineDiscount, lineRemaining,
+  ListPrice, LsxState, PriceSource, SALE_TYPE_LABEL, belowMinPrice, STATUS_LABEL, SaleLine, canCancel, canClose, canDeliver, canEdit, deriveStatus, lineDiscount, lineRemaining,
   foreignCurrency, linesNeedingLsx, orderTotals, priceFor, receivedValueOf, round4, saleTypeIssue,
 } from './sales-order.rules.js';
 import { SalesOrderPageQuery, orderWhere, pageOf } from './sales-order-page.js';
@@ -102,7 +102,16 @@ const ORDER_INCLUDE = {
   deliveries: { include: { lines: true }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] },
 } as const satisfies Prisma.SalesOrderInclude;
 
-const LSX_INCLUDE = { createdBy: { select: { email: true } } } as const satisfies Prisma.ProductionOrderInclude;
+// The đơn bán a lệnh comes from, as the xưởng needs it: mã, khách, ngày cần giao and the quy cách ordered — no giá.
+const LSX_INCLUDE = {
+  createdBy: { select: { email: true } },
+  sourceOrder: {
+    select: {
+      code: true, neededByDate: true, customer: { select: { name: true } },
+      lines: { select: { productId: true, unit: true, unitName: true, quantity: true, length: true, width: true, note: true }, orderBy: { sortOrder: 'asc' } },
+    },
+  },
+} as const satisfies Prisma.ProductionOrderInclude;
 
 const ORDER_FIELDS = {
   customer: 'Khách hàng', recipientName: 'Người nhận', recipientPhone: 'Điện thoại nhận', deliveryAddress: 'Địa chỉ giao',
@@ -158,8 +167,17 @@ export function orderToApi(o: OrderRow) {
 }
 
 /** The frontend's ProductionOrder (createdDate is the day it was made). */
-export function lsxToApi({ createdBy, createdById: _c, createdAt, startDate, completeDate, ...x }: LsxRow) {
-  return { ...x, createdAt, createdDate: toDay(createdAt)!, startDate: toDay(startDate), completeDate: toDay(completeDate), createdBy: createdBy?.email ?? null };
+export function lsxToApi({ createdBy, createdById: _c, createdAt, startDate, completeDate, sourceOrder, ...x }: LsxRow) {
+  return {
+    ...x, createdAt, createdDate: toDay(createdAt)!, startDate: toDay(startDate), completeDate: toDay(completeDate), createdBy: createdBy?.email ?? null,
+    // Read-only, for people who may not open the đơn itself (Nhân viên xưởng): the lines of this thành phẩm only.
+    sourceOrder: {
+      code: sourceOrder.code, customerName: sourceOrder.customer.name, neededByDate: toDay(sourceOrder.neededByDate),
+      lines: sourceOrder.lines.filter((l) => l.productId === x.productId).map((l) => ({
+        unit: l.unitName ?? l.unit, quantity: l.quantity.toNumber(), length: l.length?.toNumber() ?? null, width: l.width?.toNumber() ?? null, note: l.note,
+      })),
+    },
+  };
 }
 
 @Injectable()
@@ -447,7 +465,10 @@ export class SalesService {
       for (const it of input.items) {
         const line = nums[it.lineIndex];
         if (!line) throw new BadRequestException(`Dòng ${it.lineIndex + 1} không có trong đơn.`);
-        const qty = Math.min(it.quantity, lineRemaining(line));
+        // More than the dòng still owes is refused, not cut down without a word: the phiếu xuất must match what left.
+        const owed = lineRemaining(line);
+        const qty = round4(it.quantity);
+        if (qty > owed) throw new BadRequestException(`Dòng ${it.lineIndex + 1}: còn phải giao ${owed}, không giao được ${qty}.`);
         if (qty <= 0) continue;
         line.receivedQuantity = round4(line.receivedQuantity + qty);
         moved = true;
@@ -830,7 +851,36 @@ export async function checkPartyAndPrices(
   }
 
   if (!user.permissions.includes('order.discount')) await checkDiscounts(tx, input, customer, byId, existing, existingDiscount);
+  if (!user.permissions.includes('order.below_min_price')) checkMinPrices(input, byId, existing, existingDiscount);
   return { customer, byId };
+}
+
+/**
+ * Giá sàn of a role without order.below_min_price: no dòng below its mặt hàng's giá bán tối thiểu (see belowMinPrice),
+ * unless the chứng từ already sold that mặt hàng, in that ĐVT, at that price or lower (approved earlier).
+ */
+function checkMinPrices(
+  input: { discountAmount: number; lines: SaleLineInput[] }, byId: Map<string, { code: string; minPrice: Prisma.Decimal }>,
+  existing: PricedLine[], existingDiscount: number,
+) {
+  const rows = lineRows(input.lines);
+  const below = belowMinPrice(
+    rows.map((r) => ({ ...rowToSaleLine(r), isGift: r.isGift })), input.discountAmount || 0, (id) => byId.get(id)?.minPrice.toNumber() ?? 0,
+  );
+  if (!below.length) return;
+  const had = existing.map((e) => ({
+    productId: e.productId, quantity: e.quantity.toNumber(), unitPrice: e.unitPrice.toNumber(), discountAmount: e.discountAmount.toNumber(),
+    vatRate: 0, receivedQuantity: 0, ratioToBase: e.ratioToBase.toNumber(),
+  }));
+  const hadNet = orderTotals(had, existingDiscount).lines.map((c, i) => (had[i].quantity > 0 ? Math.round(c.taxable / had[i].quantity) : Infinity));
+  for (const b of below) {
+    const r = rows[b.index];
+    const kept = existing.some((e, i) => !e.isGift && e.productId === r.productId && (e.unitName ?? null) === r.unitName && hadNet[i] <= b.net);
+    if (kept) continue;
+    throw new ForbiddenException(
+      `Dòng ${b.index + 1}: ${byId.get(r.productId)?.code ?? ''} bán ${vnd(b.net)} (sau chiết khấu, chưa thuế) thấp hơn giá bán tối thiểu ${vnd(b.floor)} — cần quyền "Bán dưới giá tối thiểu".`,
+    );
+  }
 }
 
 const NEEDS_DISCOUNT = 'cần quyền "Chiết khấu ngoài khuyến mãi"';

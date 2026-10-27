@@ -191,6 +191,8 @@ model Product {
   retailPrice        Decimal          @default(0)
   wholesalePrice     Decimal          @default(0)
   dropshipPrice      Decimal          @default(0)
+  /// Giá bán tối thiểu theo ĐVT chính; 0 = không giới hạn. Bán thấp hơn cần quyền order.below_min_price.
+  minPrice           Decimal          @default(0)
   purchaseNote       String?
   saleNote           String?
   description        String?

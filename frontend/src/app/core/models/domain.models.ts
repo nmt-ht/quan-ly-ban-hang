@@ -36,6 +36,8 @@ export interface Product {
   retailPrice: number;
   wholesalePrice: number;
   dropshipPrice: number;
+  /** Giá bán tối thiểu theo ĐVT chính; 0 = không giới hạn. */
+  minPrice?: number;
   unitConversions: UnitConversion[];
   purchaseNote?: string;
   saleNote?: string;
@@ -144,6 +146,13 @@ export interface ProductionOrder {
   producedQuantity?: number; // số thực nhập kho khi hoàn tất (hàng hỏng làm số này < quantity)
   note?: string;
   createdBy?: string;
+  /** Đơn bán gốc, chỉ đọc — cho người không mở được đơn (Nhân viên xưởng): mã, khách, ngày cần giao, quy cách đặt. */
+  sourceOrder?: {
+    code: string;
+    customerName: string;
+    neededByDate?: string | null;
+    lines: { unit: string; quantity: number; length?: number | null; width?: number | null; note?: string | null }[];
+  };
 }
 
 export interface Supplier {

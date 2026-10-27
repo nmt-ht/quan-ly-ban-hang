@@ -75,7 +75,7 @@ export class ProductionOrdersComponent {
   private readonly customerName = computed(() => new Map(this.data.customers().map((c) => [c.id, c.name])));
 
   late(x: ProductionOrder): boolean {
-    return isLate(x, this.orderById().get(x.sourceOrderId), this.today);
+    return isLate(x, this.orderById().get(x.sourceOrderId) ?? x.sourceOrder, this.today);
   }
 
   // Every filter except Trạng thái and Thành phẩm — the tab and rail counts are taken from it.
@@ -175,13 +175,14 @@ export class ProductionOrdersComponent {
     { key: 'productId', sortByText: true, label: 'Thành phẩm', format: (r) => this.productText(r) },
     { key: 'quantity', label: 'Số lượng', align: 'right', format: (r) => this.qtyText(r), filterValue: (r) => r.quantity },
     {
-      key: 'sourceOrderId', sortByText: true, label: 'Đơn bán', format: (r) => this.orderById().get(r.sourceOrderId)?.code ?? '—',
-      link: (r) => ['/don-hang', r.sourceOrderId],
+      key: 'sourceOrderId', sortByText: true, label: 'Đơn bán', format: (r) => this.orderById().get(r.sourceOrderId)?.code ?? r.sourceOrder?.code ?? '—',
+      // Plain text for someone who may not open the đơn (it was not loaded for them).
+      link: (r) => (this.orderById().has(r.sourceOrderId) ? ['/don-hang', r.sourceOrderId] : null),
     },
-    { key: 'customer', label: 'Khách hàng', format: (r) => this.customerName().get(this.orderById().get(r.sourceOrderId)?.customerId ?? '') ?? '—' },
+    { key: 'customer', label: 'Khách hàng', format: (r) => this.customerName().get(this.orderById().get(r.sourceOrderId)?.customerId ?? '') ?? r.sourceOrder?.customerName ?? '—' },
     {
-      key: 'needed', sortValue: (r) => this.orderById().get(r.sourceOrderId)?.neededByDate, label: 'Cần giao', mono: true,
-      format: (r) => { const d = this.orderById().get(r.sourceOrderId)?.neededByDate; return d ? formatDay(d) + (this.late(r) ? ' · trễ' : '') : '—'; },
+      key: 'needed', sortValue: (r) => this.orderById().get(r.sourceOrderId)?.neededByDate ?? r.sourceOrder?.neededByDate ?? undefined, label: 'Cần giao', mono: true,
+      format: (r) => { const d = this.orderById().get(r.sourceOrderId)?.neededByDate ?? r.sourceOrder?.neededByDate; return d ? formatDay(d) + (this.late(r) ? ' · trễ' : '') : '—'; },
       tone: (r) => (this.late(r) ? -1 : 0),
     },
     { key: 'startDate', label: 'Bắt đầu', format: (r) => (r.startDate ? formatDay(r.startDate) : '—'), mono: true },
