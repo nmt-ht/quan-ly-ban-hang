@@ -241,7 +241,7 @@ export class InventoryComponent {
         }))
       : [];
     return [
-      { key: 'code', label: 'Mã hàng', copy: true, link: (r) => ['/hang-hoa', r.product.id], format: (r) => r.product.code },
+      { key: 'code', label: 'Mã hàng', copy: true, link: (r) => ['/hang-hoa', r.product.code], format: (r) => r.product.code },
       { key: 'name', label: 'Tên hàng', format: (r) => r.product.name },
       { key: 'type', sortByText: true, label: 'Tính chất', format: (r) => PRODUCT_TYPE_LABEL[r.product.type], badge: (r) => PRODUCT_TYPE_CLASS[r.product.type] },
       { key: 'unit', label: 'ĐVT', format: (r) => r.product.baseUnit },

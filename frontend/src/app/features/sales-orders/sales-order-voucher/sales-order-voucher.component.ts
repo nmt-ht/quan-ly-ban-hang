@@ -28,7 +28,7 @@ import { VAT_RATES, round4 } from '../../purchase-orders/purchase-order.rules';
 import {
   CUSTOMER_PRICE_LABEL, CUSTOMER_TYPE_LABEL, canCancel, canClose, canDeliver, canEdit, defaultWarehouse, deliveredPercent,
   lineRemaining, linesNeedingLsx, movesStock, needsProduction, orderTotals, priceFor,
-  CURRENCIES, SALE_TYPE_LABEL, foreignCurrency, saleTypeIssue,
+  CURRENCIES, SALE_TYPE_LABEL, belowMinPrice, foreignCurrency, saleTypeIssue,
 } from '../sales-order.rules';
 import { InvoicePreviewComponent } from '../invoice-preview/invoice-preview.component';
 import { SalesOrderDraft, SalesOrderService } from '../sales-order.service';
@@ -477,6 +477,19 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   remaining(l: DraftLine): number {
     return lineRemaining(this.toLine(l));
   }
+
+  /**
+   * A dòng below its giá bán tối thiểu, for a chức vụ without "Bán dưới giá tối thiểu": a warning, not a block — the
+   * server refuses it unless the đơn already had that price (approved earlier).
+   */
+  readonly floorWarning = computed(() => {
+    if (this.auth.can('order.below_min_price')) return null;
+    const lines = this.validSaleLines();
+    const b = belowMinPrice(lines, this.orderDiscount() ?? 0, (id) => this.product(id)?.minPrice ?? 0)[0];
+    if (!b) return null;
+    const code = this.product(lines[b.index].productId)?.code ?? '';
+    return `${code}: giá sau chiết khấu ${formatVnd(b.net)} thấp hơn giá bán tối thiểu ${formatVnd(b.floor)} — cần quyền "Bán dưới giá tối thiểu"`;
+  });
 
   readonly issues = computed(() => {
     const out: string[] = [];

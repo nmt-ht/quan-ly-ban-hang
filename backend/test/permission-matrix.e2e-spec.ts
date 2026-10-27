@@ -35,8 +35,8 @@ const FAKE_ID = 'qa-khong-ton-tai';
 
 // Seven built-in roles (prisma/seed.ts) and how many permissions each has by default.
 const ROLES = [
-  { id: 'role-ceo', name: 'CEO', count: 111 },
-  { id: 'role-manager', name: 'Quản lý', count: 102 },
+  { id: 'role-ceo', name: 'CEO', count: 112 },
+  { id: 'role-manager', name: 'Quản lý', count: 103 },
   { id: 'role-accountant', name: 'Kế toán', count: 52 },
   { id: 'role-sale', name: 'Sale', count: 20 },
   { id: 'role-thukho', name: 'Thủ kho', count: 19 },
@@ -342,14 +342,14 @@ describe.skipIf(!enabled)('Ma trận phân quyền & kịch bản theo chức v�
       {
         module: 'Chức vụ & phân quyền', title: 'Không gỡ quyền hay tắt chức vụ CEO', role: 'CEO',
         steps: ['PUT /api/roles/role-ceo/permissions với danh sách chỉ còn customer.view', 'PATCH /api/roles/role-ceo/active với isActive=false', 'GET /api/auth/me của CEO'],
-        expected: 'Hai lệnh sửa bị từ chối (4xx); CEO vẫn đủ 111 quyền',
+        expected: 'Hai lệnh sửa bị từ chối (4xx); CEO vẫn đủ 112 quyền',
       },
       async () => {
         const a = await api().put('/api/roles/role-ceo/permissions').set(bearer(ceo)).send({ codes: ['customer.view'] });
         const b = await api().patch('/api/roles/role-ceo/active').set(bearer(ceo)).send({ isActive: false });
         const me = await api().get('/api/auth/me').set(bearer(ceo));
         const n = (me.body.permissions ?? []).length;
-        return [a.status >= 400 && a.status < 500 && b.status >= 400 && b.status < 500 && n === 111, `gỡ quyền ${a.status}, tắt ${b.status}, CEO còn ${n} quyền`];
+        return [a.status >= 400 && a.status < 500 && b.status >= 400 && b.status < 500 && n === 112, `gỡ quyền ${a.status}, tắt ${b.status}, CEO còn ${n} quyền`];
       },
     );
     expect(ok).toBe(true);
@@ -504,7 +504,7 @@ describe.skipIf(!enabled)('Ma trận phân quyền & kịch bản theo chức v�
       {
         module: 'Chức vụ & phân quyền', title: 'Danh mục quyền giao diện khớp máy chủ', role: '—',
         steps: ['Đọc mã quyền trong frontend/src/app/core/data/permission-catalog.ts', 'Đọc bảng Permission sau khi seed'],
-        expected: 'Hai danh sách giống hệt nhau (111 mã)',
+        expected: 'Hai danh sách giống hệt nhau (112 mã)',
       },
       async () => {
         const onlyFront = [...frontCodes].filter((c) => !dbCodes.has(c));

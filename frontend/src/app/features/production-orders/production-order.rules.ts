@@ -1,7 +1,7 @@
 import { ProductionOrder, SalesOrder } from '../../core/models/domain.models';
 
 /** Lệnh còn mở (Nháp / Đang sản xuất) mà đơn bán đã quá ngày cần giao. */
-export function isLate(x: ProductionOrder, order: SalesOrder | undefined, today: string): boolean {
+export function isLate(x: ProductionOrder, order: Pick<SalesOrder, 'neededByDate'> | { neededByDate?: string | null } | undefined, today: string): boolean {
   return (x.status === 'NHAP' || x.status === 'DANG_SAN_XUAT') && !!order?.neededByDate && order.neededByDate < today;
 }
 

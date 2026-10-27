@@ -1,9 +1,27 @@
-import { foreignCurrency, priceFor, saleTypeIssue } from './sales-order.rules.js';
+import { belowMinPrice, foreignCurrency, priceFor, saleTypeIssue } from './sales-order.rules.js';
 
 const product = {
   id: 'p1', type: 'VAT_TU' as const, retailPrice: 100, wholesalePrice: 80, dropshipPrice: 90,
   unitConversions: [{ unitName: 'Bó', ratioToBaseUnit: 12, price: 1100, wholesalePrice: 900, dropshipPrice: null }],
 };
+
+describe('belowMinPrice (giá bán tối thiểu)', () => {
+  const line = (over: object) => ({ productId: 'p', quantity: 2, unitPrice: 100_000, vatRate: 10, receivedQuantity: 0, ratioToBase: 1, ...over });
+  const floor = (id: string) => (id === 'p' ? 90_000 : 0);
+
+  it('xét đơn giá thực thu: sau chiết khấu dòng và phần chiết khấu cả đơn, chưa thuế', () => {
+    expect(belowMinPrice([line({})], 0, floor)).toEqual([]);
+    expect(belowMinPrice([line({ discountAmount: 20_000 })], 0, floor)).toEqual([]); // 90.000 = giá sàn
+    expect(belowMinPrice([line({ discountAmount: 20_002 })], 0, floor)).toEqual([{ index: 0, floor: 90_000, net: 89_999 }]);
+    expect(belowMinPrice([line({})], 30_000, floor)).toEqual([{ index: 0, floor: 90_000, net: 85_000 }]);
+  });
+
+  it('ĐVT quy đổi nhân giá sàn theo tỷ lệ; hàng tặng và mặt hàng không đặt giá sàn bỏ qua', () => {
+    expect(belowMinPrice([line({ ratioToBase: 12, unitPrice: 1_000_000 })], 0, floor)).toEqual([{ index: 0, floor: 1_080_000, net: 1_000_000 }]);
+    expect(belowMinPrice([line({ isGift: true, discountRate: 100 })], 0, floor)).toEqual([]);
+    expect(belowMinPrice([line({ productId: 'khac', unitPrice: 1 })], 0, floor)).toEqual([]);
+  });
+});
 
 describe('priceFor (bảng giá riêng, Pha 1.6)', () => {
   it('không có bảng giá: theo loại khách và giá riêng của ĐVT quy đổi', () => {

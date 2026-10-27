@@ -1,6 +1,7 @@
 import { PermissionModule } from '../models/domain.models';
 
-// Danh mục quyền của hệ thống (107 quyền, 25 nhóm). Mã quyền chỉ dùng trong code và backend — giao diện chỉ hiện nhãn.
+// Danh mục quyền của hệ thống, theo nhóm — cùng danh sách với backend/prisma/seed.ts (test permission-matrix so khớp hai bên
+// và đếm số quyền từng chức vụ). Mã quyền chỉ dùng trong code và backend — giao diện chỉ hiện nhãn.
 export const PERMISSION_MODULES: PermissionModule[] = [
   { key: 'user', label: 'Người dùng', permissions: [
     { code: 'user.view', label: 'Xem người dùng' },
@@ -101,6 +102,7 @@ export const PERMISSION_MODULES: PermissionModule[] = [
     { code: 'order.cancel', label: 'Huỷ đơn hàng' },
     { code: 'order.update_price', label: 'Sửa đơn giá trên đơn' },
     { code: 'order.discount', label: 'Chiết khấu ngoài khuyến mãi' },
+    { code: 'order.below_min_price', label: 'Bán dưới giá tối thiểu' },
     { code: 'order.return', label: 'Nhận hàng trả lại' },
   ]},
   { key: 'quote', label: 'Báo giá', permissions: [

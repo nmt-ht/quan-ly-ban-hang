@@ -53,7 +53,9 @@ export class ProductionOrderDetailComponent {
   readonly customer = computed(() => this.data.customers().find((c) => c.id === this.order()?.customerId));
   readonly statusLabel = computed(() => (this.lsx() ? PRODUCTION_ORDER_STATUS_LABEL[this.lsx()!.status] : ''));
   readonly statusClass = computed(() => (this.lsx() ? productionOrderStatusClass(this.lsx()!.status) : ''));
-  readonly late = computed(() => !!this.lsx() && isLate(this.lsx()!, this.order(), isoDay(new Date())));
+  /** Đơn gốc chỉ đọc, sent with the lệnh: what the xưởng sees when it may not open the đơn. */
+  readonly source = computed(() => this.lsx()?.sourceOrder);
+  readonly late = computed(() => !!this.lsx() && isLate(this.lsx()!, this.order() ?? this.source(), isoDay(new Date())));
   readonly canStart = computed(() => !!this.lsx() && canStart(this.lsx()!));
   readonly canComplete = computed(() => !!this.lsx() && canComplete(this.lsx()!));
   readonly canCancel = computed(() => !!this.lsx() && canCancelLsx(this.lsx()!));

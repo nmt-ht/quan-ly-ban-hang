@@ -109,6 +109,7 @@ const PERMISSION_MODULES: { key: string; permissions: { code: string; label: str
     { code: 'order.cancel', label: 'Huỷ đơn hàng' },
     { code: 'order.update_price', label: 'Sửa đơn giá trên đơn' },
     { code: 'order.discount', label: 'Chiết khấu ngoài khuyến mãi' },
+    { code: 'order.below_min_price', label: 'Bán dưới giá tối thiểu' },
     { code: 'order.return', label: 'Nhận hàng trả lại' },
   ]},
   { key: 'quote', permissions: [

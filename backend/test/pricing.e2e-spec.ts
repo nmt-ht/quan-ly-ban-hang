@@ -120,4 +120,29 @@ describe('Bảng giá & khuyến mãi (e2e)', () => {
     expect(o.lines[1]).toMatchObject({ isGift: true, discountAmount: 85_000 });
     expect(o.totalOrder).toBe(850_000 - 42_500);
   });
+
+  it('giá bán tối thiểu: Sale không bán thấp hơn; Quản lý được; đơn đã duyệt giữ nguyên giá thì Sale sửa tiếp được', async () => {
+    const floor = (await manager.post('/api/products', { name: 'E2E Giá sàn', type: 'VAT_TU', baseUnit: 'Cái', retailPrice: 100_000, minPrice: 90_000 }).expect(201)).body;
+    try {
+      expect(floor.minPrice).toBe(90_000);
+      const body = (unitPrice: number, extra: object = {}) => ({
+        customerId: 'kh-01', salesRep: 'sale1@ninhtrang.local', tagIds: [], orderDate: today, discountAmount: 0,
+        lines: [{ productId: floor.id, unit: 'Cái', quantity: 2, unitPrice }], ...extra,
+      });
+      const refused = (await sale.post('/api/sales-orders', body(85_000)).expect(403)).body;
+      expect(refused.message).toContain('thấp hơn giá bán tối thiểu');
+      // Chiết khấu cả đơn cũng tính: 2 × 95.000 − 30.000 = 80.000 mỗi cái.
+      await sale.post('/api/sales-orders', body(95_000, { discountAmount: 30_000 })).expect(403);
+      orderIds.push((await sale.post('/api/sales-orders', body(95_000)).expect(201)).body.id);
+
+      const approved = (await manager.post('/api/sales-orders', body(85_000)).expect(201)).body;
+      orderIds.push(approved.id);
+      const again = { ...body(85_000, { description: 'E2E sửa diễn giải' }), updatedAt: approved.updatedAt };
+      const edited = (await sale.put(`/api/sales-orders/${approved.id}`, again).expect(200)).body;
+      await sale.put(`/api/sales-orders/${approved.id}`, { ...body(80_000), updatedAt: edited.updatedAt }).expect(403);
+    } finally {
+      await prisma.salesOrder.deleteMany({ where: { lines: { some: { productId: floor.id } } } });
+      await prisma.product.delete({ where: { id: floor.id } });
+    }
+  });
 });

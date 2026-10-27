@@ -14,6 +14,7 @@ interface ScreenRules {
   canClose(o: never): boolean;
   linesNeedingLsx(o: never, lsx: never[], isTp: (id: string) => boolean): number[];
   priceFor(p: never, type: string, unitName: string, list: never[]): number;
+  belowMinPrice(lines: unknown[], orderDiscount: number, minPriceOf: (id: string) => number): unknown[];
 }
 // Loaded by URL at run time: the frontend lies outside this project's rootDir, so tsc must not follow the import.
 const SCREEN_RULES = new URL('../../../../frontend/src/app/features/sales-orders/sales-order.rules.ts', import.meta.url).href;
@@ -82,6 +83,14 @@ describe('quy tắc đơn bán: giao diện và máy chủ ra cùng kết quả'
       expect(screen.canDeliver(o)).toBe(server.canDeliver(state));
       expect(screen.canClose(o)).toBe(server.canClose(state));
       expect(screen.linesNeedingLsx(o, lsx, isTp)).toEqual(server.linesNeedingLsx(state, c.lsx, isTp));
+    }
+  });
+
+  it('belowMinPrice (giá sàn) khớp', () => {
+    const floors: Record<string, number> = { tp1: 50_000, tp2: 0, vt1: 1_000, vt2: 100, dv1: 30_000 };
+    for (const c of cases) {
+      const lines = c.lines.map((l, i) => ({ ...l, isGift: i === 2 }));
+      expect(screen.belowMinPrice(lines, c.orderDiscount, (id) => floors[id])).toEqual(server.belowMinPrice(lines, c.orderDiscount, (id) => floors[id]));
     }
   });
 

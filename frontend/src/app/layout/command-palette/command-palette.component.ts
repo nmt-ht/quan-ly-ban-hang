@@ -86,7 +86,7 @@ export class CommandPaletteComponent {
       ...d.salesOrders().map((o) => rec('Đơn hàng bán', 'receipt', '/don-hang', o.id, o.code, customer.get(o.customerId) ?? '—',
         SALES_ORDER_STATUS_LABEL[o.status], `${o.recipientName ?? ''} ${o.recipientPhone ?? ''}`)),
       ...d.customers().map((c) => rec('Khách hàng', 'customers', '/khach-hang', c.id, c.code, c.name, c.phone, `${c.companyName ?? ''} ${c.phone ?? ''}`)),
-      ...d.products().map((p) => rec('Hàng hoá', 'product', '/hang-hoa', p.id, p.code, p.name, p.baseUnit, p.crossRefCode ?? '')),
+      ...d.products().map((p) => rec('Hàng hoá', 'product', '/hang-hoa', p.code, p.code, p.name, p.baseUnit, p.crossRefCode ?? '')),
       ...d.suppliers().map((s) => rec('Nhà cung cấp', 'supplier', '/nha-cung-cap', s.id, s.code, s.name, s.contactPhone, s.contactPhone ?? '')),
       ...d.purchaseOrders().map((o) => rec('Đơn nhập hàng', 'cart', '/mua-hang', o.id, o.code, supplier.get(o.supplierId) ?? '—',
         PURCHASE_ORDER_STATUS_LABEL[o.status], '')),

@@ -210,7 +210,7 @@ export class ProductsComponent {
 
   readonly columns: DataTableColumn<Product>[] = [
     { key: 'image', label: 'Ảnh', filter: false, image: (r) => r.images?.[0]?.url },
-    { key: 'code', label: 'Mã', copy: true, link: (r) => ['/hang-hoa', r.id] },
+    { key: 'code', label: 'Mã', copy: true, link: (r) => ['/hang-hoa', r.code] },
     { key: 'name', label: 'Tên hàng hoá' },
     { key: 'categoryId', sortByText: true, label: 'Nhóm hàng', format: (r) => this.categoryOf(r) || '—' },
     { key: 'type', sortByText: true, label: 'Tính chất', format: (r) => PRODUCT_TYPE_LABEL[r.type], badge: (r) => PRODUCT_TYPE_CLASS[r.type] },

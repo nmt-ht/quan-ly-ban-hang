@@ -160,7 +160,7 @@ export class RevenueReportComponent {
       }
       case 'product': {
         const p = this.products().get(key);
-        return { label: p?.name ?? 'Hàng đã xoá', code: p?.code, link: p ? ['/hang-hoa', p.id] : undefined, unit: p?.baseUnit };
+        return { label: p?.name ?? 'Hàng đã xoá', code: p?.code, link: p ? ['/hang-hoa', p.code] : undefined, unit: p?.baseUnit };
       }
       case 'category': return { label: this.categories().get(key) ?? '(Chưa phân nhóm)' };
       case 'rep': return { label: this.users().get(key) ?? (key || '(Chưa gán nhân viên)'), sub: key || undefined };

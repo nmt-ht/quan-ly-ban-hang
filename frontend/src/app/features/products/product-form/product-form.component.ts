@@ -16,10 +16,10 @@ import {
 } from '../product-type-rules';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { MoneyInputDirective } from '../../../shared/money-input.directive';
-import { UNIT_OPERATIONS, describe, isPriceShift, normalize, priceFor, ratioFor } from '../unit-conversion';
+import { UNIT_OPERATIONS, describe, isPriceShift, normalize, priceFor, pricesBelowFloor, ratioFor } from '../unit-conversion';
 import { HasUnsavedChanges, isSaveShortcut, warnBeforeUnload } from '../../../core/guards/unsaved-changes.guard';
 import { errorText } from '../../../core/api/api.service';
-import { ProductDraft, ProductService } from '../product.service';
+import { ProductDraft, ProductService, findProduct } from '../product.service';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { PickableWarehousesPipe } from '../../../shared/pickable-warehouses.pipe';
 
@@ -57,6 +57,7 @@ export class ProductFormComponent implements HasUnsavedChanges {
     retailPrice: [0],
     wholesalePrice: [0],
     dropshipPrice: [0],
+    minPrice: [0],
     purchaseNote: [''],
     saleNote: [''],
     description: [''],
@@ -119,9 +120,11 @@ export class ProductFormComponent implements HasUnsavedChanges {
     private readonly router: Router,
     route: ActivatedRoute,
   ) {
-    const id = route.snapshot.paramMap.get('id');
-    this.editing = id ? (data.products().find((p) => p.id === id) ?? null) : null;
-    this.notFound = !!id && !this.editing;
+    const ref = route.snapshot.paramMap.get('id');
+    this.editing = ref ? (findProduct(data.products(), ref) ?? null) : null;
+    this.notFound = !!ref && !this.editing;
+    // Opened by id (an older link): show the mã in the URL, as every link does.
+    if (this.editing && ref !== this.editing.code) void router.navigate(['/hang-hoa', this.editing.code, 'sua'], { replaceUrl: true });
     if (this.editing) {
       const p = this.editing;
       this.form.patchValue({
@@ -217,6 +220,16 @@ export class ProductFormComponent implements HasUnsavedChanges {
     return null;
   }
 
+  /** Giá niêm yết below Giá bán tối thiểu — a warning; saving is still allowed. */
+  get floorWarnings(): string[] {
+    const v = this.form.getRawValue();
+    return pricesBelowFloor(
+      Number(v.minPrice) || 0,
+      { retailPrice: Number(v.retailPrice) || 0, wholesalePrice: Number(v.wholesalePrice) || 0, dropshipPrice: Number(v.dropshipPrice) || 0 },
+      this.allowsUnits ? this.unitsValue() : [],
+    );
+  }
+
   private unitsValue(): UnitConversion[] {
     return this.units.getRawValue().map((u) => {
       const op = u['operation'] as UnitOperation;
@@ -264,6 +277,7 @@ export class ProductFormComponent implements HasUnsavedChanges {
       retailPrice: v.retailPrice ?? 0,
       wholesalePrice: v.wholesalePrice ?? 0,
       dropshipPrice: v.dropshipPrice ?? 0,
+      minPrice: v.minPrice ?? 0,
       unitConversions: allowsUnitConversions(type) ? this.unitsValue() : [],
       images: this.images(),
       purchaseNote: v.purchaseNote || undefined,
@@ -278,7 +292,7 @@ export class ProductFormComponent implements HasUnsavedChanges {
     try {
       const saved = this.editing ? await this.productService.update(this.editing.id, draft) : await this.productService.create(draft);
       this.markSaved();
-      if (this.editing) this.router.navigate(['/hang-hoa', saved.id]);
+      if (this.editing) this.router.navigate(['/hang-hoa', saved.code]);
       else this.router.navigateByUrl('/hang-hoa');
     } catch (e) {
       this.saveError.set(errorText(e));

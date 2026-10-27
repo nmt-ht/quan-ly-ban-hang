@@ -1,4 +1,4 @@
-import { describe as describeUnit, normalize, priceFor, ratioFor } from './unit-conversion';
+import { describe as describeUnit, normalize, priceFor, pricesBelowFloor, ratioFor } from './unit-conversion';
 
 describe('đơn vị quy đổi', () => {
   it('tỷ lệ về ĐVT chính: × giữ số, ÷ là nghịch đảo, + / − giữ 1:1', () => {
@@ -32,5 +32,22 @@ describe('đơn vị quy đổi', () => {
     });
     expect(normalize({ unitName: 'Hộp', operation: 'ADD', factor: 500, ratioToBaseUnit: 1, price: 1500, wholesalePrice: 1200 }, { wholesalePrice: 800, dropshipPrice: 900 }))
       .toMatchObject({ wholesalePrice: 1200, dropshipPrice: 1400 });
+  });
+});
+
+describe('giá niêm yết thấp hơn giá bán tối thiểu', () => {
+  const base = { retailPrice: 120_000, wholesalePrice: 102_000, dropshipPrice: 0 };
+  const bo = { unitName: 'Bó', ratioToBaseUnit: 12, price: 1_400_000, wholesalePrice: 1_300_000, dropshipPrice: 0 };
+
+  it('báo giá sỉ thấp hơn giá sàn; giá 0 (chưa đặt) và giá sàn 0 không xét', () => {
+    expect(pricesBelowFloor(110_000, base, [])).toEqual(['Giá sỉ 102.000₫ thấp hơn giá tối thiểu 110.000₫']);
+    expect(pricesBelowFloor(0, base, [])).toEqual([]);
+    expect(pricesBelowFloor(100_000, base, [])).toEqual([]);
+  });
+
+  it('ĐVT quy đổi so với giá sàn × tỷ lệ', () => {
+    expect(pricesBelowFloor(110_000, { ...base, wholesalePrice: 110_000 }, [bo])).toEqual([
+      'Giá sỉ (Bó) 1.300.000₫ thấp hơn giá tối thiểu 1.320.000₫',
+    ]);
   });
 });

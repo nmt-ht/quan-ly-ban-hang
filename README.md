@@ -311,9 +311,20 @@ Nghiệp vụ kế toán theo MISA (rà soát 25/10/2026):
 - **Công nợ theo từng đợt** — mỗi lần khách nhận hàng (giao tại kho, hoặc chốt giao trên chuyến) ghi một `SalesOrderDelivery`, mỗi lần nhận hàng của đơn nhập một `PurchaseOrderReceipt`. Công nợ phải thu / phải trả là một khoản cho mỗi đợt (`DH0000012`, `DH0000012·2`…), hạn tính từ ngày của đợt đó (`common/debt-rows.ts › chargesOfOrder`). Phiếu thu chi "Chọn tay" theo mã đơn trả các đợt của đơn, đợt đến hạn sớm trước (`settle.ts`, trường `group`). Đơn giao / nhận trước khi có bảng đợt vẫn là một khoản như cũ. Bỏ chốt giao xoá đợt của chuyến đó.
 - **Trả lại hàng mua** `TLM…` (`src/modules/purchasing/purchase-returns.ts`, quyền `purchase.return`: CEO, Quản lý, Kế toán): `POST /api/purchase-orders/:id/returns`, `POST …/:returnId/cancel`. Trả tối đa số đã nhận chưa trả; phiếu xuất kho đi theo **giá mua** (không theo bình quân — giá vốn bình quân được tính lại như thể hàng đó chưa từng nhập); giá trị số lượng × đơn giá × (1 + VAT) giảm công nợ phải trả vào ngày trả. Số đã nhận trên đơn giữ nguyên. Giá trị trả ẩn với chức vụ không xem giá nhập.
 - **Khoá sổ kỳ kế toán** — `CompanyInfo.lockDate`, đổi ở Thiết lập › Thông tin công ty (`PUT /api/company/lock-date`, quyền `period.lock`: CEO, Quản lý, Kế toán). Chứng từ có ngày ≤ ngày khoá không lập / huỷ được: mọi phiếu kho (`InventoryService.post` / `reverse`), giao hàng, nhận hàng, trả hàng bán / mua, phiếu thu chi, thu tiền ngay, chốt giao (`common/period-lock.ts`).
-- **Không chi vượt tồn quỹ** — phiếu chi bị từ chối khi tồn quỹ của tài khoản (tại ngày phiếu và hiện tại) không đủ; quyền `voucher.overdraw` (CEO, Quản lý) chi vượt được, Nhật ký ghi lại.
+- **Không chi vượt tồn quỹ** — phiếu chi bị từ chối khi tồn quỹ của tài khoản (tại ngày phiếu và hiện tại) không đủ; huỷ phiếu thu cũng vậy (tiền ra khỏi quỹ lại). Quyền `voucher.overdraw` (CEO, Quản lý) chi / huỷ vượt được, Nhật ký ghi lại.
 - **Chốt giao** chỉ tài xế ghi trên chuyến (trùng tên người dùng) hoặc người có `trip.update`. Danh sách / chi tiết đơn bán cần `order.view`.
-Migration `20261025110000_period_lock_overdraw_purchase_returns`. Số quyền: CEO 111 · Quản lý 102 · Kế toán 52.
+Migration `20261025110000_period_lock_overdraw_purchase_returns`.
+
+Rà soát 27–28/10/2026:
+- **Ngày nghiệp vụ theo giờ Việt Nam** — mọi "hôm nay" của chứng từ lấy từ `vnDay()` (`src/common/text.ts`, `Asia/Ho_Chi_Minh`); máy chủ chạy UTC nên trước đây 0h–7h sáng bị ghi sang ngày hôm trước.
+- **Hạn mức công nợ** kiểm trong transaction lưu đơn, khoá dòng khách hàng: hai đơn lưu cùng lúc không cùng lọt.
+- **Thu tiền ngay** — phiếu thu tự lập trỏ tới đơn (`CashVoucher.salesOrderId`) và đợt giao (`salesOrderDeliveryId`); bỏ chốt giao chỉ huỷ phiếu của đợt đó.
+- **Hoá đơn theo đợt giao** — `SalesOrderDeliveryLine` ghi số nhận từng dòng mỗi đợt; Xem trước hoá đơn GTGT chọn đợt, ngày lập = ngày giao của đợt, tiền khớp công nợ của đợt.
+- **Giao không vượt số còn phải giao** — giao tại kho và chốt giao trên chuyến từ chối số lớn hơn số còn phải giao / số trên xe, không tự cắt bớt.
+- **Giá bán tối thiểu** — `Product.minPrice` (ĐVT chính, chưa thuế; 0 = không giới hạn, sửa cần `product.update_price`). Đơn giá thực thu của dòng (sau chiết khấu dòng và phần chiết khấu cả đơn) trên đơn bán / báo giá không thấp hơn giá này × tỷ lệ quy đổi, trừ người có `order.below_min_price` (CEO, Quản lý) hoặc dòng chứng từ đã có với giá đó. Quy tắc `belowMinPrice` giống nhau ở hai bản `sales-order.rules.ts`.
+- **Lệnh sản xuất kèm đơn gốc chỉ đọc** — `GET /api/production-orders` trả `sourceOrder` (mã, khách, ngày cần giao, quy cách các dòng thành phẩm đó, không có giá), để Nhân viên xưởng thấy đơn mà không cần `order.view`.
+
+Migration `20261027100000_pay_now_link_delivery_lines`, `20261028100000_min_sale_price`. Số quyền: CEO 112 · Quản lý 103 · Kế toán 52.
 
 </details>
 

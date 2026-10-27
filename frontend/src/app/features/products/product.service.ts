@@ -5,6 +5,14 @@ import { ApiService, upsertById } from '../../core/api/api.service';
 import { BomImportPlan, ProductImportPlan } from './product-excel';
 import { ImportResult } from '../../shared/import/import.types';
 
+/**
+ * The mặt hàng a /hang-hoa/:ref URL names: its mã (what links use), or its id (older links, Nhật ký) — the page then
+ * rewrites the URL to the mã.
+ */
+export function findProduct(list: Product[], ref: string): Product | undefined {
+  return list.find((p) => p.code === ref) ?? list.find((p) => p.id === ref);
+}
+
 /** What the form saves; the code (VT/SP/DV + số) is given on creation by the server. */
 export type ProductDraft = Omit<Product, 'id' | 'code' | 'createdAt' | 'updatedAt'>;
 

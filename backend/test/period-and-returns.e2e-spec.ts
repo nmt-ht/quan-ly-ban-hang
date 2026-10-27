@@ -205,7 +205,12 @@ describe('Kỳ kế toán, công nợ theo đợt, trả lại hàng mua (e2e)',
     await worker.get('/api/sales-orders?recentDays=90').expect(403);
     await worker.get('/api/sales-orders/page').expect(403);
     await worker.get(`/api/sales-orders/${orders[0]}`).expect(403);
-    await worker.get('/api/production-orders').expect(200);
+    // The xưởng still sees the đơn gốc of each lệnh, read-only: mã, khách, ngày cần giao, quy cách — no giá.
+    const lsx = (await worker.get('/api/production-orders').expect(200)).body as any[];
+    expect(lsx.length).toBeGreaterThan(0);
+    expect(lsx[0].sourceOrder).toMatchObject({ code: expect.stringMatching(/^DH\d{7}$/), customerName: expect.any(String), lines: expect.any(Array) });
+    expect(Object.keys(lsx[0].sourceOrder).sort()).toEqual(['code', 'customerName', 'lines', 'neededByDate']);
+    expect(JSON.stringify(lsx[0].sourceOrder)).not.toMatch(/price|Price|amount/);
     await driver.get('/api/sales-orders?recentDays=90').expect(200);
   });
 });

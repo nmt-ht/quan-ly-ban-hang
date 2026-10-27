@@ -13,7 +13,7 @@
     </div>
     <div class="toolbar">
       <a class="btn" routerLink="/hang-hoa"><app-nav-icon name="arrow-left" />Danh mục</a>
-      <a class="btn btn-primary" [routerLink]="['/hang-hoa', p.id, 'sua']"><app-nav-icon name="pencil" />Sửa</a>
+      <a class="btn btn-primary" [routerLink]="['/hang-hoa', p.code, 'sua']"><app-nav-icon name="pencil" />Sửa</a>
     </div>
   </div>
 
@@ -77,7 +77,7 @@
               <tbody>
                 @for (b of usedIn(); track b.productId) {
                   <tr>
-                    <td class="num"><a class="code-link" [routerLink]="['/hang-hoa', b.productId]">{{ b.product?.code ?? b.productId }}</a></td>
+                    <td class="num"><a class="code-link" [routerLink]="['/hang-hoa', b.product?.code ?? b.productId]">{{ b.product?.code ?? b.productId }}</a></td>
                     <td>{{ b.product?.name ?? '—' }}</td>
                     <td class="num align-right">{{ qty(b.quantityPerUnit) }}</td>
                   </tr>
@@ -132,6 +132,7 @@
             <div><dt>Giá lẻ</dt><dd class="num">{{ formatVnd(p.retailPrice) }}</dd></div>
             <div><dt>Giá sỉ</dt><dd class="num">{{ formatVnd(p.wholesalePrice) }}</dd></div>
             <div><dt>Giá dropship</dt><dd class="num">{{ formatVnd(p.dropshipPrice) }}</dd></div>
+            @if (p.minPrice) { <div><dt>Giá bán tối thiểu</dt><dd class="num">{{ formatVnd(p.minPrice) }}</dd></div> }
           </dl>
           <p class="subtitle">
             @if (p.type === 'THANH_PHAM') {
@@ -195,7 +196,7 @@
                 @for (b of bom(); track b.productId) {
                   <tr>
                     <td class="num">
-                      @if (b.product) { <a class="code-link" [routerLink]="['/hang-hoa', b.productId]">{{ b.product.code }}</a> } @else { {{ b.productId }} }
+                      @if (b.product) { <a class="code-link" [routerLink]="['/hang-hoa', b.product.code]">{{ b.product.code }}</a> } @else { {{ b.productId }} }
                     </td>
                     <td>{{ b.product?.name ?? 'Không tìm thấy vật tư' }}</td>
                     <td class="num align-right">{{ qty(b.quantityPerUnit) }}</td>
@@ -227,7 +228,7 @@
             <div class="empty-state">
               <h3>Chưa có ảnh nào</h3>
               <p>Ảnh chính sẽ hiện trên bảng danh sách và thẻ lưới hàng hoá.</p>
-              <a class="btn" [routerLink]="['/hang-hoa', p.id, 'sua']"><app-nav-icon name="image-plus" />Thêm ảnh</a>
+              <a class="btn" [routerLink]="['/hang-hoa', p.code, 'sua']"><app-nav-icon name="image-plus" />Thêm ảnh</a>
             </div>
           }
         </section>

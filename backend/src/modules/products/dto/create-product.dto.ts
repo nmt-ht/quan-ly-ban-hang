@@ -41,6 +41,8 @@ export class CreateProductDto {
   @IsOptional() @IsNumber() @Min(0) retailPrice?: number;
   @IsOptional() @IsNumber() @Min(0) wholesalePrice?: number;
   @IsOptional() @IsNumber() @Min(0) dropshipPrice?: number;
+  /** Giá bán tối thiểu theo ĐVT chính; 0 = không giới hạn. */
+  @IsOptional() @IsNumber() @Min(0) minPrice?: number;
 
   @OptionalText(1000) purchaseNote?: string;
   @OptionalText(1000) saleNote?: string;

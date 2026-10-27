@@ -1537,6 +1537,15 @@ textarea {
   color: var(--color-muted);
 }
 
+// A hint that reports a problem keeps its colour (.field .hint would otherwise win over .text-danger / .text-warning).
+.field .hint.text-danger {
+  color: var(--color-danger);
+}
+
+.field .hint.text-warning {
+  color: var(--color-warning);
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
