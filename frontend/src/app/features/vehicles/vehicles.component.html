@@ -23,7 +23,12 @@
   <p class="form-note">
     @if (paperAlerts().expired) { <strong class="text-danger">{{ paperAlerts().expired }} xe quá hạn đăng kiểm / bảo hiểm.</strong> }
     @if (paperAlerts().soon) { {{ paperAlerts().soon }} xe sắp hết hạn trong 30 ngày tới. }
-    <button type="button" class="link-btn" (click)="papersDue.set(true)">Xem các xe này</button>
+    <!-- Says what the click did: with few xe the list may look the same, and the filter toggle sits far right. -->
+    @if (papersDue()) {
+      <span role="status">Đang hiện {{ vehicles().length }} xe có giấy tờ sắp / quá hạn.</span>&ngsp;<button type="button" class="link-btn" (click)="papersDue.set(false)">Bỏ lọc</button>
+    } @else {
+      <button type="button" class="link-btn" (click)="papersDue.set(true)">Xem các xe này</button>
+    }
   </p>
 }
 
