@@ -430,7 +430,7 @@
   }
 }
 
-@container (min-width: 90rem) {
+@container (min-width: 76rem) {
   .rc-index {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
