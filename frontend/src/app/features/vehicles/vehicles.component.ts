@@ -78,7 +78,8 @@ export class VehiclesComponent {
       if (q && !foldVi(`${v.plateNumber} ${v.code} ${v.name ?? ''} ${v.usualDriver ?? ''}`).includes(q)) return false;
       if (this.status() !== 'all' && v.status !== this.status()) return false;
       if (this.type() !== 'all' && v.type !== this.type()) return false;
-      if (this.papersDue() && this.paperLevel(v) === 'ok') return false;
+      // As the cảnh báo counts them: xe ngừng dùng need no giấy tờ.
+      if (this.papersDue() && (v.status === 'NGUNG_DUNG' || this.paperLevel(v) === 'ok')) return false;
       return true;
     });
     rows.sort((a, b) => a.code.localeCompare(b.code));

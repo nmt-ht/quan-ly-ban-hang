@@ -5,7 +5,7 @@ import { JwtAuthGuard } from '../../auth/jwt-auth.guard.js';
 import { PermissionsGuard } from '../../auth/permissions.guard.js';
 import { CurrentUser, RequirePermissions } from '../../auth/permissions.decorator.js';
 import type { AuthUser } from '../../auth/auth.service.js';
-import { OptionalText } from '../../common/dto.js';
+import { OptionalDay, OptionalText } from '../../common/dto.js';
 import { InventoryModule } from '../inventory/inventory.module.js';
 import { SalesModule } from '../sales/sales.module.js';
 import { TripsService } from './trips.service.js';
@@ -38,6 +38,13 @@ export class ReceivedLineDto {
 export class ConfirmDto {
   @IsArray() @ValidateNested({ each: true }) @Type(() => ReceivedLineDto) lines!: ReceivedLineDto[];
   @OptionalText(300) note?: string;
+  /** Ngày chốt giao (ngày khách nhận); trống = hôm nay. */
+  @OptionalDay() date?: string;
+}
+
+/** Ngày chứng từ of a step (xuất kho, xe về kho); trống = hôm nay. */
+export class DayDto {
+  @OptionalDay() date?: string;
 }
 
 export class ReasonDto {
@@ -95,15 +102,15 @@ export class TripsController {
   @RequirePermissions('trip.ship')
   @Post(':id/ship')
   @HttpCode(HttpStatus.OK)
-  ship(@Param('id') id: string, @CurrentUser() user: AuthUser) {
-    return this.trips.ship(id, user);
+  ship(@Param('id') id: string, @Body() dto: DayDto, @CurrentUser() user: AuthUser) {
+    return this.trips.ship(id, user, dto.date);
   }
 
   @RequirePermissions('trip.deliver')
   @Post(':id/orders/:orderId/confirm')
   @HttpCode(HttpStatus.OK)
   confirm(@Param('id') id: string, @Param('orderId') orderId: string, @Body() dto: ConfirmDto, @CurrentUser() user: AuthUser) {
-    return this.trips.confirm(id, orderId, dto.lines, dto.note, user);
+    return this.trips.confirm(id, orderId, dto.lines, dto.note, user, dto.date);
   }
 
   @RequirePermissions('trip.deliver')
@@ -116,8 +123,8 @@ export class TripsController {
   @RequirePermissions('trip.return')
   @Post(':id/return')
   @HttpCode(HttpStatus.OK)
-  returnToWarehouse(@Param('id') id: string, @CurrentUser() user: AuthUser) {
-    return this.trips.returnToWarehouse(id, user);
+  returnToWarehouse(@Param('id') id: string, @Body() dto: DayDto, @CurrentUser() user: AuthUser) {
+    return this.trips.returnToWarehouse(id, user, dto.date);
   }
 
   @RequirePermissions('trip.update')

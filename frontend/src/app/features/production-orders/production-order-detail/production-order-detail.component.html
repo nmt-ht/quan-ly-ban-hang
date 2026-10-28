@@ -167,12 +167,30 @@
       }
     </section>
 
+    @if (mode() === 'start') {
+      <div class="confirm-strip" role="alertdialog" aria-labelledby="lsx-start-title">
+        <p id="lsx-start-title"><strong>Bắt đầu {{ x.code }}</strong> — xuất vật tư theo định mức, phiếu xuất ghi ngày dưới đây.</p>
+        <label class="lsx-qty">
+          Ngày bắt đầu
+          <input type="date" aria-label="Ngày bắt đầu" [max]="today" [ngModel]="stepDate()" (ngModelChange)="stepDate.set($event || today)" />
+        </label>
+        <div class="toolbar">
+          <button type="button" class="btn" (click)="mode.set('')">Để sau</button>
+          <button type="button" class="btn btn-primary" (click)="start()"><app-nav-icon name="factory" />Bắt đầu &amp; xuất vật tư</button>
+        </div>
+      </div>
+    }
+
     @if (mode() === 'complete') {
       <div class="confirm-strip" role="alertdialog" aria-labelledby="lsx-complete-title">
         <p id="lsx-complete-title"><strong>Hoàn tất {{ x.code }}</strong> — nhập số thành phẩm đạt để nhập Kho thành phẩm.</p>
         <label class="lsx-qty">
           Số thực làm được ({{ product()?.baseUnit }})
           <input type="number" min="0" step="any" class="num-input" [ngModel]="produced()" (ngModelChange)="produced.set($event)" />
+        </label>
+        <label class="lsx-qty">
+          Ngày nghiệm thu
+          <input type="date" aria-label="Ngày nghiệm thu" [min]="x.startDate ?? null" [max]="today" [ngModel]="stepDate()" (ngModelChange)="stepDate.set($event || today)" />
         </label>
         @if ((produced() ?? 0) < x.quantity) {
           <p class="form-note text-warning">Ít hơn số lệnh {{ (x.quantity - (produced() ?? 0)).toLocaleString('vi-VN') }} — phần hỏng tính vào giá thành; đơn bán có thể cần lập lệnh bổ sung.</p>
@@ -213,7 +231,7 @@
       <div class="toolbar">
         @if (canCancel()) { <button type="button" class="btn btn-danger-ghost" (click)="mode.set('cancel')">Huỷ lệnh</button> }
         @if (order()) { <a class="btn" [routerLink]="['/don-hang', order()!.id]"><app-nav-icon name="receipt" />Mở đơn bán</a> }
-        @if (canStart()) { <button type="button" class="btn btn-primary" (click)="start()"><app-nav-icon name="factory" />Bắt đầu sản xuất</button> }
+        @if (canStart()) { <button type="button" class="btn btn-primary" (click)="openStart()"><app-nav-icon name="factory" />Bắt đầu sản xuất…</button> }
         @if (canComplete()) { <button type="button" class="btn btn-primary" (click)="openComplete()"><app-nav-icon name="check" />Hoàn tất…</button> }
       </div>
     </footer>

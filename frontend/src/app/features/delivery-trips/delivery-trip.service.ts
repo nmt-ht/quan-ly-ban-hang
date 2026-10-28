@@ -50,9 +50,9 @@ export class DeliveryTripService {
   }
 
   /** A step that wrote phiếu kho: read stock and vouchers again, return this chuyến's new ones. */
-  private async withVouchers(path: string): Promise<WarehouseVoucher[]> {
+  private async withVouchers(path: string, body: object = {}): Promise<WarehouseVoucher[]> {
     const before = new Set(this.data.warehouseVouchers().map((v) => v.id));
-    const t = this.apply(await this.api.post<TripResult>(path));
+    const t = this.apply(await this.api.post<TripResult>(path, body));
     await this.loader.loadInventory();
     return this.vouchersOf(t).filter((v) => !before.has(v.id));
   }
@@ -94,9 +94,10 @@ export class DeliveryTripService {
   // ---------- xuất kho một lượt ----------
 
   /** Xếp toàn bộ phần còn phải giao lên xe; một phiếu xuất kho cho mỗi kho; đơn chuyển Đang giao. */
-  async ship(id: string): Promise<WarehouseVoucher[]> {
+  /** `date`: ngày chứng từ của phiếu xuất (trống = hôm nay). */
+  async ship(id: string, date?: string): Promise<WarehouseVoucher[]> {
     if (!canShip(this.find(id))) throw new Error('Chuyến chưa có đơn hoặc đã xuất kho.');
-    return this.withVouchers(`/delivery-trips/${id}/ship`);
+    return this.withVouchers(`/delivery-trips/${id}/ship`, { date });
   }
 
   // ---------- chốt giao ----------
@@ -106,10 +107,10 @@ export class DeliveryTripService {
   }
 
   /** Chốt số khách thực nhận từng dòng (≤ số đã xếp lên xe). Công nợ phải thu ghi theo số này. */
-  async confirm(id: string, orderId: string, lines: { lineIndex: number; received: number }[], note: string): Promise<void> {
+  async confirm(id: string, orderId: string, lines: { lineIndex: number; received: number }[], note: string, date?: string): Promise<void> {
     const t = this.find(id);
     if (!canConfirm(t) || isConfirmed(t, orderId)) return;
-    this.apply(await this.api.post<TripResult>(`/delivery-trips/${id}/orders/${orderId}/confirm`, { lines, note: note.trim() || undefined }));
+    this.apply(await this.api.post<TripResult>(`/delivery-trips/${id}/orders/${orderId}/confirm`, { lines, note: note.trim() || undefined, date }));
   }
 
   /** Bỏ chốt (trước khi xe về kho): trả lại số đã ghi nhận, đơn về Đang giao. */
@@ -122,9 +123,9 @@ export class DeliveryTripService {
   // ---------- xe về kho / hoàn tất / huỷ ----------
 
   /** Hàng khách không nhận được nhập lại đúng kho đã xuất (phiếu "Nhập trả về"). */
-  async returnToWarehouse(id: string): Promise<WarehouseVoucher[]> {
+  async returnToWarehouse(id: string, date?: string): Promise<WarehouseVoucher[]> {
     if (!canReturn(this.find(id))) throw new Error('Còn đơn chưa chốt giao.');
-    return this.withVouchers(`/delivery-trips/${id}/return`);
+    return this.withVouchers(`/delivery-trips/${id}/return`, { date });
   }
 
   async complete(id: string): Promise<void> {
