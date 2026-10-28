@@ -1,4 +1,5 @@
 import { NavIconName } from '../../layout/nav-icon/nav-icon.component';
+import { ModuleKey } from '../../layout/nav-items';
 import { OPS_DEFS } from './defs/ops.defs';
 import { SALES_DEFS } from './defs/sales.defs';
 import { STOCK_DEFS } from './defs/stock.defs';
@@ -11,18 +12,20 @@ export interface ReportGroup {
   icon: NavIconName;
   /** Who may open the reports of this group (the server checks the same). */
   permission: string;
+  /** Phân hệ whose hue the group wears on the hub (none = the moss brand). */
+  module?: ModuleKey;
 }
 
 // 8 nhóm / 21 báo cáo, theo thứ tự của hệ thống tham chiếu (docs/crawl/02-bao-cao.md).
 export const REPORT_GROUPS: ReportGroup[] = [
-  { key: 'sell', label: 'Bán hàng', description: 'Doanh thu, chiết khấu và khách hàng', icon: 'receipt', permission: 'report.sales' },
+  { key: 'sell', label: 'Bán hàng', description: 'Doanh thu, chiết khấu và khách hàng', icon: 'receipt', permission: 'report.sales', module: 'sell' },
   { key: 'profit', label: 'Lợi nhuận', description: 'Lãi gộp và hàng bán lỗ', icon: 'report', permission: 'report.view_profit' },
-  { key: 'stock', label: 'Kho', description: 'Tồn kho, nhập xuất tồn, hàng cần nhập', icon: 'stock', permission: 'report.stock' },
-  { key: 'buy', label: 'Mua hàng', description: 'Nhập hàng theo nhà cung cấp', icon: 'cart', permission: 'report.purchase' },
-  { key: 'make', label: 'Sản xuất', description: 'Sản lượng và giá thành thành phẩm', icon: 'factory', permission: 'report.production' },
-  { key: 'deliver', label: 'Giao hàng', description: 'Chi phí xe và hiệu quả giao hàng', icon: 'truck', permission: 'report.delivery' },
-  { key: 'debt', label: 'Công nợ', description: 'Số dư và tuổi nợ phải thu, phải trả', icon: 'money-in', permission: 'debt.view' },
-  { key: 'cash', label: 'Dòng tiền', description: 'Sổ quỹ và thu chi', icon: 'cash', permission: 'report.cashflow' },
+  { key: 'stock', label: 'Kho', description: 'Tồn kho, nhập xuất tồn, hàng cần nhập', icon: 'stock', permission: 'report.stock', module: 'stock' },
+  { key: 'buy', label: 'Mua hàng', description: 'Nhập hàng theo nhà cung cấp', icon: 'cart', permission: 'report.purchase', module: 'purchase' },
+  { key: 'make', label: 'Sản xuất', description: 'Sản lượng và giá thành thành phẩm', icon: 'factory', permission: 'report.production', module: 'stock' },
+  { key: 'deliver', label: 'Giao hàng', description: 'Chi phí xe và hiệu quả giao hàng', icon: 'truck', permission: 'report.delivery', module: 'sell' },
+  { key: 'debt', label: 'Công nợ', description: 'Số dư và tuổi nợ phải thu, phải trả', icon: 'money-in', permission: 'debt.view', module: 'cash' },
+  { key: 'cash', label: 'Dòng tiền', description: 'Sổ quỹ và thu chi', icon: 'cash', permission: 'report.cashflow', module: 'cash' },
 ];
 
 const byslug = (defs: ReportDef[], slug: string) => {
@@ -90,3 +93,22 @@ export function groupOf(key: ReportGroupKey): ReportGroup {
 }
 
 export const DEFAULT_REPORT = 'ban-hang';
+
+/** The icon in front of each report on the hub (a report not listed wears its group's icon). */
+const REPORT_ICONS: Record<string, NavIconName> = {
+  'ban-hang': 'trending-up', 'chiet-khau': 'percent', 'khach-ngung-mua': 'customers',
+  'loi-nhuan': 'report', 'ban-duoi-gia-von': 'alert',
+  'nhap-xuat-ton': 'table', 'hang-nam-im': 'clock', 'ton-kho': 'stock', 'duoi-ton-toi-thieu': 'alert', 'the-kho': 'product', 'vong-quay-ton-kho': 'refresh',
+  'mua-hang': 'cart', 'gia-mua': 'tag',
+  'san-xuat': 'factory',
+  'giao-hang': 'truck', 'chi-phi-xe': 'car', 'tai-xe': 'user',
+  'cong-no': 'money-in', 'tuoi-no': 'calendar',
+  'so-quy': 'cash', 'thu-chi': 'voucher',
+};
+
+export function reportIcon(r: ReportDef): NavIconName {
+  return REPORT_ICONS[r.slug] ?? groupOf(r.group).icon;
+}
+
+/** "Hay dùng": the reports an owner opens most, as cards at the top of the hub (in this order). */
+export const FEATURED_REPORTS = ['ban-hang', 'loi-nhuan', 'ton-kho', 'tuoi-no', 'so-quy'];

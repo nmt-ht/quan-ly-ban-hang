@@ -52,58 +52,109 @@
       }
   </div>
 } @else {
-  <!-- The hub is an index, laid out the way accounting suites list their reports: the groups flow down newspaper
-       columns (3–4 on a wide screen), each a plain heading over its report links — no card, icon tile or badge per
-       group, so a one-report group costs one heading and one line. Search sits in the title row. -->
+  <!-- The hub reads top-down by how often a report is needed: search in the title row, the last reports opened,
+       "Hay dùng" cards, then every report in an even grid of group cards (each group in its phân hệ hue). A report is
+       one whole-row link: icon, name, one line of what it answers (all of it on hover), chevron. -->
   <div class="page-header rc-hub-head">
     <div>
       <h1>Báo cáo</h1>
-      <p class="subtitle">{{ ready }} báo cáo sẵn sàng · {{ total - ready }} sắp có</p>
+      <p class="subtitle">
+        {{ ready }} báo cáo trong {{ groupCount }} nhóm@if (total > ready) { · {{ total - ready }} sắp có }
+      </p>
     </div>
-    <input type="search" class="rc-search" placeholder="Tìm báo cáo…" aria-label="Tìm báo cáo" [value]="query()" (input)="query.set($any($event.target).value)" />
+    <div class="rc-search" role="search">
+      <app-nav-icon name="search" class="rc-search-icon" />
+      <input #searchBox type="search" placeholder="Tìm báo cáo theo tên, nội dung…" aria-label="Tìm báo cáo"
+        aria-keyshortcuts="/" aria-describedby="rc-search-hint" autocomplete="off" spellcheck="false"
+        [value]="query()" (input)="query.set($any($event.target).value)" (keydown)="onSearchKey($event)" />
+      @if (query()) {
+        <button type="button" class="rc-search-clear" aria-label="Xoá tìm kiếm" title="Xoá tìm kiếm" (click)="clearSearch()">
+          <app-nav-icon name="x" />
+        </button>
+      } @else {
+        <kbd class="rc-search-key" aria-hidden="true" title="Nhấn / để tìm">/</kbd>
+      }
+      <span id="rc-search-hint" class="visually-hidden">Gõ không cần dấu. Enter mở báo cáo đầu tiên, Esc xoá.</span>
+    </div>
   </div>
 
-  @if (recent().length && !query()) {
-    <nav class="rc-recent" aria-label="Báo cáo xem gần đây">
-      <span class="rc-recent-label">Xem gần đây</span>
-      @for (r of recent(); track r.slug) {
-        <a class="rc-recent-item" routerLink="/bao-cao" [queryParams]="{ name: r.slug }" [title]="groupLabel(r) + ' › ' + r.label">{{ r.label }}</a>
-      }
-    </nav>
-  }
+  @if (!query()) {
+    @if (recent().length) {
+      <nav class="rc-recent" aria-label="Báo cáo xem gần đây">
+        <span class="rc-recent-label"><app-nav-icon name="clock" />Xem gần đây</span>
+        @for (r of recent(); track r.slug) {
+          <a class="rc-recent-item" routerLink="/bao-cao" [queryParams]="{ name: r.slug }" [title]="groupLabel(r) + ' › ' + r.label">{{ r.label }}</a>
+        }
+      </nav>
+    }
 
-  <div class="rc-index">
-    @for (s of sections(); track s.group.key) {
-      <section class="rc-group" [attr.aria-labelledby]="'rc-' + s.group.key">
-        <h2 class="rc-group-head" [id]="'rc-' + s.group.key">
-          <app-nav-icon [name]="s.group.icon" />
-          <span>{{ s.group.label }}</span>
-          <span class="rc-count num" [title]="s.ready.length + ' báo cáo sẵn sàng'">{{ s.ready.length }}</span>
-        </h2>
-        <ul class="rc-list">
-          @for (item of s.ready; track item.slug) {
-            <li>
-              <a class="rc-row" routerLink="/bao-cao" [queryParams]="{ name: item.slug }">
-                <span class="rc-row-title">{{ item.label }}</span>
-                <span class="rc-row-sum">{{ item.summary }}</span>
+    @if (featured.length) {
+      <section class="rc-featured" aria-labelledby="rc-featured-head">
+        <h2 class="rc-section-head" id="rc-featured-head">Hay dùng</h2>
+        <ul class="rc-cards">
+          @for (f of featured; track f.def.slug) {
+            <li [attr.data-module]="f.group.module ?? null">
+              <a class="rc-card" routerLink="/bao-cao" [queryParams]="{ name: f.def.slug }" [title]="f.def.summary">
+                <span class="rc-tile"><app-nav-icon [name]="f.icon" /></span>
+                <span class="rc-card-text">
+                  <span class="rc-card-title">{{ f.def.label }}</span>
+                  <span class="rc-card-group">{{ f.group.label }}</span>
+                </span>
               </a>
             </li>
           }
-          @for (item of s.soon; track item.slug) {
+        </ul>
+      </section>
+    }
+
+    <h2 class="rc-section-head">Tất cả báo cáo</h2>
+  } @else {
+    <p class="rc-result-line" role="status">
+      @if (hits()) { {{ hits() }} báo cáo khớp “{{ query().trim() }}” } @else { Không có báo cáo nào khớp }
+    </p>
+  }
+
+  <div class="rc-index" [class.is-searching]="!!query()">
+    @for (s of sections(); track s.group.key) {
+      <section class="rc-group" [attr.data-module]="s.group.module ?? null" [attr.aria-labelledby]="'rc-' + s.group.key">
+        <h3 class="rc-group-head" [id]="'rc-' + s.group.key" [title]="s.group.description">
+          <span class="rc-tile is-small"><app-nav-icon [name]="s.group.icon" /></span>
+          <span class="rc-group-name">{{ s.group.label }}</span>
+          <span class="rc-count num">{{ s.items.length }}</span>
+        </h3>
+        <ul class="rc-list">
+          @for (it of s.items; track it.def.slug) {
             <li>
-              <a class="rc-row is-soon" routerLink="/bao-cao" [queryParams]="{ name: item.slug }">
-                <span class="rc-row-title">{{ item.label }}<span class="rc-tag">Sắp có</span></span>
-                <span class="rc-row-sum">{{ item.summary }}</span>
+              <a class="rc-row" [class.is-soon]="it.def.kind === 'soon'" routerLink="/bao-cao" [queryParams]="{ name: it.def.slug }" [title]="it.def.summary">
+                <app-nav-icon class="rc-row-icon" [name]="it.icon" />
+                <span class="rc-row-text">
+                  <span class="rc-row-title">
+                    @for (p of it.label; track $index) {<span [class.rc-hit]="p.hit">{{ p.text }}</span>}
+                    @if (it.def.kind === 'soon') { <span class="rc-tag">Sắp có</span> }
+                  </span>
+                  <span class="rc-row-sum">
+                    @for (p of it.summary; track $index) {<span [class.rc-hit]="p.hit">{{ p.text }}</span>}
+                  </span>
+                </span>
+                <app-nav-icon class="rc-row-go" name="chevron-right" />
               </a>
             </li>
           }
         </ul>
       </section>
     } @empty {
-      <div class="empty-state">
+      <div class="empty-state rc-empty">
         <h3>Không tìm thấy báo cáo</h3>
-        <p>Không có báo cáo nào khớp “{{ query() }}”.</p>
-        <button type="button" class="btn" (click)="query.set('')">Xoá tìm kiếm</button>
+        <p>Thử từ ngắn hơn hoặc tên khác — không cần gõ dấu, ví dụ “ton kho”, “cong no”.</p>
+        @if (featured.length) {
+          <div class="rc-suggest">
+            <span>Hay dùng:</span>
+            @for (f of featured; track f.def.slug) {
+              <a class="rc-recent-item" routerLink="/bao-cao" [queryParams]="{ name: f.def.slug }">{{ f.def.label }}</a>
+            }
+          </div>
+        }
+        <button type="button" class="btn" (click)="clearSearch()">Xoá tìm kiếm</button>
       </div>
     }
   </div>
