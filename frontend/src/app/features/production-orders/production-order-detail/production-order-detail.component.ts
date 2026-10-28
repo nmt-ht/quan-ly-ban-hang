@@ -69,7 +69,10 @@ export class ProductionOrderDetailComponent {
   readonly notice = signal('');
   /** A save the server refused (or that could not reach it). */
   readonly failure = signal('');
-  readonly mode = signal<'' | 'complete' | 'cancel'>('');
+  readonly mode = signal<'' | 'start' | 'complete' | 'cancel'>('');
+  /** Ngày bắt đầu / nghiệm thu — ngày của phiếu xuất vật tư / nhập thành phẩm; hôm nay unless changed. */
+  readonly today = isoDay(new Date());
+  readonly stepDate = signal(this.today);
   readonly produced = signal<number | null>(null);
   readonly cancelReason = signal('');
 
@@ -132,22 +135,29 @@ export class ProductionOrderDetailComponent {
     return (email && this.data.users().find((u) => u.email === email)?.name) || email || '—';
   }
 
+  openStart(): void {
+    this.stepDate.set(this.today);
+    this.mode.set('start');
+  }
+
   async start(): Promise<void> {
     const x = this.lsx()!;
-    const v = await this.attempt(() => this.orders.startProduction(x.id));
+    const v = await this.attempt(() => this.orders.startProduction(x.id, this.stepDate()));
     if (!v) return;
+    this.mode.set('');
     this.notice.set(`${x.code} đang sản xuất${v.length ? ` — đã xuất vật tư (${v.map((p) => p.code).join(', ')})` : ' — chưa có định mức nên không xuất vật tư'}.`);
   }
 
   openComplete(): void {
     this.produced.set(this.lsx()!.quantity);
+    this.stepDate.set(this.today);
     this.mode.set('complete');
   }
 
   async complete(): Promise<void> {
     const x = this.lsx()!;
     const qty = this.produced() ?? 0;
-    const v = await this.attempt(() => this.orders.completeProduction(x.id, qty));
+    const v = await this.attempt(() => this.orders.completeProduction(x.id, qty, this.stepDate()));
     if (!v) return;
     this.mode.set('');
     this.notice.set(v.length

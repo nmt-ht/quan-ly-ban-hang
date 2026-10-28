@@ -10,7 +10,7 @@ import { vnDay } from '../src/common/text.js';
 
 const DEMO_PASSWORD = process.env.DEMO_USER_PASSWORD ?? 'demo1234';
 const today = vnDay();
-const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+const tomorrow = vnDay(new Date(Date.now() + 86_400_000));
 
 describe('Nhắc nợ & VietQR (e2e)', () => {
   let app: INestApplication;

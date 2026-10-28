@@ -202,10 +202,10 @@ export class SalesOrderService {
   }
 
   /** Bắt đầu sản xuất: the server xuất vật tư theo định mức từ kho ngầm định của từng vật tư. */
-  async startProduction(lsxId: string): Promise<WarehouseVoucher[]> {
+  async startProduction(lsxId: string, date?: string): Promise<WarehouseVoucher[]> {
     const x = this.data.productionOrders().find((p) => p.id === lsxId);
     if (!x || x.status !== 'NHAP') return [];
-    return this.lsxStep(`/production-orders/${lsxId}/start`, lsxId, {});
+    return this.lsxStep(`/production-orders/${lsxId}/start`, lsxId, { date });
   }
 
   /** Định mức của lệnh: bản chụp lúc lập (lệnh cũ không có thì lấy định mức hiện tại). */
@@ -214,10 +214,10 @@ export class SalesOrderService {
   }
 
   /** Hoàn tất sản xuất: nhập số thực làm được vào Kho thành phẩm (hàng hỏng làm số này nhỏ hơn số lệnh). */
-  async completeProduction(lsxId: string, produced?: number): Promise<WarehouseVoucher[]> {
+  async completeProduction(lsxId: string, produced?: number, date?: string): Promise<WarehouseVoucher[]> {
     const x = this.data.productionOrders().find((p) => p.id === lsxId);
     if (!x || x.status !== 'DANG_SAN_XUAT') return [];
-    return this.lsxStep(`/production-orders/${lsxId}/complete`, lsxId, { producedQuantity: produced });
+    return this.lsxStep(`/production-orders/${lsxId}/complete`, lsxId, { producedQuantity: produced, date });
   }
 
   /** Huỷ lệnh (Nháp hoặc Đang sản xuất). Vật tư đã xuất không tự nhập lại — lập phiếu nhập nếu còn dùng được. */

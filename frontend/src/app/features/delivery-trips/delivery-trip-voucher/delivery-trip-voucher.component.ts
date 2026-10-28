@@ -10,6 +10,7 @@ import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { CopyButtonComponent } from '../../../shared/copy-button/copy-button.component';
 import { MoneyInputDirective } from '../../../shared/money-input.directive';
 import { foldVi, formatVnd } from '../../../shared/format.util';
+import { isoDay } from '../../../shared/period';
 import { formatDay } from '../../../shared/period';
 import { DELIVERY_TRIP_STATUS_LABEL, SALES_ORDER_STATUS_LABEL, deliveryTripStatusClass, salesOrderStatusClass } from '../../../shared/status-labels';
 import { round4 } from '../../purchase-orders/purchase-order.rules';
@@ -278,15 +279,19 @@ export class DeliveryTripVoucherComponent {
 
   private done = (p: Promise<unknown>) => p.then(() => true);
 
+  /** Ngày chứng từ of the next step (xuất kho, chốt giao, xe về kho) — as MISA's ngày hạch toán; hôm nay unless changed. */
+  readonly today = isoDay(new Date());
+  readonly docDate = signal(this.today);
+
   async ship(): Promise<void> {
     const t = this.trip()!;
-    const v = await this.attempt(() => this.svc.ship(t.id));
+    const v = await this.attempt(() => this.svc.ship(t.id, this.docDate()));
     if (!v) return;
     this.notice.set(`Đã xuất kho một lượt${v.length ? ` (${v.map((x) => x.code).join(', ')})` : ''} — ${t.orderIds.length} đơn chuyển sang Đang giao. Chốt giao từng đơn khi xe giao xong.`);
   }
 
   async returnToWarehouse(): Promise<void> {
-    const v = await this.attempt(() => this.svc.returnToWarehouse(this.trip()!.id));
+    const v = await this.attempt(() => this.svc.returnToWarehouse(this.trip()!.id, this.docDate()));
     if (!v) return;
     this.notice.set(v.length
       ? `Xe đã về kho — nhập lại hàng khách không nhận (${v.map((x) => x.code).join(', ')}).`
@@ -370,6 +375,7 @@ export class DeliveryTripVoucherComponent {
   readonly confirmOrder = signal<OrderRow | null>(null);
   readonly confirmRows = signal<ConfirmRow[]>([]);
   readonly confirmNote = signal('');
+  readonly confirmDate = signal('');
   readonly confirmAttempted = signal(false);
 
   openConfirm(r: OrderRow): void {
@@ -384,6 +390,7 @@ export class DeliveryTripVoucherComponent {
       };
     }));
     this.confirmNote.set('');
+    this.confirmDate.set(this.docDate());
     this.confirmAttempted.set(false);
     this.confirmDialog().nativeElement.showModal();
   }
@@ -417,7 +424,7 @@ export class DeliveryTripVoucherComponent {
     const r = this.confirmOrder()!;
     this.closeConfirm();
     const lines = this.confirmRows().map((x) => ({ lineIndex: x.lineIndex, received: x.received ?? 0 }));
-    if (!(await this.attempt(() => this.done(this.svc.confirm(this.trip()!.id, r.order.id, lines, this.confirmNote()))))) return;
+    if (!(await this.attempt(() => this.done(this.svc.confirm(this.trip()!.id, r.order.id, lines, this.confirmNote(), this.confirmDate()))))) return;
     const v = this.confirmValue();
     this.notice.set(v
       ? `Đã chốt giao ${r.order.code}: khách nhận ${formatVnd(v)} — ghi công nợ phải thu.`
