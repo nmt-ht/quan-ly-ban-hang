@@ -233,7 +233,7 @@ function header(dto: QuotationDto) {
 
 /** The order's line rows without what only an order has (kho xuất, đã nhận). */
 function quoteLines(lines: SaleLineInput[]) {
-  return lineRows(lines).map(({ id: _i, warehouseId: _w, receivedQuantity: _r, ...l }) => l);
+  return lineRows(lines).map(({ id: _i, warehouseId: _w, receivedQuantity: _r, unitPriceFx: _f, ...l }) => l);
 }
 
 @UseGuards(JwtAuthGuard, PermissionsGuard)

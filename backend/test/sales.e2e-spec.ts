@@ -193,6 +193,16 @@ describe('Bán hàng, sản xuất & công nợ phải thu (e2e)', () => {
     orders.push(exported.id);
     expect(exported).toMatchObject({ saleType: 'XUAT_KHAU', currency: 'USD', exchangeRate: 25400, vatAmount: 0, totalOrder: 100000 });
 
+    // Đơn giá nguyên tệ (as MISA): the VND đơn giá is quy đổi on the server at the đơn's tỷ giá, whatever the form sent.
+    const fx = (await sale.post('/api/sales-orders', order([{ productId: item, unit: 'Cái', quantity: 2, unitPrice: 1, unitPriceFx: 4.5, vatRate: 0 }],
+      { saleType: 'XUAT_KHAU', currency: 'USD', exchangeRate: 25400 })).expect(201)).body;
+    orders.push(fx.id);
+    expect(fx.lines[0]).toMatchObject({ unitPriceFx: 4.5, unitPrice: 114300 });
+    expect(fx.totalOrder).toBe(228600);
+    const vnd = (await sale.post('/api/sales-orders', order([{ productId: item, unit: 'Cái', quantity: 1, unitPrice: 50000, unitPriceFx: 9, vatRate: 10 }])).expect(201)).body;
+    orders.push(vnd.id);
+    expect(vnd.lines[0]).toMatchObject({ unitPriceFx: null, unitPrice: 50000 }); // a VND đơn has no nguyên tệ
+
     // Về trong nước: bỏ ngoại tệ, thuế suất theo mặt hàng; Nhật ký ghi đổi loại bán hàng.
     const back = (await sale.put(`/api/sales-orders/${exported.id}`, { ...order(line(10)), updatedAt: exported.updatedAt }).expect(200)).body;
     expect(back).toMatchObject({ saleType: 'TRONG_NUOC', currency: null, exchangeRate: null, vatAmount: 10000 });

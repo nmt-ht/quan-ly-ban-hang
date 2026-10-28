@@ -289,6 +289,8 @@ export interface SalesOrderLine {
   unitName?: string; // set when selling in a conversion unit (Bó, Thùng…)
   ratioToBase?: number; // base units in 1 unit of this line (default 1)
   quantity: number; // theo ĐVT của dòng
+  /** Đơn giá nguyên tệ (đơn thu bằng ngoại tệ, as MISA); unitPrice là quy đổi ra VND theo tỷ giá của đơn. */
+  unitPriceFx?: number | null;
   unitPrice: number; // theo ĐVT của dòng, chốt khi lưu
   lineTotal: number; // thành tiền = SL × đơn giá (trước chiết khấu, trước thuế)
   discountRate?: number; // % chiết khấu dòng (hiển thị)
@@ -587,6 +589,8 @@ export interface CompanyInfo {
   logo?: string; // data: URL, PNG/JPEG đã thu nhỏ (giữ trong trình duyệt tới khi có backend upload)
   /** Khoá sổ: chứng từ có ngày từ ngày này trở về trước không lập, sửa, huỷ được (as MISA). */
   lockDate?: string | null;
+  /** Cho xuất quá số tồn (as MISA); false = phiếu làm tồn kho âm bị từ chối, trừ quyền "Xuất vượt tồn kho". */
+  allowNegativeStock?: boolean;
 }
 
 // A tag colour is a hue (0–360) or 'neutral' (grey). Lightness and chroma are fixed by the

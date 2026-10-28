@@ -35,6 +35,25 @@ export class CompanyInfoComponent {
 
   private readonly saved = signal<CompanyInfo>(this.svc.info());
 
+  // ---------- xuất quá số tồn ----------
+  readonly canPolicy = inject(AuthService).can('company.update');
+  readonly allowNegative = computed(() => this.svc.info().allowNegativeStock ?? true);
+  readonly policyBusy = signal(false);
+
+  async setStockPolicy(allow: boolean): Promise<void> {
+    this.policyBusy.set(true);
+    this.failure.set('');
+    try {
+      await this.svc.setStockPolicy(allow);
+    } catch (e) {
+      this.failure.set(errorText(e));
+      return;
+    } finally {
+      this.policyBusy.set(false);
+    }
+    this.notice.set(allow ? 'Đã cho phép xuất quá số tồn kho.' : 'Từ nay phiếu xuất làm tồn kho âm sẽ bị từ chối (trừ người có quyền "Xuất vượt tồn kho").');
+  }
+
   // ---------- khoá sổ kỳ kế toán ----------
   readonly canLock = inject(AuthService).can('period.lock');
   readonly lockDate = computed(() => this.svc.info().lockDate?.slice(0, 10) ?? null);

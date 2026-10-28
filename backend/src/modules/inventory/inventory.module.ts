@@ -99,8 +99,8 @@ export class InventoryController {
   @RequirePermissions('stock.cancel')
   @Post('warehouse-vouchers/:id/cancel')
   @HttpCode(HttpStatus.OK)
-  cancel(@Param('id') id: string, @Body() dto: CancelDto) {
-    return this.inventory.cancel(id, dto.reason);
+  cancel(@Param('id') id: string, @Body() dto: CancelDto, @CurrentUser() user: AuthUser) {
+    return this.inventory.cancel(id, dto.reason, user.id);
   }
 }
 

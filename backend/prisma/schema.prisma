@@ -104,6 +104,9 @@ model CompanyInfo {
   tagColors Json      @default("{}")
   // Khoá sổ: chứng từ dated on or before it cannot be lập, sửa or huỷ (common/period-lock.ts).
   lockDate  DateTime? @db.Date
+  // Cho xuất quá số tồn (as MISA's tuỳ chọn): false = a phiếu xuất leaving a kho below 0 is refused, except for
+  // stock.overdraw. True by default, as before.
+  allowNegativeStock Boolean @default(true)
 }
 
 model Tag {
@@ -671,7 +674,9 @@ model SalesOrderLine {
   unitName         String? // set when selling in a conversion unit
   ratioToBase      Decimal    @default(1)
   quantity         Decimal // in the line's unit
-  unitPrice        Decimal // in the line's unit, fixed on save
+  unitPrice        Decimal // in the line's unit, fixed on save; VND (quy đổi when the đơn is in ngoại tệ)
+  // Đơn bán bằng ngoại tệ (as MISA): đơn giá nguyên tệ; unitPrice = this × tỷ giá of the đơn. Null on a VND đơn.
+  unitPriceFx      Decimal?
   discountRate     Decimal? // % chiết khấu dòng (display)
   discountAmount   Decimal    @default(0)
   vatRate          Decimal    @default(0)

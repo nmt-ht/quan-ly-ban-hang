@@ -32,6 +32,8 @@ export interface InvoiceData {
   taxable: number;
   vat: number;
   total: number;
+  /** Hoá đơn bằng ngoại tệ: every số tiền above is nguyên tệ; this is the tổng thanh toán quy đổi ra VND. */
+  vndTotal?: number;
 }
 
 /**
@@ -39,9 +41,14 @@ export interface InvoiceData {
  * đơn — một đợt giao (thời điểm chuyển giao hàng hoá, NĐ 123), hoặc cả đơn khi chưa giao. Thành tiền = SL × đơn giá
  * chưa thuế; chiết khấu (dòng + cả đơn) ghi thành dòng "Chiết khấu thương mại" âm theo từng thuế suất; hàng tặng ghi
  * số lượng, thành tiền 0. Tiền thuế lấy đúng phần của đơn, nên tổng thanh toán khớp số tiền đợt đã ghi công nợ.
+ * `sign` -1: hoá đơn điều chỉnh giảm (hàng trả lại) — every số lượng and số tiền negative, as the điều chỉnh is shown.
  */
-export function invoiceData(o: SalesOrder, slices: LineSlice[], productName: (id: string) => string): InvoiceData {
-  const calc = sliceCalc(o, slices);
+export function invoiceData(
+  o: SalesOrder, slices: LineSlice[], productName: (id: string) => string, sign: 1 | -1 = 1, fxRate?: number | null,
+): InvoiceData {
+  const calc = sliceCalc(o, slices).map((c) => ({
+    gross: sign * c.gross, lineDiscount: sign * c.lineDiscount, orderDiscount: sign * c.orderDiscount, taxable: sign * c.taxable, vat: sign * c.vat, total: sign * c.total,
+  }));
   const rows: InvoiceRow[] = [];
   const groups = new Map<number, InvoiceRateGroup & { discount: number }>();
   slices.forEach((s, i) => {
@@ -50,11 +57,11 @@ export function invoiceData(o: SalesOrder, slices: LineSlice[], productName: (id
     const size = l.length && l.width ? ` (${l.length}×${l.width} cm)` : '';
     const name = productName(l.productId) + size;
     if (l.isGift) {
-      rows.push({ no: 0, name: `${name} (Hàng khuyến mại không thu tiền)`, unit: l.unit, quantity: s.quantity, unitPrice: null, amount: 0, vatRate: null, kind: 'gift' });
+      rows.push({ no: 0, name: `${name} (Hàng khuyến mại không thu tiền)`, unit: l.unit, quantity: sign * s.quantity, unitPrice: null, amount: 0, vatRate: null, kind: 'gift' });
       return;
     }
     const rate = l.vatRate ?? 0;
-    rows.push({ no: 0, name, unit: l.unit, quantity: s.quantity, unitPrice: l.unitPrice, amount: c.gross, vatRate: rate, kind: 'goods' });
+    rows.push({ no: 0, name, unit: l.unit, quantity: sign * s.quantity, unitPrice: l.unitPrice, amount: c.gross, vatRate: rate, kind: 'goods' });
     const g = groups.get(rate) ?? { vatRate: rate, taxable: 0, vat: 0, discount: 0 };
     g.taxable += c.taxable;
     g.vat += c.vat;
@@ -68,21 +75,44 @@ export function invoiceData(o: SalesOrder, slices: LineSlice[], productName: (id
     rows.push({ no: 0, name, unit: '', quantity: null, unitPrice: null, amount: -g.discount, vatRate: g.vatRate, kind: 'discount' });
   }
   rows.forEach((r, i) => (r.no = i + 1));
-  return {
+  const data: InvoiceData = {
     rows,
     groups: sorted.map(({ vatRate, taxable, vat }) => ({ vatRate, taxable, vat })),
     taxable: calc.reduce((s, c) => s + c.taxable, 0),
     vat: calc.reduce((s, c) => s + c.vat, 0),
     total: calc.reduce((s, c) => s + c.total, 0),
   };
+  return fxRate ? inForeignCurrency(o, slices, data, fxRate) : data;
 }
 
-/** Một hoá đơn có thể dựng từ đơn: một đợt giao, hàng đã giao gộp lại, hoặc cả đơn theo số đặt. */
+/**
+ * Hoá đơn của đơn thu bằng ngoại tệ (as MISA): đơn giá in nguyên tệ (as typed on the dòng, else VND ÷ tỷ giá), every
+ * số tiền in nguyên tệ to the cent, and the tổng thanh toán quy đổi ra VND kept beside it.
+ */
+function inForeignCurrency(o: SalesOrder, slices: LineSlice[], d: InvoiceData, rate: number): InvoiceData {
+  const fx = (n: number) => Math.round((n / rate) * 100) / 100;
+  let goods = 0;
+  return {
+    rows: d.rows.map((r) => {
+      if (r.kind === 'discount') return { ...r, amount: fx(r.amount) };
+      const l = o.lines[slices[goods++].index]; // goods and gift rows follow the slices, in order
+      if (r.kind === 'gift') return r;
+      const unitPrice = l.unitPriceFx ?? fx(l.unitPrice);
+      return { ...r, unitPrice, amount: Math.round((r.quantity ?? 0) * unitPrice * 100) / 100 };
+    }),
+    groups: d.groups.map((g) => ({ ...g, taxable: fx(g.taxable), vat: fx(g.vat) })),
+    taxable: fx(d.taxable), vat: fx(d.vat), total: fx(d.total), vndTotal: d.total,
+  };
+}
+
+/** Một hoá đơn có thể dựng từ đơn: một đợt giao, hàng đã giao gộp lại, cả đơn theo số đặt, hoặc một phiếu trả hàng. */
 export interface InvoiceSource {
   key: string;
   label: string;
-  date: string; // ngày lập: ngày khách nhận hàng của đợt; chưa giao thì ngày đặt
+  date: string; // ngày lập: ngày khách nhận hàng của đợt; chưa giao thì ngày đặt; trả hàng thì ngày trả
   slices: LineSlice[];
+  /** Hoá đơn điều chỉnh giảm cho hàng khách trả lại (phiếu TH…): số âm, ghi lý do và chứng từ gốc. */
+  adjust?: { code: string; reason: string };
 }
 
 const dmy = (d: string) => d.slice(0, 10).split('-').reverse().join('/');
@@ -92,6 +122,25 @@ const dmy = (d: string) => d.slice(0, 10).split('-').reverse().join('/');
  * đơn, ngày giao gần nhất. Chưa giao: cả đơn theo số đặt, ngày đặt.
  */
 export function invoiceSources(o: SalesOrder): InvoiceSource[] {
+  return [...saleSources(o), ...returnSources(o)];
+}
+
+/**
+ * Hàng trả lại giảm doanh thu và thuế đã kê khai: a hoá đơn điều chỉnh giảm per phiếu trả hàng chưa huỷ (NĐ 123, sửa
+ * đổi bởi NĐ 70/2025), dated the ngày trả. Its tiền equal the phiếu's giá trị (phần của từng dòng theo số trả).
+ */
+function returnSources(o: SalesOrder): InvoiceSource[] {
+  return (o.returns ?? []).filter((r) => !r.isCancelled).map((r) => ({
+    key: r.id, label: `Điều chỉnh giảm · ${r.code} · ${dmy(r.date)} · −${r.amount.toLocaleString('vi-VN')} ₫`, date: r.date,
+    slices: r.lines.flatMap((x) => {
+      const index = o.lines.findIndex((l) => l.id === x.orderLineId);
+      return index < 0 || !(x.quantity > 0) ? [] : [{ index, before: 0, quantity: x.quantity }];
+    }),
+    adjust: { code: r.code, reason: r.reason },
+  }));
+}
+
+function saleSources(o: SalesOrder): InvoiceSource[] {
   const all = o.deliveries ?? [];
   const detailed = all.flatMap((d, i) =>
     d.lines.length
@@ -138,9 +187,17 @@ export class InvoicePreviewComponent {
 
   readonly invoice = computed(() => {
     const products = new Map(this.data.products().map((p) => [p.id, p.name]));
-    return invoiceData(this.order(), this.source().slices, (id) => products.get(id) ?? id);
+    const o = this.order();
+    const rate = foreignCurrency(o.currency) && (o.exchangeRate ?? 0) > 0 ? o.exchangeRate : null;
+    return invoiceData(o, this.source().slices, (id) => products.get(id) ?? id, this.source().adjust ? -1 : 1, rate);
   });
   readonly multiRate = computed(() => this.invoice().groups.length > 1);
+  /** Hoá đơn trước điều chỉnh: the đợt giao (or whole đơn) the hàng trả came from — the reference the adjustment names. */
+  readonly adjusted = computed(() => {
+    const sales = this.sources().filter((s) => !s.adjust);
+    return sales.filter((s) => s.date <= this.source().date).at(-1) ?? sales[0];
+  });
+  readonly abs = Math.abs;
 
   /** Ngày lập: ngày khách nhận hàng của đợt (thời điểm chuyển giao hàng hoá), chưa giao thì ngày đặt. */
   readonly dateParts = computed(() => {
@@ -184,12 +241,12 @@ export class InvoicePreviewComponent {
     const code = foreignCurrency(o.currency);
     const rate = o.exchangeRate ?? 0;
     if (!code || rate <= 0) return null;
-    const amount = this.invoice().total / rate;
-    return { code, rate, amount: amount.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) };
+    return { code, rate };
   });
 
+  /** VND in whole đồng; nguyên tệ to the cent. */
   money(n: number | null): string {
-    return n === null ? '' : n.toLocaleString('vi-VN');
+    return n === null ? '' : n.toLocaleString('vi-VN', { maximumFractionDigits: 2 });
   }
 
   open(): void {

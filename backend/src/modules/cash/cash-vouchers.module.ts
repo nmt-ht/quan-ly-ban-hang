@@ -13,7 +13,7 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import { SequenceService } from '../../prisma/sequence.service.js';
 import { OptionalText, Text } from '../../common/dto.js';
 import { fromDay, toDay } from '../../common/text.js';
-import { assertOpenPeriod } from '../../common/period-lock.js';
+import { assertOpenPeriod, documentDay } from '../../common/period-lock.js';
 import { CASH_INCLUDE, cashToApi } from './cash-voucher.mapper.js';
 import { overdraw } from './cash-balance.js';
 import { AuditService } from '../../audit/audit.service.js';
@@ -105,7 +105,7 @@ export class CashVouchersService {
 
   async create(dto: CashVoucherDto, user: AuthUser) {
     return this.prisma.$transaction(async (tx) => {
-      await assertOpenPeriod(tx, dto.date, dto.kind === 'THU' ? 'Phiếu thu' : 'Phiếu chi');
+      await documentDay(tx, dto.date, dto.kind === 'THU' ? 'Phiếu thu' : 'Phiếu chi'); // not after hôm nay, not in the closed kỳ
       const category = await tx.cashCategory.findFirst({ where: { kind: dto.kind, name: dto.category, isActive: true } });
       if (!category) throw new BadRequestException(`Loại "${dto.category}" không có hoặc đã ngừng dùng.`);
       if (category.partnerType !== dto.partnerType) throw new BadRequestException(`Loại "${category.name}" không gắn với đối tác này.`);

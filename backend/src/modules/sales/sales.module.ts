@@ -26,6 +26,8 @@ export class SaleLineDto {
   @IsOptional() @IsNumber() @IsPositive() ratioToBase?: number;
   @IsNumber() @IsPositive({ message: 'Số lượng phải lớn hơn 0' }) quantity!: number;
   @IsNumber() @Min(0) unitPrice!: number;
+  /** Đơn giá nguyên tệ, on a đơn thu bằng ngoại tệ: the server sets unitPrice = this × tỷ giá. */
+  @IsOptional() @IsNumber() @Min(0) unitPriceFx?: number;
   @IsOptional() @IsNumber() @Min(0) @Max(100) discountRate?: number;
   @IsOptional() @IsNumber() @Min(0) discountAmount?: number;
   @IsOptional() @IsNumber() @Min(0) @Max(100) vatRate?: number;

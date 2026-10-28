@@ -12,8 +12,13 @@ export class CompanyService {
   readonly info = this.data.companyInfo.asReadonly();
 
   async save(info: CompanyInfo): Promise<void> {
-    const { lockDate: _l, ...body } = info;
+    const { lockDate: _l, allowNegativeStock: _s, ...body } = info;
     this.data.companyInfo.set(await this.api.put<CompanyInfo>('/company', body));
+  }
+
+  /** Cho xuất quá số tồn (PUT /company/stock-policy, quyền company.update). */
+  async setStockPolicy(allowNegativeStock: boolean): Promise<void> {
+    this.data.companyInfo.set(await this.api.put<CompanyInfo>('/company/stock-policy', { allowNegativeStock }));
   }
 
   /** Khoá sổ đến ngày (PUT /company/lock-date, quyền period.lock); null = bỏ khoá sổ. */

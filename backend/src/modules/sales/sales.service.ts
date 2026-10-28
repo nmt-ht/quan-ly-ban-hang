@@ -33,6 +33,8 @@ export interface SaleLineInput {
   ratioToBase?: number;
   quantity: number;
   unitPrice: number;
+  /** Đơn giá nguyên tệ (đơn thu bằng ngoại tệ); unitPrice is then its quy đổi ra VND. */
+  unitPriceFx?: number;
   discountRate?: number;
   discountAmount?: number;
   vatRate?: number;
@@ -790,6 +792,13 @@ export class SalesService {
   private async checkInput(tx: Tx, input: SalesOrderInput, user: AuthUser, existing: PricedLine[], existingDiscount: number) {
     const saleIssue = saleTypeIssue(input);
     if (saleIssue) throw new BadRequestException(saleIssue);
+    // Ngoại tệ (as MISA): a dòng priced in nguyên tệ is quy đổi here, at the đơn's tỷ giá — the VND đơn giá is never the
+    // form's own; on a VND đơn there is no nguyên tệ.
+    const fx = foreignCurrency(input.currency);
+    for (const l of input.lines) {
+      if (fx && l.unitPriceFx != null) l.unitPrice = Math.round(l.unitPriceFx * (input.exchangeRate ?? 0));
+      else delete l.unitPriceFx;
+    }
     const { byId } = await checkPartyAndPrices(tx, { ...input, date: input.orderDate }, user, existing, existingDiscount);
 
     let salesRepId: string | null = null;
@@ -960,7 +969,7 @@ export function lineRows(lines: SaleLineInput[]) {
     };
     return {
       id: l.id ?? randomUUID(), productId: l.productId, unit: l.unit, unitName: l.unitName ?? null, ratioToBase: base.ratioToBase,
-      quantity: l.quantity, unitPrice: l.unitPrice, discountRate: base.discountRate, discountAmount: lineDiscount(base),
+      quantity: l.quantity, unitPrice: l.unitPrice, unitPriceFx: l.unitPriceFx ?? null, discountRate: base.discountRate, discountAmount: lineDiscount(base),
       vatRate: base.vatRate, warehouseId: l.warehouseId ?? null, length: l.length ?? null, width: l.width ?? null, note: l.note ?? null,
       receivedQuantity: 0, sortOrder: i, promotionId: l.promotionId ?? null, isGift: !!l.isGift,
     };

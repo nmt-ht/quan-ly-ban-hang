@@ -81,6 +81,7 @@ export const PERMISSION_MODULES: PermissionModule[] = [
     { code: 'stock.transfer', label: 'Chuyển kho' },
     { code: 'stock.adjust', label: 'Điều chỉnh tồn kho' },
     { code: 'stock.cancel', label: 'Huỷ phiếu kho' },
+    { code: 'stock.overdraw', label: 'Xuất vượt tồn kho' },
   ]},
   { key: 'stocktake', label: 'Kiểm kê', permissions: [
     { code: 'stock.stocktake', label: 'Kiểm kê kho' },

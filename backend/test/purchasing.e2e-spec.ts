@@ -104,8 +104,15 @@ describe('Đơn nhập hàng & công nợ phải trả (e2e)', () => {
     expect(pnk[0].reason).toContain(o.code);
     await storekeeper.post(`/api/warehouse-vouchers/${pnk[0].id}/cancel`).expect(400); // cancel from the order, not the phiếu
 
-    // More than ordered is capped at what is left.
-    const full = (await storekeeper.post(`/api/purchase-orders/${o.id}/receive`, { date: today, items: [{ lineIndex: 0, quantity: 100, warehouseId: 'wh-vattu' }] }).expect(200)).body;
+    // More than is still owed is refused (not cut down); the ngày nhận is not after hôm nay nor before the đơn.
+    const over = (await storekeeper.post(`/api/purchase-orders/${o.id}/receive`, { date: today, items: [{ lineIndex: 0, quantity: 100, warehouseId: 'wh-vattu' }] }).expect(400)).body;
+    expect(over.message).toMatch(/^Dòng 1: còn phải nhận \d+, không nhận được 100\.$/);
+    const tomorrow = vnDay(new Date(Date.now() + 86_400_000));
+    expect((await storekeeper.post(`/api/purchase-orders/${o.id}/receive`, { date: tomorrow, items: [{ lineIndex: 0, quantity: 1, warehouseId: 'wh-vattu' }] }).expect(400)).body.message).toContain('sau hôm nay');
+    expect((await storekeeper.post(`/api/purchase-orders/${o.id}/receive`, { date: '2020-01-01', items: [{ lineIndex: 0, quantity: 1, warehouseId: 'wh-vattu' }] }).expect(400)).body.message).toContain('trước ngày đặt đơn');
+    const cur = (await manager.get(`/api/purchase-orders/${o.id}`).expect(200)).body;
+    const left = cur.lines[0].quantity - cur.lines[0].receivedQuantity;
+    const full = (await storekeeper.post(`/api/purchase-orders/${o.id}/receive`, { date: today, items: [{ lineIndex: 0, quantity: left, warehouseId: 'wh-vattu' }] }).expect(200)).body;
     expect(full).toMatchObject({ status: 'DA_NHAN_DU', receivedValue: null });
     expect((await manager.get(`/api/purchase-orders/${o.id}`).expect(200)).body.receivedValue).toBe(1_325_000);
     expect(await stock(boxed, 'wh-vattu')).toBe(120);

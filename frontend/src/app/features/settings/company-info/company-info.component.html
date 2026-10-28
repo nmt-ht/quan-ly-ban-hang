@@ -97,6 +97,19 @@
         </div>
       </div>
     </div>
+    <!-- Xuất quá số tồn (as MISA's tuỳ chọn): saved at once, apart from the form's Lưu. -->
+    <section class="card section-block co-lock" aria-labelledby="co-stock-title">
+      <h3 id="co-stock-title" class="form-section-title">Xuất kho</h3>
+      <label class="check-line">
+        <input type="checkbox" [checked]="allowNegative()" [disabled]="!canPolicy || policyBusy()" (change)="setStockPolicy($any($event.target).checked)" />
+        <span>Cho xuất quá số tồn</span>
+        <span class="hint">
+          Bỏ chọn thì giao hàng, xuất kho chuyến, xuất vật tư sản xuất và phiếu xuất tay làm tồn kho âm sẽ bị từ chối;
+          chỉ chức vụ có quyền "Xuất vượt tồn kho" vẫn xuất được.
+        </span>
+      </label>
+    </section>
+
     <!-- Khoá sổ kỳ kế toán (as MISA): its own permission and its own button (type=button, never the form's Lưu). -->
     <section class="card section-block co-lock" aria-labelledby="co-lock-title">
       <h3 id="co-lock-title" class="form-section-title">Khoá sổ kỳ kế toán</h3>

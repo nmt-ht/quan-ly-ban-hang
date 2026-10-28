@@ -56,6 +56,8 @@ interface DraftLine {
   unitName: string; // '' = base unit
   quantity: number | null;
   unitPrice: number | null;
+  /** Đơn giá nguyên tệ on a đơn thu bằng ngoại tệ; the VND đơn giá is then this × tỷ giá. */
+  unitPriceFx: number | null;
   priceManual: boolean; // typed by hand → not re-priced when the customer changes
   discountRate: number | null;
   discountAmount: number | null;
@@ -79,7 +81,7 @@ interface UnitOption {
 
 const newKey = () => crypto.randomUUID();
 const emptyLine = (): DraftLine => ({
-  key: newKey(), productId: '', unitName: '', quantity: null, unitPrice: null, priceManual: false, discountRate: null,
+  key: newKey(), productId: '', unitName: '', quantity: null, unitPrice: null, unitPriceFx: null, priceManual: false, discountRate: null,
   discountAmount: null, vatRate: 0, warehouseId: '', length: null, width: null, note: '', receivedQuantity: 0,
   discountManual: false, promotionId: null, isGift: false,
 });
@@ -178,6 +180,9 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   readonly currency = signal('VND');
   readonly exchangeRate = signal<number | null>(null);
   readonly exportSale = computed(() => this.saleType() === 'XUAT_KHAU');
+  /** Đơn thu bằng ngoại tệ (as MISA): mã tiền, and the tỷ giá once it is entered — đơn giá are then typed in nguyên tệ. */
+  readonly fxCode = computed(() => (this.exportSale() ? foreignCurrency(this.currency()) : null));
+  readonly fxRate = computed(() => (this.fxCode() && (this.exchangeRate() ?? 0) > 0 ? this.exchangeRate() : null));
   readonly saleTypeLabel = SALE_TYPE_LABEL;
   readonly currencies = CURRENCIES;
   /** Xem trước hoá đơn GTGT của đơn đã lưu; printingInvoice: bản in lúc này là hoá đơn, không phải đơn hàng. */
@@ -395,7 +400,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
 
   private toDraft(l: SalesOrderLine): DraftLine {
     return {
-      key: newKey(), lineId: l.id, productId: l.productId, unitName: l.unitName ?? '', quantity: l.quantity, unitPrice: l.unitPrice,
+      key: newKey(), lineId: l.id, productId: l.productId, unitName: l.unitName ?? '', quantity: l.quantity, unitPrice: l.unitPrice, unitPriceFx: l.unitPriceFx ?? null,
       priceManual: true, discountRate: l.discountRate ?? null, discountAmount: l.discountAmount ?? null, vatRate: l.vatRate ?? 0,
       warehouseId: l.warehouseId ?? defaultWarehouse(this.product(l.productId)), length: l.length ?? null, width: l.width ?? null,
       note: l.note ?? '', receivedQuantity: l.receivedQuantity ?? 0,
@@ -403,10 +408,17 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
     };
   }
 
+  /** The line as it will be saved — for the quy đổi shown under a nguyên tệ đơn giá. */
+  toLineOf(d: DraftLine): SalesOrderLine {
+    return this.toLine(d);
+  }
+
   private toLine(d: DraftLine): SalesOrderLine {
     const ratio = this.ratio(d);
     const qty = d.quantity ?? 0;
-    const price = d.unitPrice ?? 0;
+    // Ngoại tệ: the VND đơn giá is the nguyên tệ × tỷ giá, as the server works it out.
+    const fx = this.fxRate() && d.unitPriceFx != null ? d.unitPriceFx : null;
+    const price = fx !== null ? Math.round(fx * this.fxRate()!) : d.unitPrice ?? 0;
     return {
       id: d.lineId ?? crypto.randomUUID(),
       productId: d.productId,
@@ -415,6 +427,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
       ratioToBase: ratio !== 1 ? ratio : undefined,
       quantity: qty,
       unitPrice: price,
+      unitPriceFx: fx ?? undefined,
       lineTotal: Math.round(qty * price),
       discountRate: d.discountRate || undefined,
       discountAmount: d.discountAmount || undefined,
@@ -639,6 +652,12 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
 
   setPrice(i: number, price: number | null): void {
     this.patch(i, { unitPrice: price, priceManual: true });
+  }
+
+  /** Đơn giá nguyên tệ typed on a đơn thu bằng ngoại tệ. */
+  setPriceFx(i: number, value: number | string | null): void {
+    const fx = value === null || value === '' ? null : Math.max(0, Number(value));
+    this.patch(i, { unitPriceFx: fx, unitPrice: fx !== null && this.fxRate() ? Math.round(fx * this.fxRate()!) : this.lines()[i].unitPrice, priceManual: true });
   }
 
   /** Changing the customer re-prices every line whose price was not typed by hand. */

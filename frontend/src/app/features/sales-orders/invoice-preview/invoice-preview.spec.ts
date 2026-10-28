@@ -94,3 +94,29 @@ describe('saleTypeIssue (frontend, như server)', () => {
     expect(saleTypeIssue({ saleType: 'TRONG_NUOC', currency: 'EUR', lines: [] })).toMatch(/VND/);
   });
 });
+
+describe('hoá đơn điều chỉnh giảm và hoá đơn ngoại tệ', () => {
+  const lines = [line({ id: 'la', productId: 'a', quantity: 4, unitPrice: 100_000, vatRate: 10, receivedQuantity: 4 })];
+
+  it('mỗi phiếu trả hàng chưa huỷ là một hoá đơn điều chỉnh giảm: số âm, đúng giá trị phiếu', () => {
+    const o: SalesOrder = {
+      ...order(lines),
+      returns: [
+        { id: 'r1', code: 'TH0000001', orderId: 'o', date: '2026-10-27', reason: 'Trầy', amount: 110_000, isCancelled: false, createdBy: '', lines: [{ id: 'x', orderLineId: 'la', quantity: 1, amount: 110_000 }] },
+        { id: 'r2', code: 'TH0000002', orderId: 'o', date: '2026-10-27', reason: 'Huỷ', amount: 110_000, isCancelled: true, createdBy: '', lines: [{ id: 'y', orderLineId: 'la', quantity: 1, amount: 110_000 }] },
+      ],
+    };
+    const adj = invoiceSources(o).filter((s) => s.adjust);
+    expect(adj.map((s) => s.adjust!.code)).toEqual(['TH0000001']);
+    const inv = invoiceData(o, adj[0].slices, name, -1);
+    expect(inv).toMatchObject({ taxable: -100_000, vat: -10_000, total: -110_000 });
+    expect(inv.rows[0]).toMatchObject({ quantity: -1, amount: -100_000 });
+  });
+
+  it('đơn thu bằng ngoại tệ: đơn giá và số tiền theo nguyên tệ, giữ tổng quy đổi VND', () => {
+    const o = order([line({ id: 'la', productId: 'a', quantity: 2, unitPrice: 114_300, unitPriceFx: 4.5, vatRate: 0 })]);
+    const inv = invoiceData(o, orderedSlices(o), name, 1, 25_400);
+    expect(inv.rows[0]).toMatchObject({ unitPrice: 4.5, amount: 9 });
+    expect(inv).toMatchObject({ total: 9, vndTotal: 228_600 });
+  });
+});

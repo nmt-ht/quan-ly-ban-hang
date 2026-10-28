@@ -1,5 +1,5 @@
 import { BadRequestException, Body, Controller, Get, Injectable, Module, Put, UseGuards } from '@nestjs/common';
-import { IsObject, IsOptional, Matches, ValidateIf } from 'class-validator';
+import { IsBoolean, IsObject, IsOptional, Matches, ValidateIf } from 'class-validator';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard.js';
 import { PermissionsGuard } from '../../auth/permissions.guard.js';
 import { RequirePermissions } from '../../auth/permissions.decorator.js';
@@ -23,6 +23,10 @@ export class CompanyDto {
   @ValidateIf((o: CompanyDto) => !!o.logo)
   @Matches(/^(data:image\/(png|jpeg);base64,|https?:\/\/)/, { message: 'Logo phải là ảnh PNG/JPEG hoặc đường dẫn' })
   logo?: string;
+}
+
+export class StockPolicyDto {
+  @IsBoolean() allowNegativeStock!: boolean;
 }
 
 export class LockDateDto {
@@ -99,6 +103,21 @@ export class CompanyService {
     return this.get();
   }
 
+  /** "Cho xuất quá số tồn" (as MISA's tuỳ chọn); off = InventoryService refuses phiếu leaving a kho below 0. */
+  async setStockPolicy(allowNegativeStock: boolean) {
+    const before = (await this.prisma.companyInfo.findUnique({ where: { id: 1 }, select: { allowNegativeStock: true } }))?.allowNegativeStock ?? true;
+    const show = (v: boolean) => (v ? 'Cho phép' : 'Không cho phép');
+    await this.prisma.$transaction(async (tx) => {
+      await tx.companyInfo.upsert({ where: { id: 1 }, update: { allowNegativeStock }, create: { id: 1, name: '', allowNegativeStock } });
+      await this.audit.log(tx, {
+        action: 'company.stock_policy', entityType: 'CompanyInfo', entityId: '1',
+        summary: allowNegativeStock ? 'Cho xuất quá số tồn kho' : 'Không cho xuất quá số tồn kho',
+        changes: [{ field: 'allowNegativeStock', label: 'Xuất quá số tồn', from: show(before), to: show(allowNegativeStock) }],
+      });
+    });
+    return this.get();
+  }
+
   async save(dto: CompanyDto) {
     const data = {
       name: dto.name, address: dto.address ?? null, taxCode: dto.taxCode ?? null, phone: dto.phone ?? null,
@@ -130,6 +149,12 @@ export class CompanyController {
   @Put()
   save(@Body() dto: CompanyDto) {
     return this.company.save(dto);
+  }
+
+  @RequirePermissions('company.update')
+  @Put('stock-policy')
+  setStockPolicy(@Body() dto: StockPolicyDto) {
+    return this.company.setStockPolicy(dto.allowNegativeStock);
   }
 
   @RequirePermissions('period.lock')

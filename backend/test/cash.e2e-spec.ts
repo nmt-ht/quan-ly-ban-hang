@@ -108,6 +108,10 @@ describe('Phiếu thu chi & đối trừ (e2e)', () => {
       kind: 'CHI', date: today, category: 'Chi khác', partnerType: 'KHAC', accountId: 'acc-cash', amount: 75000, description: 'E2E',
     }).expect(201)).body;
     expect(pc).toMatchObject({ code: expect.stringMatching(/^PC\d{7}$/), partnerType: 'KHAC', settledAmount: 0 });
+    const tomorrow = vnDay(new Date(Date.now() + 86_400_000));
+    expect((await accountant.post('/api/cash-vouchers', {
+      kind: 'CHI', date: tomorrow, category: 'Chi khác', partnerType: 'KHAC', accountId: 'acc-cash', amount: 1000, description: 'E2E',
+    }).expect(400)).body.message).toContain('sau hôm nay');
     expect(await balance('acc-cash')).toBe(cashBefore - 75_000);
     expect((await accountant.get('/api/cash-vouchers').expect(200)).body.some((v: any) => v.id === pc.id)).toBe(true);
     await storekeeper.get('/api/cash-vouchers').expect(403); // Thủ kho has no voucher, debt or report rights

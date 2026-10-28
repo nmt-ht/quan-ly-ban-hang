@@ -55,6 +55,10 @@
 
     <div class="inv-titlebar">
       <h1 class="inv-title">HOÁ ĐƠN GIÁ TRỊ GIA TĂNG</h1>
+      @if (source().adjust; as a) {
+        <p class="inv-adjust"><strong>Điều chỉnh giảm</strong> do khách trả lại hàng — phiếu <span class="num">{{ a.code }}</span>; lý do: {{ a.reason }}.
+          Điều chỉnh cho hoá đơn của đơn <span class="num">{{ order().code }}</span> ({{ adjusted().label }}) — mẫu số, ký hiệu, số và ngày hoá đơn gốc ghi khi phát hành.</p>
+      }
       @if (en) { <p class="inv-title-en">(VAT INVOICE)</p> }
       <p class="inv-date">Ngày <span class="num">{{ dateParts().d }}</span> tháng <span class="num">{{ dateParts().m }}</span> năm <span class="num">{{ dateParts().y }}</span>
         @if (en) { <small> (Date)</small> }</p>
@@ -72,7 +76,7 @@
         <div><dt>Số tài khoản@if (en) { <small> (Account No.)</small> }:</dt><dd></dd></div>
       </div>
       <div class="inv-pair">
-        <div><dt>Đồng tiền thanh toán@if (en) { <small> (Currency)</small> }:</dt><dd>VND</dd></div>
+        <div><dt>Đồng tiền thanh toán@if (en) { <small> (Currency)</small> }:</dt><dd>{{ foreign()?.code ?? 'VND' }}</dd></div>
         @if (foreign(); as f) {
           <div><dt>Tỷ giá@if (en) { <small> (Exchange rate)</small> }:</dt><dd class="num">1 {{ f.code }} = {{ money(f.rate) }} VND</dd></div>
         }
@@ -130,11 +134,11 @@
         <dd class="num">{{ money(inv.vat) }}</dd>
       </div>
       <div class="inv-grand"><dt>Tổng tiền thanh toán@if (en) { <small> (Total payment)</small> }:</dt><dd class="num">{{ money(inv.total) }}</dd></div>
-      @if (foreign(); as f) {
-        <div><dt>Quy đổi@if (en) { <small> (Equivalent)</small> }:</dt><dd class="num">{{ f.amount }} {{ f.code }}</dd></div>
+      @if (inv.vndTotal !== undefined) {
+        <div><dt>Quy đổi VND@if (en) { <small> (Equivalent in VND)</small> }:</dt><dd class="num">{{ money(inv.vndTotal) }}</dd></div>
       }
     </dl>
-    <p class="inv-words">Số tiền viết bằng chữ@if (en) { <small> (In words)</small> }: <strong>{{ words(inv.total) }}</strong></p>
+    <p class="inv-words">Số tiền viết bằng chữ@if (en) { <small> (In words)</small> }: <strong>@if (inv.total < 0) {Giảm }{{ words(abs(inv.vndTotal ?? inv.total)) }}@if (inv.vndTotal !== undefined) { (quy đổi)}</strong></p>
 
     <div class="inv-sign">
       <div>

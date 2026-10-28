@@ -196,6 +196,15 @@
 }
 
 // Tồn tại kho xuất dưới ô Số lượng; vượt tồn chỉ cảnh báo, không chặn lưu.
+// Quy đổi ra VND under a đơn giá typed in nguyên tệ.
+.so-fx {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-2xs);
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
 .so-stock {
   display: block;
   margin-top: 2px;

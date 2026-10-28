@@ -17,12 +17,13 @@ describe('Kho (e2e)', () => {
   const products: string[] = [];
 
   const api = () => request(app.getHttpServer());
-  async function as(email: string) {
-    const token = (await api().post('/api/auth/login').send({ email, password: DEMO_PASSWORD }).expect(200)).body.accessToken;
+  async function as(email: string, password = DEMO_PASSWORD) {
+    const token = (await api().post('/api/auth/login').send({ email, password }).expect(200)).body.accessToken;
     const auth = (r: request.Test) => r.set('Authorization', `Bearer ${token}`);
     return {
       get: (url: string) => auth(api().get(url)),
       post: (url: string, body: object = {}) => auth(api().post(url)).send(body),
+      put: (url: string, body: object) => auth(api().put(url)).send(body),
     };
   }
   let manager: Awaited<ReturnType<typeof as>>;
@@ -71,9 +72,30 @@ describe('Kho (e2e)', () => {
     expect(await stock(itemId, 'wh-phukien')).toBe(8);
     await manager.post('/api/warehouse-vouchers', voucher('CHUYEN', [{ productId: itemId, quantity: 1 }], { targetWarehouseId: 'wh-vattu' })).expect(400);
 
-    // Xuất quá tồn is allowed (stock is sometimes recorded late): the level goes negative.
+    // Xuất quá tồn is allowed by default (stock is sometimes recorded late): the level goes negative.
     await manager.post('/api/warehouse-vouchers', voucher('XUAT', [{ productId: itemId, quantity: 15 }])).expect(201);
     expect(await stock(itemId, 'wh-vattu')).toBe(-3);
+  });
+
+  it('thiết lập không cho xuất quá số tồn: chỉ quyền "Xuất vượt tồn kho" xuất được; phiếu không được đề ngày tương lai', async () => {
+    const tomorrow = vnDay(new Date(Date.now() + 86_400_000));
+    expect((await manager.post('/api/warehouse-vouchers', voucher('NHAP', [{ productId: itemId, quantity: 1 }], { date: tomorrow })).expect(400)).body.message).toContain('sau hôm nay');
+    // Thiết lập công ty: company.update (CEO).
+    const ceo = await as('admin@ninhtrang.local', process.env.SEED_ADMIN_PASSWORD ?? 'ChangeMe123!');
+    await manager.put('/api/company/stock-policy', { allowNegativeStock: false }).expect(403);
+    expect((await ceo.put('/api/company/stock-policy', { allowNegativeStock: false }).expect(200)).body.allowNegativeStock).toBe(false);
+    try {
+      await manager.post('/api/warehouse-vouchers', voucher('NHAP', [{ productId: itemId, quantity: 5 }])).expect(201);
+      const have = await stock(itemId, 'wh-vattu');
+      const refused = (await storekeeper.post('/api/warehouse-vouchers', voucher('XUAT', [{ productId: itemId, quantity: have + 2 }])).expect(400)).body;
+      expect(refused.message).toContain('không đủ tồn — thiếu 2');
+      expect(await stock(itemId, 'wh-vattu')).toBe(have); // nothing moved
+      await storekeeper.post('/api/warehouse-vouchers', voucher('XUAT', [{ productId: itemId, quantity: have }])).expect(201); // đúng bằng tồn
+      await manager.post('/api/warehouse-vouchers', voucher('XUAT', [{ productId: itemId, quantity: 1 }])).expect(201); // Quản lý có stock.overdraw
+      expect(await stock(itemId, 'wh-vattu')).toBe(-1);
+    } finally {
+      await ceo.put('/api/company/stock-policy', { allowNegativeStock: true }).expect(200);
+    }
   });
 
   it('kiểm kê records the difference to the book stock at the moment of saving', async () => {

@@ -81,7 +81,7 @@
               [ngModel]="exchangeRate()" (ngModelChange)="exchangeRate.set($event)"
               [attr.aria-invalid]="attempted() && !((exchangeRate() ?? 0) > 0) ? 'true' : null" />
           }
-          <p class="pay-hint">Hàng xuất khẩu chịu <strong>thuế GTGT 0%</strong> (cần hợp đồng, tờ khai hải quan, thanh toán qua ngân hàng). Số tiền trên đơn vẫn ghi bằng VND; tỷ giá dùng để quy đổi trên hoá đơn.</p>
+          <p class="pay-hint">Hàng xuất khẩu chịu <strong>thuế GTGT 0%</strong> (cần hợp đồng, tờ khai hải quan, thanh toán qua ngân hàng). Thu bằng ngoại tệ: nhập đơn giá theo nguyên tệ, đơn giá VND tự quy đổi theo tỷ giá; công nợ và doanh thu ghi bằng VND quy đổi.</p>
         }
       } @else {
         <span class="pay-state" [class.is-now]="exportSale()">
@@ -320,7 +320,7 @@
                   <th scope="col" class="c-unit">ĐVT</th>
                   @if (showSize()) { <th scope="col" class="c-size">Dài × Rộng (cm)</th> }
                   <th scope="col" class="c-num">Số lượng</th>
-                  <th scope="col" class="c-num">Đơn giá</th>
+                  <th scope="col" class="c-num">Đơn giá@if (fxCode(); as fx) { ({{ fx }}) }</th>
                   <th scope="col" class="c-num">Thành tiền</th>
                   <th scope="col" class="c-num c-pct">Tỷ lệ CK (%)</th>
                   <th scope="col" class="c-num">Tiền chiết khấu</th>
@@ -407,7 +407,11 @@
                       }
                     </td>
                     <td class="c-num">
-                      @if (editable() && !l.isGift) {
+                      @if (editable() && !l.isGift && fxCode()) {
+                        <input type="number" min="0" step="0.01" class="num-input" [ngModel]="l.unitPriceFx" (ngModelChange)="setPriceFx(i, $event)"
+                          [attr.aria-label]="'Đơn giá ' + fxCode() + ' dòng ' + (i + 1)" />
+                        <span class="so-fx">{{ fxRate() ? '≈ ' + (toLineOf(l).unitPrice).toLocaleString('vi-VN') + ' ₫' : 'Nhập tỷ giá để quy đổi' }}</span>
+                      } @else if (editable() && !l.isGift) {
                         <input type="text" appMoney [ngModel]="l.unitPrice" (ngModelChange)="setPrice(i, $event)"
                           [class.is-manual]="l.priceManual && l.productId" [title]="l.priceManual ? 'Giá sửa tay' : 'Giá theo bảng giá'"
                           [attr.aria-label]="'Đơn giá dòng ' + (i + 1)" />

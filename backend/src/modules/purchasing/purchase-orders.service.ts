@@ -6,7 +6,7 @@ import { InventoryService, VoucherLineInput } from '../inventory/inventory.servi
 import { fromDay, toDay, vnDay } from '../../common/text.js';
 import { AuditService } from '../../audit/audit.service.js';
 import { PURCHASE_RETURN_INCLUDE, purchaseReturnToApi } from './purchase-returns.js';
-import { assertOpenPeriod } from '../../common/period-lock.js';
+import { documentDay } from '../../common/period-lock.js';
 import { OPEN_STATUSES, PurchaseOrderPageQuery, purchasePageOf, purchaseWhere } from './purchase-order-page.js';
 import { diff, vnd } from '../../audit/audit.diff.js';
 import {
@@ -225,7 +225,8 @@ export class PurchaseOrdersService {
     return this.prisma.$transaction(async (tx) => {
       const o = await this.locked(tx, id);
       if (!canReceive(o.status)) throw new BadRequestException('Đơn này không ở trạng thái nhận hàng được.');
-      await assertOpenPeriod(tx, input.date, 'Nhận hàng');
+      // Ngày nhận: not after hôm nay, not before the đơn was đặt, not in the closed kỳ.
+      const day = await documentDay(tx, input.date, 'Nhận hàng', [[`ngày đặt đơn ${o.code}`, toDay(o.date)]]);
       const products = new Map(
         (await tx.product.findMany({ where: { id: { in: o.lines.map((l) => l.productId) } }, select: { id: true, type: true } })).map((p) => [p.id, p.type]),
       );
@@ -235,7 +236,10 @@ export class PurchaseOrdersService {
       for (const it of input.items) {
         const line = o.lines[it.lineIndex];
         if (!line) throw new BadRequestException(`Dòng ${it.lineIndex + 1} không có trong đơn.`);
-        const qty = Math.min(it.quantity, round4(line.quantity.toNumber() - received[it.lineIndex]));
+        // More than the dòng still owes is refused, not cut down without a word: the phiếu nhập must match the goods.
+        const owed = round4(line.quantity.toNumber() - received[it.lineIndex]);
+        const qty = round4(it.quantity);
+        if (qty > owed) throw new BadRequestException(`Dòng ${it.lineIndex + 1}: còn phải nhận ${owed}, không nhận được ${qty}.`);
         if (qty <= 0) continue;
         received[it.lineIndex] = round4(received[it.lineIndex] + qty);
         if (products.get(line.productId) === 'DICH_VU') continue;
@@ -255,7 +259,7 @@ export class PurchaseOrdersService {
           productId, quantity: x.quantity, unitPrice: x.quantity ? Math.round(x.value / x.quantity) : 0, // giá nhập per base unit
         }));
         voucherIds.push(await this.inventory.post(tx, {
-          type: 'NHAP', date: input.date, warehouseId, lines, purchaseOrderId: o.id,
+          type: 'NHAP', date: day, warehouseId, lines, purchaseOrderId: o.id,
           reason: `Nhập hàng theo đơn ${o.code}${input.note ? ` — ${input.note}` : ''}`,
         }, userId));
       }
@@ -266,12 +270,14 @@ export class PurchaseOrdersService {
         }
       }
       const status = statusAfterReceipt(o.lines.map((l, i) => ({ ...numbers(l), receivedQuantity: received[i] })));
-      await tx.purchaseOrder.update({ where: { id }, data: { status, receivedDate: fromDay(input.date) } });
+      // Ngày nhận of the đơn is its latest lần nhận — a lần entered late with an earlier date does not move it back.
+      const last = toDay(o.receivedDate);
+      await tx.purchaseOrder.update({ where: { id }, data: { status, receivedDate: fromDay(last && last > day ? last : day) } });
       const saved = await this.findOne(id, tx);
       const before = receivedValueOf(o.lines.map(numbers));
       // One khoản công nợ phải trả per lần nhận hàng.
       if (saved.receivedValue! - before > 0) {
-        await tx.purchaseOrderReceipt.create({ data: { orderId: id, date: fromDay(input.date)!, amount: saved.receivedValue! - before } });
+        await tx.purchaseOrderReceipt.create({ data: { orderId: id, date: fromDay(day)!, amount: saved.receivedValue! - before } });
       }
       await this.audit.log(tx, {
         action: 'purchase_order.receive', entityType: 'PurchaseOrder', entityId: id, entityCode: o.code,

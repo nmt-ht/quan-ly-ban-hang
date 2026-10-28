@@ -324,7 +324,13 @@ Rà soát 27–28/10/2026:
 - **Giá bán tối thiểu** — `Product.minPrice` (ĐVT chính, chưa thuế; 0 = không giới hạn, sửa cần `product.update_price`). Đơn giá thực thu của dòng (sau chiết khấu dòng và phần chiết khấu cả đơn) trên đơn bán / báo giá không thấp hơn giá này × tỷ lệ quy đổi, trừ người có `order.below_min_price` (CEO, Quản lý) hoặc dòng chứng từ đã có với giá đó. Quy tắc `belowMinPrice` giống nhau ở hai bản `sales-order.rules.ts`.
 - **Lệnh sản xuất kèm đơn gốc chỉ đọc** — `GET /api/production-orders` trả `sourceOrder` (mã, khách, ngày cần giao, quy cách các dòng thành phẩm đó, không có giá), để Nhân viên xưởng thấy đơn mà không cần `order.view`.
 
-Migration `20261027100000_pay_now_link_delivery_lines`, `20261028100000_min_sale_price`. Số quyền: CEO 112 · Quản lý 103 · Kế toán 52.
+- **Ngày chứng từ** (`documentDay`, `src/common/period-lock.ts`) — xuất kho chuyến, chốt giao, xe về kho, bắt đầu / nghiệm thu sản xuất, nhận hàng mua chọn được ngày; mọi ngày chứng từ (cả phiếu kho tay, phiếu thu chi) không sau hôm nay, không trước mốc trước đó, không thuộc kỳ khoá sổ.
+- **Nhận hàng mua** từ chối số vượt số còn phải nhận; ngày nhận của đơn là lần nhận muộn nhất.
+- **Xuất quá số tồn** (Thiết lập › Thông tin công ty › Xuất kho, `CompanyInfo.allowNegativeStock`, đổi cần `company.update`): mặc định cho phép như trước; tắt thì mọi phiếu làm tồn kho âm (giao hàng, chuyến, vật tư sản xuất, phiếu tay, huỷ phiếu nhập) bị từ chối, trừ quyền `stock.overdraw` (CEO, Quản lý). Huỷ phiếu kho khoá phiếu.
+- **Ngoại tệ** (as MISA) — đơn xuất khẩu thu bằng ngoại tệ nhập đơn giá nguyên tệ (`SalesOrderLine.unitPriceFx`); máy chủ quy đổi đơn giá VND theo tỷ giá của đơn. Công nợ, doanh thu ghi bằng VND quy đổi; hoá đơn xem trước ghi đơn giá, số tiền nguyên tệ và tổng quy đổi VND.
+- **Hoá đơn điều chỉnh giảm** — mỗi phiếu trả hàng chưa huỷ có một bản xem trước hoá đơn điều chỉnh giảm (số âm, lý do, đơn gốc) trong Xem trước hoá đơn.
+
+Migration `20261027100000_pay_now_link_delivery_lines`, `20261028100000_min_sale_price`, `20261028120000_stock_overdraw`, `20261028130000_sales_line_fx_price`. Số quyền: CEO 113 · Quản lý 104 · Kế toán 52.
 
 </details>
 
