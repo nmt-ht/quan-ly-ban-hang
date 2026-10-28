@@ -68,7 +68,11 @@ export class ReportsComponent {
   readonly sections = computed(() => {
     const words = this.words();
     return REPORT_GROUPS.map((g: ReportGroup) => {
-      const hits = this.mine.filter((r) => r.group === g.key && matchesAll(words, r.label, r.summary));
+      // Reports whose name matches come before those found only in the summary ("kho" also hits "không").
+      const byName = (r: ReportDef) => (words.length && !matchesAll(words, r.label) ? 1 : 0);
+      const hits = this.mine
+        .filter((r) => r.group === g.key && matchesAll(words, r.label, r.summary))
+        .sort((a, b) => byName(a) - byName(b));
       const items: HubItem[] = [...hits.filter((r) => r.kind !== 'soon'), ...hits.filter((r) => r.kind === 'soon')].map((def) => ({
         def,
         icon: reportIcon(def),
