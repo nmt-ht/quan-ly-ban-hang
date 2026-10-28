@@ -325,6 +325,12 @@
         }
       </p>
       <div class="toolbar">
+        @if (can()?.ship || t.status === 'DA_XUAT_KHO') {
+          <label class="doc-date" title="Ngày ghi trên phiếu xuất / phiếu nhập trả về và ngày chốt giao — mặc định hôm nay">
+            <span>Ngày chứng từ</span>
+            <input type="date" aria-label="Ngày chứng từ" [max]="today" [ngModel]="docDate()" (ngModelChange)="docDate.set($event || today)" />
+          </label>
+        }
         @if (t.orderIds.length) {
           <app-print-menu kind="trip-picking" label="Phiếu soạn hàng" [papers]="['A4', 'A5']" (prepare)="printMode.set('soan')" (done)="printMode.set(null)" />
           <app-print-menu kind="trip-delivery" label="Phiếu giao hàng" (prepare)="printMode.set('giao')" (done)="printMode.set(null)" />
@@ -429,6 +435,10 @@
       </header>
       <div class="rg-body">
         <div class="rg-meta">
+          <label class="field rg-date">
+            <span>Ngày khách nhận</span>
+            <input type="date" aria-label="Ngày khách nhận" [max]="today" [ngModel]="confirmDate()" (ngModelChange)="confirmDate.set($event || today)" />
+          </label>
           <label class="field rg-note">
             <span>Ghi chú</span>
             <input type="text" placeholder="VD: Khách trả 1 khung bị trầy" [ngModel]="confirmNote()" (ngModelChange)="confirmNote.set($event)" />

@@ -7,6 +7,7 @@ import { InventoryService, VoucherLineInput } from '../inventory/inventory.servi
 import type { AuthUser } from '../../auth/auth.service.js';
 import { fromDay, toDay, vnDay } from '../../common/text.js';
 import { CASH_INCLUDE, cashToApi } from '../cash/cash-voucher.mapper.js';
+import { overdraw } from '../cash/cash-balance.js';
 import { AuditService } from '../../audit/audit.service.js';
 import { ReceivablesService } from './receivables.service.js';
 import { RETURN_INCLUDE, returnToApi } from './returns.js';
@@ -17,7 +18,7 @@ import {
 } from './sales-order.rules.js';
 import { SalesOrderPageQuery, orderWhere, pageOf } from './sales-order-page.js';
 import { lockOrderFor, orderVisibleTo } from './order-access.js';
-import { assertOpenPeriod } from '../../common/period-lock.js';
+import { assertOpenPeriod, documentDay } from '../../common/period-lock.js';
 import { activeWhere, forCustomer, giftsFor, lineDiscountFor, orderDiscountFor, toRule } from '../pricing/promotion.rules.js';
 
 type Tx = Prisma.TransactionClient;
@@ -510,7 +511,7 @@ export class SalesService {
           }) },
         },
       });
-      const { receipts } = await this.syncPayNow(tx, o, delta, input.date, user.id, { deliveryId: delivery.id });
+      const { receipts } = await this.syncPayNow(tx, o, delta, input.date, user, { deliveryId: delivery.id });
       await this.audit.log(tx, {
         action: 'sales_order.deliver', entityType: 'SalesOrder', entityId: id, entityCode: o.code,
         summary: `Giao hàng đơn ${o.code}: khách nhận ${vnd(delta)} · ${STATUS_LABEL[status]}`
@@ -530,7 +531,7 @@ export class SalesService {
    */
   async syncPayNow(
     tx: Tx, o: { id: string; code: string; customerId: string; payNowAccountId: string | null; status: SalesOrderStatus },
-    delta: number, date: string, userId: string, link: { deliveryId?: string; removedDeliveryIds?: string[] } = {},
+    delta: number, date: string, user: AuthUser, link: { deliveryId?: string; removedDeliveryIds?: string[] } = {},
   ) {
     const out = { receipts: [] as ReturnType<typeof cashToApi>[], cancelled: [] as string[] };
     if (!o.payNowAccountId || o.status === 'HUY' || !delta) return out;
@@ -542,7 +543,7 @@ export class SalesService {
           code: await this.sequences.nextCode('PT', tx), date: fromDay(date)!, kind: 'THU', category: 'Thu tiền khách hàng',
           partnerType: 'KHACH_HANG', customerId: o.customerId, accountId: o.payNowAccountId, amount: delta, settledAmount: delta,
           salesOrderId: o.id, salesOrderDeliveryId: link.deliveryId ?? null,
-          description, createdById: userId, allocations: { create: [{ ref: o.code, amount: delta }] },
+          description, createdById: user.id, allocations: { create: [{ ref: o.code, amount: delta }] },
         },
         include: CASH_INCLUDE,
       });
@@ -564,10 +565,13 @@ export class SalesService {
     for (const v of [...own, ...legacy]) {
       const amount = v.amount.toNumber();
       if (!own.length && (left <= 0 || amount > left)) continue;
+      // Its money leaves the quỹ again — not below zero, as a huỷ by hand (voucher.overdraw goes ahead, noted).
+      const account = await tx.cashAccount.findUniqueOrThrow({ where: { id: v.accountId } });
+      const overdrawn = await overdraw(tx, account, toDay(v.date)!, amount, user, v.code);
       await tx.cashVoucher.update({ where: { id: v.id }, data: { isCancelled: true, cancelReason: 'Khách bỏ nhận hàng — huỷ phiếu thu tự lập', cancelledAt: new Date() } });
       await this.audit.log(tx, {
         action: 'cash_voucher.cancel', entityType: 'CashVoucher', entityId: v.id, entityCode: v.code,
-        summary: `Tự huỷ phiếu thu ${v.code} (${vnd(amount)}): khách bỏ nhận hàng đơn ${o.code}`, related: [o.code],
+        summary: `Tự huỷ phiếu thu ${v.code} (${vnd(amount)}): khách bỏ nhận hàng đơn ${o.code}${overdrawn}`, related: [o.code],
       });
       out.cancelled.push(v.id);
       left -= amount;
@@ -608,11 +612,12 @@ export class SalesService {
   }
 
   /** Bắt đầu sản xuất: xuất vật tư theo định mức, mỗi vật tư từ kho ngầm định của nó. */
-  startProduction(lsxId: string, user: AuthUser) {
+  startProduction(lsxId: string, user: AuthUser, date?: string) {
     return this.prisma.$transaction(async (tx) => {
       const x = await this.lockedLsx(tx, lsxId);
       if (x.status !== 'NHAP') throw new BadRequestException('Chỉ bắt đầu được lệnh đang ở trạng thái Nháp.');
-      const today = vnDay();
+      const source = await tx.salesOrder.findUniqueOrThrow({ where: { id: x.sourceOrderId }, select: { code: true, orderDate: true } });
+      const today = await documentDay(tx, date, 'Bắt đầu sản xuất', [[`ngày đặt đơn ${source.code}`, toDay(source.orderDate)]]);
       const bom = await this.bomOf(tx, x);
       const components = await tx.product.findMany({ where: { id: { in: bom.map((b) => b.componentId) } }, select: { id: true, type: true, defaultWarehouseId: true } });
       const fallback = (await tx.warehouse.findFirst({ orderBy: [{ isActive: 'desc' }, { name: 'asc' }], select: { id: true } }))?.id;
@@ -644,12 +649,12 @@ export class SalesService {
   }
 
   /** Nghiệm thu: nhập số thực làm được vào Kho thành phẩm (hàng hỏng làm số này nhỏ hơn số lệnh). */
-  completeProduction(lsxId: string, produced: number | undefined, user: AuthUser) {
+  completeProduction(lsxId: string, produced: number | undefined, user: AuthUser, date?: string) {
     return this.prisma.$transaction(async (tx) => {
       const x = await this.lockedLsx(tx, lsxId);
       if (x.status !== 'DANG_SAN_XUAT') throw new BadRequestException('Chỉ nghiệm thu được lệnh đang sản xuất.');
       const qty = round4(Math.max(0, produced ?? x.quantity.toNumber()));
-      const today = vnDay();
+      const today = await documentDay(tx, date, 'Nghiệm thu', [['ngày bắt đầu sản xuất', toDay(x.startDate)]]);
       let voucherId: string | null = null;
       if (qty > 0) {
         const target = (await tx.warehouse.findUnique({ where: { id: FINISHED_GOODS_WAREHOUSE } }))?.id

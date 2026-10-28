@@ -80,8 +80,15 @@ export class ReasonDto {
   @OptionalText(300) reason?: string;
 }
 
+/** Ngày bắt đầu sản xuất (xuất vật tư); trống = hôm nay. */
+export class StartDto {
+  @OptionalDay() date?: string;
+}
+
 export class CompleteDto {
   @IsOptional() @IsNumber() @Min(0) producedQuantity?: number;
+  /** Ngày nghiệm thu (nhập kho thành phẩm); trống = hôm nay. */
+  @OptionalDay() date?: string;
 }
 
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -179,15 +186,15 @@ export class SalesController {
   @RequireAnyPermission('production.approve', 'production.update_progress')
   @Post('production-orders/:id/start')
   @HttpCode(HttpStatus.OK)
-  start(@Param('id') id: string, @CurrentUser() user: AuthUser) {
-    return this.sales.startProduction(id, user);
+  start(@Param('id') id: string, @Body() dto: StartDto, @CurrentUser() user: AuthUser) {
+    return this.sales.startProduction(id, user, dto.date);
   }
 
   @RequirePermissions('production.complete')
   @Post('production-orders/:id/complete')
   @HttpCode(HttpStatus.OK)
   complete(@Param('id') id: string, @Body() dto: CompleteDto, @CurrentUser() user: AuthUser) {
-    return this.sales.completeProduction(id, dto.producedQuantity, user);
+    return this.sales.completeProduction(id, dto.producedQuantity, user, dto.date);
   }
 
   @RequirePermissions('production.cancel')

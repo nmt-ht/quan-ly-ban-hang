@@ -186,6 +186,56 @@ describe('Chuyến giao hàng (e2e)', () => {
     expect(undo.orders.find((x: any) => x.id === o.id).deliveries).toHaveLength(1);
   });
 
+  it('ngày chứng từ: xuất kho, chốt giao, xe về kho theo ngày chọn — không sau hôm nay, không trước mốc trước đó', async () => {
+    const day = (offset: number) => vnDay(new Date(Date.now() + offset * 86_400_000));
+    const o = await newOrder(manager, { orderDate: day(-5), salesRep: 'quan.ly@ninhtrang.local', lines: [{ productId: item, unit: 'Cái', quantity: 2, unitPrice: 50000 }] });
+    const t = await newTrip({ date: day(-4), vehicleId: 'xe-1', driverName: 'Đặng Văn Tài' });
+    await manager.post(`/api/delivery-trips/${t.id}/orders`, { orderIds: [o.id] }).expect(200);
+
+    expect((await storekeeper.post(`/api/delivery-trips/${t.id}/ship`, { date: day(-6) }).expect(400)).body.message).toContain(`trước ngày đặt đơn ${o.code}`);
+    expect((await storekeeper.post(`/api/delivery-trips/${t.id}/ship`, { date: day(1) }).expect(400)).body.message).toContain('sau hôm nay');
+    await storekeeper.post(`/api/delivery-trips/${t.id}/ship`, { date: day(-4) }).expect(200);
+    const out = (await manager.get('/api/warehouse-vouchers').expect(200)).body.find((v: any) => v.deliveryTripId === t.id && v.type === 'XUAT');
+    expect(out.date.slice(0, 10)).toBe(day(-4));
+
+    await driver.post(`/api/delivery-trips/${t.id}/orders/${o.id}/confirm`, { lines: [{ lineIndex: 0, received: 1 }], date: day(-5) }).expect(400);
+    const res = (await driver.post(`/api/delivery-trips/${t.id}/orders/${o.id}/confirm`, { lines: [{ lineIndex: 0, received: 1 }], date: day(-3) }).expect(200)).body;
+    const after = res.orders.find((x: any) => x.id === o.id);
+    expect(after).toMatchObject({ deliveredDate: day(-3), deliveries: [expect.objectContaining({ date: day(-3) })] });
+
+    await storekeeper.post(`/api/delivery-trips/${t.id}/return`, { date: day(-4) }).expect(400); // trước ngày chốt giao
+    await storekeeper.post(`/api/delivery-trips/${t.id}/return`, { date: day(-2) }).expect(200);
+    const back = (await manager.get('/api/warehouse-vouchers').expect(200)).body.find((v: any) => v.deliveryTripId === t.id && v.type === 'NHAP');
+    expect(back.date.slice(0, 10)).toBe(day(-2));
+  });
+
+  it('bỏ chốt tự huỷ phiếu thu tiền ngay cũng không được làm quỹ âm (trừ người có quyền chi vượt)', async () => {
+    const account = await prisma.cashAccount.create({ data: { name: 'E2E Quỹ tài xế', type: 'TIEN_MAT', openingBalance: 0 } });
+    try {
+      const o = await newOrder(manager, {
+        salesRep: 'quan.ly@ninhtrang.local', payNowAccountId: account.id, lines: [{ productId: service, unit: 'Lần', quantity: 1, unitPrice: 20000 }],
+      });
+      const t = await newTrip({ vehicleId: 'xe-1', driverName: 'Đặng Văn Tài' });
+      await manager.post(`/api/delivery-trips/${t.id}/orders`, { orderIds: [o.id] }).expect(200);
+      await storekeeper.post(`/api/delivery-trips/${t.id}/ship`).expect(200);
+      await driver.post(`/api/delivery-trips/${t.id}/orders/${o.id}/confirm`, { lines: [{ lineIndex: 0, received: 1 }] }).expect(200);
+      // Tiền thu được đã chi hết khỏi quỹ: bỏ chốt sẽ rút 20.000 ra khỏi một quỹ đang 0.
+      await (await as('ke.toan@ninhtrang.local')).post('/api/cash-vouchers', {
+        kind: 'CHI', date: today, category: 'Chi khác', partnerType: 'KHAC', accountId: account.id, amount: 20000, description: 'E2E',
+      }).expect(201);
+      const refused = (await driver.post(`/api/delivery-trips/${t.id}/orders/${o.id}/unconfirm`).expect(400)).body;
+      expect(refused.message).toMatch(/quỹ âm/);
+      const undo = (await manager.post(`/api/delivery-trips/${t.id}/orders/${o.id}/unconfirm`).expect(200)).body;
+      expect(undo.cancelledReceipts).toHaveLength(1);
+      const log = await prisma.auditLog.findFirst({ where: { action: 'cash_voucher.cancel', entityId: undo.cancelledReceipts[0] } });
+      expect(log?.summary).toContain('huỷ làm quỹ âm');
+    } finally {
+      await prisma.cashVoucher.deleteMany({ where: { accountId: account.id } });
+      await prisma.salesOrder.updateMany({ where: { payNowAccountId: account.id }, data: { payNowAccountId: null } });
+      await prisma.cashAccount.delete({ where: { id: account.id } });
+    }
+  });
+
   it('order.view_all: a seller sees only their own orders; Thủ kho and Quản lý see all', async () => {
     const mine = await newOrder(sale, { salesRep: 'sale1@ninhtrang.local', lines: [{ productId: item, unit: 'Cái', quantity: 1, unitPrice: 50000 }] });
     const theirs = await newOrder(manager, { salesRep: 'quan.ly@ninhtrang.local', lines: [{ productId: item, unit: 'Cái', quantity: 1, unitPrice: 50000 }] });

@@ -8,9 +8,10 @@ import request from 'supertest';
 import * as bcrypt from 'bcryptjs';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { vnDay } from '../src/common/text.js';
 
 const DEMO_PASSWORD = process.env.DEMO_USER_PASSWORD ?? 'demo1234';
-const day = (offset: number) => new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10);
+const day = (offset: number) => vnDay(new Date(Date.now() + offset * 86_400_000));
 const today = day(0);
 const WH = 'wh-ninhtrang';
 
