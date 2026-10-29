@@ -6,6 +6,7 @@ Phần mềm quản lý bán hàng, kho, sản xuất, giao hàng, công nợ v�
 - **Backend:** NestJS 12 + Prisma 7 + PostgreSQL (`backend/`)
 - **Triển khai:** một web service trên Render phục vụ cả giao diện lẫn `/api`, cơ sở dữ liệu trên Neon (`render.yaml`)
 - **Tài liệu từng màn hình:** `docs/atlas/` (bắt đầu từ [`ATL-00_Workflow-he-thong.docx`](docs/atlas/ATL-00_Workflow-he-thong.docx)); nguồn Markdown ở [`docs/atlas/src`](docs/atlas/src/README.md), dựng lại bằng `node tools/atlas/build.mjs`
+- **Kiến trúc kỹ thuật (sơ đồ cho lập trình viên):** [`ARCHITECTURE.md`](ARCHITECTURE.md)
 - **Hệ thống thiết kế giao diện:** [`design.md`](design.md)
 
 ## Mục lục
