@@ -26,15 +26,15 @@ export class RoleService {
 
   find(id: string): Role {
     const r = this.data.roles().find((x) => x.id === id);
-    if (!r) throw new Error('Không tìm thấy chức vụ.');
+    if (!r) throw new Error('Không tìm thấy vai trò.');
     return r;
   }
 
   private check(d: RoleDraft, id: string | null): RoleDraft {
     const name = d.name.trim();
-    if (!name) throw new Error('Nhập tên chức vụ.');
-    if (name.length > 60) throw new Error('Tên chức vụ tối đa 60 ký tự.');
-    if (roleNameTaken(this.data.roles(), id, name, foldVi)) throw new Error(`Đã có chức vụ "${name}".`);
+    if (!name) throw new Error('Nhập tên vai trò.');
+    if (name.length > 60) throw new Error('Tên vai trò tối đa 60 ký tự.');
+    if (roleNameTaken(this.data.roles(), id, name, foldVi)) throw new Error(`Đã có vai trò "${name}".`);
     return { name, description: d.description.trim() };
   }
 
@@ -44,20 +44,20 @@ export class RoleService {
   }
 
   async update(id: string, d: RoleDraft): Promise<void> {
-    if (this.find(id).isSystem) throw new Error('Chức vụ hệ thống không sửa được.');
+    if (this.find(id).isSystem) throw new Error('Vai trò hệ thống không sửa được.');
     const clean = this.check(d, id);
     this.keep(await this.api.put<Role>(`/roles/${id}`, clean));
   }
 
   async setPermissions(id: string, codes: Iterable<string>): Promise<void> {
-    if (this.find(id).isSystem) throw new Error('Chức vụ hệ thống không sửa được quyền.');
+    if (this.find(id).isSystem) throw new Error('Vai trò hệ thống không sửa được quyền.');
     const known = new Set(ALL_PERMISSION_CODES);
     const permissions = [...new Set(codes)].filter((c) => known.has(c));
     this.keep(await this.api.put<Role>(`/roles/${id}/permissions`, { codes: permissions }));
   }
 
   async setActive(id: string, isActive: boolean): Promise<void> {
-    if (this.find(id).isSystem) throw new Error('Chức vụ hệ thống luôn đang dùng.');
+    if (this.find(id).isSystem) throw new Error('Vai trò hệ thống luôn đang dùng.');
     this.keep(await this.api.patch<Role>(`/roles/${id}/active`, { isActive }));
   }
 }

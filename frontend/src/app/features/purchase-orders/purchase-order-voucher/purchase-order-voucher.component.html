@@ -1,21 +1,21 @@
 @if (fetching() && !order()) {
-  <p class="subtitle" role="status">Đang tải đơn nhập…</p>
+  <p class="subtitle" role="status">Đang tải đơn mua hàng…</p>
 } @else if (notFound()) {
   <div class="card empty-state">
-    <h3>Không tìm thấy đơn nhập</h3>
+    <h3>Không tìm thấy đơn mua hàng</h3>
     <p>Đơn có thể đã bị xoá hoặc đường dẫn không đúng.</p>
-    <a class="btn" routerLink="/mua-hang">Về danh sách đơn nhập</a>
+    <a class="btn" routerLink="/mua-hang">Về danh sách đơn mua hàng</a>
   </div>
 } @else {
   <div class="voucher screen-only">
     <!-- Title bar -->
     <header class="voucher-bar">
-      <a class="icon-action" routerLink="/mua-hang" aria-label="Về danh sách đơn nhập" title="Về danh sách"><app-nav-icon name="arrow-left" /></a>
+      <a class="icon-action" routerLink="/mua-hang" aria-label="Về danh sách đơn mua hàng" title="Về danh sách"><app-nav-icon name="arrow-left" /></a>
       <h1>
         @switch (mode()) {
-          @case ('create') { Lập đơn nhập hàng }
-          @case ('edit') { Sửa đơn nhập hàng <span class="num">{{ order()?.code }}</span> }
-          @default { Đơn nhập hàng <span class="num">{{ order()?.code }}</span> }
+          @case ('create') { Lập đơn mua hàng }
+          @case ('edit') { Sửa đơn mua hàng <span class="num">{{ order()?.code }}</span> }
+          @default { Đơn mua hàng <span class="num">{{ order()?.code }}</span> }
         }
       </h1>
       @if (order(); as o) {
@@ -117,7 +117,7 @@
       </aside>
 
       <p class="form-note head-note">
-        Đơn nhập <strong>không làm thay đổi tồn kho</strong>. Tồn tăng và công nợ phải trả phát sinh khi
+        Đơn mua hàng <strong>không làm thay đổi tồn kho</strong>. Tồn tăng và công nợ phải trả phát sinh khi
         <strong>nhận hàng</strong> — lúc đó hệ thống mới lập phiếu nhập kho.
       </p>
     </section>
@@ -375,10 +375,11 @@
         @if (editable()) {
           <button type="button" class="btn" (click)="cancelEditing()">Huỷ</button>
           <button type="button" class="btn btn-primary" [disabled]="attempted() && issues().length > 0" (click)="save()">
-            {{ mode() === 'edit' ? 'Lưu thay đổi' : 'Tạo đơn nhập' }}
+            {{ mode() === 'edit' ? 'Lưu thay đổi' : 'Tạo đơn mua hàng' }}
           </button>
         } @else {
           <app-print-menu kind="purchase-order" [papers]="['A4', 'A5']" />
+          @if (canEmail()) { <button type="button" class="btn" (click)="email()"><app-nav-icon name="mail" />Gửi email</button> }
           @if (canCancel()) {
             <button type="button" class="btn btn-danger-ghost" (click)="confirmCancel.set(true)">Huỷ đơn</button>
           }
@@ -431,7 +432,7 @@
     }
 
     <app-print-document
-      title="ĐƠN NHẬP HÀNG" [no]="o.code" [date]="o.date" [status]="o.status === 'HUY' ? 'ĐÃ HUỶ' : undefined"
+      title="ĐƠN MUA HÀNG" [no]="o.code" [date]="o.date" [status]="o.status === 'HUY' ? 'ĐÃ HUỶ' : undefined"
       [signers]="[
         { role: 'Người lập đơn', name: creatorName() },
         { role: 'Thủ kho' },
@@ -485,3 +486,5 @@
     </app-print-document>
   }
 }
+
+<app-email-compose #emailDlg (sent)="notice.set($event)" />

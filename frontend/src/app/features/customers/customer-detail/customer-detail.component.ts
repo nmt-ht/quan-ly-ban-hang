@@ -95,7 +95,7 @@ export class CustomerDetailComponent {
   readonly tabs = computed(() => [
     { id: 'chung' as CustomerTab, label: 'Thông tin chung' },
     { id: 'dia-chi' as CustomerTab, label: 'Địa chỉ giao hàng', count: this.customer()?.addresses?.length ?? 0 },
-    { id: 'don-hang' as CustomerTab, label: 'Đơn hàng', count: this.orders().length },
+    { id: 'don-hang' as CustomerTab, label: 'Chứng từ bán hàng', count: this.orders().length },
     { id: 'cong-no' as CustomerTab, label: 'Sổ công nợ' },
     { id: 'nhat-ky' as CustomerTab, label: 'Nhật ký' },
   ]);

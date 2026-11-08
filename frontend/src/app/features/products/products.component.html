@@ -1,6 +1,6 @@
 <div class="page-header">
   <div>
-    <h1>Danh mục hàng hoá</h1>
+    <h1>Vật tư hàng hoá</h1>
     <p class="subtitle">{{ products().length }} mặt hàng</p>
   </div>
   <div class="toolbar">
@@ -28,14 +28,14 @@
   </div>
 }
 
-<!-- The catalogue divided two ways: Tính chất as tabs across the top, Nhóm hàng as a rail beside the list (a row of
+<!-- The catalogue divided two ways: Tính chất as tabs across the top, Nhóm VTHH as a rail beside the list (a row of
      chips on a narrow screen). Both count what the other filters leave, both live in the address (?tc= / ?nhom=). -->
 <div class="list-divided">
 <app-list-tabs label="Tính chất" [items]="typeTabs()" [(value)]="typeTab" />
 
 <div class="list-split">
-<app-list-rail title="Nhóm hàng" [items]="categoryRail()" [(value)]="category">
-  <a class="ld-manage" allowedLink routerLink="/thiet-lap/nhom-hang"><app-nav-icon name="pencil" />Quản lý nhóm hàng</a>
+<app-list-rail title="Nhóm VTHH" [items]="categoryRail()" [(value)]="category">
+  <a class="ld-manage" allowedLink routerLink="/thiet-lap/nhom-hang"><app-nav-icon name="pencil" />Quản lý nhóm VTHH</a>
 </app-list-rail>
 
 <div>

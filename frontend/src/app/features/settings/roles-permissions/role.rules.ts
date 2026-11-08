@@ -40,7 +40,7 @@ export function roleNameTaken(names: { id: string; name: string }[], id: string 
 export const AREAS: { key: string; label: string; modules: string[] }[] = [
   { key: 'sell', label: 'Bán hàng', modules: ['customer', 'order', 'quote', 'trip', 'vehicle'] },
   { key: 'buy', label: 'Mua hàng', modules: ['supplier', 'purchase'] },
-  { key: 'stock', label: 'Hàng hoá & kho', modules: ['product', 'price', 'bom', 'category', 'warehouse', 'stock', 'stock_voucher', 'stocktake'] },
+  { key: 'stock', label: 'Vật tư hàng hoá & kho', modules: ['product', 'price', 'bom', 'category', 'warehouse', 'stock', 'stock_voucher', 'stocktake'] },
   { key: 'make', label: 'Sản xuất', modules: ['production'] },
   { key: 'money', label: 'Tiền & công nợ', modules: ['debt', 'voucher'] },
   { key: 'report', label: 'Báo cáo', modules: ['dashboard', 'report'] },

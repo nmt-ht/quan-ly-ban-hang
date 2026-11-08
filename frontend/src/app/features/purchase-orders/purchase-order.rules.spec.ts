@@ -9,7 +9,7 @@ const line = (quantity: number, unitPrice: number, receivedQuantity = 0, vatRate
 const order = (status: PurchaseOrder['status'], lines: PurchaseOrderLine[], extra: Partial<PurchaseOrder> = {}) =>
   ({ id: 'o', code: 'DN', supplierId: 'ncc', status, date: '2026-10-26', lines, totalValue: 0, receivedValue: 0, ...extra }) as PurchaseOrder;
 
-describe('đơn nhập hàng: tiền', () => {
+describe('đơn mua hàng: tiền', () => {
   it('tiền hàng chưa thuế, thuế theo dòng, tổng thanh toán gồm thuế', () => {
     expect(orderTotals([line(10, 120000, 0, 10), line(3, 1500)])).toEqual({ goods: 1_204_500, vat: 120_000, total: 1_324_500 });
   });
@@ -19,7 +19,7 @@ describe('đơn nhập hàng: tiền', () => {
     expect(receivedValueOf([line(10, 120000, 4, 10), line(3, 1500, 3)])).toBe(532_500);
   });
 
-  it('% đã nhận theo giá trị; theo số lượng khi chức vụ không xem giá nhập', () => {
+  it('% đã nhận theo giá trị; theo số lượng khi vai trò không xem giá nhập', () => {
     expect(receivedPercent(order('NHAN_MOT_PHAN', [], { totalValue: 1000, receivedValue: 250 }))).toBe(25);
     expect(receivedPercent(order('NHAN_MOT_PHAN', [line(10, 0, 4), line(10, 0, 0)], { totalValue: null, receivedValue: null }))).toBe(20);
     expect(receivedPercent(order('NHAP', [], { totalValue: 0 }))).toBe(0);
@@ -31,7 +31,7 @@ describe('đơn nhập hàng: tiền', () => {
   });
 });
 
-describe('đơn nhập hàng: trạng thái', () => {
+describe('đơn mua hàng: trạng thái', () => {
   it('sau mỗi lần nhận: chưa nhận / một phần / đủ', () => {
     expect(statusAfterReceipt([line(5, 1), line(2, 1)])).toBe('DA_GUI_NCC');
     expect(statusAfterReceipt([line(5, 1, 5), line(2, 1)])).toBe('NHAN_MOT_PHAN');

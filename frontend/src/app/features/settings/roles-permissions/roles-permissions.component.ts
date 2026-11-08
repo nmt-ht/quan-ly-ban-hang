@@ -237,12 +237,12 @@ export class RolesPermissionsComponent {
       if (this.dlgMode() === 'edit') {
         const r = this.role()!;
         await this.svc.update(r.id, draft);
-        this.notice.set(`Đã lưu chức vụ "${draft.name.trim()}".`);
+        this.notice.set(`Đã lưu vai trò "${draft.name.trim()}".`);
       } else {
         const from = this.data.roles().find((x) => x.id === this.copyFrom());
         const created = await this.svc.create(draft, this.copyFrom() || undefined);
         this.go(created.id);
-        this.notice.set(from ? `Đã thêm chức vụ "${created.name}" với quyền sao chép từ ${from.name}.` : `Đã thêm chức vụ "${created.name}". Chọn quyền cho chức vụ này.`);
+        this.notice.set(from ? `Đã thêm vai trò "${created.name}" với quyền sao chép từ ${from.name}.` : `Đã thêm vai trò "${created.name}". Chọn quyền cho vai trò này.`);
       }
       this.error.set('');
       this.closeDialog();
@@ -260,8 +260,8 @@ export class RolesPermissionsComponent {
       const holders = this.members().length;
       this.notice.set(
         on
-          ? `Đã dùng lại chức vụ "${r.name}".`
-          : `Đã ngừng dùng "${r.name}". Chức vụ này không còn hiện khi thêm người dùng mới${holders ? `; ${holders} người đang giữ chức vụ này bị đăng xuất và không đăng nhập được cho tới khi được chuyển sang chức vụ khác hoặc chức vụ được dùng lại` : ''}.`,
+          ? `Đã dùng lại vai trò "${r.name}".`
+          : `Đã ngừng dùng "${r.name}". Vai trò này không còn hiện khi thêm người dùng mới${holders ? `; ${holders} người đang giữ vai trò này bị đăng xuất và không đăng nhập được cho tới khi được chuyển sang chức vụ khác hoặc chức vụ được dùng lại` : ''}.`,
       );
     } catch (e) {
       this.failure.set(errorText(e));

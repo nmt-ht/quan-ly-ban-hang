@@ -105,7 +105,7 @@ export class PromotionsComponent implements HasUnsavedChanges {
     if (!this.startDate()) out.push('Chọn ngày bắt đầu');
     if (this.endDate() && this.endDate() < this.startDate()) out.push('Ngày kết thúc trước ngày bắt đầu');
     if (this.scope() === 'LOAI_KHACH' && !this.customerTypes().length) out.push('Chọn loại khách');
-    if (this.scope() === 'BANG_GIA' && !this.priceListIds().length) out.push('Chọn bảng giá');
+    if (this.scope() === 'BANG_GIA' && !this.priceListIds().length) out.push('Chọn chính sách giá');
     if (k === 'GIAM_HANG' || k === 'GIAM_DON') {
       const v = this.discountValue() ?? 0;
       if (!(v > 0)) out.push('Nhập mức giảm');
@@ -119,7 +119,7 @@ export class PromotionsComponent implements HasUnsavedChanges {
       if (pct && t.some((x) => (x.value ?? 0) > 100)) out.push('Giảm theo % tối đa 100%');
     }
     if (k === 'TANG_HANG') {
-      if (!this.productIds().length && !this.categoryIds().length) out.push('Chọn mặt hàng hoặc nhóm hàng phải mua');
+      if (!this.productIds().length && !this.categoryIds().length) out.push('Chọn mặt hàng hoặc nhóm VTHH phải mua');
       if (!((this.buyQuantity() ?? 0) > 0)) out.push('Nhập số lượng mua');
       if (!this.giftProductId()) out.push('Chọn hàng tặng');
       if (!((this.giftQuantity() ?? 0) > 0)) out.push('Nhập số lượng tặng');
@@ -184,7 +184,7 @@ export class PromotionsComponent implements HasUnsavedChanges {
     try {
       const id = this.editingId() || null;
       const p = await this.svc.savePromotion(id, draft);
-      this.notice.set(id ? `Đã lưu ${p.code}.` : `Đã lập khuyến mãi ${p.code} — đơn và báo giá trong thời gian chạy sẽ tự áp.`);
+      this.notice.set(id ? `Đã lưu ${p.code}.` : `Đã lập khuyến mại ${p.code} — đơn và báo giá trong thời gian chạy sẽ tự áp.`);
       this.close();
     } catch (e) {
       this.error.set(errorText(e));

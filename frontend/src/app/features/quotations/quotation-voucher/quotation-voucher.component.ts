@@ -1,4 +1,6 @@
-import { Component, HostListener, computed, effect, inject, signal, untracked } from '@angular/core';
+import { Component, HostListener, computed, effect, inject, signal, untracked , viewChild } from '@angular/core';
+import { EmailComposeComponent } from '../../../shared/email-compose/email-compose.component';
+import { pdfName } from '../../../shared/print/print-pdf';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { NgClass } from '@angular/common';
@@ -72,7 +74,7 @@ const DEFAULT_VALID_DAYS = 7;
 @Component({
   selector: 'app-quotation-voucher',
   standalone: true,
-  imports: [SearchSelectComponent, 
+  imports: [EmailComposeComponent, SearchSelectComponent, 
     FrozenColsDirective, NgClass, FormsModule, RouterLink, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
     PaginationComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent,
   ],
@@ -127,6 +129,21 @@ export class QuotationVoucherComponent implements HasUnsavedChanges {
   readonly attempted = signal(false);
   readonly tab = signal<Tab>('hang');
   readonly notice = signal('');
+
+  // ---------- gửi email (as MISA): báo giá + PDF đúng bản in ----------
+  private readonly emailDlg = viewChild<EmailComposeComponent>('emailDlg');
+  readonly canEmail = computed(() => this.auth.can('email.send'));
+
+  email(): void {
+    const q = this.quote();
+    if (!q) return;
+    const c = this.data.customers().find((x) => x.id === q.customerId);
+    void this.emailDlg()?.open({
+      kind: 'quotation', docId: q.id, docCode: q.code, to: [c?.email], partner: c?.companyName || c?.name,
+      vars: { ten_khach: c?.companyName || c?.name, so_chung_tu: q.code, ngay: formatDay(q.quoteDate), tong_tien: formatVnd(q.totalOrder), han: q.validUntil ? formatDay(q.validUntil) : '' },
+      pdf: { filename: pdfName('Bao gia', q.code) },
+    });
+  }
   readonly failure = signal('');
   readonly confirmCancel = signal(false);
   readonly cancelReason = signal('');

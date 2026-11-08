@@ -59,20 +59,20 @@ describe('receivedValueOf (= công nợ phải thu)', () => {
   });
 });
 
-describe('priceFor (giá theo loại khách, ĐVT, bảng giá riêng)', () => {
+describe('priceFor (giá theo loại khách, ĐVT, chính sách giá riêng)', () => {
   const p = {
     id: 'p1', type: 'VAT_TU', retailPrice: 100, wholesalePrice: 80, dropshipPrice: 90,
     unitConversions: [{ unitName: 'Bó', ratioToBaseUnit: 12, price: 1100, wholesalePrice: 900 }],
   } as unknown as Product;
 
-  it('không có bảng giá: theo loại khách, ĐVT quy đổi có giá riêng thì dùng, không có thì × tỷ lệ', () => {
+  it('không có chính sách giá: theo loại khách, ĐVT quy đổi có giá riêng thì dùng, không có thì × tỷ lệ', () => {
     expect(priceFor(p, 'LE', '')).toBe(100);
     expect(priceFor(p, 'SI', '')).toBe(80);
     expect(priceFor(p, 'SI', 'Bó')).toBe(900);
     expect(priceFor(p, 'DROPSHIP', 'Bó')).toBe(1080);
   });
 
-  it('bảng giá: đúng ĐVT trước, rồi ĐVT chính × tỷ lệ; mặt hàng không có trong bảng về giá theo loại khách', () => {
+  it('chính sách giá: đúng ĐVT trước, rồi ĐVT chính × tỷ lệ; mặt hàng không có trong bảng về giá theo loại khách', () => {
     const list = [{ productId: 'p1', unitName: '', price: 75 }] as never[];
     expect(priceFor(p, 'LE', '', list)).toBe(75);
     expect(priceFor(p, 'LE', 'Bó', list)).toBe(900);

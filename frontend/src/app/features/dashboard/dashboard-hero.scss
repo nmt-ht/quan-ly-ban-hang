@@ -141,7 +141,7 @@
   padding: var(--space-sm);
   border: var(--rule-hair) solid var(--hero-rule);
   border-radius: var(--radius-card);
-  background: oklch(100% 0 0 / 0.05);
+  background: var(--hero-wash);
 }
 
 .db-hero-chart-head {

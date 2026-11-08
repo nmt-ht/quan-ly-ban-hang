@@ -1,0 +1,169 @@
+// The panel's list (groups, rows, empty / error / loading) — split from alerts-bell.component.scss for the style budget.
+
+// Severity is said once per group — the word and its colour.
+.alerts-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3xs);
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm) var(--space-3xs);
+  font-size: var(--text-xs);
+  font-weight: 600;
+
+  &::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  &.is-bad { color: var(--color-danger); }
+  &.is-warn { color: var(--color-warning); }
+
+  .num { color: var(--color-muted); font-weight: 500; }
+}
+
+// A row = the link plus, while unread, its ✓ (a sibling button — never a button inside a link).
+.alert-item {
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius-control);
+
+  &.is-unread { background: var(--color-paper); }
+}
+
+// Read rows (Tất cả) step back: lighter title, no dot.
+.alert-item:not(.is-unread) .alert-text strong {
+  color: var(--color-ink-2);
+  font-weight: 500;
+}
+
+.alert-read {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  margin-right: var(--space-3xs);
+  border: var(--rule-hair) solid var(--color-rule);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-muted);
+  cursor: pointer;
+  --icon-size: 15px;
+
+  &:active { transform: translateY(1px); }
+}
+
+@media (hover: hover) {
+  .alert-read:hover { border-color: var(--color-rule-strong); color: var(--color-success); }
+}
+
+.alerts-list {
+  margin: 0;
+  padding: 0 var(--space-3xs) var(--space-3xs);
+  list-style: none;
+}
+
+// icon of the screen it opens (in that phân hệ's hue) · what + why · chevron.
+.alert-row {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-xs);
+  padding: var(--space-2xs);
+  border-radius: var(--radius-control);
+  color: var(--color-ink);
+  text-decoration: none;
+
+  &:active { background: var(--color-paper-3); }
+
+  &:focus-visible { outline-offset: -2px; }
+}
+
+@media (hover: hover) {
+  .alert-row:hover { background: var(--color-paper-2); }
+}
+
+.alert-icon {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-control);
+  background: var(--color-accent-tint);
+  color: var(--color-accent);
+  --icon-size: 16px;
+}
+
+.alert-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+
+  strong {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+}
+
+.alert-new {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  // Ink, like an unread mark — the page's accent would read as ổn (moss) or cảnh báo (orange) next to a severity.
+  background: var(--color-ink);
+  vertical-align: 2px;
+}
+
+.alert-detail {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.alert-go {
+  align-self: center;
+  color: var(--color-muted);
+  --icon-size: 14px;
+}
+
+.alerts-state {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-lg) var(--space-md);
+  text-align: center;
+  --icon-size: 22px;
+
+  p { margin: 0; font-size: var(--text-sm); }
+  span { color: var(--color-muted); font-size: var(--text-xs); }
+  &.is-clear app-nav-icon { color: var(--color-success); }
+  &.is-error app-nav-icon { color: var(--color-danger); }
+}
+
+// Loading: three still rows in the list's shape (no shimmer — the app is composed, not animated).
+.alerts-skeleton {
+  margin: 0;
+  padding: var(--space-sm);
+  list-style: none;
+
+  li {
+    height: 2.75rem;
+    border-radius: var(--radius-control);
+    background: var(--color-paper-2);
+  }
+
+  li + li { margin-top: var(--space-2xs); }
+}
+

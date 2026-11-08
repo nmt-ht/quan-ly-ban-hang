@@ -95,7 +95,7 @@
       </button>
       <button type="button" role="tab" [attr.aria-selected]="tab() === 'hang'" (click)="tab.set('hang')">Hàng trên xe</button>
       <button type="button" role="tab" [attr.aria-selected]="tab() === 'phieu'" (click)="tab.set('phieu')">
-        Phiếu kho @if (vouchers().length) { <span class="tab-count num">{{ vouchers().length }}</span> }
+        Chứng từ kho @if (vouchers().length) { <span class="tab-count num">{{ vouchers().length }}</span> }
       </button>
       <button type="button" role="tab" [attr.aria-selected]="tab() === 'chi-phi'" (click)="tab.set('chi-phi')">
         Chi phí chuyến @if (savedCost()) { <span class="tab-count num">{{ money(savedCost()) }}</span> }
@@ -264,7 +264,7 @@
             </div>
           } @else {
             <div class="empty-state">
-              <h3>Chưa có phiếu kho</h3>
+              <h3>Chưa có chứng từ kho</h3>
               <p>Xuất kho một lượt lập phiếu xuất cho cả chuyến; xe về kho lập phiếu nhập trả về cho hàng khách không nhận.</p>
             </div>
           }

@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 
 export type NavIconName =
+  | 'mail'
   | 'dashboard'
   | 'report'
   | 'product'
@@ -55,7 +56,16 @@ export type NavIconName =
   | 'printer'
   | 'trending-up'
   | 'alert'
-  | 'percent';
+  | 'percent'
+  | 'arrows-inout'
+  | 'ledger-in'
+  | 'ledger-out'
+  | 'bell'
+  | 'hourglass'
+  | 'warehouse'
+  | 'bookmark'
+  | 'history'
+  | 'folder';
 
 // Hand-drawn 24px line icons (stroke = currentColor) — one set for the whole app.
 @Component({
@@ -105,9 +115,11 @@ export type NavIconName =
           <path d="M8 17.5h.01M12.5 17.5h.01" />
         }
         @case ('supplier') {
-          <rect x="4" y="3" width="16" height="18" rx="1.5" />
-          <path d="M9 7.5h1M14 7.5h1M9 11.5h1M14 11.5h1" />
-          <path d="M10 21v-4h4v4" />
+          <!-- a storefront with an awning: the seller we buy from (an office block read the same as Thông tin doanh nghiệp) -->
+          <path d="M4.5 4h15L21 9.5H3z" />
+          <path d="M3 9.5a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0" />
+          <path d="M4.5 12v8.5h15V12" />
+          <path d="M10 20.5v-5h4v5" />
         }
         @case ('cart') {
           <circle cx="9" cy="20" r="1.25" />
@@ -153,10 +165,10 @@ export type NavIconName =
           <path d="M12 7v5l3.5 2" />
         }
         @case ('company') {
-          <path d="M3 21h18" />
-          <path d="M5 21V8l7-4.5L19 8v13" />
-          <path d="M9.5 21v-5h5v5" />
-          <path d="M9.5 11h.01M14.5 11h.01" />
+          <!-- an office block with windows (a pitched roof read the same as the Kho warehouse) -->
+          <rect x="4" y="3" width="16" height="18" rx="1.5" />
+          <path d="M9 7.5h1M14 7.5h1M9 11.5h1M14 11.5h1" />
+          <path d="M10 21v-4h4v4" />
         }
         @case ('tag') {
           <path d="M3 12V4.5A1.5 1.5 0 0 1 4.5 3H12l9 9-9 9z" />
@@ -310,6 +322,48 @@ export type NavIconName =
         @case ('alert') {
           <path d="M10.3 4.2 2.9 17.5A2 2 0 0 0 4.6 20.5h14.8a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z" />
           <path d="M12 9.5v4.5M12 17.2v.1" />
+        }
+        @case ('arrows-inout') {
+          <path d="M4 8h14M14.5 4.5 18 8l-3.5 3.5" />
+          <path d="M20 16H6M9.5 12.5 6 16l3.5 3.5" />
+        }
+        @case ('ledger-in') {
+          <path d="M5 19.5v-15A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5 1.5 1.5 0 0 0 6.5 21H19" />
+          <path d="M12 6.5v7M9 10.5l3 3 3-3" />
+        }
+        @case ('ledger-out') {
+          <path d="M5 19.5v-15A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5 1.5 1.5 0 0 0 6.5 21H19" />
+          <path d="M12 13.5v-7M9 9.5l3-3 3 3" />
+        }
+        @case ('bell') {
+          <path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z" />
+          <path d="M10 21a2 2 0 0 0 4 0" />
+        }
+        @case ('hourglass') {
+          <path d="M6.5 3h11M6.5 21h11" />
+          <path d="M8 3c0 4.5 4 5.5 4 9s-4 4.5-4 9M16 3c0 4.5-4 5.5-4 9s4 4.5 4 9" />
+          <path d="M10 18.5h4" />
+        }
+        @case ('warehouse') {
+          <path d="M3 21V8.5L12 3l9 5.5V21" />
+          <path d="M7 21v-9h10v9" />
+          <path d="M7 15h10M7 18h10" />
+        }
+        @case ('bookmark') {
+          <path d="M6.5 4.5A1.5 1.5 0 0 1 8 3h8a1.5 1.5 0 0 1 1.5 1.5V21L12 17l-5.5 4z" />
+        }
+        @case ('history') {
+          <path d="M3.5 12a8.5 8.5 0 1 0 2.5-6L3.5 8.5" />
+          <path d="M3.5 4v4.5H8" />
+          <path d="M12 7.5V12l3 2" />
+        }
+        @case ('folder') {
+          <path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2.5h8.5A1.5 1.5 0 0 1 21 9v9.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z" />
+          <path d="M3 10.5h18" />
+        }
+        @case ('mail') {
+          <rect x="3" y="5" width="18" height="14" rx="2" />
+          <path d="M3.5 6.5 12 13l8.5-6.5" />
         }
         @case ('percent') {
           <path d="M18.5 5.5l-13 13" />

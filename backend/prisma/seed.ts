@@ -27,6 +27,7 @@ const PERMISSION_MODULES: { key: string; permissions: { code: string; label: str
   { key: 'company', permissions: [
     { code: 'company.view', label: 'Xem thông tin công ty' },
     { code: 'company.update', label: 'Sửa thông tin công ty' },
+    { code: 'email.send', label: 'Gửi email chứng từ cho khách hàng / NCC' },
     { code: 'period.lock', label: 'Khoá sổ / bỏ khoá sổ kỳ kế toán' },
   ]},
   { key: 'category', permissions: [

@@ -17,7 +17,7 @@ const ACTIONS: { value: string; label: string }[] = [
   { value: 'auth.', label: 'Đăng nhập (mọi lần)' },
   { value: 'auth.login_failed', label: 'Đăng nhập thất bại' },
   { value: 'user.', label: 'Tài khoản người dùng' },
-  { value: 'role.', label: 'Chức vụ & phân quyền' },
+  { value: 'role.', label: 'Vai trò và quyền hạn' },
   { value: 'product.update_price', label: 'Đổi giá bán' },
   { value: 'api.unaudited', label: 'Thao tác chưa có mô tả' },
 ];
@@ -138,7 +138,7 @@ export class ActivityLogComponent {
   async exportExcel(): Promise<void> {
     this.exporting.set(true);
     try {
-      await downloadWorkbook(exportFileName('Nhật ký hoạt động'), [{
+      await downloadWorkbook(exportFileName('Nhật ký truy cập'), [{
         name: 'Nhật ký',
         columns: [
           { header: 'Thời điểm (GMT+7)', width: 20 }, { header: 'Người thực hiện', width: 22 }, { header: 'Thao tác', width: 14 },

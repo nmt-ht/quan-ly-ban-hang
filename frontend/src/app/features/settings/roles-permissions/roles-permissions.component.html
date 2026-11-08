@@ -1,10 +1,10 @@
 <div class="page-header">
   <div>
-    <h1>Chức vụ &amp; phân quyền</h1>
-    <p class="subtitle">{{ data.roles().length }} chức vụ · chức vụ quyết định mỗi người dùng được xem và làm gì trong hệ thống.</p>
+    <h1>Vai trò và quyền hạn</h1>
+    <p class="subtitle">{{ data.roles().length }} vai trò · vai trò quyết định mỗi người dùng được xem và làm gì trong hệ thống.</p>
   </div>
   <div class="toolbar">
-    <button type="button" class="btn btn-primary" (click)="openCreate()"><app-nav-icon name="plus" />Thêm chức vụ</button>
+    <button type="button" class="btn btn-primary" (click)="openCreate()"><app-nav-icon name="plus" />Thêm vai trò</button>
   </div>
 </div>
 
@@ -32,8 +32,8 @@
 }
 
 <div class="rp-layout">
-  <!-- ============ chức vụ ============ -->
-  <nav class="rp-list" aria-label="Danh sách chức vụ">
+  <!-- ============ vai trò ============ -->
+  <nav class="rp-list" aria-label="Danh sách vai trò">
     @for (r of data.roles(); track r.id) {
       <button
         type="button"
@@ -97,7 +97,7 @@
                   }
                 </span>
               } @else {
-                <span class="rp-none">Chưa có ai giữ chức vụ này</span>
+                <span class="rp-none">Chưa có ai giữ vai trò này</span>
               }
             </dd>
           </div>
@@ -119,7 +119,7 @@
       </div>
 
       @if (locked()) {
-        <p class="form-note">Chức vụ hệ thống — luôn có toàn quyền, không chỉnh được. Hệ thống cần ít nhất một tài khoản CEO.</p>
+        <p class="form-note">Vai trò hệ thống — luôn có toàn quyền, không chỉnh được. Hệ thống cần ít nhất một tài khoản CEO.</p>
       }
 
       <!-- ============ phân quyền ============ -->
@@ -127,16 +127,16 @@
         <div class="rp-tools">
           <label class="rp-search">
             <app-nav-icon name="search" />
-            <input type="search" placeholder="Tìm quyền, ví dụ: đơn hàng, giá vốn…" aria-label="Tìm quyền" [ngModel]="query()" (ngModelChange)="query.set($event)" />
+            <input type="search" placeholder="Tìm quyền, ví dụ: chứng từ bán hàng, giá vốn…" aria-label="Tìm quyền" [ngModel]="query()" (ngModelChange)="query.set($event)" />
             @if (query()) {
               <button type="button" class="rp-clear" aria-label="Xoá nội dung tìm" (click)="query.set('')"><app-nav-icon name="x" /></button>
             }
           </label>
           @if (!locked()) {
             <label class="rp-pick">
-              <span class="visually-hidden">Lấy quyền từ chức vụ khác</span>
+              <span class="visually-hidden">Lấy quyền từ vai trò khác</span>
               <select (change)="copyFromRole($any($event.target).value); $any($event.target).value = ''">
-                <option value="">Lấy quyền từ chức vụ…</option>
+                <option value="">Lấy quyền từ vai trò…</option>
                 @for (x of data.roles(); track x.id) {
                   @if (x.id !== r.id) { <option [value]="x.id">{{ x.name }}</option> }
                 }
@@ -223,17 +223,17 @@
 
 <dialog #dialog class="rg-dialog th-dialog" aria-labelledby="rp-dlg-title">
   <header class="rg-head">
-    <div><h2 id="rp-dlg-title">{{ dlgMode() === 'edit' ? 'Sửa chức vụ' : 'Thêm chức vụ' }}</h2></div>
+    <div><h2 id="rp-dlg-title">{{ dlgMode() === 'edit' ? 'Sửa vai trò' : 'Thêm vai trò' }}</h2></div>
     <button type="button" class="icon-action" aria-label="Đóng" (click)="closeDialog()"><app-nav-icon name="x" /></button>
   </header>
   <div class="rg-body th-body">
     <label class="field th-note">
-      <span>Tên chức vụ <span class="required-mark">*</span></span>
+      <span>Tên vai trò <span class="required-mark">*</span></span>
       <input id="rp-name" type="text" maxlength="60" placeholder="VD: Trưởng ca xưởng" [ngModel]="name()" (ngModelChange)="name.set($event)" (keydown.enter)="saveRole()" />
     </label>
     <label class="field th-note">
       <span>Mô tả</span>
-      <textarea rows="3" maxlength="300" placeholder="Chức vụ này làm gì, được xem gì…" [ngModel]="description()" (ngModelChange)="description.set($event)"></textarea>
+      <textarea rows="3" maxlength="300" placeholder="Vai trò này làm gì, được xem gì…" [ngModel]="description()" (ngModelChange)="description.set($event)"></textarea>
     </label>
     @if (dlgMode() === 'create') {
       <label class="field th-note">
@@ -252,7 +252,7 @@
     <p class="rg-summary text-danger" role="alert">{{ error() }}</p>
     <div class="toolbar">
       <button type="button" class="btn" (click)="closeDialog()">Huỷ</button>
-      <button type="button" class="btn btn-primary" [disabled]="!name().trim()" (click)="saveRole()">{{ dlgMode() === 'edit' ? 'Lưu' : 'Thêm chức vụ' }}</button>
+      <button type="button" class="btn btn-primary" [disabled]="!name().trim()" (click)="saveRole()">{{ dlgMode() === 'edit' ? 'Lưu' : 'Thêm vai trò' }}</button>
     </div>
   </footer>
 </dialog>

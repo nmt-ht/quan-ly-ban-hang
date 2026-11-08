@@ -51,7 +51,7 @@
         }
       </dl>
       <div class="db-hero-actions">
-        <a class="btn db-hero-primary" allowedLink routerLink="/don-hang/them-moi"><app-nav-icon name="plus" />Lập đơn hàng</a>
+        <a class="btn db-hero-primary" allowedLink routerLink="/don-hang/them-moi"><app-nav-icon name="plus" />Lập chứng từ bán hàng</a>
         <a class="btn db-hero-ghost" allowedLink routerLink="/thu-chi/lap/thu"><app-nav-icon name="cash" />Lập phiếu thu</a>
       </div>
     </div>
@@ -182,7 +182,7 @@
       <li><a class="db-row" [class.is-bad]="a.late > 0" routerLink="/don-hang" [queryParams]="{ late: 1 }"><span>Trễ hẹn giao</span><b class="num">{{ a.late }}</b></a></li>
       <li><a class="db-row" [class.is-warn]="l.stopped > 0" routerLink="/bao-cao" [queryParams]="{ name: 'khach-ngung-mua', ngay: 60 }"><span>Khách ngừng mua &gt; 60 ngày</span><b class="num">{{ l.stopped }}</b></a></li>
     </ul>
-    <a class="db-more" allowedLink routerLink="/don-hang">Xem đơn hàng bán</a>
+    <a class="db-more" allowedLink routerLink="/don-hang">Xem chứng từ bán hàng</a>
   </section>
 
   <section class="card db-mod db-mod-stock" data-module="stock" [attr.data-level]="areaLevel('stock')" aria-labelledby="db-a-stock">
@@ -224,7 +224,7 @@
     </a>
     <ul class="db-rows">
       <li><a class="db-row" [class.is-warn]="a.belowMin > 0" routerLink="/kho/ton-kho" [queryParams]="{ belowMin: true }"><span>Cần nhập thêm</span><b class="num">{{ a.belowMin }}</b></a></li>
-      <li><a class="db-row" routerLink="/mua-hang"><span>Đơn nhập chờ nhận hàng</span><b class="num">{{ a.poWaiting }}</b></a></li>
+      <li><a class="db-row" routerLink="/mua-hang"><span>Đơn mua hàng chờ nhận hàng</span><b class="num">{{ a.poWaiting }}</b></a></li>
     </ul>
     <a class="db-more" allowedLink routerLink="/kho/ton-kho">Xem tồn kho</a>
   </section>
@@ -300,7 +300,7 @@
         <li><a class="db-row is-sub" [class.is-bad]="acc.balance < 0" routerLink="/thu-chi"><span>{{ acc.name }}</span><b class="num">{{ money(acc.balance) }}</b></a></li>
       }
     </ul>
-    <a class="db-more" allowedLink routerLink="/thu-chi">Xem phiếu thu chi</a>
+    <a class="db-more" allowedLink routerLink="/thu-chi">Xem thu, chi tiền</a>
   </section>
 
   @if (debts(); as dt) {

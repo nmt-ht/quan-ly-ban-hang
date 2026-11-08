@@ -1,0 +1,82 @@
+<dialog #dialog class="import-dialog import-dialog-wide" aria-labelledby="ec-title" (cancel)="$event.preventDefault(); close()">
+  @if (req(); as r) {
+    <header class="dialog-head">
+      <h2 id="ec-title">{{ title() }}</h2>
+      <button type="button" class="dialog-x" aria-label="Đóng" [disabled]="busy() === 'sending' || busy() === 'pdf'" (click)="close()"><app-nav-icon name="x" /></button>
+    </header>
+
+    <div class="dialog-body ec-body">
+      @if (status(); as s) {
+        @if (!s.ready) {
+          <div class="ec-off" role="status">
+            <app-nav-icon name="alert" />
+            <span>
+              Chưa thiết lập email gửi đi nên chưa gửi được.
+              @if (canManage()) {
+                <a routerLink="/thiet-lap/email" (click)="close()">Thiết lập ngay</a>
+              } @else {
+                Nhờ người quản trị thiết lập ở Hệ thống › Email gửi đi.
+              }
+            </span>
+          </div>
+        } @else {
+          <p class="ec-from">Gửi từ <strong>{{ s.from }}</strong>{{ s.mode === 'SYSTEM' ? ' (hệ thống gửi hộ — khách trả lời về email công ty)' : '' }}</p>
+        }
+      }
+
+      <div class="ec-grid">
+        <label class="field">
+          <span>Đến <span class="required-mark">*</span></span>
+          <input type="text" inputmode="email" autocomplete="off" placeholder="email@khachhang.vn, nhiều địa chỉ cách nhau bằng dấu phẩy"
+                 [ngModel]="to()" (ngModelChange)="to.set($event)" />
+          @if (!to().trim()) { <small class="hint">{{ r.partner ? r.partner + ' chưa có email — nhập địa chỉ người nhận.' : 'Nhập địa chỉ người nhận.' }}</small> }
+        </label>
+        <label class="field">
+          <span>CC</span>
+          <input type="text" inputmode="email" autocomplete="off" placeholder="Không bắt buộc" [ngModel]="cc()" (ngModelChange)="cc.set($event)" />
+        </label>
+        <label class="field ec-wide">
+          <span>Tiêu đề <span class="required-mark">*</span></span>
+          <input type="text" maxlength="250" [ngModel]="subject()" (ngModelChange)="subject.set($event)" />
+        </label>
+        <label class="field ec-wide">
+          <span>Nội dung</span>
+          <textarea rows="11" maxlength="10000" [ngModel]="body()" (ngModelChange)="body.set($event)"></textarea>
+          @if (body().includes('…')) { <small class="hint">Còn chỗ "…" chưa có dữ liệu — sửa trước khi gửi.</small> }
+        </label>
+      </div>
+
+      @if (r.pdf; as p) {
+        <label class="ec-attach">
+          <input type="checkbox" [ngModel]="attach()" (ngModelChange)="attach.set($event)" />
+          <app-nav-icon name="printer" />
+          <span>Đính kèm <strong>{{ p.filename }}</strong> <span class="hint">— đúng bản in A4 của chứng từ</span></span>
+        </label>
+      }
+
+      @if (history().length) {
+        <div class="ec-history">
+          <h3>Đã gửi trước đây</h3>
+          <ul>
+            @for (h of history(); track h.id) {
+              <li [class.is-failed]="h.status === 'FAILED'">
+                <span class="num">{{ when(h.at) }}</span> · {{ h.sentByName }} → {{ h.to.join(', ') }}
+                @if (h.status === 'FAILED') { <strong> · lỗi:</strong> {{ h.error }} } @else { · đã gửi }
+              </li>
+            }
+          </ul>
+        </div>
+      }
+
+      @if (error()) { <p class="status status-error" role="alert">{{ error() }}</p> }
+    </div>
+
+    <footer class="dialog-foot">
+      <button type="button" class="btn" [disabled]="busy() === 'sending' || busy() === 'pdf'" (click)="close()">Huỷ</button>
+      <button type="button" class="btn btn-primary" [disabled]="!canSend()" [attr.data-state]="busy() ? 'loading' : null" (click)="send()">
+        <app-nav-icon name="mail" />
+        {{ busy() === 'pdf' ? 'Đang tạo PDF…' : busy() === 'sending' ? 'Đang gửi…' : busy() === 'loading' ? 'Đang chuẩn bị…' : 'Gửi email' }}
+      </button>
+    </footer>
+  }
+</dialog>

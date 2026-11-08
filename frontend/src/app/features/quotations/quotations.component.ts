@@ -1,5 +1,5 @@
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DataStore } from '../../core/services/data-store.service';
 import { AuthService } from '../../core/services/auth.service';
 import { Quotation } from '../../core/models/domain.models';
@@ -117,11 +117,14 @@ export class QuotationsComponent {
       key: 'status', label: 'Trạng thái', sortable: true, sortValue: (r) => QUOTATION_STATUS_LABEL[this.view(r)],
       format: (r) => QUOTATION_STATUS_LABEL[this.view(r)], badge: (r) => quotationStatusClass(this.view(r)),
     },
-    { key: 'orderCode', label: 'Đơn hàng', sortable: true, sortValue: (r) => r.orderCode ?? '', format: (r) => r.orderCode ?? '—', link: (r) => (r.orderId ? ['/don-hang', r.orderId] : null) },
+    { key: 'orderCode', label: 'Chứng từ bán hàng', sortable: true, sortValue: (r) => r.orderCode ?? '', format: (r) => r.orderCode ?? '—', link: (r) => (r.orderId ? ['/don-hang', r.orderId] : null) },
     { key: 'salesRep', label: 'Người báo giá', sortable: true, sortValue: (r) => this.userName(r.salesRep || r.createdBy), format: (r) => this.userName(r.salesRep || r.createdBy) },
   ];
 
   constructor() {
+    // ?status=MOI|HET_HAN|… from Thông báo (báo giá sắp / đã hết hạn).
+    const status = inject(ActivatedRoute).snapshot.queryParamMap.get('status');
+    if (status && status in QUOTATION_STATUS_LABEL) this.statuses.set([status]);
     effect(() => {
       this.rows();
       untracked(() => this.page.set(1));

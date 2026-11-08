@@ -12,7 +12,7 @@
     <div class="toolbar">
       <a class="btn" routerLink="/nha-cung-cap"><app-nav-icon name="arrow-left" />Danh sách</a>
       @if (s.isActive) {
-        <a class="btn" routerLink="/mua-hang/them" [queryParams]="{ ncc: s.id }"><app-nav-icon name="plus" />Lập đơn nhập</a>
+        <a class="btn" routerLink="/mua-hang/them" [queryParams]="{ ncc: s.id }"><app-nav-icon name="plus" />Lập đơn mua hàng</a>
         <a class="btn" routerLink="/thu-chi/lap/chi" [queryParams]="{ supplierId: s.id }"><app-nav-icon name="cash" />Lập phiếu chi</a>
         <button type="button" class="btn btn-danger-ghost" (click)="toggleActive()">Ngừng hợp tác</button>
       } @else {
@@ -72,7 +72,7 @@
                 </dd>
               </div>
               <div><dt>Số ngày được nợ</dt><dd>{{ creditLabel(s.creditDays) }}</dd></div>
-              <div><dt>Số đơn nhập đã lập</dt><dd class="num">{{ stats().orderCount }}</dd></div>
+              <div><dt>Số đơn mua hàng đã lập</dt><dd class="num">{{ stats().orderCount }}</dd></div>
               <div><dt>Địa chỉ</dt><dd>{{ s.address || '—' }}</dd></div>
               <div><dt>Ghi chú</dt><dd>{{ s.note || '—' }}</dd></div>
               <div><dt>Ngày tạo</dt><dd class="num">{{ s.createdAt ? day(s.createdAt) : '—' }}</dd></div>
@@ -197,7 +197,7 @@
           } @else {
             <div class="empty-state">
               <h3>Danh mục hàng còn trống</h3>
-              <p>Thêm mặt hàng để khi lập đơn nhập, hệ thống gợi ý sẵn hàng của nhà cung cấp này.</p>
+              <p>Thêm mặt hàng để khi lập đơn mua hàng, hệ thống gợi ý sẵn hàng của nhà cung cấp này.</p>
             </div>
           }
         </section>
@@ -245,10 +245,10 @@
             </div>
           } @else {
             <div class="empty-state">
-              <h3>Chưa có đơn nhập nào</h3>
-              <p>Đơn nhập lập cho nhà cung cấp này sẽ hiện ở đây.</p>
+              <h3>Chưa có đơn mua hàng nào</h3>
+              <p>Đơn mua hàng lập cho nhà cung cấp này sẽ hiện ở đây.</p>
               @if (s.isActive) {
-                <a class="btn btn-primary" routerLink="/mua-hang/them" [queryParams]="{ ncc: s.id }"><app-nav-icon name="plus" />Lập đơn nhập</a>
+                <a class="btn btn-primary" routerLink="/mua-hang/them" [queryParams]="{ ncc: s.id }"><app-nav-icon name="plus" />Lập đơn mua hàng</a>
               }
             </div>
           }

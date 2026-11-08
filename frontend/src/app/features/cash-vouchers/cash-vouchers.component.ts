@@ -249,8 +249,8 @@ export class CashVouchersComponent {
     this.exporting.set(true);
     try {
       const all = (await this.svc.page({ ...this.filters(), page: 1, pageSize: 5000 })).rows;
-      await downloadWorkbook(exportFileName('Phiếu thu chi'), [{
-        name: 'Phiếu thu chi',
+      await downloadWorkbook(exportFileName('Thu, chi tiền'), [{
+        name: 'Thu, chi tiền',
         columns: [
           { header: 'Số phiếu', width: 13 }, { header: 'Ngày', width: 12 }, { header: 'Loại phiếu', width: 11 }, { header: 'Loại thu chi', width: 22 },
           { header: 'Đối tượng', width: 34 }, { header: 'Tài khoản', width: 26 }, { header: 'Thu', width: 15, numFmt: '#,##0' },

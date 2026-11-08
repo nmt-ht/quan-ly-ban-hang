@@ -79,7 +79,7 @@ export class UserDialogComponent {
       const p = passwordIssue(this.password());
       if (p) out.push(p);
     }
-    if (!this.roleId()) out.push('Chọn chức vụ');
+    if (!this.roleId()) out.push('Chọn vai trò');
     if (this.phone() && !PHONE_PATTERN.test(this.phone())) out.push('Số điện thoại không hợp lệ');
     return out;
   });

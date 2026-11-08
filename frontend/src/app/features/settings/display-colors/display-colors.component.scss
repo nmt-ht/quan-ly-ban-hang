@@ -139,7 +139,7 @@
 }
 
 .preview-light {
-  background: oklch(99.3% 0.004 90);
+  background: var(--light-surface);
   --tag-fg-l: var(--tag-fg-l-light);
   --tag-fg-c: var(--tag-fg-c-light);
   --tag-bg-l: var(--tag-bg-l-light);
@@ -147,7 +147,7 @@
 }
 
 .preview-dark {
-  background: oklch(20% 0.009 150);
+  background: var(--dark-surface);
   --tag-fg-l: var(--tag-fg-l-dark);
   --tag-fg-c: var(--tag-fg-c-dark);
   --tag-bg-l: var(--tag-bg-l-dark);
@@ -155,7 +155,7 @@
 }
 
 .preview-dark .dc-stage-label {
-  color: oklch(78% 0.01 150);
+  color: var(--dark-muted);
 }
 
 .dc-stage-badges {

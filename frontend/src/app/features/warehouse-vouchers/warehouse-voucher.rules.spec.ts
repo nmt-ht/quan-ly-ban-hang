@@ -9,7 +9,7 @@ const data: SourceLookup = {
   deliveryTrips: () => [{ id: 't1', code: 'CH0000001' }],
 };
 
-describe('phiếu kho', () => {
+describe('chứng từ kho', () => {
   it('kindOf: phiếu nhập khi xe về kho hiện là "Nhập trả về"', () => {
     expect(kindOf(voucher({ reason: 'Nhập trả về chuyến CH0000001' }))).toBe('TRA_VE');
     expect(kindOf(voucher({ reason: 'Nhập hàng' }))).toBe('NHAP');
@@ -17,16 +17,16 @@ describe('phiếu kho', () => {
   });
 
   it('sourceOf: chứng từ gốc theo id đã lưu, hoặc theo mã trong diễn giải (phiếu cũ)', () => {
-    expect(sourceOf(voucher({ purchaseOrderId: 'po1' }), data)).toEqual({ label: 'Đơn nhập hàng', code: 'DN0000001', link: ['/mua-hang', 'po1'] });
-    expect(sourceOf(voucher({ type: 'XUAT', salesOrderId: 'so1' }), data)).toEqual({ label: 'Đơn hàng bán', code: 'DH0000001', link: ['/don-hang', 'so1'] });
-    expect(sourceOf(voucher({ reason: 'Nhập kho theo đơn DN0000001' }), data)).toEqual({ label: 'Đơn nhập hàng', code: 'DN0000001', link: ['/mua-hang', 'po1'] });
+    expect(sourceOf(voucher({ purchaseOrderId: 'po1' }), data)).toEqual({ label: 'Đơn mua hàng', code: 'DN0000001', link: ['/mua-hang', 'po1'] });
+    expect(sourceOf(voucher({ type: 'XUAT', salesOrderId: 'so1' }), data)).toEqual({ label: 'Chứng từ bán hàng', code: 'DH0000001', link: ['/don-hang', 'so1'] });
+    expect(sourceOf(voucher({ reason: 'Nhập kho theo đơn DN0000001' }), data)).toEqual({ label: 'Đơn mua hàng', code: 'DN0000001', link: ['/mua-hang', 'po1'] });
     expect(sourceOf(voucher({ type: 'XUAT', reason: 'Xuất vật tư LSX0000001' }), data)).toMatchObject({ label: 'Lệnh sản xuất', link: ['/san-xuat', 'x1'] });
     expect(sourceOf(voucher({ reason: 'Nhập trả về chuyến CH0000001' }), data)).toMatchObject({ label: 'Chuyến giao hàng', link: ['/giao-hang', 't1'] });
   });
 
   it('sourceOf: không tra được danh sách thì vẫn có nhãn, mã và đường dẫn theo id; phiếu lập tay là null', () => {
-    expect(sourceOf(voucher({ purchaseOrderId: 'po9' }))).toEqual({ label: 'Đơn nhập hàng', code: undefined, link: ['/mua-hang', 'po9'] });
-    expect(sourceOf(voucher({ reason: 'theo đơn DN0000042' }))).toEqual({ label: 'Đơn nhập hàng', code: 'DN0000042', link: undefined });
+    expect(sourceOf(voucher({ purchaseOrderId: 'po9' }))).toEqual({ label: 'Đơn mua hàng', code: undefined, link: ['/mua-hang', 'po9'] });
+    expect(sourceOf(voucher({ reason: 'theo đơn DN0000042' }))).toEqual({ label: 'Đơn mua hàng', code: 'DN0000042', link: undefined });
     expect(sourceOf(voucher({ reason: 'Kiểm kê tháng 9' }), data)).toBeNull();
   });
 });

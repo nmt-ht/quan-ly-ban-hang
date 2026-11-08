@@ -1,13 +1,13 @@
 <div class="page-header">
   <div>
-    <h1>Đơn nhập hàng</h1>
+    <h1>Đơn mua hàng</h1>
     <p class="subtitle">{{ total() }} đơn@if (loading()) { · đang tải… }</p>
   </div>
   <div class="toolbar">
     <button type="button" class="btn" [disabled]="exporting()" (click)="exportExcel()">
       <app-nav-icon name="download" />{{ exporting() ? 'Đang xuất…' : 'Xuất Excel' }}
     </button>
-    <a class="btn btn-primary" routerLink="/mua-hang/them"><app-nav-icon name="plus" />Lập đơn nhập</a>
+    <a class="btn btn-primary" routerLink="/mua-hang/them"><app-nav-icon name="plus" />Lập đơn mua hàng</a>
   </div>
 </div>
 
@@ -16,7 +16,7 @@
     type="text"
     class="filter-search"
     placeholder="Tìm mã đơn, nhà cung cấp, hàng hoá…"
-    aria-label="Tìm đơn nhập"
+    aria-label="Tìm đơn mua hàng"
     [value]="search()"
     (input)="setSearch($any($event.target).value)"
   />
@@ -61,14 +61,14 @@
   [sortDir]="headerSort()?.dir ?? 'asc'"
   (sortChange)="headerSort.set($event)"
   [emptyAction]="chips().length || search() ? null : createCta"
-  [emptyTitle]="chips().length || search() ? 'Không có đơn phù hợp bộ lọc' : 'Chưa có đơn nhập hàng nào'"
-  [emptyHint]="chips().length || search() ? 'Thử bỏ bớt bộ lọc hoặc đổi từ khoá tìm kiếm.' : 'Lập đơn nhập để đặt hàng nhà cung cấp và theo dõi hàng về từng đợt.'"
+  [emptyTitle]="chips().length || search() ? 'Không có đơn phù hợp bộ lọc' : 'Chưa có đơn mua hàng nào'"
+  [emptyHint]="chips().length || search() ? 'Thử bỏ bớt bộ lọc hoặc đổi từ khoá tìm kiếm.' : 'Lập đơn mua hàng để đặt hàng nhà cung cấp và theo dõi hàng về từng đợt.'"
 />
 
 <app-pagination [total]="total()" unit="đơn" [(page)]="page" [(pageSize)]="pageSize" />
 
 <ng-template #createCta>
-  <a class="btn btn-primary" routerLink="/mua-hang/them"><app-nav-icon name="plus" />Lập đơn nhập</a>
+  <a class="btn btn-primary" routerLink="/mua-hang/them"><app-nav-icon name="plus" />Lập đơn mua hàng</a>
 </ng-template>
 
 <ng-template #rowActions let-o>

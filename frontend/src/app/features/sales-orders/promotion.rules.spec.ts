@@ -14,7 +14,7 @@ const promo = (over: Partial<Promotion>): Promotion => ({
 });
 const products = new Map([['a', product('a', 'cat1')], ['b', product('b')], ['gift', product('gift')]]);
 
-describe('priceFor với bảng giá riêng', () => {
+describe('priceFor với chính sách giá riêng', () => {
   it('đúng ĐVT, rồi ĐVT chính × tỷ lệ, rồi giá theo loại khách', () => {
     const p = products.get('a')!;
     expect(priceFor(p, 'SI', '', [{ productId: 'a', unitName: '', price: 70 }])).toBe(70);
@@ -44,7 +44,7 @@ describe('activePromotions', () => {
 
 describe('lineDiscountFor', () => {
   const line = { quantity: 10, unitPrice: 100, ratio: 1 };
-  it('GIAM_HANG theo % hoặc số tiền mỗi ĐVT chính; lấy mức lớn nhất; theo nhóm hàng', () => {
+  it('GIAM_HANG theo % hoặc số tiền mỗi ĐVT chính; lấy mức lớn nhất; theo nhóm VTHH', () => {
     const promos = [
       promo({ id: 'pct', discountValue: 10 }),
       promo({ id: 'vnd', discountType: 'SO_TIEN', discountValue: 15, categoryIds: ['cat1'] }),
@@ -116,7 +116,7 @@ describe('applyLinePromotions', () => {
     expect(applyLinePromotions([{ ...out[0], quantity: 5 }, out[2]], opts).some((l) => l.isGift)).toBe(false);
   });
 
-  it('tắt khuyến mãi: bỏ chiết khấu tự động và hàng tặng', () => {
+  it('tắt khuyến mại: bỏ chiết khấu tự động và hàng tặng', () => {
     const on = applyLinePromotions([draft({})], opts);
     const off = applyLinePromotions(on, { ...opts, enabled: false });
     expect(off).toHaveLength(1);

@@ -15,8 +15,8 @@ const purchase: ReportDef = {
   ],
   searchHint: 'Tìm nhà cung cấp hoặc mặt hàng…',
   notes: [
-    'Tính trên PHIẾU NHẬP KHO lập từ đơn nhập — đúng thời điểm hàng về và công nợ phát sinh, không phải lúc đặt đơn. Phiếu đã huỷ không tính.',
-    'Giá trị = số lượng × đơn giá trên phiếu (chưa thuế GTGT); phiếu chưa ghi đơn giá lấy giá của đơn nhập. Số lượng quy về ĐVT chính.',
+    'Tính trên PHIẾU NHẬP KHO lập từ đơn mua hàng — đúng thời điểm hàng về và công nợ phát sinh, không phải lúc đặt đơn. Phiếu đã huỷ không tính.',
+    'Giá trị = số lượng × đơn giá trên phiếu (chưa thuế GTGT); phiếu chưa ghi đơn giá lấy giá của đơn mua hàng. Số lượng quy về ĐVT chính.',
   ],
 };
 
@@ -34,7 +34,7 @@ const priceDrift: ReportDef = {
   searchHint: 'Tìm mặt hàng, nhà cung cấp hoặc số phiếu…',
   defaultPeriod: 'thisYear',
   notes: [
-    'Mỗi dòng của PHIẾU NHẬP KHO lập từ đơn nhập là một lần mua (cùng nguồn với báo cáo Nhập hàng), theo ngày nhập. Đơn giá chưa thuế GTGT, quy về ĐVT chính; phiếu chưa ghi đơn giá lấy giá của đơn nhập. Phiếu đã huỷ không tính.',
+    'Mỗi dòng của PHIẾU NHẬP KHO lập từ đơn mua hàng là một lần mua (cùng nguồn với báo cáo Nhập hàng), theo ngày nhập. Đơn giá chưa thuế GTGT, quy về ĐVT chính; phiếu chưa ghi đơn giá lấy giá của đơn mua hàng. Phiếu đã huỷ không tính.',
     'Biên độ = (cao nhất − thấp nhất) ÷ thấp nhất. Thay đổi = (giá gần nhất − giá lần đầu) ÷ giá lần đầu, trong kỳ đang xem. Bình quân tính theo số lượng nhập. Tăng giá tô đỏ, giảm giá tô xanh.',
   ],
 };

@@ -251,8 +251,8 @@ export class WarehouseVouchersComponent {
           l.unitPrice ?? '', l.unitPrice ? l.unitPrice * l.quantity : '', this.userName().get(v.createdBy) ?? v.createdBy, v.isCancelled ? 'Đã huỷ' : '',
         ];
       }));
-      await downloadWorkbook(exportFileName('Phiếu kho'), [{
-        name: 'Phiếu kho',
+      await downloadWorkbook(exportFileName('Nhập, xuất kho'), [{
+        name: 'Nhập, xuất kho',
         columns: [
           { header: 'Số phiếu', width: 13 }, { header: 'Ngày', width: 12 }, { header: 'Loại', width: 13 }, { header: 'Kho', width: 30 },
           { header: 'Lý do', width: 34 }, { header: 'Mã hàng', width: 12 }, { header: 'Tên hàng', width: 32 }, { header: 'ĐVT', width: 8 },

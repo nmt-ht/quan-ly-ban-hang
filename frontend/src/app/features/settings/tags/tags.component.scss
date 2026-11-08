@@ -6,8 +6,12 @@
   color: var(--color-muted);
 }
 
+// Ngừng dùng: the tag keeps its colour (the Màu column names it) but loses its fill — dashed outline, like an
+// off toggle. Text-on-surface stays >= 4.5:1, which an opacity fade would not.
 .tg-off .badge {
-  opacity: 0.6;
+  background: transparent;
+  outline: var(--rule-hair) dashed currentColor;
+  outline-offset: calc(-1 * var(--rule-hair));
 }
 
 .tg-actions {

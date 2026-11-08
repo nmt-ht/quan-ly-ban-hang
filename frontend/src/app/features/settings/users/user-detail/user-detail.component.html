@@ -1,5 +1,5 @@
 @if (user(); as u) {
-  <p class="subtitle"><a class="crumb" routerLink="/thiet-lap/nguoi-dung">Người dùng</a> / {{ u.name }}</p>
+  <p class="subtitle"><a class="crumb" routerLink="/thiet-lap/nguoi-dung">Quản lý người dùng</a> / {{ u.name }}</p>
   <div class="page-header">
     <div>
       <h1>{{ u.name }}{{ svc.isMe(u) ? ' (bạn)' : '' }}</h1>
@@ -41,7 +41,7 @@
         <div><dt>Họ tên</dt><dd>{{ u.name }}</dd></div>
         <div><dt>Email đăng nhập</dt><dd class="num">{{ u.email }}</dd></div>
         <div><dt>Điện thoại</dt><dd class="num">{{ u.phone || '—' }}</dd></div>
-        <div><dt>Chức vụ</dt><dd><a class="code-link" routerLink="/thiet-lap/chuc-vu">{{ role()?.name ?? u.roleId }}</a></dd></div>
+        <div><dt>Vai trò</dt><dd><a class="code-link" routerLink="/thiet-lap/chuc-vu">{{ role()?.name ?? u.roleId }}</a></dd></div>
         <div><dt>Trạng thái</dt><dd>{{ statusLabel[u.status] }}{{ u.lockedReason ? ' · ' + u.lockedReason : '' }}</dd></div>
         @if (u.lockedAt) { <div><dt>Khoá lúc</dt><dd class="num">{{ time(u.lockedAt) }}</dd></div> }
         <div><dt>Đăng nhập gần nhất</dt><dd class="num">{{ u.lastLoginAt ? time(u.lastLoginAt) : 'Chưa đăng nhập' }}</dd></div>
@@ -60,15 +60,15 @@
       @if (role(); as r) {
         <p class="subtitle">{{ r.description }}</p>
         <dl class="ledger-dl">
-          <div><dt>Chức vụ</dt><dd>{{ r.name }}{{ r.isSystem ? ' (hệ thống)' : '' }}</dd></div>
+          <div><dt>Vai trò</dt><dd>{{ r.name }}{{ r.isSystem ? ' (hệ thống)' : '' }}</dd></div>
           <div><dt>Số quyền</dt><dd class="num">{{ r.permissionCount }}/{{ r.totalPermissionCount }}</dd></div>
-          <div><dt>Cùng chức vụ</dt><dd class="num">{{ r.userCount }} người</dd></div>
+          <div><dt>Cùng vai trò</dt><dd class="num">{{ r.userCount }} người</dd></div>
         </dl>
         <div class="sd-debt-actions">
-          <a class="link-btn" routerLink="/thiet-lap/chuc-vu">Xem / sửa quyền của chức vụ</a>
+          <a class="link-btn" routerLink="/thiet-lap/chuc-vu">Xem / sửa quyền của vai trò</a>
         </div>
       }
-      <p class="subtitle">Quyền gắn theo chức vụ — muốn đổi quyền của riêng người này thì đổi chức vụ.</p>
+      <p class="subtitle">Quyền gắn theo vai trò — muốn đổi quyền của riêng người này thì đổi vai trò.</p>
     </section>
   </div>
 

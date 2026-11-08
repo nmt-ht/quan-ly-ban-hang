@@ -1,7 +1,7 @@
 <a class="skip-link" href="#main-content" (click)="$event.preventDefault(); mainEl.focus()">Bỏ qua đến nội dung chính</a>
 <div class="shell" [class.collapsed]="collapsed()" [class.menu-open]="menuOpen()">
   <aside class="sidebar" id="app-sidebar">
-    <!-- The company's logo (Thiết lập › Thông tin công ty) when one is uploaded, else the NT monogram.
+    <!-- The company's logo (Thiết lập › Thông tin doanh nghiệp) when one is uploaded, else the NT monogram.
          Under the name: the running version. -->
     <a class="brand" [routerLink]="homeUrl()" [attr.aria-label]="brand.name() + ', ' + versionLabel + ' — về trang đầu'" [title]="brand.fullName() + ' — về trang đầu'" (click)="closeMenu()">
       @if (brand.logo(); as src) {
@@ -91,6 +91,7 @@
         <kbd class="search-kbd" aria-hidden="true">Ctrl K</kbd>
       </button>
       <div class="topbar-spacer"></div>
+      <app-alerts-bell />
       <app-account-menu />
     </header>
 

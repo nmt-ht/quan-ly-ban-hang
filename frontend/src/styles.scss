@@ -2602,3 +2602,33 @@ input[type='radio'] {
     margin-top: var(--space-2xs);
   }
 }
+
+// Windows high-contrast (forced colours): the browser drops every authored fill and paints its own palette, so a
+// state that lives only in a tint — the active menu item, a selected tab or segment, a pressed toggle, the
+// highlighted palette row — would vanish. Here those states take the system Highlight pair instead; borders,
+// focus outlines and printed labels already survive on their own.
+@media (forced-colors: active) {
+  .nav-link.active,
+  .cp-opt.is-active,
+  .segmented button[aria-pressed='true'],
+  .detail-tabs button[aria-selected='true'],
+  .filter-toggle[aria-pressed='true'] {
+    background: Highlight;
+    color: HighlightText;
+
+    * {
+      color: HighlightText;
+    }
+  }
+
+  .nav-link.active::before {
+    background: HighlightText;
+  }
+
+  // Small swatches whose colour is the point (aging buckets, tag colours) keep it — each is labelled in words too.
+  .aging-dot,
+  .dc-swatch,
+  .bell-count {
+    forced-color-adjust: none;
+  }
+}

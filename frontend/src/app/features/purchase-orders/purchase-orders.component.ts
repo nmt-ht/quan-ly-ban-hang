@@ -1,6 +1,6 @@
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DataStore } from '../../core/services/data-store.service';
 import { PurchaseOrder, PurchaseOrderStatus } from '../../core/models/domain.models';
 import { DataTableColumn, DataTableComponent } from '../../shared/data-table/data-table.component';
@@ -172,6 +172,9 @@ export class PurchaseOrdersComponent {
   readonly canEdit = canEdit;
 
   constructor(readonly data: DataStore) {
+    // ?status=NHAP from Thông báo (đơn mua hàng chờ duyệt).
+    const status = inject(ActivatedRoute).snapshot.queryParamMap.get('status');
+    if (status && status in PURCHASE_ORDER_STATUS_LABEL) this.statuses.set([status]);
     // New filters start again from page 1.
     effect(() => {
       this.filters();
@@ -227,8 +230,8 @@ export class PurchaseOrdersComponent {
     this.exporting.set(true);
     try {
       const all = (await this.svc.page({ ...this.filters(), page: 1, pageSize: 5000 })).rows;
-      await downloadWorkbook(exportFileName('Đơn nhập hàng'), [{
-        name: 'Đơn nhập hàng',
+      await downloadWorkbook(exportFileName('Đơn mua hàng'), [{
+        name: 'Đơn mua hàng',
         columns: [
           { header: 'Mã đơn', width: 14 },
           { header: 'Ngày đặt', width: 12 },

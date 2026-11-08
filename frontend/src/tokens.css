@@ -1,7 +1,7 @@
 /* Hallmark · genre: modern-minimal · shape: app screen · scope: app · design-system: design.md · theme: brand (moss, kept) · redesign: restyle
  * critique: the ledger stays the ground; colour now says where you are — each phân hệ wears its own hue on its icons, its top rule and its actions, moss stays the brand.
- * vibe: "tươi, thân thiện — one hue per phân hệ on ledger paper" · paper: oklch(97.6% 0.008 90) · brand: oklch(43% 0.11 160)
- * modules: bán hàng blue 258 · kho & sản xuất orange 48 · mua hàng violet 300 · dòng tiền teal 195 · thiết lập slate 255 · tổng quan moss 160
+ * vibe: "tươi, thân thiện — one hue per phân hệ on ledger paper" · paper: oklch(97.6% 0.008 90) · brand: oklch(40% 0.09 158)
+ * modules: bán hàng indigo-blue 272 · kho & sản xuất orange 48 · mua hàng violet 300 · dòng tiền teal 185 · thiết lập slate 255 · tổng quan moss 158
  * display: Be Vietnam Pro 600 · body: Be Vietnam Pro 400 · mono: JetBrains Mono · contrast: every module ≥ 5:1 (fill/ink, text/surface, text/tint, light + dark)
  * built: the project · v2.0.0
  */
@@ -11,8 +11,13 @@
 
   /* ---------- colour · light ---------- */
   --color-paper:        oklch(97.6% 0.008 90);   /* page ground — ledger paper */
-  --color-surface:      oklch(99.3% 0.004 90);   /* cards, sidebar, inputs */
-  --color-logo-tile:    oklch(99.3% 0.004 90);   /* behind an uploaded logo — stays light in dark mode, logos are drawn for white */
+  /* Fixed light / dark anchors: the two modes read these, and so does any spot that must show one mode
+     whatever the theme (an uploaded logo's tile, the side-by-side preview in Màu hiển thị). */
+  --light-surface:      oklch(99.3% 0.004 90);
+  --dark-surface:       oklch(20% 0.009 150);
+  --dark-muted:         oklch(72% 0.012 110);
+  --color-surface:      var(--light-surface);    /* cards, sidebar, inputs */
+  --color-logo-tile:    var(--light-surface);   /* behind an uploaded logo — stays light in dark mode, logos are drawn for white */
   --color-paper-2:      oklch(95.2% 0.010 90);   /* row hover, quiet fills */
   --color-row-alt:      oklch(97.4% 0.007 90);   /* every other table row — lighter than hover */
   --color-paper-3:      oklch(92.4% 0.012 90);   /* pressed, track */
@@ -21,39 +26,39 @@
   --color-muted:        oklch(47% 0.014 110);    /* secondary text (≥4.5:1) */
   --color-ink:          oklch(22% 0.015 160);
   --color-ink-2:        oklch(31% 0.014 150);
-  --color-accent:       oklch(43% 0.11 160);     /* moss — the one signal */
-  --color-accent-hover: oklch(37% 0.10 160);
-  --color-accent-tint:  oklch(94.5% 0.03 160);
+  --color-accent:       oklch(40% 0.09 158);     /* moss — the one signal */
+  --color-accent-hover: oklch(34% 0.08 158);
+  --color-accent-tint:  oklch(94.5% 0.03 158);
   --color-accent-ink:   oklch(98.5% 0.006 90);
-  --color-focus:        oklch(50% 0.14 160);
+  --color-focus:        oklch(48% 0.11 158);
 
-  --color-danger:       oklch(50% 0.17 28);
-  --color-danger-tint:  oklch(95.5% 0.025 28);
-  --color-success:      oklch(46% 0.11 150);
-  --color-success-tint: oklch(95% 0.03 150);
-  --color-warning:      oklch(50% 0.11 65);
-  --color-warning-tint: oklch(95.5% 0.035 80);
-  --color-info:         oklch(47% 0.09 235);
-  --color-info-tint:    oklch(95.5% 0.02 235);
+  --color-danger:       oklch(47% 0.188 16);
+  --color-danger-tint:  oklch(95.5% 0.022 16);
+  --color-success:      oklch(48% 0.15 144);
+  --color-success-tint: oklch(96% 0.03 144);
+  --color-warning:      oklch(44% 0.091 84);
+  --color-warning-tint: oklch(95.5% 0.04 88);
+  --color-info:         oklch(48% 0.108 239);
+  --color-info-tint:    oklch(95.5% 0.02 239);
 
   /* ---------- phân hệ (module) hues — [data-module] below maps one onto the accent ---------- */
   /* Text on white / on the tint and white text on the fill: all >= 5:1 (checked per pair, light + dark). */
-  --mod-sell:            oklch(48% 0.15 258);   /* bán hàng — blue */
-  --mod-sell-hover:      oklch(42% 0.14 258);
-  --mod-sell-tint:       oklch(95% 0.03 258);
-  --mod-sell-focus:      oklch(55% 0.17 258);
-  --mod-stock:           oklch(52% 0.15 48);    /* kho & sản xuất — orange */
-  --mod-stock-hover:     oklch(46% 0.14 48);
-  --mod-stock-tint:      oklch(95.5% 0.035 55);
-  --mod-stock-focus:     oklch(58% 0.16 48);
+  --mod-sell:            oklch(46% 0.16 272);   /* bán hàng — indigo-blue (away from info 239) */
+  --mod-sell-hover:      oklch(40% 0.15 272);
+  --mod-sell-tint:       oklch(95% 0.023 272);
+  --mod-sell-focus:      oklch(53% 0.18 272);
+  --mod-stock:           oklch(52% 0.142 48);    /* kho & sản xuất — orange */
+  --mod-stock-hover:     oklch(46% 0.126 48);
+  --mod-stock-tint:      oklch(95.5% 0.026 55);
+  --mod-stock-focus:     oklch(58% 0.158 48);
   --mod-purchase:        oklch(48% 0.16 300);   /* mua hàng — violet */
   --mod-purchase-hover:  oklch(42% 0.15 300);
-  --mod-purchase-tint:   oklch(95% 0.03 300);
+  --mod-purchase-tint:   oklch(95% 0.027 300);
   --mod-purchase-focus:  oklch(55% 0.17 300);
-  --mod-cash:            oklch(48% 0.09 195);   /* dòng tiền — teal */
-  --mod-cash-hover:      oklch(42% 0.085 195);
-  --mod-cash-tint:       oklch(95% 0.03 195);
-  --mod-cash-focus:      oklch(55% 0.11 195);
+  --mod-cash:            oklch(46% 0.081 185);   /* dòng tiền — teal (away from success 144 + info 239) */
+  --mod-cash-hover:      oklch(40% 0.07 185);
+  --mod-cash-tint:       oklch(95% 0.03 185);
+  --mod-cash-focus:      oklch(53% 0.09 185);
   --mod-settings:        oklch(44% 0.04 255);   /* thiết lập — slate */
   --mod-settings-hover:  oklch(38% 0.04 255);
   --mod-settings-tint:   oklch(95% 0.012 255);
@@ -88,6 +93,7 @@
   --hero-ink:           oklch(97.5% 0.008 150);
   --hero-muted:         oklch(85% 0.03 155);
   --hero-rule:          oklch(100% 0 0 / 0.16);
+  --hero-wash:          oklch(100% 0 0 / 0.05);  /* the chart panel inside the band */
   --hero-line:          oklch(87% 0.11 158);
 
   /* ---------- type ---------- */
@@ -154,46 +160,46 @@ body[data-density='spacious'] {
 body.dark-theme {
   color-scheme: dark;
   --color-paper:        oklch(16.5% 0.008 150);
-  --color-surface:      oklch(20% 0.009 150);
+  --color-surface:      var(--dark-surface);
   --color-paper-2:      oklch(23.5% 0.010 150);
   --color-row-alt:      oklch(21.8% 0.0095 150);
   --color-paper-3:      oklch(27% 0.011 150);
   --color-rule:         oklch(30% 0.010 150);
   --color-rule-strong:  oklch(52% 0.012 140);
-  --color-muted:        oklch(72% 0.012 110);
+  --color-muted:        var(--dark-muted);
   --color-ink:          oklch(93.5% 0.008 95);
   --color-ink-2:        oklch(86% 0.010 100);
-  --color-accent:       oklch(74% 0.11 160);
-  --color-accent-hover: oklch(80% 0.10 160);
-  --color-accent-tint:  oklch(29% 0.045 160);
+  --color-accent:       oklch(68% 0.11 158);
+  --color-accent-hover: oklch(74% 0.10 158);
+  --color-accent-tint:  oklch(29% 0.045 158);
   --color-accent-ink:   oklch(17% 0.012 160);
-  --color-focus:        oklch(78% 0.13 160);
+  --color-focus:        oklch(74% 0.13 158);
 
-  --color-danger:       oklch(72% 0.14 25);
-  --color-danger-tint:  oklch(28% 0.05 25);
-  --color-success:      oklch(76% 0.12 150);
-  --color-success-tint: oklch(28% 0.04 150);
-  --color-warning:      oklch(81% 0.12 80);
-  --color-warning-tint: oklch(29% 0.04 80);
-  --color-info:         oklch(77% 0.09 235);
-  --color-info-tint:    oklch(28% 0.035 235);
+  --color-danger:       oklch(68% 0.16 16);
+  --color-danger-tint:  oklch(25.5% 0.05 16);
+  --color-success:      oklch(80% 0.16 144);
+  --color-success-tint: oklch(28% 0.045 144);
+  --color-warning:      oklch(82% 0.13 86);
+  --color-warning-tint: oklch(29% 0.04 86);
+  --color-info:         oklch(78% 0.12 239);
+  --color-info-tint:    oklch(28% 0.035 239);
 
-  --mod-sell:            oklch(75% 0.12 258);
-  --mod-sell-hover:      oklch(81% 0.10 258);
-  --mod-sell-tint:       oklch(29% 0.05 258);
-  --mod-sell-focus:      oklch(79% 0.13 258);
-  --mod-stock:           oklch(76% 0.13 55);
-  --mod-stock-hover:     oklch(82% 0.11 55);
+  --mod-sell:            oklch(72% 0.13 272);
+  --mod-sell-hover:      oklch(78% 0.11 272);
+  --mod-sell-tint:       oklch(29% 0.05 272);
+  --mod-sell-focus:      oklch(77% 0.116 272);
+  --mod-stock:           oklch(72% 0.14 55);
+  --mod-stock-hover:     oklch(78% 0.12 55);
   --mod-stock-tint:      oklch(29% 0.05 55);
-  --mod-stock-focus:     oklch(80% 0.14 55);
+  --mod-stock-focus:     oklch(80% 0.132 55);
   --mod-purchase:        oklch(76% 0.12 300);
   --mod-purchase-hover:  oklch(82% 0.10 300);
   --mod-purchase-tint:   oklch(29% 0.05 300);
-  --mod-purchase-focus:  oklch(80% 0.13 300);
-  --mod-cash:            oklch(76% 0.10 195);
-  --mod-cash-hover:      oklch(82% 0.09 195);
-  --mod-cash-tint:       oklch(29% 0.045 195);
-  --mod-cash-focus:      oklch(80% 0.11 195);
+  --mod-purchase-focus:  oklch(80% 0.118 300);
+  --mod-cash:            oklch(74% 0.11 185);
+  --mod-cash-hover:      oklch(80% 0.10 185);
+  --mod-cash-tint:       oklch(29% 0.045 185);
+  --mod-cash-focus:      oklch(79% 0.11 185);
   --mod-settings:        oklch(78% 0.04 255);
   --mod-settings-hover:  oklch(84% 0.035 255);
   --mod-settings-tint:   oklch(29% 0.02 255);

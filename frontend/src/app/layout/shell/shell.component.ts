@@ -6,6 +6,7 @@ import { filter } from 'rxjs';
 import { ModuleKey, NAV_GROUPS, NavGroup, moduleOf } from '../nav-items';
 import { NavIconComponent } from '../nav-icon/nav-icon.component';
 import { AccountMenuComponent } from '../account-menu/account-menu.component';
+import { AlertsBellComponent } from '../alerts-bell/alerts-bell.component';
 import { CommandPaletteComponent } from '../command-palette/command-palette.component';
 import { CommandPaletteService } from '../../core/services/command-palette.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -27,7 +28,7 @@ function loadClosed(): string[] {
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, NavIconComponent, AccountMenuComponent, CommandPaletteComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, NavIconComponent, AccountMenuComponent, AlertsBellComponent, CommandPaletteComponent],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss',
 })

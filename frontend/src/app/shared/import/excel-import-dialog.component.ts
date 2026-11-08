@@ -8,6 +8,13 @@ import { ImportResult } from './import.types';
 export interface ImportColumn extends SheetColumn {
   /** The key the server reads (CUSTOMER_IMPORT_LABELS / SUPPLIER_IMPORT_LABELS). */
   key: string;
+  /** Earlier header names still read from old files (e.g. "Bảng giá" before the MISA renaming). */
+  aliases?: string[];
+}
+
+/** The header this column has in the file: its current name, else the first alias the file uses. */
+function headerIn(c: ImportColumn, headers: string[]): string | undefined {
+  return [c.header, ...(c.aliases ?? [])].map(headerKey).find((h) => headers.includes(h));
 }
 
 export interface ExcelImportConfig {
@@ -93,7 +100,7 @@ export class ExcelImportDialogComponent {
     this.busy.set('reading');
     try {
       const { headers, rows } = await readSheet(file, this.config().sheetName);
-      const cols = this.config().columns.filter((c) => headers.includes(headerKey(c.header)));
+      const cols = this.config().columns.filter((c) => headerIn(c, headers) !== undefined);
       const missing = this.config().columns.filter((c) => c.required && !cols.includes(c));
       if (missing.length) {
         this.error.set(`Thiếu cột bắt buộc: ${missing.map((c) => c.header).join(', ')}. Hãy dùng file mẫu.`);
@@ -106,7 +113,7 @@ export class ExcelImportDialogComponent {
       this.rows = rows.map((r) => ({
         row: r.rowNumber,
         cells: Object.fromEntries(cols.map((c) => {
-          const v = r.cells.get(headerKey(c.header));
+          const v = r.cells.get(headerIn(c, headers)!);
           return [c.key, v instanceof Date ? v.toISOString().slice(0, 10) : (v ?? null)];
         })),
       }));

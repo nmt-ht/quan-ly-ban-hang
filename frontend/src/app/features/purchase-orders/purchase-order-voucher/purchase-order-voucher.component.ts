@@ -1,4 +1,6 @@
 import { Component, HostListener, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
+import { EmailComposeComponent } from '../../../shared/email-compose/email-compose.component';
+import { pdfName } from '../../../shared/print/print-pdf';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { NgClass } from '@angular/common';
@@ -66,7 +68,7 @@ const emptyLine = (): DraftLine => ({
 @Component({
   selector: 'app-purchase-order-voucher',
   standalone: true,
-  imports: [SearchSelectComponent, PickableWarehousesPipe, FrozenColsDirective, 
+  imports: [EmailComposeComponent, SearchSelectComponent, PickableWarehousesPipe, FrozenColsDirective, 
     NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
     ReceiveGoodsDialogComponent, PurchaseReturnDialogComponent, PaginationComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent,
   ],
@@ -122,6 +124,21 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
   readonly attempted = signal(false);
   readonly tab = signal<'hang' | 'phieu' | 'tra-hang' | 'nhat-ky'>('hang');
   readonly notice = signal('');
+
+  // ---------- gửi email: đơn mua hàng cho nhà cung cấp + PDF ----------
+  private readonly emailDlg = viewChild<EmailComposeComponent>('emailDlg');
+  readonly canEmail = computed(() => this.auth.can('email.send'));
+
+  email(): void {
+    const o = this.order();
+    if (!o) return;
+    const s = this.data.suppliers().find((x) => x.id === o.supplierId);
+    void this.emailDlg()?.open({
+      kind: 'purchase_order', docId: o.id, docCode: o.code, to: [s?.email], partner: s?.name,
+      vars: { ten_khach: s?.name, so_chung_tu: o.code, ngay: formatDay(o.date), tong_tien: o.totalValue === null ? '' : formatVnd(o.totalValue) },
+      pdf: { filename: pdfName('Don mua hang', o.code) },
+    });
+  }
   /** A save or status change the server refused (or that could not reach it). */
   readonly failure = signal('');
   readonly busy = signal(false);
@@ -156,7 +173,7 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
         this.page.set(1);
         this.confirmCancel.set(false);
         if (id) this.notice.set((history.state as { notice?: string } | null)?.notice ?? '');
-        else if (reorder.length) this.notice.set(`Đã điền ${reorder.length} vật tư dưới tồn tối thiểu theo gợi ý — xem lại số lượng, giá rồi Lập đơn nhập.`);
+        else if (reorder.length) this.notice.set(`Đã điền ${reorder.length} vật tư dưới tồn tối thiểu theo gợi ý — xem lại số lượng, giá rồi Lập đơn mua hàng.`);
         // A suggested order counts as unsaved work: leaving asks first.
         if (!reorder.length) this.baseline = this.snapshot();
       });

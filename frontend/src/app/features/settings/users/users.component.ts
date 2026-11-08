@@ -106,7 +106,7 @@ export class UsersComponent {
   readonly columns: DataTableColumn<AppUser>[] = [
     { key: 'name', label: 'Họ tên', link: (r) => ['/thiet-lap/nguoi-dung', r.id], format: (r) => r.name + (this.svc.isMe(r) ? ' (bạn)' : '') },
     { key: 'email', label: 'Email', copy: true, mono: true },
-    { key: 'roleId', sortByText: true, label: 'Chức vụ', format: (r) => this.roleById().get(r.roleId)?.name ?? r.roleId },
+    { key: 'roleId', sortByText: true, label: 'Vai trò', format: (r) => this.roleById().get(r.roleId)?.name ?? r.roleId },
     { key: 'phone', label: 'Điện thoại', format: (r) => r.phone || '—', mono: true },
     {
       key: 'lastLoginAt', label: 'Đăng nhập gần nhất',
@@ -190,7 +190,7 @@ export class UsersComponent {
       await downloadWorkbook(exportFileName('Người dùng'), [{
         name: 'Người dùng',
         columns: [
-          { header: 'Họ tên', width: 24 }, { header: 'Email', width: 30 }, { header: 'Chức vụ', width: 20 }, { header: 'Điện thoại', width: 13 },
+          { header: 'Họ tên', width: 24 }, { header: 'Email', width: 30 }, { header: 'Vai trò', width: 20 }, { header: 'Điện thoại', width: 13 },
           { header: 'Đăng nhập gần nhất', width: 18 }, { header: 'Phiên đang mở', width: 13 }, { header: 'Trạng thái', width: 15 },
           { header: 'Đổi mật khẩu gần nhất', width: 18 },
         ],

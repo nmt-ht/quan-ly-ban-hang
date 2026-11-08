@@ -1,11 +1,11 @@
 <div class="page-header">
   <div>
-    <h1>Bảng giá</h1>
-    <p class="subtitle">Giá riêng theo mặt hàng cho từng nhóm khách · {{ data.priceLists().length }} bảng giá</p>
+    <h1>Chính sách giá</h1>
+    <p class="subtitle">Giá riêng theo mặt hàng cho từng nhóm khách · {{ data.priceLists().length }} chính sách giá</p>
   </div>
   <div class="toolbar">
-    <a class="btn" routerLink="/khuyen-mai"><app-nav-icon name="tag" />Khuyến mãi</a>
-    <button type="button" class="btn btn-primary" (click)="open()" [disabled]="editingId() !== null"><app-nav-icon name="plus" />Thêm bảng giá</button>
+    <a class="btn" routerLink="/khuyen-mai"><app-nav-icon name="percent" />Chương trình khuyến mại</a>
+    <button type="button" class="btn btn-primary" (click)="open()" [disabled]="editingId() !== null"><app-nav-icon name="plus" />Thêm chính sách giá</button>
   </div>
 </div>
 
@@ -18,14 +18,14 @@
 
 @if (editingId() !== null) {
   <section class="card pr-editor" aria-labelledby="pl-title">
-    <h2 id="pl-title">{{ editingId() ? 'Sửa bảng giá' : 'Bảng giá mới' }}</h2>
+    <h2 id="pl-title">{{ editingId() ? 'Sửa chính sách giá' : 'Chính sách giá mới' }}</h2>
     @if (error()) { <p class="form-note text-danger" role="alert">{{ error() }}</p> }
     <div class="pr-fields">
       <div class="field">
-        <label for="pl-name">Tên bảng giá <span class="required-mark">*</span></label>
+        <label for="pl-name">Tên chính sách giá <span class="required-mark">*</span></label>
         <input id="pl-name" type="text" maxlength="100" placeholder="VD: Đại lý cấp 1" [ngModel]="name()" (ngModelChange)="name.set($event)"
           [attr.aria-invalid]="nameTaken() ? 'true' : null" />
-        @if (nameTaken()) { <span class="hint text-danger">Đã có bảng giá tên này.</span> }
+        @if (nameTaken()) { <span class="hint text-danger">Đã có chính sách giá tên này.</span> }
       </div>
       <div class="field span-2">
         <label for="pl-note">Ghi chú</label>
@@ -105,7 +105,7 @@
       <span class="text-danger" role="status">{{ issues()[0] ?? '' }}</span>
       <button type="button" class="btn" (click)="close()">Huỷ</button>
       <button type="button" class="btn btn-primary" [disabled]="issues().length > 0 || nameTaken() || saving()" (click)="save()">
-        {{ saving() ? 'Đang lưu…' : 'Lưu bảng giá' }}
+        {{ saving() ? 'Đang lưu…' : 'Lưu chính sách giá' }}
       </button>
     </div>
   </section>
@@ -117,7 +117,7 @@
       <table>
         <thead>
           <tr>
-            <th scope="col">Bảng giá</th>
+            <th scope="col">Chính sách giá</th>
             <th scope="col" class="align-right">Số giá</th>
             <th scope="col" class="align-right">Khách đang dùng</th>
             <th scope="col">Trạng thái</th>
@@ -134,7 +134,7 @@
               <td>{{ l.isActive ? 'Đang dùng' : 'Ngừng dùng' }}</td>
               <td class="wrap">{{ l.note || '' }}</td>
               <td class="pr-row-actions">
-                <button type="button" class="icon-action" (click)="open(l)" [disabled]="editingId() !== null" [attr.aria-label]="'Sửa bảng giá ' + l.name" title="Sửa">
+                <button type="button" class="icon-action" (click)="open(l)" [disabled]="editingId() !== null" [attr.aria-label]="'Sửa chính sách giá ' + l.name" title="Sửa">
                   <app-nav-icon name="pencil" />
                 </button>
               </td>
@@ -145,9 +145,9 @@
     </div>
   } @else {
     <div class="empty-state">
-      <h3>Chưa có bảng giá riêng</h3>
-      <p>Mọi khách đang lấy giá theo loại khách (lẻ / sỉ / dropship). Lập bảng giá cho đại lý, công trình… rồi gán ở form khách hàng.</p>
-      <button type="button" class="btn btn-primary" (click)="open()" [disabled]="editingId() !== null"><app-nav-icon name="plus" />Thêm bảng giá</button>
+      <h3>Chưa có chính sách giá riêng</h3>
+      <p>Mọi khách đang lấy giá theo loại khách (lẻ / sỉ / dropship). Lập chính sách giá cho đại lý, công trình… rồi gán ở form khách hàng.</p>
+      <button type="button" class="btn btn-primary" (click)="open()" [disabled]="editingId() !== null"><app-nav-icon name="plus" />Thêm chính sách giá</button>
     </div>
   }
 </section>

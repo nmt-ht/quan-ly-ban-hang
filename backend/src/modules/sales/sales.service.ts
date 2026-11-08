@@ -285,6 +285,17 @@ export class SalesService {
   }
 
   /** Every order, whoever sells it — for báo cáo and tổng quan, which only show totals. */
+  /** Thông báo: đơn this user may see, past the day the customer needed it, with lines still to deliver (Tổng quan's rule). */
+  async lateOrderCount(user: AuthUser, today = vnDay()): Promise<number> {
+    const rows = await this.prisma.salesOrder.findMany({
+      where: {
+        AND: [this.visibleTo(user), { neededByDate: { lt: fromDay(today)! }, closedDate: null, status: { notIn: ['HUY', 'HOAN_THANH', 'TRA_TOAN_BO'] } }],
+      },
+      select: { lines: { select: { quantity: true, receivedQuantity: true } } },
+    });
+    return rows.filter((o) => o.lines.some((l) => Math.round((Number(l.quantity) - Number(l.receivedQuantity)) * 1e4) > 0)).length;
+  }
+
   async allOrders() {
     const rows = await this.prisma.salesOrder.findMany({ include: ORDER_INCLUDE, orderBy: [{ orderDate: 'desc' }, { code: 'desc' }] });
     return rows.map(orderToApi);

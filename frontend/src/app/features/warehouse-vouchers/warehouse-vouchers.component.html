@@ -1,6 +1,6 @@
 <div class="page-header">
   <div>
-    <h1>Phiếu kho</h1>
+    <h1>Nhập, xuất kho</h1>
     <p class="subtitle">{{ total() }} phiếu@if (loading()) { · đang tải… }</p>
   </div>
   <div class="toolbar wv-toolbar">
@@ -45,7 +45,7 @@
     type="text"
     class="filter-search"
     placeholder="Tìm mã phiếu, lý do, hàng hoá…"
-    aria-label="Tìm phiếu kho"
+    aria-label="Tìm chứng từ kho"
     [value]="search()"
     (input)="setSearch($any($event.target).value)"
   />
@@ -83,7 +83,7 @@
   [sortBy]="headerSort()?.key ?? null"
   [sortDir]="headerSort()?.dir ?? 'asc'"
   (sortChange)="headerSort.set($event)"
-  [emptyTitle]="chips().length || search() ? 'Không có phiếu phù hợp' : 'Chưa có phiếu kho nào'"
+  [emptyTitle]="chips().length || search() ? 'Không có phiếu phù hợp' : 'Chưa có chứng từ kho nào'"
   [emptyHint]="chips().length || search() ? 'Thử bỏ bớt bộ lọc hoặc mở rộng khoảng ngày.' : 'Lập phiếu nhập, xuất, chuyển kho hoặc kiểm kê để bắt đầu.'"
 />
 

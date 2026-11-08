@@ -11,7 +11,7 @@ const po = (supplierId: string, status: PurchaseOrder['status'], date: string, l
 const line = (productId: string, quantity: number, unitPrice: number, receivedQuantity = 0, ratioToBase = 1) =>
   ({ productId, quantity, unitPrice, receivedQuantity, ratioToBase }) as PurchaseOrder['lines'][number];
 
-describe('reorderLines (gợi ý lập đơn nhập)', () => {
+describe('reorderLines (gợi ý lập đơn mua hàng)', () => {
   const products = [product('vt1', 10), product('vt2', 5), product('tp1', 3, 'THANH_PHAM'), product('vt3', 0)];
   const stockLevels = [
     { productId: 'vt1', warehouseId: 'a', quantity: 2, minStock: 0 },

@@ -43,6 +43,16 @@ services:
         sync: false
       - key: PLATFORM_OWNER_PASSWORD
         sync: false
+      # Email gửi đi: encrypts each company's SMTP password. Generated once — never change it (the password would have
+      # to be typed again).
+      - key: MAIL_SECRET
+        generateValue: true
+      # Optional "hệ thống gửi hộ" (leave empty to offer only the company's own mailbox): a transactional SMTP URL,
+      # e.g. smtps://user:pass@smtp-relay.brevo.com:465, and a From on a domain with SPF / DKIM / DMARC for it.
+      - key: MAIL_SYSTEM_URL
+        sync: false
+      - key: MAIL_SYSTEM_FROM
+        sync: false
       # Optional error reporting (leave empty to keep it off): Sentry project DSNs for the server and the browser.
       - key: SENTRY_DSN
         sync: false

@@ -117,10 +117,10 @@
           }
         </div>
         <div class="field">
-          <span class="field-label">Loại khách · bảng giá</span>
+          <span class="field-label">Loại khách · chính sách giá</span>
           <p class="field-value">
             @if (!customer()) { Chọn khách trước }
-            @else if (priceList(); as pl) { {{ typeLabel[customerType()] }} · bảng giá <strong>{{ pl.name }}</strong> }
+            @else if (priceList(); as pl) { {{ typeLabel[customerType()] }} · chính sách giá <strong>{{ pl.name }}</strong> }
             @else { {{ typeLabel[customerType()] + ' · ' + priceLabel[customerType()].toLowerCase() }} }
           </p>
         </div>
@@ -134,9 +134,9 @@
             <span class="field-label">Tham chiếu</span>
             <p class="field-value so-refs">
               @if (order(); as o) {
-                <a class="ref-link" [routerLink]="['/don-hang', o.id]" [title]="'Đơn hàng bán ' + code"><span class="ref-kind">Đơn hàng</span><span class="num">{{ code }}</span></a>
+                <a class="ref-link" [routerLink]="['/don-hang', o.id]" [title]="'Chứng từ bán hàng ' + code"><span class="ref-kind">Chứng từ bán hàng</span><span class="num">{{ code }}</span></a>
               } @else {
-                <span class="ref-link"><span class="ref-kind">Đơn hàng</span><span class="num">{{ code }}</span></span>
+                <span class="ref-link"><span class="ref-kind">Chứng từ bán hàng</span><span class="num">{{ code }}</span></span>
               }
             </p>
           </div>
@@ -155,7 +155,7 @@
       </aside>
 
       <p class="form-note head-note">
-        Báo giá <strong>không trừ kho và không ghi công nợ</strong>. Khách đồng ý thì <strong>Lập đơn hàng</strong> từ báo giá — đơn giá báo
+        Báo giá <strong>không trừ kho và không ghi công nợ</strong>. Khách đồng ý thì <strong>Lập chứng từ bán hàng</strong> từ báo giá — đơn giá báo
         được giữ nguyên trên đơn.
       </p>
     </section>
@@ -249,7 +249,7 @@
                     <td class="c-num">
                       @if (editable() && !l.isGift) {
                         <input type="text" appMoney [ngModel]="l.unitPrice" (ngModelChange)="setPrice(i, $event)"
-                          [class.is-manual]="l.priceManual && l.productId" [title]="l.priceManual ? 'Giá sửa tay' : 'Giá theo bảng giá'"
+                          [class.is-manual]="l.priceManual && l.productId" [title]="l.priceManual ? 'Giá sửa tay' : 'Giá theo chính sách giá'"
                           [attr.aria-label]="'Đơn giá dòng ' + (i + 1)" />
                       } @else { <span class="num">{{ (l.unitPrice ?? 0).toLocaleString('vi-VN') }}</span> }
                     </td>
@@ -318,16 +318,16 @@
                   <button type="button" class="btn" (click)="addLine()"><app-nav-icon name="plus" />Thêm dòng</button>
                   <button type="button" class="btn" (click)="clearLines()"><app-nav-icon name="trash" />Xoá hết dòng</button>
                 </div>
-                <p class="grid-hint-inline">Số lượng gõ theo đúng ĐVT của dòng. Đơn giá báo được giữ khi lập đơn, kể cả khi bảng giá đổi sau.</p>
+                <p class="grid-hint-inline">Số lượng gõ theo đúng ĐVT của dòng. Đơn giá báo được giữ khi lập đơn, kể cả khi chính sách giá đổi sau.</p>
                 <label class="promo-toggle">
                   <input type="checkbox" [ngModel]="applyPromos()" (ngModelChange)="setApplyPromos($event)" />
-                  Áp khuyến mãi
+                  Áp khuyến mại
                   @if (promos().length) { <span class="subtitle">({{ promos().length }} chương trình đang chạy cho khách này)</span> }
                 </label>
               }
               @if (appliedPromos().length) {
                 <p class="grid-hint-inline promo-applied">
-                  Khuyến mãi đã áp:
+                  Khuyến mại đã áp:
                   @for (p of appliedPromos(); track p.id) { <span class="so-chip promo-chip" [title]="p.name">{{ p.code }}</span> {{ p.name }}@if (!$last) {; } }
                 </p>
               }
@@ -396,6 +396,7 @@
           </button>
         } @else if (quote(); as q) {
           <app-print-menu kind="quotation" />
+          @if (canEmail()) { <button type="button" class="btn" (click)="email()"><app-nav-icon name="mail" />Gửi email</button> }
           @if (canCancel()) {
             <button type="button" class="btn btn-danger-ghost" (click)="confirmCancel.set(true)">Huỷ báo giá</button>
           }
@@ -404,8 +405,8 @@
           }
           @if (canOrder()) {
             <button type="button" class="btn btn-primary" (click)="makeOrder()"
-              [title]="view() === 'HET_HAN' ? 'Báo giá đã quá hạn — kiểm tra lại giá trước khi lập đơn' : 'Mở đơn hàng mới điền sẵn từ báo giá'">
-              <app-nav-icon name="receipt" />Lập đơn hàng
+              [title]="view() === 'HET_HAN' ? 'Báo giá đã quá hạn — kiểm tra lại giá trước khi lập đơn' : 'Mở chứng từ bán hàng mới điền sẵn từ báo giá'">
+              <app-nav-icon name="receipt" />Lập chứng từ bán hàng
             </button>
           }
         }
@@ -478,3 +479,5 @@
     </app-print-document>
   }
 }
+
+<app-email-compose #emailDlg (sent)="notice.set($event)" />

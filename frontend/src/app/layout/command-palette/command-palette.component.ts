@@ -24,8 +24,8 @@ interface Item {
 const MAX_PER_GROUP = 5;
 
 const CREATE: { label: string; path: string; icon: NavIconName; words: string }[] = [
-  { label: 'Lập đơn hàng bán', path: '/don-hang/them-moi', icon: 'receipt', words: 'tao don ban bao gia' },
-  { label: 'Lập đơn nhập hàng', path: '/mua-hang/them', icon: 'cart', words: 'tao don mua nhap' },
+  { label: 'Lập chứng từ bán hàng', path: '/don-hang/them-moi', icon: 'receipt', words: 'tao don ban bao gia' },
+  { label: 'Lập đơn mua hàng', path: '/mua-hang/them', icon: 'cart', words: 'tao don mua nhap' },
   { label: 'Lập phiếu thu', path: '/thu-chi/lap/thu', icon: 'money-in', words: 'thu tien khach' },
   { label: 'Lập phiếu chi', path: '/thu-chi/lap/chi', icon: 'money-out', words: 'chi tien tra ncc' },
   { label: 'Lập phiếu nhập kho', path: '/kho/phieu/lap/in', icon: 'voucher', words: 'nhap kho' },
@@ -83,20 +83,20 @@ export class CommandPaletteComponent {
       id: `${group}:${id}`, group, label, code, hint, icon, path: [base, id], haystack: foldVi(`${code} ${label} ${extra}`),
     });
     return [
-      ...d.salesOrders().map((o) => rec('Đơn hàng bán', 'receipt', '/don-hang', o.id, o.code, customer.get(o.customerId) ?? '—',
+      ...d.salesOrders().map((o) => rec('Chứng từ bán hàng', 'receipt', '/don-hang', o.id, o.code, customer.get(o.customerId) ?? '—',
         SALES_ORDER_STATUS_LABEL[o.status], `${o.recipientName ?? ''} ${o.recipientPhone ?? ''}`)),
       ...d.customers().map((c) => rec('Khách hàng', 'customers', '/khach-hang', c.id, c.code, c.name, c.phone, `${c.companyName ?? ''} ${c.phone ?? ''}`)),
-      ...d.products().map((p) => rec('Hàng hoá', 'product', '/hang-hoa', p.code, p.code, p.name, p.baseUnit, p.crossRefCode ?? '')),
+      ...d.products().map((p) => rec('Vật tư hàng hoá', 'product', '/hang-hoa', p.code, p.code, p.name, p.baseUnit, p.crossRefCode ?? '')),
       ...d.suppliers().map((s) => rec('Nhà cung cấp', 'supplier', '/nha-cung-cap', s.id, s.code, s.name, s.contactPhone, s.contactPhone ?? '')),
-      ...d.purchaseOrders().map((o) => rec('Đơn nhập hàng', 'cart', '/mua-hang', o.id, o.code, supplier.get(o.supplierId) ?? '—',
+      ...d.purchaseOrders().map((o) => rec('Đơn mua hàng', 'cart', '/mua-hang', o.id, o.code, supplier.get(o.supplierId) ?? '—',
         PURCHASE_ORDER_STATUS_LABEL[o.status], '')),
-      ...d.warehouseVouchers().map((v) => rec('Phiếu kho', 'voucher', '/kho/phieu', v.id, v.code, v.reason || '—', v.date.slice(0, 10), '')),
+      ...d.warehouseVouchers().map((v) => rec('Chứng từ kho', 'arrows-inout', '/kho/phieu', v.id, v.code, v.reason || '—', v.date.slice(0, 10), '')),
       ...d.productionOrders().map((x) => rec('Lệnh sản xuất', 'factory', '/san-xuat', x.id, x.code,
         d.products().find((p) => p.id === x.productId)?.name ?? '—', PRODUCTION_ORDER_STATUS_LABEL[x.status], '')),
       ...d.deliveryTrips().map((t) => rec('Chuyến giao hàng', 'truck', '/giao-hang', t.id, t.code, t.driverName || '—',
         DELIVERY_TRIP_STATUS_LABEL[t.status], '')),
       ...d.vehicles().map((v) => rec('Xe', 'car', '/xe', v.id, v.plateNumber, v.name || '—', undefined, v.plateNumber.replace(/[^0-9a-z]/gi, ''))),
-      ...d.cashVouchers().map((v) => rec('Phiếu thu chi', 'cash', '/thu-chi', v.id, v.code, v.description || v.category, v.date.slice(0, 10), '')),
+      ...d.cashVouchers().map((v) => rec('Phiếu thu, chi', 'cash', '/thu-chi', v.id, v.code, v.description || v.category, v.date.slice(0, 10), '')),
     ];
   });
 

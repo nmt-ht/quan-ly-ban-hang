@@ -24,8 +24,12 @@
   border-radius: var(--radius-control);
 }
 
+// Ngừng dùng: dashed edge + quiet fill, text muted but still >= 4.5:1 (an opacity fade drops it under 3:1).
 .ca-item.is-off {
-  opacity: 0.6;
+  border-style: dashed;
+  border-color: var(--color-rule-strong);
+  background: var(--color-paper-2);
+  color: var(--color-muted);
 }
 
 .ca-main .subtitle {

@@ -1,13 +1,13 @@
 <div class="page-header">
   <div>
-    <h1>Người dùng</h1>
+    <h1>Quản lý người dùng</h1>
     <p class="subtitle">{{ data.users().length }} tài khoản</p>
   </div>
   <div class="toolbar">
     <button type="button" class="btn" [disabled]="exporting()" (click)="exportExcel()">
       <app-nav-icon name="download" />{{ exporting() ? 'Đang xuất…' : 'Xuất Excel' }}
     </button>
-    <a class="btn" routerLink="/thiet-lap/chuc-vu"><app-nav-icon name="shield" />Chức vụ &amp; phân quyền</a>
+    <a class="btn" routerLink="/thiet-lap/chuc-vu"><app-nav-icon name="shield" />Vai trò và quyền hạn</a>
     <button type="button" class="btn btn-primary" (click)="openCreate()"><app-nav-icon name="plus" />Thêm người dùng</button>
   </div>
 </div>
@@ -43,7 +43,7 @@
     [value]="search()"
     (input)="search.set($any($event.target).value)"
   />
-  <app-filter-multi-select label="Chức vụ" [options]="roleOptions()" [(selected)]="roles" />
+  <app-filter-multi-select label="Vai trò" [options]="roleOptions()" [(selected)]="roles" />
   <select aria-label="Trạng thái" [value]="status()" (change)="status.set($any($event.target).value)">
     <option value="all">Tất cả trạng thái</option>
     <option value="ACTIVE">Đang hoạt động</option>

@@ -1,0 +1,194 @@
+<div class="page-header">
+  <div>
+    <h1>Email gửi đi</h1>
+    <p class="subtitle">Gửi báo giá, chứng từ bán hàng, đơn mua hàng, phiếu thu, nhắc nợ và đối chiếu công nợ cho khách hàng / nhà cung cấp, kèm bản PDF.</p>
+  </div>
+</div>
+
+@if (notice()) {
+  <div class="notice" role="status">
+    <span>{{ notice() }}</span>
+    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+  </div>
+}
+@if (failure()) {
+  <div class="notice is-error" role="alert">
+    <span>{{ failure() }}</span>
+    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="failure.set('')"><app-nav-icon name="x" /></button>
+  </div>
+}
+
+@if (loading()) {
+  <p class="subtitle" role="status">Đang tải…</p>
+} @else if (s(); as st) {
+  <!-- ============ 1 · cách gửi ============ -->
+  <section class="card section-block" aria-labelledby="em-mode">
+    <h3 class="form-section-title" id="em-mode">Cách gửi</h3>
+    <div class="em-modes" role="radiogroup" aria-labelledby="em-mode">
+      <label class="em-mode" [class.is-on]="mode() === 'SMTP'">
+        <input type="radio" name="em-mode" [checked]="mode() === 'SMTP'" (change)="setMode('SMTP')" />
+        <span><strong>Email riêng của doanh nghiệp</strong> <span class="em-reco">Khuyên dùng</span>
+          <small>Gửi bằng hộp thư công ty (Gmail, Outlook, Zoho…). Khách thấy đúng địa chỉ của bạn, trả lời về đúng hộp thư, thư lưu ở mục Đã gửi.</small></span>
+      </label>
+      <label class="em-mode" [class.is-on]="mode() === 'SYSTEM'" [class.is-off]="!st.systemAvailable">
+        <input type="radio" name="em-mode" [checked]="mode() === 'SYSTEM'" [disabled]="!st.systemAvailable" (change)="setMode('SYSTEM')" />
+        <span><strong>Hệ thống gửi hộ</strong>
+          <small>
+            @if (st.systemAvailable) {
+              Gửi từ <span class="num">{{ st.systemFrom }}</span> với tên công ty bạn; khách bấm Trả lời sẽ về email công ty. Không cần mật khẩu.
+            } @else {
+              Máy chủ chưa cấu hình dịch vụ gửi hộ (MAIL_SYSTEM_URL) — dùng email riêng.
+            }
+          </small></span>
+      </label>
+      <label class="em-mode" [class.is-on]="mode() === 'OFF'">
+        <input type="radio" name="em-mode" [checked]="mode() === 'OFF'" (change)="setMode('OFF')" />
+        <span><strong>Tắt</strong><small>Không gửi email từ phần mềm.</small></span>
+      </label>
+    </div>
+  </section>
+
+  @if (mode() !== 'OFF') {
+    <!-- ============ 2 · hộp thư ============ -->
+    <section class="card section-block" aria-labelledby="em-box">
+      <h3 class="form-section-title" id="em-box">{{ mode() === 'SMTP' ? 'Hộp thư gửi' : 'Người gửi' }}</h3>
+      <div class="form-grid">
+        <div class="field">
+          <label for="em-from-name">Tên người gửi</label>
+          <input id="em-from-name" type="text" maxlength="120" [placeholder]="st.company.name" [ngModel]="fromName()" (ngModelChange)="fromName.set($event); touch()" />
+          <span class="hint">Khách thấy tên này ở ô "Từ".</span>
+        </div>
+        @if (mode() === 'SMTP') {
+          <div class="field">
+            <label for="em-from">Địa chỉ gửi <span class="required-mark">*</span></label>
+            <input id="em-from" type="email" autocomplete="off" placeholder="kinhdoanh@congty.vn" [ngModel]="fromEmail()" (ngModelChange)="setFromEmail($event)" />
+          </div>
+        }
+        <div class="field">
+          <label for="em-reply">Trả lời về</label>
+          <input id="em-reply" type="email" autocomplete="off" [placeholder]="mode() === 'SYSTEM' ? st.company.email || 'email công ty' : 'Để trống = địa chỉ gửi'" [ngModel]="replyTo()" (ngModelChange)="replyTo.set($event); touch()" />
+        </div>
+        <div class="field">
+          <label for="em-bcc">Gửi bản lưu (BCC)</label>
+          <input id="em-bcc" type="email" autocomplete="off" placeholder="Không bắt buộc" [ngModel]="bcc()" (ngModelChange)="bcc.set($event); touch()" />
+          <span class="hint">Mỗi email gửi đi có một bản tới địa chỉ này để lưu vết.</span>
+        </div>
+      </div>
+
+      @if (mode() === 'SMTP') {
+        <h4 class="em-sub">Máy chủ SMTP</h4>
+        <div class="em-presets" role="group" aria-label="Chọn nhanh nhà cung cấp">
+          @for (p of st.presets; track p.key) {
+            <button type="button" class="btn" [attr.aria-pressed]="preset()?.key === p.key" (click)="usePreset(p)">{{ p.label }}</button>
+          }
+        </div>
+        @if (preset(); as p) { <p class="em-hint"><app-nav-icon name="key" />{{ p.hint }}</p> }
+        <div class="form-grid">
+          <div class="field">
+            <label for="em-host">Máy chủ <span class="required-mark">*</span></label>
+            <input id="em-host" type="text" autocomplete="off" placeholder="smtp.gmail.com" [ngModel]="host()" (ngModelChange)="host.set($event); preset.set(null); touch()" />
+          </div>
+          <div class="field">
+            <label for="em-port">Cổng <span class="required-mark">*</span></label>
+            <input id="em-port" type="number" min="1" max="65535" [ngModel]="port()" (ngModelChange)="setPort($event)" />
+          </div>
+          <div class="field">
+            <label for="em-sec">Bảo mật</label>
+            <select id="em-sec" [ngModel]="secure()" (ngModelChange)="secure.set($event); touch()">
+              <option [ngValue]="false">STARTTLS (cổng 587)</option>
+              <option [ngValue]="true">SSL/TLS (cổng 465)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="em-user">Tài khoản <span class="required-mark">*</span></label>
+            <input id="em-user" type="text" autocomplete="off" [ngModel]="username()" (ngModelChange)="username.set($event); touch()" />
+          </div>
+          <div class="field">
+            <label for="em-pass">Mật khẩu ứng dụng @if (!st.hasPassword) { <span class="required-mark">*</span> }</label>
+            <input id="em-pass" type="password" autocomplete="new-password"
+                   [placeholder]="st.hasPassword ? (st.passwordReadable ? '•••••••• (đã lưu — để trống nếu không đổi)' : 'Mật khẩu cũ không đọc được — nhập lại') : ''"
+                   [ngModel]="password()" (ngModelChange)="password.set($event); passwordTouched.set(true); touch()" />
+            <span class="hint">Được mã hoá trên máy chủ và không bao giờ hiện lại. Gmail / Outlook cần "mật khẩu ứng dụng", không phải mật khẩu đăng nhập.</span>
+          </div>
+        </div>
+      }
+
+      <div class="em-actions">
+        <button type="button" class="btn btn-primary" [disabled]="saving() || !dirty()" (click)="save()">{{ saving() ? 'Đang lưu…' : 'Lưu thiết lập' }}</button>
+        <span class="em-test">
+          <input type="email" aria-label="Gửi thư thử tới" [ngModel]="testTo()" (ngModelChange)="testTo.set($event)" />
+          <button type="button" class="btn" [disabled]="testing() || dirty() || !st.ready" [title]="dirty() ? 'Lưu thiết lập trước' : ''" (click)="test()">
+            <app-nav-icon name="mail" />{{ testing() ? 'Đang gửi…' : 'Gửi thử' }}
+          </button>
+        </span>
+        <span class="em-state" [class.is-ok]="!!verified()">
+          @if (verified()) { <app-nav-icon name="check" />Đã gửi thử thành công {{ verified() }} } @else if (st.ready) { Chưa gửi thử } @else { Chưa đủ thông tin để gửi }
+        </span>
+      </div>
+    </section>
+  } @else {
+    <div class="em-actions">
+      <button type="button" class="btn btn-primary" [disabled]="saving() || !dirty()" (click)="save()">{{ saving() ? 'Đang lưu…' : 'Lưu thiết lập' }}</button>
+    </div>
+  }
+
+  <!-- ============ 3 · mẫu email ============ -->
+  @if (templates(); as tpl) {
+    <section class="card section-block" aria-labelledby="em-tpl">
+      <h3 class="form-section-title" id="em-tpl">Mẫu email theo chứng từ</h3>
+      <div class="segmented em-kinds" role="group" aria-label="Loại chứng từ">
+        @for (t of tpl.items; track t.kind) {
+          <button type="button" [attr.aria-pressed]="kind() === t.kind" (click)="pickKind(t.kind)">{{ t.label }}{{ t.isDefault ? '' : ' •' }}</button>
+        }
+      </div>
+      <div class="field">
+        <label for="em-subject">Tiêu đề</label>
+        <input id="em-subject" type="text" maxlength="250" [ngModel]="subject()" (ngModelChange)="subject.set($event); tplDirty.set(true)" />
+      </div>
+      <div class="field">
+        <label for="em-body">Nội dung</label>
+        <textarea id="em-body" rows="10" maxlength="5000" [ngModel]="body()" (ngModelChange)="body.set($event); tplDirty.set(true)"></textarea>
+      </div>
+      <div class="em-fields">
+        <span class="hint">Chèn trường tự điền:</span>
+        @for (f of fields(); track f[0]) {
+          <button type="button" class="em-chip" [title]="f[1]" (click)="insert(f[0])">{{ '{' + f[0] + '}' }}</button>
+        }
+      </div>
+      <div class="em-actions">
+        <button type="button" class="btn btn-primary" [disabled]="tplSaving() || !tplDirty() || !subject().trim() || !body().trim()" (click)="saveTemplate()">
+          {{ tplSaving() ? 'Đang lưu…' : 'Lưu mẫu' }}
+        </button>
+        @if (!current()?.isDefault) { <button type="button" class="link-btn" (click)="resetTemplate()">Dùng lại mẫu mặc định</button> }
+      </div>
+    </section>
+  }
+
+  <!-- ============ 4 · nhật ký gửi ============ -->
+  <section class="card section-block" aria-labelledby="em-log">
+    <h3 class="form-section-title" id="em-log">Nhật ký gửi <span class="subtitle">(200 email gần nhất)</span></h3>
+    @if (log().length) {
+      <div class="table-scroll">
+        <table class="table">
+          <thead><tr><th scope="col">Thời gian</th><th scope="col">Chứng từ</th><th scope="col">Người nhận</th><th scope="col">Người gửi</th><th scope="col">Kết quả</th></tr></thead>
+          <tbody>
+            @for (r of log(); track r.id) {
+              <tr>
+                <td class="num">{{ when(r.at) }}</td>
+                <td>{{ kindLabel[r.kind] }} <span class="num">{{ r.docCode ?? '' }}</span></td>
+                <td>{{ r.to.join(', ') }}{{ r.cc.length ? ' · CC ' + r.cc.join(', ') : '' }}</td>
+                <td>{{ r.sentByName }}</td>
+                <td>
+                  @if (r.status === 'SENT') { <span class="badge badge-success">Đã gửi</span>{{ r.attachment ? ' · ' + r.attachment : '' }} }
+                  @else { <span class="badge badge-danger">Lỗi</span> <span class="em-err">{{ r.error }}</span> }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <p class="subtitle">Chưa gửi email nào.</p>
+    }
+  </section>
+}

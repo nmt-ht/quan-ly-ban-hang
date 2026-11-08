@@ -1,6 +1,6 @@
 <div class="page-header">
   <div>
-    <h1>Phiếu thu chi</h1>
+    <h1>Thu, chi tiền</h1>
     <p class="subtitle">{{ total() }} phiếu@if (loading()) { · đang tải… }</p>
   </div>
   <div class="toolbar">
@@ -120,7 +120,7 @@
   [sortDir]="headerSort()?.dir ?? 'asc'"
   (sortChange)="headerSort.set($event)"
   [emptyAction]="chips().length || search() ? null : createCta"
-  [emptyTitle]="chips().length || search() ? 'Không có phiếu phù hợp' : 'Chưa có phiếu thu chi nào'"
+  [emptyTitle]="chips().length || search() ? 'Không có phiếu phù hợp' : 'Chưa có phiếu thu, chi nào'"
   [emptyHint]="chips().length || search() ? 'Thử bỏ bớt bộ lọc hoặc mở rộng khoảng ngày.' : 'Lập phiếu thu khi nhận tiền, phiếu chi khi trả tiền — mỗi phiếu gắn đúng một tài khoản tiền.'"
 />
 

@@ -35,15 +35,45 @@ Source of truth: `frontend/src/tokens.css`. Light values:
 - `--color-muted`        oklch(47% 0.014 110) — ≥ 4.5:1 on paper
 - `--color-ink`          oklch(22% 0.015 160)
 - `--color-ink-2`        oklch(31% 0.014 150)
-- `--color-accent`       oklch(43% 0.11 160) — moss
+- `--color-accent`       oklch(40% 0.09 158) — moss
 - `--color-accent-ink`   oklch(98.5% 0.006 90)
-- `--color-focus`        oklch(50% 0.14 160)
+- `--color-focus`        oklch(48% 0.11 158)
 
 Dark mode (`body.dark-theme`) keeps every hue; only lightness and chroma move.
 Status colours (danger / success / warning / info) each have a text + tint
-pair; all pairs verified ≥ 5.4:1 light, ≥ 5.6:1 dark.
+pair; all pairs verified ≥ 5.5:1 light, ≥ 5.1:1 dark.
+Status hues: danger 16 (crimson) · warning 84–88 (golden amber) · success 144 · info 239.
 
 Axes: light / geometric-sans / chromatic-moss.
+
+### Colour rules (best-practice pass, 08/11/2026)
+- **Every token sits inside sRGB.** Pick L and H first, then the highest chroma that still fits sRGB — never more.
+  An out-of-gamut value renders clipped on ordinary screens and more saturated on P3 screens (MacBook, iPhone), so
+  the same moss looked different per device and the computed contrast was not what people saw. That pass lowered
+  chroma on 18 values (brand moss 0.11 → 0.097, stock orange, cash teal, several tints and dark focus rings);
+  L and H did not move, and every contrast pair still passes.
+- **Inactive content is never faded with `opacity`.** A ngừng dùng record is still content people read: it gets a
+  dashed edge (the same language as an off toggle), a quiet fill and `--color-muted` text, which stays ≥ 4.5:1;
+  0.6 opacity put it under 3:1. The words "Ngừng dùng" are always printed too. Opacity stays only on disabled
+  controls (`.btn:disabled`, a dead nav arrow), which WCAG exempts.
+- **Fixed light / dark anchors.** `--light-surface`, `--dark-surface`, `--dark-muted` hold the raw values; the modes
+  point at them, and so does anything that must show one mode whatever the theme (logo tile, the side-by-side
+  preview in Màu hiển thị). No raw colour outside tokens.css — except the print papers (black on white by design).
+- **Windows high-contrast.** `@media (forced-colors: active)` (end of styles.scss): every state that lives only in
+  a tint (active menu item, selected tab / segment, pressed toggle, palette row) takes `Highlight` / `HighlightText`;
+  small swatches whose colour is the meaning (aging dots, Màu hiển thị swatches) opt out with `forced-color-adjust`.
+  A new tint-only state must be added to that list.
+- **Module hues stay clear of status hues.** A status colour must never be mistaken for the page's own accent:
+  every module accent sits ≥ 0.09 OKLab ΔE from every status colour, light and dark (measured on the text colours;
+  ≥ 0.10 is "clearly different"). Before the retune the brand moss and success green were 0.037 apart (0.030
+  dark) — the same colour — and Kho's orange sat 0.05–0.06 from both warning and danger, so on Tồn kho a
+  low-stock tile looked like any other tile. The retune kept every module in its family and moved what was cheapest:
+  danger → crimson (hue 16), warning → golden amber (84, darker), success → truer green (144), info 239; moss darker
+  and a touch greener (40%, 158), bán hàng → indigo-blue (272), dòng tiền teal → 185; dark mode spreads them by
+  lightness too (moss 68 %, success 80 %). Lowest pairs now: bán hàng / info and dòng tiền / info 0.093. The whole
+  wheel is full — the only free family left is berry / magenta (330–350°); a new module goes there or reuses slate.
+- **Browser chrome follows the theme.** ThemeService writes `--color-paper` (as hex) into `<meta name="theme-color">`;
+  index.html carries the light paper for first paint.
 
 ### Phân hệ colours (module hues)
 Each menu group is a phân hệ with its own hue; the page area and each sidebar group carry `data-module`
@@ -54,12 +84,12 @@ the module's hue with no per-page CSS.
 
 | Phân hệ | Menu group | `data-module` | Light accent | Dark accent |
 |---|---|---|---|---|
-| Tổng quan, Báo cáo, đăng nhập | (ungrouped) | none — the brand | moss oklch(43% 0.11 160) | oklch(74% 0.11 160) |
-| Bán hàng (khách, báo giá, bảng giá, khuyến mãi, đơn bán, chuyến, xe, phải thu, nhắc nợ) | Bán hàng | `sell` | blue oklch(48% 0.15 258) | oklch(75% 0.12 258) |
-| Kho & sản xuất (hàng hoá, tồn kho, phiếu kho, lệnh SX) | Nghiệp vụ | `stock` | orange oklch(52% 0.15 48) | oklch(76% 0.13 55) |
-| Mua hàng (NCC, đơn nhập, phải trả) | Mua hàng | `purchase` | violet oklch(48% 0.16 300) | oklch(76% 0.12 300) |
-| Dòng tiền (thu chi, tuổi nợ) | Dòng tiền | `cash` | teal oklch(48% 0.09 195) | oklch(76% 0.10 195) |
-| Thiết lập | Thiết lập | `settings` | slate oklch(44% 0.04 255) | oklch(78% 0.04 255) |
+| Tổng quan, Báo cáo, đăng nhập | (ungrouped) | none — the brand | moss oklch(40% 0.09 158) | oklch(68% 0.11 158) |
+| Bán hàng (khách, báo giá, chính sách giá, chương trình khuyến mại, chứng từ bán hàng, chuyến, xe, phải thu, nhắc nợ) | Bán hàng | `sell` | indigo-blue oklch(46% 0.16 272) | oklch(72% 0.13 272) |
+| Kho (vật tư hàng hoá, tồn kho, nhập, xuất kho, lệnh SX) | Kho | `stock` | orange oklch(52% 0.142 48) | oklch(72% 0.14 55) |
+| Mua hàng (NCC, đơn mua hàng, phải trả) | Mua hàng | `purchase` | violet oklch(48% 0.16 300) | oklch(76% 0.12 300) |
+| Quỹ & ngân hàng (thu, chi tiền, phân tích tuổi nợ) | Quỹ & ngân hàng | `cash` | teal oklch(46% 0.081 185) | oklch(74% 0.11 185) |
+| Danh mục (kho, nhóm VTHH, thẻ) + Hệ thống (doanh nghiệp, người dùng, vai trò, màu, nhật ký) | Danh mục · Hệ thống | `settings` | slate oklch(44% 0.04 255) | oklch(78% 0.04 255) |
 
 Every module passes ≥ 5:1 for white text on its fill, its text on the surface and its text on its tint, in both
 modes. Where the hue shows: menu icons (always, in their group's hue), the active menu item, a 3 px rule along the
@@ -115,6 +145,36 @@ widths); table text 13 px.
 - Inline actions: `.link-btn` — accent text, underline on hover.
 - No emoji or pictographs in labels or headings.
 
+## Naming (MISA, since 08/11/2026)
+Phân hệ and screen names follow MISA so staff who know MISA find things where they expect them. Menu, page titles,
+breadcrumbs, tab titles, permissions, nhật ký, command palette, prints and Excel exports all use these names; URLs did
+not change (`/don-hang`, `/thiet-lap/...` stay as they were).
+
+| Was | Now (MISA) |
+|---|---|
+| Nghiệp vụ (group) | Kho |
+| Dòng tiền (group) | Quỹ & ngân hàng — "Dòng tiền" stays as the dashboard / report analysis name |
+| Thiết lập (group) | split: **Danh mục** (Kho, Nhóm VTHH, Thẻ đánh dấu) · **Hệ thống** (the rest) |
+| Hàng hoá / Danh mục hàng hoá | Vật tư hàng hoá (the catalogue; goods-line columns stay "Hàng hoá") |
+| Phiếu kho | Nhập, xuất kho (the screen) · chứng từ kho (one document; still phiếu nhập / xuất kho) |
+| Đơn nhập hàng | Đơn mua hàng |
+| Đơn hàng bán / đơn hàng | Chứng từ bán hàng ("đơn" alone stays as the short form in prose); its printout is titled **PHIẾU XUẤT KHO BÁN HÀNG** |
+| Bảng giá | Chính sách giá |
+| Khuyến mãi | Chương trình khuyến mại (the legal term is khuyến **mại**) |
+| Phiếu thu chi | Thu, chi tiền (the screen) · phiếu thu, chi (documents) |
+| Tuổi nợ | Phân tích tuổi nợ |
+| Nhóm hàng | Nhóm VTHH (page title: Nhóm vật tư, hàng hoá, dịch vụ) |
+| Thông tin công ty | Thông tin doanh nghiệp |
+| Người dùng | Quản lý người dùng (screen); "người dùng" in prose |
+| Chức vụ & phân quyền / chức vụ | Vai trò và quyền hạn / vai trò |
+| Nhật ký hoạt động | Nhật ký truy cập |
+
+Kept on purpose: the product Excel import template (sheet "Hàng hoá", column "Nhóm hàng") so old files still import;
+the customer import reads both "Chính sách giá" and the old "Bảng giá" header (`ImportColumn.aliases`). Text the
+backend writes (error messages, seeded role descriptions, nhật ký lines) still uses the old words until the server
+is renamed too. A new screen takes its MISA name first; when MISA has none (Chuyến giao hàng, Danh mục xe, Thẻ
+đánh dấu, Nhắc nợ, Màu hiển thị) keep a plain Vietnamese noun phrase in the same style.
+
 ## Navigation
 N3 side-rail (232 px, collapsible to 64 px). Active item = its phân hệ's tint + 3 px
 bar in its hue. Folding a group is instant (a height is never animated). Under 768 px the rail becomes an off-canvas drawer opened by the
@@ -125,6 +185,20 @@ Icons: one hand-drawn set in `frontend/src/app/layout/nav-icon/` — 24 px grid,
 icon wears its group's phân hệ hue (hover: the darker step). Collapsed rail shows icon only; the label
 stays as the accessible name + `title`. Add new icons to that component — never
 mix in a second icon library or emoji.
+
+**One icon per menu item, never shared** (reviewed 08/11/2026). The list, by phân hệ:
+Tổng quan `dashboard` · Báo cáo `report` ·
+Kho: Vật tư hàng hoá `product` · Tồn kho `stock` · Nhập, xuất kho `arrows-inout` · Lệnh sản xuất `factory` ·
+Mua hàng: Nhà cung cấp `supplier` (storefront) · Đơn mua hàng `cart` · Công nợ phải trả `ledger-out` ·
+Bán hàng: Khách hàng `customers` · Báo giá `voucher` · Chính sách giá `tag` · Chương trình khuyến mại `percent` ·
+Chứng từ bán hàng `receipt` · Chuyến giao hàng `truck` · Danh mục xe `car` · Công nợ phải thu `ledger-in` · Nhắc nợ `bell` ·
+Quỹ & ngân hàng: Thu, chi tiền `cash` · Phân tích tuổi nợ `hourglass` ·
+Danh mục: Kho `warehouse` · Nhóm VTHH `folder` · Thẻ đánh dấu `bookmark` ·
+Hệ thống: Thông tin doanh nghiệp `company` (office block) · Quản lý người dùng `user` · Vai trò và quyền hạn `shield` ·
+Màu hiển thị `palette` · Nhật ký truy cập `history`.
+A button elsewhere that opens one of these screens uses the same icon. Before adding a menu item, check its icon is not
+already taken and that its silhouette does not read like a neighbour's (four tiles = Tổng quan only; a pitched roof =
+Kho only).
 
 ## Forms
 - Labels above inputs, sentence case, 13 px / 500.
@@ -208,10 +282,51 @@ mix in a second icon library or emoji.
   `CompanyInfo.tagColors`); everyone reads it, changing needs `company.update`.
 
 ## Topbar
-- Right side = one account menu (`layout/account-menu`, WAI-ARIA menu button):
+- Right side = the **Thông báo bell**, then one account menu (`layout/account-menu`, WAI-ARIA menu button):
   avatar initials + name/role (avatar only on mobile) → header (name, email,
   role) · Giao diện (Sáng / Tối / Theo hệ thống, `menuitemradio`) · separator ·
-  Đăng xuất (danger, last). No loose buttons next to it.
+  Đăng xuất (danger, last). Nothing else goes there.
+
+## Thông báo (the topbar bell)
+- **What it lists:** things wrong *right now*, whatever kỳ Tổng quan shows — rules in `backend/src/modules/reports/alerts.ts`
+  (tested in alerts.spec.ts), served by `GET /api/alerts`. Nghiêm trọng: đơn trễ hẹn giao · khách nợ quá hạn · nợ NCC
+  quá hạn · quỹ âm. Theo dõi: phải trả NCC đến hạn ≤ 7 ngày · mặt hàng dưới tồn tối thiểu · đơn mua hàng chờ duyệt (Nháp)
+  · báo giá sắp hết hạn (≤ 3 ngày) · báo giá đã hết hạn chưa chốt (trong 14 ngày qua).
+- **Not news:** doanh thu giảm, tỷ suất / chiết khấu, chi vượt thu, khách ngừng mua — analysis of a kỳ; they stay on
+  Tổng quan only.
+- **One list.** Tổng quan › Cần xử lý shows these same alerts (AlertsService) plus its kỳ-based checks, so the bell and
+  the dashboard never disagree. A new point-in-time check = one rule in alerts.ts (+ a test); the dashboard picks it up.
+- **Per user.** Each check runs only when the user holds the permission of the screen that fixes it (order.view,
+  debt.view, voucher.view, stock.view, purchase.approve, quote.view; a seller without order.view_all counts only their
+  own đơn / báo giá), and the client drops anything `canVisit` refuses.
+- **Freshness.** Read on sign-in, every 5 minutes, and on navigation / refocus when a minute has passed; opening the bell
+  re-reads too.
+- **Đã đọc, one by one.** Nothing is marked by just opening the bell. An alert is read when the user opens it (clicks
+  its row) or presses its ✓ (a sibling button, not inside the link; focus moves on to the next row). **Đã đọc tất cả**
+  (header bar, link-style, disabled when nothing is unread) marks the rest and focus lands on "Xem tất cả". Marks are
+  per user, per browser (`nt.alerts.seen.<userId>`), pruned to the alerts still listed. Each alert has a `sig` that
+  changes with its size (12 → 13 đơn trễ), so a grown problem is unread again; a fixed one simply disappears.
+- **Two tabs** (segmented): **Chưa đọc · n** — opens here while anything is unread, and a read row leaves it — and
+  **Tất cả · m**, where read rows stay (no dot, no fill, title in ink-2 / 500) until the problem is fixed. All read =
+  "Đã đọc hết" + "Xem tất cả". The bell's count is the unread count (99+).
+- **Why it stays short.** One alert is one *kind* of problem with its count ("12 đơn trễ hẹn giao" → the late-order
+  list), not one per document, so even a bad day is under ten rows; the list itself is the per-document view.
+- **Look** (redesigned 08/11/2026). Trigger: a 40 px icon button (`bell`, ink-2); the count shows only unseen alerts —
+  warning fill, danger once one of them is Nghiêm trọng, always a number (9+). Panel (25 rem, `--shadow-pop`):
+  header = "Thông báo" · "Cập nhật HH:mm" · reload icon (disabled while reading). Body is **grouped by level**: a group
+  head says the word once with its dot and count ("● Nghiêm trọng 3", danger / warning text) — no chip on every row.
+  Row = **the icon of the screen it opens, in that phân hệ's tint** (`menuEntryOf(url)` in nav-items.ts, so it matches
+  the left menu: tuổi nợ → hourglass in teal, tồn kho → layers in orange) · title (13 px / 600) · why (muted, ≤ 2 lines)
+  · chevron · ✓ while unread; the action word is read to screen readers only. Unread rows carry an **ink** dot and a
+  paper fill (never the page accent: moss / orange would read as ổn / cảnh báo). Footer: one link to Tổng
+  quan. States: loading = three still placeholder rows (no shimmer) · error = alert icon + reason + Thử lại · clear =
+  success tick + what the bell watches for.
+- **Phones (≤ 40 rem):** the panel is `position: fixed` under the topbar, 8 px from both edges — anchored to the bell it
+  ran 36 px off the left edge at 320 px.
+- **Links land filtered:** `/don-hang?late=1`, `/kho/ton-kho?belowMin=true`, `/cong-no/tuoi-no?loai=phai-thu`,
+  `/mua-hang?status=NHAP`, `/bao-gia?status=MOI|HET_HAN`. A row pointing at the page already open reloads it so the
+  new filter applies.
+- **Not yet:** email / Zalo / push when the app is closed — needs a scheduled job on the server.
 - Theme is a personal preference (`core/services/theme.service.ts`, saved per
   browser, follows the OS when "Theo hệ thống").
 
@@ -558,6 +673,35 @@ mix in a second icon library or emoji.
 ## What pages MAY differ on
 - Table vs form vs report (group tabs + full-width card) layout inside the Workbench frame.
 - Per-column mono via `DataTableColumn.mono`.
+
+## Email gửi đi (as MISA, since 08/11/2026)
+- **How it sends** (Hệ thống › Email gửi đi, `/thiet-lap/email`, company.update):
+  - **Email riêng của doanh nghiệp** (recommended, MISA's way): the company's own mailbox over SMTP — presets for Gmail /
+    Google Workspace, Outlook / Microsoft 365, Zoho, Yandex (host, port, SSL/STARTTLS filled in; hint on app passwords).
+    Customers see the company's real address, replies come back to it, Gmail / Outlook keep a copy in Đã gửi.
+  - **Hệ thống gửi hộ** (only when the server sets `MAIL_SYSTEM_URL` + `MAIL_SYSTEM_FROM`): the platform's transactional
+    SMTP sends From "<Tên công ty>" <no-reply@platform domain> with Reply-To the company's email. Never the company's
+    address in From through someone else's server — DMARC would fail and the email would land in spam.
+  - **Tắt** (default).
+- **Security.** The SMTP password is write-only: sealed with AES-256-GCM (key from `MAIL_SECRET`, else PLATFORM_SECRET,
+  else JWT_SECRET), never returned; the screen only says "đã lưu". Changing the transport clears "đã gửi thử". Each user
+  sends at most 40 emails / 10 minutes; ≤ 10 recipients per email; attachment must be a real PDF ≤ 6 MB.
+- **Permissions.** `email.send` (new; given to CEO, Quản lý and every role that lập báo giá / đơn / phiếu thu or nhắc
+  nợ) plus the document's own view permission (quote.view, order.view, purchase.view, voucher.view, debt.remind /
+  debt.view). Settings and templates: company.update.
+- **Templates** per document (Báo giá · Chứng từ bán hàng · Đơn mua hàng · Phiếu thu · Nhắc nợ / Thông báo công nợ ·
+  Biên bản đối chiếu): subject + plain body with {placeholders} (ten_khach, so_chung_tu, ngay, tong_tien, han, so_du,
+  ten_cong_ty, dien_thoai, nguoi_gui). A missing value shows as "…" so the gap is seen before sending; an optional
+  " · {x}" tail (the signature's phone) drops out. Defaults live in backend `modules/mail/mail.rules.ts`.
+- **Gửi email** button sits beside In on every document (`shared/email-compose`): Đến filled from the partner's email,
+  CC, Tiêu đề / Nội dung from the template (editable), "Đính kèm <file>.pdf" = the document's own A4 printout
+  (`shared/print/print-pdf.ts`: the print-only sheet laid out off-screen, html2canvas-pro → jsPDF, page numbers), and
+  "Đã gửi trước đây" for that document. Not set up → a warning with "Thiết lập ngay" (or who to ask). Sent → the dialog
+  closes and the page's quiet notice says to whom. Nhắc nợ sends the reminder text as edited, then stays open to
+  "Ghi nhận đã nhắc" (kênh Email chosen).
+- **Lưu vết.** Every email, sent or failed, is a row in EmailLog (who, when, to / cc, subject, attachment, error) and a
+  line in Nhật ký truy cập; the settings page lists the latest 200; optional BCC to an archive mailbox.
+- **Not yet:** scheduled / bulk sending (nhắc nợ hàng loạt), open tracking, a customer link to view the document online.
 
 ## Excel exports
 - File name = Vietnamese title with diacritics + export date and time: `Đơn hàng bán - 22-10-2026 14h35.xlsx`.

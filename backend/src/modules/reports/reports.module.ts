@@ -20,6 +20,11 @@ import { ReportDataService } from './report-data.service.js';
 import { GROUP_PERMISSION, ReportDef } from './report.types.js';
 import { costBook, inRange, isoDay, revenueLines, unitCosts } from './report.rules.js';
 import { dashboard } from './dashboard.js';
+import { alerts } from './alerts.js';
+import { PrismaService } from '../../prisma/prisma.service.js';
+import { SalesService } from '../sales/sales.service.js';
+import { CashAccountsService } from '../cash/cash-catalog.module.js';
+import { fromDay } from '../../common/text.js';
 import { seesPurchasePrices } from '../../common/purchase-prices.js';
 import { SALES_DEFS } from './defs/sales.defs.js';
 import { STOCK_DEFS } from './defs/stock.defs.js';
@@ -80,10 +85,67 @@ export class ReportsService {
   }
 }
 
+/**
+ * Thông báo (GET /alerts): what is wrong right now, for this user. Each check runs only when the user holds the
+ * permission of the screen that fixes it, so the bell never points at a page they cannot open.
+ */
+@Injectable()
+export class AlertsService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly sales: SalesService,
+    private readonly receivables: ReceivablesService,
+    private readonly payables: PayablesService,
+    private readonly cashAccounts: CashAccountsService,
+  ) {}
+
+  async list(user: AuthUser) {
+    const can = (p: string) => user.permissions.includes(p);
+    const today = isoDay();
+    const [lateOrders, debt, cashAccounts, belowMin, draftPurchases, openQuotes] = await Promise.all([
+      can('order.view') ? this.sales.lateOrderCount(user, today) : null,
+      can('debt.view') ? Promise.all([this.receivables.rows(today), this.payables.rows(today)]).then(([receivables, payables]) => ({ receivables, payables })) : null,
+      can('voucher.view') ? this.cashAccounts.findAll() : null,
+      can('stock.view') ? this.belowMin() : null,
+      can('purchase.approve') ? this.prisma.purchaseOrder.count({ where: { status: 'NHAP' } }) : null,
+      can('quote.view') ? this.openQuotes(user) : null,
+    ]);
+    return alerts({ today, lateOrders, debt, cashAccounts, belowMin, draftPurchases, openQuotes });
+  }
+
+  /** Mặt hàng đang dùng (not dịch vụ) whose tồn across every kho is under its tồn tối thiểu — Tổng quan's count. */
+  private async belowMin(): Promise<number> {
+    const [products, levels] = await Promise.all([
+      this.prisma.product.findMany({ where: { isActive: true, minStock: { gt: 0 }, NOT: { type: 'DICH_VU' } }, select: { id: true, minStock: true } }),
+      this.prisma.stockLevel.groupBy({ by: ['productId'], _sum: { quantity: true } }),
+    ]);
+    const qty = new Map(levels.map((l) => [l.productId, Number(l._sum.quantity ?? 0)]));
+    return products.filter((p) => (qty.get(p.id) ?? 0) < Number(p.minStock)).length;
+  }
+
+  /** Báo giá đang mở with a hạn hiệu lực, as the user's báo giá list shows them (same visibility rule). */
+  private async openQuotes(user: AuthUser) {
+    const own = can(user, 'order.view_all') || !can(user, 'quote.create') ? {} : { OR: [{ salesRepId: user.id }, { createdById: user.id }] };
+    const rows = await this.prisma.quotation.findMany({ where: { AND: [own, { status: 'MOI', validUntil: { not: null, gte: fromDay(isoDay(new Date(Date.now() - 30 * 86_400_000)))! } }] }, select: { validUntil: true } });
+    return rows.map((r) => ({ validUntil: r.validUntil!.toISOString().slice(0, 10) }));
+  }
+}
+
+const can = (user: AuthUser, p: string) => user.permissions.includes(p);
+
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller()
 export class ReportsController {
-  constructor(private readonly reports: ReportsService) {}
+  constructor(
+    private readonly reports: ReportsService,
+    private readonly alertsService: AlertsService,
+  ) {}
+
+  /** Thông báo for the topbar bell and Tổng quan › Cần xử lý. Every signed-in user; filtered by their permissions. */
+  @Get('alerts')
+  alerts(@CurrentUser() user: AuthUser) {
+    return this.alertsService.list(user);
+  }
 
   /** Tổng quan of a kỳ: `from` missing = from the first sale; `to` missing or later = today. */
   @RequirePermissions('report.dashboard')
@@ -127,6 +189,6 @@ export class ReportsController {
     PurchasingModule, SalesModule, InventoryModule, DeliveryModule,
   ],
   controllers: [ReportsController],
-  providers: [ReportDataService, ReportsService],
+  providers: [ReportDataService, ReportsService, AlertsService],
 })
 export class ReportsModule {}

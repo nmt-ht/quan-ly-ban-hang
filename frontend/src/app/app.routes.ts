@@ -80,6 +80,7 @@ export const routes: Routes = [
       { path: 'thu-chi/:id', loadComponent: () => import('./features/cash-vouchers/cash-voucher-view/cash-voucher-view.component').then((m) => m.CashVoucherViewComponent) },
       { path: 'cong-no/tuoi-no', loadComponent: () => import('./features/debt-aging/debt-aging.component').then((m) => m.DebtAgingComponent) },
 
+      { path: 'thiet-lap/email', loadComponent: () => import('./features/settings/email-settings/email-settings.component').then((m) => m.EmailSettingsComponent) },
       { path: 'thiet-lap/cong-ty', loadComponent: () => import('./features/settings/company-info/company-info.component').then((m) => m.CompanyInfoComponent) },
       { path: 'thiet-lap/kho', loadComponent: () => import('./features/settings/warehouses/warehouses.component').then((m) => m.WarehousesComponent) },
       { path: 'thiet-lap/kho/:id', loadComponent: () => import('./features/settings/warehouses/warehouse-detail/warehouse-detail.component').then((m) => m.WarehouseDetailComponent) },

@@ -98,7 +98,7 @@ export class SupplierDetailComponent {
   readonly tabs = computed(() => [
     { id: 'chung' as SupplierTab, label: 'Thông tin chung' },
     { id: 'hang' as SupplierTab, label: 'Danh mục hàng', count: this.catalog().length },
-    { id: 'don-nhap' as SupplierTab, label: 'Đơn nhập', count: this.orders().length },
+    { id: 'don-nhap' as SupplierTab, label: 'Đơn mua hàng', count: this.orders().length },
     { id: 'cong-no' as SupplierTab, label: 'Công nợ' },
     { id: 'nhat-ky' as SupplierTab, label: 'Nhật ký' },
   ]);
@@ -131,7 +131,7 @@ export class SupplierDetailComponent {
     if (s.isActive) {
       const open = this.openOrders().length;
       this.notice.set(
-        `Đã chuyển ${s.code} sang Ngừng hợp tác — không chọn được khi lập đơn nhập mới.` +
+        `Đã chuyển ${s.code} sang Ngừng hợp tác — không chọn được khi lập đơn mua hàng mới.` +
           (open ? ` Còn ${open} đơn đang chờ hàng, các đơn này vẫn nhận hàng bình thường.` : ''),
       );
     } else {

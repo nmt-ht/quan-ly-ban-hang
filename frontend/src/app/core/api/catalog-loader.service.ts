@@ -11,7 +11,7 @@ type DirectoryUser = Pick<AppUser, 'id' | 'name' | 'email' | 'roleId' | 'status'
 
 /** The steps of the first load, as the loading screen names them (step i = reading LOAD_STEPS[i]). */
 const LOAD_STEPS = [
-  'Tồn kho và phiếu kho', 'Đơn nhập hàng', 'Đơn hàng bán và lệnh sản xuất', 'Báo giá', 'Chuyến giao hàng', 'Phiếu thu chi',
+  'Tồn kho và chứng từ kho', 'Đơn mua hàng', 'Chứng từ bán hàng và lệnh sản xuất', 'Báo giá', 'Chuyến giao hàng', 'Thu, chi tiền',
   'Danh mục: hàng hoá, khách hàng, nhà cung cấp…',
 ];
 

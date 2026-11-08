@@ -34,7 +34,9 @@
           <a class="btn" [href]="'tel:' + phone()" (click)="channel.set('GOI_DIEN')">Gọi {{ c.phone }}</a>
           <a class="btn" [href]="smsHref()" (click)="channel.set('SMS')">SMS</a>
         }
-        @if (email()) {
+        @if (canEmail()) {
+          <button type="button" class="btn" (click)="sendEmail()"><app-nav-icon name="mail" />Gửi email</button>
+        } @else if (email()) {
           <a class="btn" [href]="mailto()" (click)="channel.set('EMAIL')">Gửi email</a>
         }
         @if (!phone() && !email()) { <span class="subtitle">Khách chưa có điện thoại / email — gọi hoặc gặp trực tiếp rồi ghi nhận.</span> }
@@ -80,6 +82,7 @@
         </div>
       }
 
+      @if (sentNote()) { <p class="status" role="status">{{ sentNote() }} Bấm "Ghi nhận đã nhắc" để lưu lần nhắc này.</p> }
       @if (error()) { <p class="status status-error" role="alert">{{ error() }}</p> }
     </div>
 
@@ -91,3 +94,4 @@
     </footer>
   }
 </dialog>
+<app-email-compose (sent)="emailed($event)" />

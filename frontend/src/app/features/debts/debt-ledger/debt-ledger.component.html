@@ -16,9 +16,19 @@
           <app-nav-icon name="download" />{{ exporting() ? 'Đang xuất…' : 'Xuất Excel' }}
         </button>
         <button type="button" class="btn" [disabled]="!row()" (click)="print()"><app-nav-icon name="printer" />Biên bản đối chiếu</button>
+        @if (canEmail()) {
+          <button type="button" class="btn" [disabled]="!row()" (click)="email('debt_reconcile')" title="Gửi biên bản đối chiếu (PDF) cho đối tác ký xác nhận">
+            <app-nav-icon name="mail" />Gửi đối chiếu
+          </button>
+        }
         @if (isReceivable()) {
           <button type="button" class="btn" [disabled]="!row() || amountDue() <= 0" (click)="printNotice()"
             title="In thông báo các khoản còn nợ kèm mã VietQR chuyển khoản, gửi khách"><app-nav-icon name="printer" />Thông báo công nợ</button>
+          @if (canEmail()) {
+            <button type="button" class="btn" [disabled]="!row() || amountDue() <= 0" (click)="email('debt_reminder')" title="Gửi thông báo công nợ (PDF, có mã VietQR) qua email">
+              <app-nav-icon name="mail" />Gửi thông báo
+            </button>
+          }
           <button type="button" class="btn" [disabled]="!row() || amountDue() <= 0" (click)="remind()"><app-nav-icon name="clock" />Nhắc nợ</button>
         }
         <a class="btn btn-primary" [routerLink]="t().voucherPath" [queryParams]="voucherQuery()"><app-nav-icon name="cash" />{{ t().voucherLabel }}</a>
@@ -252,6 +262,7 @@
 
   @if (isReceivable()) {
     <app-remind-dialog [account]="account()" (recorded)="notice.set($event)" />
+    <app-email-compose (sent)="notice.set($event)" />
   }
 } @else {
   <div class="card empty-state">

@@ -79,12 +79,12 @@
             <dl class="ledger-dl">
               <div><dt>Mặt hàng còn tồn</dt><dd class="num">{{ usage().items }}</dd></div>
               @if (cost.canViewStockValue()) { <div><dt>Giá trị tồn (giá vốn bình quân)</dt><dd class="num">{{ money(usage().value) }}</dd></div> }
-              <div><dt>Phiếu kho</dt><dd class="num">{{ usage().vouchers }}</dd></div>
+              <div><dt>Chứng từ kho</dt><dd class="num">{{ usage().vouchers }}</dd></div>
               <div><dt>Kho ngầm định của</dt><dd class="num">{{ usage().defaults }} mặt hàng</dd></div>
             </dl>
             <div class="wd-links">
               <a class="link-btn" routerLink="/kho/ton-kho" [queryParams]="{ kho: w.id }">Xem tồn kho</a>
-              <a class="link-btn" routerLink="/kho/phieu" [queryParams]="{ kho: w.id }">Xem phiếu kho</a>
+              <a class="link-btn" routerLink="/kho/phieu" [queryParams]="{ kho: w.id }">Xem chứng từ kho</a>
             </div>
           </section>
         </div>
@@ -162,7 +162,7 @@
             </div>
             <p class="wd-foot">
               {{ vouchers().length > limit ? limit + ' / ' + vouchers().length + ' phiếu · ' : '' }}
-              <a class="link-btn" routerLink="/kho/phieu" [queryParams]="{ kho: w.id }">Mở Phiếu kho của kho này (lọc theo loại, kỳ)</a>
+              <a class="link-btn" routerLink="/kho/phieu" [queryParams]="{ kho: w.id }">Mở Nhập, xuất kho của kho này (lọc theo loại, kỳ)</a>
             </p>
           } @else {
             <div class="empty-state">

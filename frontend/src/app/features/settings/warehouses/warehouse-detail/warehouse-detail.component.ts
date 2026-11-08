@@ -104,7 +104,7 @@ export class WarehouseDetailComponent {
   readonly tabs = computed(() => [
     { id: 'chung' as Tab, label: 'Thông tin chung' },
     { id: 'ton-kho' as Tab, label: 'Tồn kho', count: this.usage().items },
-    { id: 'phieu' as Tab, label: 'Phiếu kho', count: this.usage().vouchers },
+    { id: 'phieu' as Tab, label: 'Chứng từ kho', count: this.usage().vouchers },
     { id: 'nhat-ky' as Tab, label: 'Nhật ký' },
   ]);
   readonly tab = computed<Tab>(() => {

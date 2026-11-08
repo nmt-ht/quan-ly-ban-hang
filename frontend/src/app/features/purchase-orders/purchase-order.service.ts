@@ -80,7 +80,7 @@ export class PurchaseOrderService {
 
   private find(id: string): PurchaseOrder {
     const o = this.data.purchaseOrders().find((x) => x.id === id);
-    if (!o) throw new Error(`Không tìm thấy đơn nhập ${id}`);
+    if (!o) throw new Error(`Không tìm thấy đơn mua hàng ${id}`);
     return o;
   }
 

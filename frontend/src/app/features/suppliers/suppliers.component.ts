@@ -119,7 +119,7 @@ export class SuppliersComponent {
       filterValue: (r) => this.svc.statsOf(r.id).productCount,
     },
     {
-      key: 'orderCount', label: 'Đơn nhập', align: 'right',
+      key: 'orderCount', label: 'Đơn mua hàng', align: 'right',
       format: (r) => String(this.svc.statsOf(r.id).orderCount),
       filterValue: (r) => this.svc.statsOf(r.id).orderCount,
     },
@@ -181,7 +181,7 @@ export class SuppliersComponent {
           { header: 'Địa chỉ', width: 40 },
           { header: 'Số ngày được nợ', width: 14 },
           { header: 'Số mặt hàng', width: 12 },
-          { header: 'Số đơn nhập', width: 12 },
+          { header: 'Số đơn mua hàng', width: 12 },
           { header: 'Còn phải trả', width: 16, numFmt: '#,##0' },
           { header: 'Trạng thái', width: 16 },
           { header: 'Ngày tạo', width: 12 },

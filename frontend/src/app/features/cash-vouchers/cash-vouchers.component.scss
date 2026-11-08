@@ -81,8 +81,11 @@
   color: var(--color-muted);
 }
 
+// Ngừng dùng (the card also says so in words): dashed edge, muted name; the balance keeps its tone.
 .is-off .cv-bal-item {
-  opacity: 0.6;
+  border-style: dashed;
+  border-color: var(--color-rule-strong);
+  color: var(--color-muted);
 }
 
 .cv-cards {

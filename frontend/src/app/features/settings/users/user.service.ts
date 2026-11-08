@@ -73,7 +73,7 @@ export class UserService {
 
   async update(id: string, d: UserDraft): Promise<void> {
     const u = this.find(id);
-    if (d.roleId !== u.roleId && this.isLastAdmin(u)) throw new Error('Đây là tài khoản CEO cuối cùng — không đổi chức vụ được.');
+    if (d.roleId !== u.roleId && this.isLastAdmin(u)) throw new Error('Đây là tài khoản CEO cuối cùng — không đổi vai trò được.');
     this.keep(await this.api.put<AppUser>(`/users/${id}`, this.clean(d)));
   }
 

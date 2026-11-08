@@ -1,7 +1,7 @@
 <div class="page-header">
   <div>
-    <h1>Thông tin công ty</h1>
-    <p class="subtitle">Hiện ở đầu mọi phiếu in: phiếu giao hàng, phiếu kho, phiếu thu chi, biên bản đối chiếu.</p>
+    <h1>Thông tin doanh nghiệp</h1>
+    <p class="subtitle">Hiện ở đầu mọi phiếu in: phiếu giao hàng, phiếu nhập, xuất kho, phiếu thu, chi, biên bản đối chiếu.</p>
   </div>
 </div>
 
@@ -105,7 +105,7 @@
         <span>Cho xuất quá số tồn</span>
         <span class="hint">
           Bỏ chọn thì giao hàng, xuất kho chuyến, xuất vật tư sản xuất và phiếu xuất tay làm tồn kho âm sẽ bị từ chối;
-          chỉ chức vụ có quyền "Xuất vượt tồn kho" vẫn xuất được.
+          chỉ vai trò có quyền "Xuất vượt tồn kho" vẫn xuất được.
         </span>
       </label>
     </section>
@@ -114,8 +114,8 @@
     <section class="card section-block co-lock" aria-labelledby="co-lock-title">
       <h3 id="co-lock-title" class="form-section-title">Khoá sổ kỳ kế toán</h3>
       <p class="hint">
-        Chứng từ có ngày từ ngày khoá sổ trở về trước không lập mới, không sửa và không huỷ được: phiếu kho, giao hàng, nhận hàng,
-        trả hàng, phiếu thu chi. Số liệu kỳ đã báo cáo giữ nguyên.
+        Chứng từ có ngày từ ngày khoá sổ trở về trước không lập mới, không sửa và không huỷ được: chứng từ kho, giao hàng, nhận hàng,
+        trả hàng, phiếu thu, chi. Số liệu kỳ đã báo cáo giữ nguyên.
       </p>
       <p>
         @if (lockDate(); as d) { Đang khoá sổ đến hết ngày <strong class="num">{{ day(d) }}</strong>. } @else { Chưa khoá sổ kỳ nào. }

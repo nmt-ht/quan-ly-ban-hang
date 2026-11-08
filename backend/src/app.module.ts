@@ -22,6 +22,7 @@ import { PurchasingModule } from './modules/purchasing/purchasing.module.js';
 import { SalesModule } from './modules/sales/sales.module.js';
 import { DeliveryModule } from './modules/delivery/delivery.module.js';
 import { CashVouchersModule } from './modules/cash/cash-vouchers.module.js';
+import { MailModule } from './modules/mail/mail.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
 import { PricingModule } from './modules/pricing/pricing.module.js';
 import { PlatformModule } from './platform/platform.module.js';
@@ -59,6 +60,8 @@ import { PrismaExceptionFilter } from './common/prisma-exception.filter.js';
     CashVouchersModule,
     // Đợt 7 — tổng quan, báo cáo
     ReportsModule,
+    // Email gửi đi: báo giá, chứng từ, nhắc nợ… cho khách hàng / NCC
+    MailModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

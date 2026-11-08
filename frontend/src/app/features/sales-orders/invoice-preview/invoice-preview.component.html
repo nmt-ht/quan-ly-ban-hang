@@ -2,7 +2,7 @@
   <header class="ip-head">
     <div>
       <h2 id="ip-title">Xem trước hoá đơn — <span class="num">{{ order().code }}</span></h2>
-      <p class="subtitle">Hoá đơn GTGT dựng từ đơn và thông tin công ty, mỗi đợt giao một hoá đơn. Bản xem trước: chưa phát hành, chưa có số hoá đơn, mã của cơ quan thuế và chữ ký số.</p>
+      <p class="subtitle">Hoá đơn GTGT dựng từ đơn và thông tin doanh nghiệp, mỗi đợt giao một hoá đơn. Bản xem trước: chưa phát hành, chưa có số hoá đơn, mã của cơ quan thuế và chữ ký số.</p>
       @if (sources().length > 1) {
         <label class="ip-source">Đợt giao
           <select [value]="source().key" (change)="sourceKey.set($any($event.target).value)">
@@ -153,7 +153,7 @@
     </div>
 
     <footer class="inv-foot">
-      Bản xem trước dựng từ đơn hàng <span class="num">{{ order().code }}</span> ({{ source().label }}) — chưa phát hành, không có giá trị pháp lý.
+      Bản xem trước dựng từ chứng từ bán hàng <span class="num">{{ order().code }}</span> ({{ source().label }}) — chưa phát hành, không có giá trị pháp lý.
       Hoá đơn điện tử chính thức lập và ký số qua nhà cung cấp hoá đơn điện tử.
     </footer>
   </article>

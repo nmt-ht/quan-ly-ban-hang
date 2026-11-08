@@ -17,12 +17,12 @@ import {
 export type RevenueGroup = 'time' | 'customer' | 'product' | 'category' | 'rep';
 
 export const REVENUE_GROUP_LABEL: Record<RevenueGroup, string> = {
-  time: 'Theo thời gian', customer: 'Theo khách hàng', product: 'Theo mặt hàng', category: 'Theo nhóm hàng', rep: 'Theo nhân viên bán hàng',
+  time: 'Theo thời gian', customer: 'Theo khách hàng', product: 'Theo mặt hàng', category: 'Theo nhóm VTHH', rep: 'Theo nhân viên bán hàng',
 };
 
 const TITLE: Record<RevenueGroup, string> = {
   time: 'Doanh thu theo thời gian', customer: 'Doanh thu theo khách hàng', product: 'Doanh thu theo mặt hàng',
-  category: 'Doanh thu theo nhóm hàng', rep: 'Doanh thu theo nhân viên bán hàng',
+  category: 'Doanh thu theo nhóm VTHH', rep: 'Doanh thu theo nhân viên bán hàng',
 };
 
 interface Row extends RevenueSums {

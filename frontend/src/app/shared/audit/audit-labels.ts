@@ -3,10 +3,10 @@ import { DataStore } from '../../core/services/data-store.service';
 
 /** Kinds of record in Nhật ký hoạt động, by the server's entityType (Prisma model name). */
 export const ENTITY_LABEL: Record<string, string> = {
-  SalesOrder: 'Đơn hàng bán', PurchaseOrder: 'Đơn nhập hàng', ProductionOrder: 'Lệnh sản xuất', DeliveryTrip: 'Chuyến giao hàng',
-  WarehouseVoucher: 'Phiếu kho', CashVoucher: 'Phiếu thu chi', Customer: 'Khách hàng', Supplier: 'Nhà cung cấp',
-  Product: 'Hàng hoá', Vehicle: 'Xe', User: 'Người dùng', Role: 'Chức vụ', Tag: 'Thẻ đánh dấu', CashAccount: 'Tài khoản tiền',
-  CashCategory: 'Loại thu chi', CompanyInfo: 'Thông tin công ty', Warehouse: 'Kho', ProductCategory: 'Nhóm hàng', Api: 'API',
+  SalesOrder: 'Chứng từ bán hàng', PurchaseOrder: 'Đơn mua hàng', ProductionOrder: 'Lệnh sản xuất', DeliveryTrip: 'Chuyến giao hàng',
+  WarehouseVoucher: 'Chứng từ kho', CashVoucher: 'Phiếu thu, chi', Customer: 'Khách hàng', Supplier: 'Nhà cung cấp',
+  Product: 'Vật tư hàng hoá', Vehicle: 'Xe', User: 'Người dùng', Role: 'Vai trò', Tag: 'Thẻ đánh dấu', CashAccount: 'Tài khoản tiền',
+  CashCategory: 'Loại thu chi', CompanyInfo: 'Thông tin doanh nghiệp', Warehouse: 'Kho', ProductCategory: 'Nhóm VTHH', Api: 'API',
 };
 
 const DETAIL_ROUTE: Record<string, string> = {

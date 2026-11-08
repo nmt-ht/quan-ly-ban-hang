@@ -1,6 +1,6 @@
 <div class="page-header">
   <div>
-    <h1>Nhóm hàng</h1>
+    <h1>Nhóm vật tư, hàng hoá, dịch vụ</h1>
     <p class="subtitle">Cách bạn chia danh mục hàng hoá để lọc và xem tồn nhanh · {{ data.categories().length }} nhóm</p>
   </div>
   @if (canCreate) {
@@ -13,7 +13,7 @@
 <!-- Tính chất is the system's (it decides stock, định mức and the code prefix) — say where it lives, once. -->
 <p class="cg-note">
   <strong>Tính chất</strong> (Vật tư hàng hoá · Thành phẩm · Dịch vụ) do hệ thống quy định, không sửa ở đây: nó quyết định mặt hàng có
-  tồn kho hay không, có định mức hay không và tiền tố mã VT / SP / DV. <strong>Nhóm hàng</strong> là cách chia riêng của bạn — thêm,
+  tồn kho hay không, có định mức hay không và tiền tố mã VT / SP / DV. <strong>Nhóm VTHH</strong> là cách chia riêng của bạn — thêm,
   đổi tên, hoặc gộp hai nhóm bằng cách xoá một nhóm và chuyển mặt hàng sang nhóm kia.
 </p>
 
@@ -26,7 +26,7 @@
 @if (error()) { <p class="form-note text-danger" role="alert">{{ error() }}</p> }
 
 <div class="filters-bar">
-  <input type="search" class="filter-search" placeholder="Tìm nhóm hàng…" aria-label="Tìm nhóm hàng" [value]="search()" (input)="search.set($any($event.target).value)" />
+  <input type="search" class="filter-search" placeholder="Tìm nhóm VTHH…" aria-label="Tìm nhóm VTHH" [value]="search()" (input)="search.set($any($event.target).value)" />
 </div>
 
 <section class="card table-wrap">
@@ -35,7 +35,7 @@
       <table>
         <thead>
           <tr>
-            <th scope="col">Nhóm hàng</th>
+            <th scope="col">Nhóm VTHH</th>
             <th scope="col" class="align-right">Mặt hàng</th>
             <th scope="col" class="align-right">Vật tư</th>
             <th scope="col" class="align-right">Thành phẩm</th>
@@ -83,8 +83,8 @@
     </div>
   } @else {
     <div class="empty-state">
-      <h3>{{ search() ? 'Không có nhóm phù hợp' : 'Chưa có nhóm hàng nào' }}</h3>
-      <p>Nhóm hàng chia danh mục theo cách của bạn — ví dụ Khung tranh, Kính - Mica, Phụ kiện — để lọc hàng hoá và tồn kho nhanh.</p>
+      <h3>{{ search() ? 'Không có nhóm phù hợp' : 'Chưa có nhóm VTHH nào' }}</h3>
+      <p>Nhóm VTHH chia danh mục theo cách của bạn — ví dụ Khung tranh, Kính - Mica, Phụ kiện — để lọc hàng hoá và tồn kho nhanh.</p>
       @if (canCreate && !search()) { <button type="button" class="btn btn-primary" (click)="open()"><app-nav-icon name="plus" />Thêm nhóm</button> }
     </div>
   }
@@ -116,7 +116,7 @@
 
 <dialog #dialog class="rg-dialog th-dialog" aria-labelledby="cg-title">
   <header class="rg-head">
-    <div><h2 id="cg-title">{{ editing() ? 'Đổi tên nhóm' : 'Thêm nhóm hàng' }}</h2></div>
+    <div><h2 id="cg-title">{{ editing() ? 'Đổi tên nhóm' : 'Thêm nhóm VTHH' }}</h2></div>
     <button type="button" class="icon-action" aria-label="Đóng" (click)="close()"><app-nav-icon name="x" /></button>
   </header>
   <div class="rg-body th-body">

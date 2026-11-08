@@ -1,0 +1,103 @@
+<button
+  #trigger
+  type="button"
+  class="bell"
+  [class.has-bad]="alerts.unreadBad()"
+  aria-controls="alerts-panel"
+  [attr.aria-expanded]="open()"
+  [attr.aria-label]="label()"
+  [title]="label()"
+  (click)="toggle()"
+>
+  <app-nav-icon name="bell" />
+  @if (count()) {
+    <span class="bell-count num" aria-hidden="true">{{ count() > 99 ? '99+' : count() }}</span>
+  }
+</button>
+
+@if (open()) {
+  <section id="alerts-panel" class="alerts-panel" aria-labelledby="alerts-title" [attr.aria-busy]="alerts.loading()">
+    <header class="alerts-head">
+      <h2 id="alerts-title">Thông báo</h2>
+      @if (updated()) {
+        <span class="alerts-time">Cập nhật <span class="num">{{ updated() }}</span></span>
+      }
+      <button type="button" class="alerts-reload" aria-label="Tải lại thông báo" title="Tải lại" [disabled]="alerts.loading()" (click)="reload()">
+        <app-nav-icon name="refresh" />
+      </button>
+    </header>
+
+    @if (alerts.loaded() && alerts.items().length) {
+      <div class="alerts-bar">
+        <div class="segmented alerts-tabs" role="group" aria-label="Lọc thông báo">
+          <button type="button" [attr.aria-pressed]="view() === 'unread'" (click)="view.set('unread')">
+            Chưa đọc <span class="num">{{ count() }}</span>
+          </button>
+          <button type="button" [attr.aria-pressed]="view() === 'all'" (click)="view.set('all')">
+            Tất cả <span class="num">{{ alerts.items().length }}</span>
+          </button>
+        </div>
+        <button type="button" class="link-btn alerts-readall" [disabled]="!count()" (click)="markAllRead()">
+          <app-nav-icon name="check" />Đã đọc tất cả
+        </button>
+      </div>
+    }
+
+    <div class="alerts-body">
+      @if (alerts.error() && !alerts.loaded()) {
+        <div class="alerts-state is-error" role="alert">
+          <app-nav-icon name="alert" />
+          <p>Không tải được thông báo.<br /><span>{{ alerts.error() }}</span></p>
+          <button type="button" class="btn" (click)="reload()">Thử lại</button>
+        </div>
+      } @else if (!alerts.loaded()) {
+        <ul class="alerts-skeleton" role="status" aria-label="Đang tải thông báo">
+          <li></li><li></li><li></li>
+        </ul>
+      } @else if (!alerts.items().length) {
+        <div class="alerts-state is-clear">
+          <app-nav-icon name="check" />
+          <p>Không có việc nào cần xử lý.<br /><span>Chuông sẽ báo khi có đơn trễ, nợ quá hạn, hàng dưới tồn tối thiểu…</span></p>
+        </div>
+      } @else if (!groups().length) {
+        <div class="alerts-state is-clear">
+          <app-nav-icon name="check" />
+          <p>Đã đọc hết.<br /><span>Các việc vẫn nằm ở Tất cả cho đến khi được xử lý xong.</span></p>
+          <button type="button" class="btn" (click)="view.set('all')">Xem tất cả</button>
+        </div>
+      } @else {
+        @for (g of groups(); track g.level) {
+          <h3 class="alerts-group" [class.is-bad]="g.level === 'bad'" [class.is-warn]="g.level === 'warn'">
+            {{ g.title }} <span class="num">{{ g.rows.length }}</span>
+          </h3>
+          <ul class="alerts-list">
+            @for (r of g.rows; track r.alert.key) {
+              <li class="alert-item" [class.is-unread]="r.unread">
+                <a class="alert-row" [routerLink]="r.alert.to" [queryParams]="r.alert.query" (click)="go($event, r.alert)">
+                  <span class="alert-icon" [attr.data-module]="r.module" aria-hidden="true"><app-nav-icon [name]="r.icon" /></span>
+                  <span class="alert-text">
+                    <strong>@if (r.unread) { <span class="alert-new"><span class="visually-hidden">Chưa đọc: </span></span> }{{ r.alert.title }}</strong>
+                    <span class="alert-detail">{{ r.alert.detail }}</span>
+                    <span class="visually-hidden"> — {{ r.alert.cta }}</span>
+                  </span>
+                  <app-nav-icon class="alert-go" name="chevron-right" />
+                </a>
+                @if (r.unread) {
+                  <button type="button" class="alert-read" [attr.aria-label]="'Đánh dấu đã đọc: ' + r.alert.title" title="Đánh dấu đã đọc" (click)="markRead(r.alert, $event)">
+                    <app-nav-icon name="check" />
+                  </button>
+                }
+              </li>
+            }
+          </ul>
+        }
+      }
+    </div>
+
+    @if (canOverview()) {
+      <footer class="alerts-foot">
+        <a routerLink="/tong-quan" (click)="close(false)">Xem cùng phân tích theo kỳ ở Tổng quan</a>
+      </footer>
+    }
+  </section>
+}

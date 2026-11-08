@@ -67,7 +67,7 @@
 
   <section class="rr-chart-card rp-surface" aria-labelledby="rr-chart-title">
     <header class="rr-chart-head">
-      <h3 id="rr-chart-title">{{ group() === 'time' ? 'Doanh thu theo ' + unitWord() : 'Top ' + chart().bars.length + ' ' + (group() === 'customer' ? 'khách hàng' : group() === 'product' ? 'mặt hàng' : group() === 'category' ? 'nhóm hàng' : 'nhân viên') }}</h3>
+      <h3 id="rr-chart-title">{{ group() === 'time' ? 'Doanh thu theo ' + unitWord() : 'Top ' + chart().bars.length + ' ' + (group() === 'customer' ? 'khách hàng' : group() === 'product' ? 'mặt hàng' : group() === 'category' ? 'nhóm VTHH' : 'nhân viên') }}</h3>
       @if (best(); as b) { <span class="subtitle">Cao nhất: {{ b.label }} — <span class="num">{{ money(b.total) }}</span></span> }
     </header>
     @if (group() === 'time') {
@@ -97,7 +97,7 @@
       <thead>
         <tr>
           <th scope="col" class="rr-expand-col"><span class="visually-hidden">Mở chi tiết</span></th>
-          <th scope="col">{{ group() === 'time' ? 'Kỳ' : group() === 'customer' ? 'Khách hàng' : group() === 'product' ? 'Mặt hàng' : group() === 'category' ? 'Nhóm hàng' : 'Nhân viên bán hàng' }}</th>
+          <th scope="col">{{ group() === 'time' ? 'Kỳ' : group() === 'customer' ? 'Khách hàng' : group() === 'product' ? 'Mặt hàng' : group() === 'category' ? 'Nhóm VTHH' : 'Nhân viên bán hàng' }}</th>
           @if (group() === 'product') { <th scope="col" class="r">Số lượng</th> }
           <th scope="col" class="r">Số đơn</th>
           <th scope="col" class="r">Tiền hàng</th>
@@ -113,7 +113,7 @@
           <tr [class.rr-zero]="!r.total" [class.rr-open]="expanded() === r.key">
             <td class="rr-expand-col">
               @if (r.total) {
-                <button type="button" class="icon-action" [attr.aria-expanded]="expanded() === r.key" [attr.aria-label]="'Xem đơn hàng của ' + r.label" (click)="toggle(r.key)">
+                <button type="button" class="icon-action" [attr.aria-expanded]="expanded() === r.key" [attr.aria-label]="'Xem chứng từ bán hàng của ' + r.label" (click)="toggle(r.key)">
                   <app-nav-icon [name]="expanded() === r.key ? 'chevron-down' : 'chevron-right'" />
                 </button>
               }
@@ -143,7 +143,7 @@
               <td></td>
               <td [attr.colspan]="group() === 'product' ? 9 : 8">
                 <table class="rr-detail">
-                  <thead><tr><th scope="col">Đơn hàng</th><th scope="col">Ngày ghi nhận</th><th scope="col">Khách hàng</th><th scope="col" class="r">Doanh thu thuần</th><th scope="col" class="r">Tổng thanh toán</th></tr></thead>
+                  <thead><tr><th scope="col">Chứng từ bán hàng</th><th scope="col">Ngày ghi nhận</th><th scope="col">Khách hàng</th><th scope="col" class="r">Doanh thu thuần</th><th scope="col" class="r">Tổng thanh toán</th></tr></thead>
                   <tbody>
                     @for (d of details(r); track d.id) {
                       <tr>

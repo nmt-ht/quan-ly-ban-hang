@@ -6,7 +6,7 @@
   </div>
 } @else {
 <p class="subtitle">
-  <a class="crumb" routerLink="/hang-hoa">Danh mục hàng hoá</a> /
+  <a class="crumb" routerLink="/hang-hoa">Vật tư hàng hoá</a> /
   @if (editing) {
     <a class="crumb" [routerLink]="['/hang-hoa', editing.code]">{{ editing.code }}</a> / Sửa
   } @else {
@@ -53,12 +53,12 @@
         <span class="hint">Mã cũ bên MISA hoặc cách gọi quen thuộc. Dùng để tra cứu và khớp bản ghi khi nhập lại Excel.</span>
       </div>
       <div class="field">
-        <label for="pf-category">Nhóm hàng</label>
+        <label for="pf-category">Nhóm VTHH</label>
         <select id="pf-category" formControlName="categoryId">
           <option value="">— Không thuộc nhóm nào —</option>
           <option *ngFor="let c of data.categories()" [value]="c.id">{{ c.name }}</option>
         </select>
-        <span class="hint">Thêm, đổi tên hoặc gộp nhóm ở <a class="code-link" allowedLink routerLink="/thiet-lap/nhom-hang" target="_blank">Thiết lập › Nhóm hàng</a>.</span>
+        <span class="hint">Thêm, đổi tên hoặc gộp nhóm ở <a class="code-link" allowedLink routerLink="/thiet-lap/nhom-hang" target="_blank">Danh mục › Nhóm VTHH</a>.</span>
       </div>
 
       @if (type === 'THANH_PHAM') {
@@ -139,7 +139,7 @@
         Đơn giá cho MỖI {{ m.unitLong }} — thành tiền của dòng đơn là đơn giá × số {{ m.unitShort }} tính ra từ kích thước.
         Thành phẩm chỉ có đúng một đơn vị nên không có mục Đơn vị quy đổi.
       } @else {
-        Giá theo đơn vị tính chính. Mức giá tự áp theo loại khách khi lên đơn, vẫn sửa tay được; giá được chốt vào dòng đơn hàng.
+        Giá theo đơn vị tính chính. Mức giá tự áp theo loại khách khi lên đơn, vẫn sửa tay được; giá được chốt vào dòng chứng từ bán hàng.
       }
     </p>
     <div class="form-grid">

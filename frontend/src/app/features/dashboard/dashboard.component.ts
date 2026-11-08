@@ -1,4 +1,4 @@
-import { Component, computed, linkedSignal, signal } from '@angular/core';
+import { Component, computed, inject, linkedSignal, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { PeriodFilterComponent, PeriodValue } from '../../shared/period-filter/period-filter.component';
@@ -6,10 +6,11 @@ import { amountTone, formatVnd, formatVndSigned } from '../../shared/format.util
 import { PERIOD_PRESETS, formatDay, isoDay, presetRange, rangeLabel } from '../../shared/period';
 import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 import { apiQuery, queryString } from '../../core/api/api-query';
+import { AlertsService } from '../../core/services/alerts.service';
 
 const INACTIVE_DAYS = 60; // khách ngừng mua: không mua trong 60 ngày gần nhất (the server counts them)
 
-type IssueArea = 'sell' | 'stock' | 'profit' | 'debt' | 'cash';
+type IssueArea = 'sell' | 'stock' | 'purchase' | 'profit' | 'debt' | 'cash';
 
 interface Issue {
   key: string;
@@ -179,20 +180,20 @@ export class DashboardComponent {
 
   // ---------- vấn đề cần xử lý ----------
   // Ngưỡng đặt ở đây để cả trang dùng chung một định nghĩa "có vấn đề" (xem design.md › Tổng quan).
+  /** Point-in-time problems (trễ giao, nợ quá hạn, quỹ âm, dưới tồn tối thiểu, đơn mua chờ duyệt, báo giá sắp hết hạn) come
+   *  from the same list as the topbar bell (AlertsService › GET /alerts), so the two never disagree. */
+  private readonly alerts = inject(AlertsService);
+
   readonly issues = computed<Issue[]>(() => {
-    const a = this.attention();
-    const dt = this.debts();
     const l = this.leaks();
     const k = this.kpis();
     const p = this.prevKpis();
     const c = this.cash();
     const m = formatVnd;
+    const now: Issue[] = this.alerts.items();
+    // The rest depend on the kỳ being viewed — analysis, not news, so they stay off the bell.
     const out: Issue[] = [];
 
-    if (a.late > 0) out.push({ key: 'late', area: 'sell', level: 'bad', title: `${a.late} đơn trễ hẹn giao`, detail: 'Đã quá ngày khách cần hàng mà vẫn còn dòng chưa giao.', to: '/don-hang', query: { late: 1 }, cta: 'Xem đơn' });
-    if (dt && dt.receivableOverdue > 0) out.push({ key: 'ar', area: 'debt', level: 'bad', title: `Khách nợ quá hạn ${m(dt.receivableOverdue)}`, detail: `${dt.overdueCustomers} khách đã quá hạn thanh toán — cần nhắc nợ.`, to: '/cong-no/tuoi-no', query: { loai: 'phai-thu' }, cta: 'Xem tuổi nợ' });
-    if (dt && dt.payableOverdue > 0) out.push({ key: 'ap', area: 'debt', level: 'bad', title: `Nợ nhà cung cấp quá hạn ${m(dt.payableOverdue)}`, detail: 'Trả chậm có thể bị siết hạn mức hoặc giao hàng.', to: '/cong-no/tuoi-no', cta: 'Xem tuổi nợ' });
-    else if (dt && dt.payableDue > 0) out.push({ key: 'ap', area: 'debt', level: 'warn', title: `Phải trả NCC đến hạn trong 7 ngày: ${m(dt.payableDue)}`, detail: `${dt.payableDueCount} khoản — chuẩn bị tiền để trả đúng hạn.`, to: '/cong-no/tuoi-no', cta: 'Xem tuổi nợ' });
     if (l.belowCostLines) out.push({ key: 'below', area: 'profit', level: 'bad', title: `Bán dưới giá vốn: ${l.belowCostLines} dòng`, detail: `Lỗ ${m(l.belowCostLoss ?? 0)} trong kỳ — kiểm tra giá bán hoặc chiết khấu.`, to: '/bao-cao', query: { name: 'ban-duoi-gia-von' }, cta: 'Xem báo cáo' });
     if (k.profit !== undefined && k.margin !== undefined) {
       if (k.orders > 0 && k.profit < 0) out.push({ key: 'loss', area: 'profit', level: 'bad', title: `Lãi gộp âm ${m(k.profit)}`, detail: 'Giá vốn hàng bán cao hơn doanh thu trong kỳ.', to: '/bao-cao', query: { name: 'loi-nhuan' }, cta: 'Xem lãi gộp' });
@@ -201,12 +202,10 @@ export class DashboardComponent {
     if (l.discountPct >= 10) out.push({ key: 'disc', area: 'profit', level: 'warn', title: `Chiết khấu ${l.discountPct}% giá trị hàng`, detail: `${m(l.discount)} đã cấp trong kỳ.`, to: '/bao-cao', query: { name: 'chiet-khau' }, cta: 'Xem chiết khấu' });
     if (p.revenue > 0 && k.revenue < p.revenue * 0.8) out.push({ key: 'rev', area: 'sell', level: 'warn', title: `Doanh thu giảm ${Math.round((1 - k.revenue / p.revenue) * 100)}% so với kỳ trước`, detail: `${m(k.revenue)} so với ${m(p.revenue)}.`, to: '/bao-cao', query: { name: 'ban-hang' }, cta: 'Xem doanh thu' });
     if (l.stopped > 0) out.push({ key: 'lost', area: 'sell', level: 'warn', title: `${l.stopped} khách ngừng mua`, detail: `Không mua trong ${INACTIVE_DAYS} ngày gần nhất — nên chăm sóc lại.`, to: '/bao-cao', query: { name: 'khach-ngung-mua', ngay: INACTIVE_DAYS }, cta: 'Xem khách' });
-    if (a.belowMin > 0) out.push({ key: 'min', area: 'stock', level: 'warn', title: `${a.belowMin} mặt hàng dưới tồn tối thiểu`, detail: 'Cần nhập hoặc sản xuất thêm để không đứt hàng.', to: '/kho/ton-kho', query: { belowMin: true }, cta: 'Xem tồn kho' });
-    const negative = c.accounts.filter((x) => x.balance < 0);
-    if (negative.length) out.push({ key: 'neg', area: 'cash', level: 'bad', title: `Quỹ âm: ${negative.map((x) => x.name).join(', ')}`, detail: 'Số dư tài khoản nhỏ hơn 0 — thường do thiếu phiếu thu hoặc nhập sai.', to: '/thu-chi', cta: 'Xem thu chi' });
-    else if (c.net < 0) out.push({ key: 'net', area: 'cash', level: 'warn', title: `Chi vượt thu ${m(-c.net)} trong kỳ`, detail: `Thu ${m(c.thu)} · chi ${m(c.chi)}.`, to: '/thu-chi', cta: 'Xem thu chi' });
+    if (c.net < 0 && !now.some((i) => i.key === 'neg')) out.push({ key: 'net', area: 'cash', level: 'warn', title: `Chi vượt thu ${m(-c.net)} trong kỳ`, detail: `Thu ${m(c.thu)} · chi ${m(c.chi)}.`, to: '/thu-chi', cta: 'Xem thu, chi' });
 
-    return [...out.filter((i) => i.level === 'bad'), ...out.filter((i) => i.level === 'warn')];
+    const all = [...now, ...out];
+    return [...all.filter((i) => i.level === 'bad'), ...all.filter((i) => i.level === 'warn')];
   });
 
   /** Cần xử lý: 10 a page (serious ones first); back to page 1 whenever the list changes. */
@@ -223,7 +222,7 @@ export class DashboardComponent {
     return list.some((i) => i.level === 'bad') ? 'bad' : list.length ? 'warn' : 'ok';
   }
 
-  readonly areaName: Record<IssueArea, string> = { sell: 'Bán hàng', stock: 'Kho', profit: 'Lợi nhuận', debt: 'Công nợ', cash: 'Dòng tiền' };
+  readonly areaName: Record<IssueArea, string> = { sell: 'Bán hàng', stock: 'Kho', purchase: 'Mua hàng', profit: 'Lợi nhuận', debt: 'Công nợ', cash: 'Dòng tiền' };
   readonly levelName = { bad: 'Có vấn đề', warn: 'Cần theo dõi', ok: 'Ổn' };
 
   /** Phải trả due within 7 days but not overdue yet (payableDue counts both). */

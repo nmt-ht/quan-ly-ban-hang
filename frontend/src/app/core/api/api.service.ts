@@ -33,7 +33,7 @@ function toApiError(e: unknown): ApiError {
   const msg = (e.error as { message?: string | string[] } | null)?.message;
   if (Array.isArray(msg)) return new ApiError(msg.join('. '), e.status);
   if (typeof msg === 'string' && msg) return new ApiError(msg, e.status);
-  if (e.status === 403) return new ApiError('Chức vụ của bạn chưa có quyền làm việc này.', 403);
+  if (e.status === 403) return new ApiError('Vai trò của bạn chưa có quyền làm việc này.', 403);
   return new ApiError(e.status >= 500 ? 'Máy chủ gặp lỗi, chưa lưu được. Thử lại sau ít phút.' : `Yêu cầu không hợp lệ (mã ${e.status}).`, e.status);
 }
 

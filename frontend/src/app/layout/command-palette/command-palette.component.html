@@ -12,7 +12,7 @@
         autocomplete="off"
         spellcheck="false"
         [attr.aria-activedescendant]="results().length ? 'cp-opt-' + active() : null"
-        placeholder="Tìm đơn hàng, khách hàng, hàng hoá, phiếu… hoặc tạo mới"
+        placeholder="Tìm chứng từ bán hàng, khách hàng, hàng hoá, phiếu… hoặc tạo mới"
         [value]="query()"
         (input)="query.set($any($event.target).value)"
         (keydown)="onInputKey($event)"

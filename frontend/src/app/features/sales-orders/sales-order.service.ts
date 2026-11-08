@@ -162,7 +162,7 @@ export class SalesOrderService {
 
   find(id: string): SalesOrder {
     const o = this.data.salesOrders().find((x) => x.id === id);
-    if (!o) throw new Error(`Không tìm thấy đơn hàng ${id}`);
+    if (!o) throw new Error(`Không tìm thấy chứng từ bán hàng ${id}`);
     return o;
   }
 

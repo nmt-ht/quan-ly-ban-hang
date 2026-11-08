@@ -37,12 +37,12 @@
     }
 
     <label class="field">
-      <span>Chức vụ <span class="required-mark">*</span></span>
+      <span>Vai trò <span class="required-mark">*</span></span>
       <select [disabled]="lockedRole()" [ngModel]="roleId()" (ngModelChange)="roleId.set($event)" [attr.aria-invalid]="attempted() && !roleId() ? 'true' : null">
-        <option value="">— Chọn chức vụ —</option>
+        <option value="">— Chọn vai trò —</option>
         @for (r of roles(); track r.id) { <option [value]="r.id">{{ r.name }}{{ r.isSystem ? ' (hệ thống)' : '' }}</option> }
       </select>
-      <span class="hint">{{ lockedRole() ? 'Tài khoản CEO cuối cùng — không đổi chức vụ được.' : 'Chức vụ quyết định toàn bộ quyền hạn của tài khoản.' }}</span>
+      <span class="hint">{{ lockedRole() ? 'Tài khoản CEO cuối cùng — không đổi vai trò được.' : 'Vai trò quyết định toàn bộ quyền hạn của tài khoản.' }}</span>
     </label>
     <label class="field">
       <span>Điện thoại</span>

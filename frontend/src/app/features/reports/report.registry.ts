@@ -38,7 +38,7 @@ const soon = (slug: string, label: string, group: ReportGroupKey, summary: strin
 
 export const REPORTS: ReportDef[] = [
   // ---- Bán hàng
-  { slug: 'ban-hang', label: 'Doanh thu', group: 'sell', summary: 'Doanh thu theo thời gian, khách hàng, mặt hàng, nhóm hàng hoặc nhân viên; so với kỳ trước.', kind: 'custom' },
+  { slug: 'ban-hang', label: 'Doanh thu', group: 'sell', summary: 'Doanh thu theo thời gian, khách hàng, mặt hàng, nhóm VTHH hoặc nhân viên; so với kỳ trước.', kind: 'custom' },
   byslug(SALES_DEFS, 'chiet-khau'),
   byslug(SALES_DEFS, 'khach-ngung-mua'),
   // ---- Lợi nhuận
@@ -71,7 +71,7 @@ export const REPORTS: ReportDef[] = [
     ],
   },
   {
-    slug: 'tuoi-no', label: 'Tuổi nợ', group: 'debt', kind: 'link',
+    slug: 'tuoi-no', label: 'Phân tích tuổi nợ', group: 'debt', kind: 'link',
     summary: 'Khoản nợ còn lại theo độ trễ so với hạn thanh toán: chưa đến hạn, quá hạn 1–30, 31–60, 61–90, trên 90 ngày.',
     notes: ['Chỉ tính khoản TĂNG NỢ còn chưa trả hết; tiền trả trước không trừ vào đây. Khoản chưa khai hạn xếp vào Chưa đến hạn.'],
     links: [

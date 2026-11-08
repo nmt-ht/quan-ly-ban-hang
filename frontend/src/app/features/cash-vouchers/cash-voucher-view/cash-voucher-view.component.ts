@@ -1,4 +1,7 @@
-import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked , viewChild } from '@angular/core';
+import { AuthService } from '../../../core/services/auth.service';
+import { EmailComposeComponent } from '../../../shared/email-compose/email-compose.component';
+import { pdfName } from '../../../shared/print/print-pdf';
 import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -23,7 +26,7 @@ import { SalesOrderService } from '../../sales-orders/sales-order.service';
 @Component({
   selector: 'app-cash-voucher-view',
   standalone: true,
-  imports: [FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent],
+  imports: [EmailComposeComponent, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent],
   templateUrl: './cash-voucher-view.component.html',
   styleUrls: ['../../../shared/voucher/voucher.scss', './cash-voucher-view.component.scss'],
 })
@@ -54,6 +57,24 @@ export class CashVoucherViewComponent {
   readonly day = formatDay;
   readonly words = vndInWords;
   readonly notice = signal('');
+
+  // ---------- gửi email: phiếu thu (biên nhận) cho khách + PDF ----------
+  private readonly emailDlg = viewChild<EmailComposeComponent>('emailDlg');
+  private readonly auth = inject(AuthService);
+  readonly canEmail = computed(() => this.auth.can('email.send') && this.voucher()?.kind === 'THU' && !this.voucher()?.isCancelled);
+
+  email(): void {
+    const v = this.voucher();
+    if (!v) return;
+    const p = this.partner();
+    const mail = v.partnerType === 'KHACH_HANG' ? this.data.customers().find((x) => x.id === v.partnerId)?.email
+      : v.partnerType === 'NHA_CUNG_CAP' ? this.data.suppliers().find((x) => x.id === v.partnerId)?.email : undefined;
+    void this.emailDlg()?.open({
+      kind: 'cash_receipt', docId: v.id, docCode: v.code, to: [mail], partner: p?.name,
+      vars: { ten_khach: p?.name, so_chung_tu: v.code, ngay: formatDay(v.date), tong_tien: formatVnd(v.amount) },
+      pdf: { filename: pdfName('Phieu thu', v.code) },
+    });
+  }
   readonly confirmCancel = signal(false);
   readonly cancelling = signal(false);
   /** A huỷ the server refused (or that could not reach it). */

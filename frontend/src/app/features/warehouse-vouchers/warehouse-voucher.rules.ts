@@ -23,7 +23,7 @@ export const KIND_TEXT: Record<WarehouseVoucherType, {
   NHAP: {
     title: 'Phiếu nhập kho', warehouse: 'Kho nhập', qty: 'Số lượng nhập', print: 'PHIẾU NHẬP KHO',
     reason: 'VD: Nhập hàng trả lại, nhập thành phẩm từ xưởng',
-    note: 'Nhập hàng mua của nhà cung cấp thì dùng "Nhận hàng" trên đơn nhập — phiếu này không sinh công nợ phải trả.',
+    note: 'Nhập hàng mua của nhà cung cấp thì dùng "Nhận hàng" trên đơn mua hàng — phiếu này không sinh công nợ phải trả.',
   },
   XUAT: {
     title: 'Phiếu xuất kho', warehouse: 'Kho xuất', qty: 'Số lượng xuất', print: 'PHIẾU XUẤT KHO',
@@ -52,8 +52,8 @@ export interface SourceLookup {
 }
 
 const SOURCES = [
-  { label: 'Đơn nhập hàng', idKey: 'purchaseOrderId', pattern: /theo đơn (DN\d+)/, path: '/mua-hang', list: (d: SourceLookup) => d.purchaseOrders() },
-  { label: 'Đơn hàng bán', idKey: 'salesOrderId', pattern: null, path: '/don-hang', list: (d: SourceLookup) => d.salesOrders() },
+  { label: 'Đơn mua hàng', idKey: 'purchaseOrderId', pattern: /theo đơn (DN\d+)/, path: '/mua-hang', list: (d: SourceLookup) => d.purchaseOrders() },
+  { label: 'Chứng từ bán hàng', idKey: 'salesOrderId', pattern: null, path: '/don-hang', list: (d: SourceLookup) => d.salesOrders() },
   { label: 'Lệnh sản xuất', idKey: 'productionOrderId', pattern: /(LSX\d+)/, path: '/san-xuat', list: (d: SourceLookup) => d.productionOrders() },
   { label: 'Chuyến giao hàng', idKey: null, pattern: /chuyến (CH\d+)/, path: '/giao-hang', list: (d: SourceLookup) => d.deliveryTrips() },
 ] as const;

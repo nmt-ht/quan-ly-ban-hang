@@ -1,0 +1,129 @@
+/* Hallmark · page: settings form (Hệ thống › Email gửi đi) · genre: modern-minimal · design-system: design.md § Record forms
+ * states: default · hover · focus · active · disabled(save until changed, test until saved) · loading · error · success(notice + verified tick)
+ */
+
+.em-modes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-xs);
+}
+
+@media (max-width: 56rem) {
+  .em-modes { grid-template-columns: minmax(0, 1fr); }
+}
+
+.em-mode {
+  display: flex;
+  gap: var(--space-2xs);
+  align-items: flex-start;
+  padding: var(--space-xs) var(--space-sm);
+  border: var(--rule-hair) solid var(--color-rule-strong);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+
+  input { margin-top: 3px; accent-color: var(--color-accent); }
+  strong { font-size: var(--text-sm); font-weight: 600; }
+  small { display: block; margin-top: 2px; color: var(--color-muted); font-size: var(--text-xs); }
+
+  &.is-on { border-color: var(--color-accent); background: var(--color-accent-tint); }
+  &.is-off { cursor: not-allowed; opacity: 0.6; }
+}
+
+.em-reco {
+  margin-left: var(--space-3xs);
+  padding: 0 6px;
+  border-radius: var(--radius-control);
+  background: var(--color-success-tint);
+  color: var(--color-success);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+}
+
+.em-sub {
+  margin: var(--space-md) 0 var(--space-2xs);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.em-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+
+  .btn[aria-pressed='true'] { border-color: var(--color-accent); color: var(--color-accent); font-weight: 600; }
+}
+
+.em-hint {
+  display: flex;
+  gap: var(--space-2xs);
+  align-items: flex-start;
+  margin: var(--space-2xs) 0 var(--space-sm);
+  color: var(--color-ink-2);
+  font-size: var(--text-xs);
+  --icon-size: 14px;
+}
+
+.em-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.em-test {
+  display: inline-flex;
+  gap: var(--space-2xs);
+
+  input { width: 15rem; max-width: 100%; }
+}
+
+.em-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+  --icon-size: 14px;
+
+  &.is-ok { color: var(--color-success); }
+}
+
+.em-kinds {
+  flex-wrap: wrap;
+  margin-bottom: var(--space-sm);
+}
+
+.em-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3xs);
+  margin-top: var(--space-2xs);
+}
+
+.em-chip {
+  padding: 1px 6px;
+  border: var(--rule-hair) solid var(--color-rule);
+  border-radius: var(--radius-control);
+  background: var(--color-paper);
+  color: var(--color-ink-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .em-chip:hover { border-color: var(--color-rule-strong); color: var(--color-ink); }
+}
+
+.em-err {
+  color: var(--color-danger);
+  font-size: var(--text-xs);
+}
+
+textarea {
+  font: inherit;
+  line-height: 1.5;
+  resize: vertical;
+}

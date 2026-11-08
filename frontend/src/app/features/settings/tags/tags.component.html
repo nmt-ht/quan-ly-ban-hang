@@ -1,7 +1,7 @@
 <div class="page-header">
   <div>
     <h1>Thẻ đánh dấu</h1>
-    <p class="subtitle">Một danh mục dùng chung cho đơn hàng và khách hàng · {{ data.tags().length }} thẻ</p>
+    <p class="subtitle">Một danh mục dùng chung cho chứng từ bán hàng và khách hàng · {{ data.tags().length }} thẻ</p>
   </div>
   <div class="toolbar">
     <button type="button" class="btn btn-primary" (click)="open()"><app-nav-icon name="plus" />Thêm thẻ</button>
@@ -30,7 +30,7 @@
             <th scope="col">Thẻ</th>
             <th scope="col">Màu</th>
             <th scope="col" class="align-right">Thứ tự</th>
-            <th scope="col" class="align-right">Đơn hàng</th>
+            <th scope="col" class="align-right">Chứng từ bán hàng</th>
             <th scope="col" class="align-right">Khách hàng</th>
             <th scope="col">Trạng thái</th>
             <th scope="col" class="tg-actions"><span class="visually-hidden">Thao tác</span></th>
@@ -68,7 +68,7 @@
   } @else {
     <div class="empty-state">
       <h3>{{ search() ? 'Không có thẻ phù hợp' : 'Chưa có thẻ nào' }}</h3>
-      <p>Thẻ giúp đánh dấu khách VIP, đơn giao gấp, khách nợ xấu… và lọc nhanh ở danh sách đơn hàng, khách hàng.</p>
+      <p>Thẻ giúp đánh dấu khách VIP, đơn giao gấp, khách nợ xấu… và lọc nhanh ở danh sách chứng từ bán hàng, khách hàng.</p>
       <button type="button" class="btn btn-primary" (click)="open()"><app-nav-icon name="plus" />Thêm thẻ</button>
     </div>
   }

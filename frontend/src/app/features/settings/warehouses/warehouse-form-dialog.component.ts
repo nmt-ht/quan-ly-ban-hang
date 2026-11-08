@@ -41,8 +41,8 @@ const PHONE = /^[0-9+().\s-]{8,15}$/;
           </select>
           <span class="hint">
             @if (managersLoading()) { Đang tải danh sách… }
-            @else if (!managers().length) { Chưa có ai đủ điều kiện — giao quyền lập phiếu kho hoặc kiểm kê cho một chức vụ ở Thiết lập › Chức vụ. }
-            @else { Chỉ hiện người có chức vụ được lập phiếu kho hoặc kiểm kê. }
+            @else if (!managers().length) { Chưa có ai đủ điều kiện — giao quyền lập chứng từ kho hoặc kiểm kê cho một vai trò ở Hệ thống › Vai trò và quyền hạn. }
+            @else { Chỉ hiện người có vai trò được lập chứng từ kho hoặc kiểm kê. }
           </span>
         </label>
 

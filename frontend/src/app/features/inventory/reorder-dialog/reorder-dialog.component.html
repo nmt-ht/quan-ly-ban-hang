@@ -1,8 +1,8 @@
 <dialog #dialog class="rg-dialog" aria-labelledby="ro-title">
   <header class="rg-head">
     <div>
-      <h2 id="ro-title">Gợi ý lập đơn nhập</h2>
-      <p class="subtitle">Vật tư đang dưới tồn tối thiểu, gom theo nhà cung cấp. Số đặt thêm = tối thiểu − tồn − đơn nhập đang về (kể cả Nháp), làm tròn lên.</p>
+      <h2 id="ro-title">Gợi ý lập đơn mua hàng</h2>
+      <p class="subtitle">Vật tư đang dưới tồn tối thiểu, gom theo nhà cung cấp. Số đặt thêm = tối thiểu − tồn − đơn mua hàng đang về (kể cả Nháp), làm tròn lên.</p>
     </div>
     <button type="button" class="icon-action" aria-label="Đóng" (click)="close()"><app-nav-icon name="x" /></button>
   </header>
@@ -20,7 +20,7 @@
           </div>
           @if (canBuy()) {
             <button type="button" class="btn btn-primary" [disabled]="!g.picked.length" (click)="createOrder(g)">
-              <app-nav-icon name="plus" />Lập đơn nhập{{ g.picked.length ? ' (' + g.picked.length + ' dòng)' : '' }}
+              <app-nav-icon name="plus" />Lập đơn mua hàng{{ g.picked.length ? ' (' + g.picked.length + ' dòng)' : '' }}
             </button>
           }
         </header>
@@ -76,7 +76,7 @@
   <footer class="rg-foot">
     <p class="rg-summary" role="status">
       {{ rows().length }} vật tư dưới tối thiểu@if (covered()) { · {{ covered() }} đã có đơn đang về đủ bù }.
-      @if (!canBuy()) { Chức vụ của bạn chưa có quyền tạo đơn nhập hàng. }
+      @if (!canBuy()) { Vai trò của bạn chưa có quyền tạo đơn mua hàng. }
     </p>
     <div class="toolbar">
       <button type="button" class="btn" (click)="close()">Đóng</button>

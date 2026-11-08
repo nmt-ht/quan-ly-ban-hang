@@ -1,11 +1,11 @@
 <div class="page-header">
   <div>
-    <h1>Khuyến mãi</h1>
-    <p class="subtitle">Tự áp vào đơn hàng và báo giá theo ngày chứng từ · {{ data.promotions().length }} chương trình</p>
+    <h1>Chương trình khuyến mại</h1>
+    <p class="subtitle">Tự áp vào chứng từ bán hàng và báo giá theo ngày chứng từ · {{ data.promotions().length }} chương trình</p>
   </div>
   <div class="toolbar">
-    <a class="btn" routerLink="/bang-gia"><app-nav-icon name="money-in" />Bảng giá</a>
-    <button type="button" class="btn btn-primary" (click)="open()" [disabled]="editingId() !== null"><app-nav-icon name="plus" />Thêm khuyến mãi</button>
+    <a class="btn" routerLink="/bang-gia"><app-nav-icon name="tag" />Chính sách giá</a>
+    <button type="button" class="btn btn-primary" (click)="open()" [disabled]="editingId() !== null"><app-nav-icon name="plus" />Thêm khuyến mại</button>
   </div>
 </div>
 
@@ -19,7 +19,7 @@
 
 @if (editingId() !== null) {
   <section class="card pr-editor" aria-labelledby="km-title">
-    <h2 id="km-title">{{ editingId() ? 'Sửa khuyến mãi' : 'Khuyến mãi mới' }}</h2>
+    <h2 id="km-title">{{ editingId() ? 'Sửa khuyến mại' : 'Khuyến mại mới' }}</h2>
     @if (error()) { <p class="form-note text-danger" role="alert">{{ error() }}</p> }
 
     <div class="pr-fields">
@@ -54,7 +54,7 @@
         <select id="km-scope" [ngModel]="scope()" (ngModelChange)="scope.set($event)">
           <option value="TAT_CA">Mọi khách</option>
           <option value="LOAI_KHACH">Theo loại khách</option>
-          <option value="BANG_GIA">Khách dùng bảng giá</option>
+          <option value="BANG_GIA">Khách dùng chính sách giá</option>
         </select>
       </div>
       @if (scope() === 'LOAI_KHACH') {
@@ -65,8 +65,8 @@
       }
       @if (scope() === 'BANG_GIA') {
         <div class="field">
-          <span class="field-label">Bảng giá</span>
-          <app-filter-multi-select label="Chọn bảng giá" [options]="listOptions()" [(selected)]="priceListIds" />
+          <span class="field-label">Chính sách giá</span>
+          <app-filter-multi-select label="Chọn chính sách giá" [options]="listOptions()" [(selected)]="priceListIds" />
         </div>
       }
 
@@ -75,7 +75,7 @@
           <span class="field-label">{{ kind() === 'TANG_HANG' ? 'Mặt hàng phải mua' : 'Mặt hàng áp dụng' }}</span>
           <span class="pr-goods-pickers">
             <app-filter-multi-select label="Mặt hàng" [options]="productOptions()" [searchable]="true" searchPlaceholder="Tìm mã, tên hàng…" [(selected)]="productIds" />
-            <app-filter-multi-select label="Nhóm hàng" [options]="categoryOptions()" [searchable]="true" [(selected)]="categoryIds" />
+            <app-filter-multi-select label="Nhóm VTHH" [options]="categoryOptions()" [searchable]="true" [(selected)]="categoryIds" />
             <span class="hint">
               {{ productIds().length }} mặt hàng · {{ categoryIds().length }} nhóm
               @if (!productIds().length && !categoryIds().length && kind() !== 'TANG_HANG') { — để trống = mọi mặt hàng }
@@ -160,13 +160,13 @@
     <div class="toolbar pr-actions">
       <span class="text-danger" role="status">{{ issues()[0] ?? '' }}</span>
       <button type="button" class="btn" (click)="close()">Huỷ</button>
-      <button type="button" class="btn btn-primary" [disabled]="issues().length > 0 || saving()" (click)="save()">{{ saving() ? 'Đang lưu…' : 'Lưu khuyến mãi' }}</button>
+      <button type="button" class="btn btn-primary" [disabled]="issues().length > 0 || saving()" (click)="save()">{{ saving() ? 'Đang lưu…' : 'Lưu khuyến mại' }}</button>
     </div>
   </section>
 }
 
 <div class="filters-bar">
-  <input type="text" class="filter-search" placeholder="Tìm mã, tên chương trình…" aria-label="Tìm khuyến mãi" [value]="search()" (input)="search.set($any($event.target).value)" />
+  <input type="text" class="filter-search" placeholder="Tìm mã, tên chương trình…" aria-label="Tìm khuyến mại" [value]="search()" (input)="search.set($any($event.target).value)" />
   <button type="button" class="filter-toggle" [attr.aria-pressed]="showEnded()" (click)="showEnded.set(!showEnded())">Hiện chương trình đã hết / đã dừng</button>
 </div>
 
@@ -212,9 +212,9 @@
     </div>
   } @else {
     <div class="empty-state">
-      <h3>{{ search() || !showEnded() && data.promotions().length ? 'Không có chương trình nào đang hiện' : 'Chưa có khuyến mãi' }}</h3>
+      <h3>{{ search() || !showEnded() && data.promotions().length ? 'Không có chương trình nào đang hiện' : 'Chưa có khuyến mại' }}</h3>
       <p>Giảm giá mặt hàng, giảm theo tổng đơn, giảm theo số lượng hoặc mua hàng tặng hàng — đơn và báo giá tự áp.</p>
-      <button type="button" class="btn btn-primary" (click)="open()" [disabled]="editingId() !== null"><app-nav-icon name="plus" />Thêm khuyến mãi</button>
+      <button type="button" class="btn btn-primary" (click)="open()" [disabled]="editingId() !== null"><app-nav-icon name="plus" />Thêm khuyến mại</button>
     </div>
   }
 </section>

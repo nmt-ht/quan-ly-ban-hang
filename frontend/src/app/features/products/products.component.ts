@@ -212,7 +212,7 @@ export class ProductsComponent {
     { key: 'image', label: 'Ảnh', filter: false, image: (r) => r.images?.[0]?.url },
     { key: 'code', label: 'Mã', copy: true, link: (r) => ['/hang-hoa', r.code] },
     { key: 'name', label: 'Tên hàng hoá' },
-    { key: 'categoryId', sortByText: true, label: 'Nhóm hàng', format: (r) => this.categoryOf(r) || '—' },
+    { key: 'categoryId', sortByText: true, label: 'Nhóm VTHH', format: (r) => this.categoryOf(r) || '—' },
     { key: 'type', sortByText: true, label: 'Tính chất', format: (r) => PRODUCT_TYPE_LABEL[r.type], badge: (r) => PRODUCT_TYPE_CLASS[r.type] },
     { key: 'baseUnit', label: 'ĐVT' },
     {
@@ -301,7 +301,7 @@ export class ProductsComponent {
         warehouses: this.data.warehouses(),
         stockLevels: this.data.stockLevels(),
       });
-      await downloadWorkbook(exportFileName('Hàng hoá'), [sheet]);
+      await downloadWorkbook(exportFileName('Vật tư hàng hoá'), [sheet]);
     } finally {
       this.exporting.set(false);
     }

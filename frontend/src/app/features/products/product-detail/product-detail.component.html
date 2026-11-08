@@ -1,5 +1,5 @@
 @if (product(); as p) {
-  <p class="subtitle"><a class="crumb" routerLink="/hang-hoa">Danh mục hàng hoá</a> / {{ p.code }}</p>
+  <p class="subtitle"><a class="crumb" routerLink="/hang-hoa">Vật tư hàng hoá</a> / {{ p.code }}</p>
   <div class="page-header">
     <div>
       <h1>{{ p.name }}</h1>
@@ -48,7 +48,7 @@
             @if (p.type === 'THANH_PHAM') {
               <div><dt>Cách tính</dt><dd>{{ measureLabel(p) || 'Chưa chọn (dữ liệu cũ)' }}</dd></div>
             }
-            <div><dt>Nhóm hàng</dt><dd>{{ categoryName() || '—' }}</dd></div>
+            <div><dt>Nhóm VTHH</dt><dd>{{ categoryName() || '—' }}</dd></div>
             @if (p.type === 'VAT_TU') {
               <div><dt>Kho ngầm định</dt><dd>{{ defaultWarehouseName() || '—' }}</dd></div>
               <div><dt>Tồn tối thiểu</dt><dd class="num">{{ qty(p.minStock) }}</dd></div>
@@ -279,7 +279,7 @@
           } @else {
             <div class="empty-state history-empty">
               <h3>Chưa có phát sinh nhập xuất</h3>
-              <p>Mọi biến động tồn đều đi qua phiếu kho, nên lịch sử ở đây luôn khớp với tồn hiện tại.</p>
+              <p>Mọi biến động tồn đều đi qua chứng từ kho, nên lịch sử ở đây luôn khớp với tồn hiện tại.</p>
             </div>
           }
         </section>

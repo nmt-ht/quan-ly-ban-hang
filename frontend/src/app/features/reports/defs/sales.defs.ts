@@ -13,7 +13,7 @@ const discount: ReportDef = {
     { value: 'customer', label: 'Theo khách hàng' },
     { value: 'product', label: 'Theo mặt hàng' },
     { value: 'rep', label: 'Theo nhân viên bán hàng' },
-    { value: 'order', label: 'Theo đơn hàng' },
+    { value: 'order', label: 'Theo chứng từ bán hàng' },
   ],
   searchHint: 'Tìm khách, mặt hàng, nhân viên, số đơn…',
   notes: [
@@ -41,14 +41,14 @@ const grossProfit: ReportDef = {
   slug: 'loi-nhuan',
   label: 'Lãi gộp',
   group: 'profit',
-  summary: 'Doanh thu thuần trừ giá vốn hàng bán, theo mặt hàng, khách hàng hoặc nhóm hàng.',
+  summary: 'Doanh thu thuần trừ giá vốn hàng bán, theo mặt hàng, khách hàng hoặc nhóm VTHH.',
   kind: 'period',
   groups: [
     { value: 'product', label: 'Theo mặt hàng' },
     { value: 'customer', label: 'Theo khách hàng' },
-    { value: 'category', label: 'Theo nhóm hàng' },
+    { value: 'category', label: 'Theo nhóm VTHH' },
   ],
-  searchHint: 'Tìm mặt hàng, khách, nhóm hàng…',
+  searchHint: 'Tìm mặt hàng, khách, nhóm VTHH…',
   notes: [
     'Lãi gộp = doanh thu thuần (chưa thuế, đã trừ chiết khấu) − giá vốn hàng bán. Giá vốn là bình quân gia quyền di động, CHỐT trên phiếu xuất lúc giao — nhập hàng giá khác về sau không làm đổi lãi của đơn đã giao. Hàng trả lại tính ngược đúng giá đã xuất.',
     'Đơn giao trước khi có giá vốn chốt (dữ liệu cũ) dùng giá vốn bình quân hiện tại. Dịch vụ = 0. Cột "Dòng giá vốn 0" đếm dòng chưa có giá vốn — lãi gộp của những dòng đó bị thổi lên.',

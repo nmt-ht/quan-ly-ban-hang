@@ -1,4 +1,6 @@
 import { Component, HostListener, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
+import { EmailComposeComponent } from '../../../shared/email-compose/email-compose.component';
+import { pdfName } from '../../../shared/print/print-pdf';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { NgClass } from '@angular/common';
@@ -92,7 +94,7 @@ const emptyLine = (): DraftLine => ({
 @Component({
   selector: 'app-sales-order-voucher',
   standalone: true,
-  imports: [SearchSelectComponent, PickableWarehousesPipe, FrozenColsDirective, 
+  imports: [EmailComposeComponent, SearchSelectComponent, PickableWarehousesPipe, FrozenColsDirective, 
     NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
     PaginationComponent, FilterMultiSelectComponent, DeliverDialogComponent, ReturnDialogComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent,
     InvoicePreviewComponent,
@@ -193,6 +195,21 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   readonly attempted = signal(false);
   readonly tab = signal<Tab>('hang');
   readonly notice = signal('');
+
+  // ---------- gửi email: phiếu xuất kho bán hàng + PDF ----------
+  private readonly emailDlg = viewChild<EmailComposeComponent>('emailDlg');
+  readonly canEmail = computed(() => this.auth.can('email.send'));
+
+  email(): void {
+    const o = this.order();
+    if (!o) return;
+    const c = this.data.customers().find((x) => x.id === o.customerId);
+    void this.emailDlg()?.open({
+      kind: 'sales_order', docId: o.id, docCode: o.code, to: [c?.email], partner: c?.companyName || c?.name,
+      vars: { ten_khach: c?.companyName || c?.name, so_chung_tu: o.code, ngay: formatDay(o.orderDate), tong_tien: formatVnd(o.totalOrder) },
+      pdf: { filename: pdfName('Phieu xuat kho ban hang', o.code) },
+    });
+  }
   /** A save the server refused (or that could not reach it). */
   readonly failure = signal('');
   /** The server refused the save for hạn mức công nợ; someone with debt.adjust may save anyway. */

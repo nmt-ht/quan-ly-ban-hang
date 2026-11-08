@@ -68,11 +68,11 @@ export class UserDetailComponent {
         list.push({ date: o.orderDate, type: o.createdBy === e ? 'Lập đơn bán' : 'Nhân viên bán', code: o.code, link: ['/don-hang', o.id], detail: '', amount: o.totalOrder });
       }
     }
-    for (const o of this.data.purchaseOrders()) if (o.createdBy === e) list.push({ date: o.date, type: 'Lập đơn nhập', code: o.code, link: ['/mua-hang', o.id], detail: '', amount: o.totalValue ?? undefined });
+    for (const o of this.data.purchaseOrders()) if (o.createdBy === e) list.push({ date: o.date, type: 'Lập đơn mua hàng', code: o.code, link: ['/mua-hang', o.id], detail: '', amount: o.totalValue ?? undefined });
     for (const v of this.data.cashVouchers()) {
       if (v.createdBy === e) list.push({ date: v.date, type: v.kind === 'THU' ? 'Lập phiếu thu' : 'Lập phiếu chi', code: v.code, link: ['/thu-chi', v.id], detail: v.isCancelled ? 'đã huỷ' : '', amount: v.amount });
     }
-    for (const v of this.data.warehouseVouchers()) if (v.createdBy === e) list.push({ date: v.date, type: 'Lập phiếu kho', code: v.code, detail: v.reason ?? '' });
+    for (const v of this.data.warehouseVouchers()) if (v.createdBy === e) list.push({ date: v.date, type: 'Lập chứng từ kho', code: v.code, detail: v.reason ?? '' });
     for (const t of this.data.deliveryTrips()) {
       if (t.createdBy === e) list.push({ date: t.date, type: 'Tạo chuyến giao hàng', code: t.code, link: ['/giao-hang', t.id], detail: '' });
       if (t.driverName === u.name) list.push({ date: t.date, type: 'Lái chuyến', code: t.code, link: ['/giao-hang', t.id], detail: t.plateNumber ?? '' });

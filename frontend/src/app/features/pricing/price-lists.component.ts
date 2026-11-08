@@ -83,7 +83,7 @@ export class PriceListsComponent implements HasUnsavedChanges {
 
   readonly issues = computed(() => {
     const out: string[] = [];
-    if (!this.name().trim()) out.push('Nhập tên bảng giá');
+    if (!this.name().trim()) out.push('Nhập tên chính sách giá');
     const seen = new Set<string>();
     this.items().forEach((l, i) => {
       if (!l.productId) return;
@@ -149,7 +149,7 @@ export class PriceListsComponent implements HasUnsavedChanges {
         name: this.name().trim(), note: this.note().trim() || undefined, isActive: this.isActive(),
         items: this.items().filter((x) => x.productId).map((x) => ({ productId: x.productId, unitName: x.unitName, price: x.price ?? 0 })),
       });
-      this.notice.set(id ? `Đã lưu bảng giá "${l.name}".` : `Đã lập bảng giá "${l.name}". Gán cho khách ở form khách hàng.`);
+      this.notice.set(id ? `Đã lưu chính sách giá "${l.name}".` : `Đã lập chính sách giá "${l.name}". Gán cho khách ở form khách hàng.`);
       this.close();
     } catch (e) {
       this.error.set(errorText(e));

@@ -12,13 +12,14 @@ import { formatDay, isoDay } from '../../../shared/period';
 import { errorText } from '../../../core/api/api.service';
 import { CHANNEL_LABEL, ReminderChannel, debtTransferNote, maxOverdueDays, phoneDigits, reminderMessage } from '../reminder.rules';
 import { ReminderService } from '../reminder.service';
+import { EmailComposeComponent } from '../../../shared/email-compose/email-compose.component';
 
 // Nhắc nợ một khách (Pha 2): tin soạn sẵn (sửa được) → sao chép / mở Zalo / gọi / email, rồi ghi nhận lần nhắc với
 // kênh, ghi chú và hẹn trả. Gửi tự động qua SMS / Zalo OA chưa nối — người dùng gửi bằng app của mình.
 @Component({
   selector: 'app-remind-dialog',
   standalone: true,
-  imports: [FormsModule, NavIconComponent, MoneyInputDirective, VietQrComponent],
+  imports: [FormsModule, NavIconComponent, MoneyInputDirective, VietQrComponent, EmailComposeComponent],
   templateUrl: './remind-dialog.component.html',
   styleUrls: ['../../products/product-import-dialog/product-import-dialog.component.scss', './remind-dialog.component.scss'],
 })
@@ -58,8 +59,30 @@ export class RemindDialogComponent {
   readonly lateDays = computed(() => (this.row() ? maxOverdueDays(this.row()!) : 0));
   readonly transferNote = computed(() => debtTransferNote(this.customer()?.code ?? ''));
   readonly smsHref = computed(() => `sms:${this.phone()}?body=${encodeURIComponent(this.message())}`);
+  // Gửi email: through the server (Hệ thống › Email gửi đi), with the message as edited here. Without email.send the
+  // old way stays: the user's own mail app.
+  private readonly compose = viewChild(EmailComposeComponent);
+  readonly canEmail = computed(() => this.auth.can('email.send'));
   readonly mailto = computed(() =>
     `mailto:${this.email()}?subject=${encodeURIComponent(`Thông báo công nợ — ${this.data.companyInfo().name}`)}&body=${encodeURIComponent(this.message())}`);
+
+  sendEmail(): void {
+    const c = this.customer();
+    if (!c) return;
+    this.channel.set('EMAIL');
+    void this.compose()?.open({
+      kind: 'debt_reminder', docId: c.id, docCode: c.code, to: [c.email], partner: c.companyName || c.name,
+      subject: `Thông báo công nợ — ${this.data.companyInfo().name}`, body: this.message(), vars: {},
+    });
+  }
+
+  /** Sent: noted on the dialog, which stays open so the reminder can be recorded (kênh Email is already chosen). */
+  emailed(text: string): void {
+    this.error.set('');
+    this.sentNote.set(text);
+  }
+
+  readonly sentNote = signal('');
 
   open(customer: Customer, row: DebtRow): void {
     this.customer.set(customer);
@@ -69,6 +92,7 @@ export class RemindDialogComponent {
       row, today: this.today, account: this.account(),
     }));
     this.copied.set(false);
+    this.sentNote.set('');
     this.channel.set(this.phone() ? 'ZALO' : this.email() ? 'EMAIL' : 'GOI_DIEN');
     this.note.set('');
     this.promisedDate.set('');

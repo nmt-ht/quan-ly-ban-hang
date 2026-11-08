@@ -84,7 +84,7 @@
   [optionRows]="data.suppliers()"
   [emptyAction]="chips().length || search() ? null : createCta"
   [emptyTitle]="chips().length || search() ? 'Không có nhà cung cấp phù hợp' : 'Chưa có nhà cung cấp nào'"
-  [emptyHint]="chips().length || search() ? 'Thử bỏ bớt bộ lọc hoặc đổi từ khoá tìm kiếm.' : 'Thêm nhà cung cấp để lập đơn nhập hàng và theo dõi công nợ phải trả.'"
+  [emptyHint]="chips().length || search() ? 'Thử bỏ bớt bộ lọc hoặc đổi từ khoá tìm kiếm.' : 'Thêm nhà cung cấp để lập đơn mua hàng và theo dõi công nợ phải trả.'"
 />
 
 <app-pagination [total]="suppliers().length" unit="nhà cung cấp" [(page)]="page" [(pageSize)]="pageSize" />
@@ -96,7 +96,7 @@
 <ng-template #rowActions let-s>
   <span class="row-actions">
     @if (s.isActive) {
-      <a class="icon-action" routerLink="/mua-hang/them" [queryParams]="{ ncc: s.id }" [attr.aria-label]="'Lập đơn nhập từ ' + s.name" title="Lập đơn nhập">
+      <a class="icon-action" routerLink="/mua-hang/them" [queryParams]="{ ncc: s.id }" [attr.aria-label]="'Lập đơn mua hàng từ ' + s.name" title="Lập đơn mua hàng">
         <app-nav-icon name="plus" />
       </a>
     }

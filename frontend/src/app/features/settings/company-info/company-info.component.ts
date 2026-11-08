@@ -159,7 +159,7 @@ export class CompanyInfoComponent {
     this.saved.set(d);
     this.logoError.set('');
     this.form.reset({ name: d.name, address: d.address ?? '', taxCode: d.taxCode ?? '', phone: d.phone ?? '', email: d.email ?? '', website: d.website ?? '' });
-    this.notice.set('Đã lưu thông tin công ty. Các bản in sẽ dùng thông tin mới.');
+    this.notice.set('Đã lưu thông tin doanh nghiệp. Các bản in sẽ dùng thông tin mới.');
   }
 
   revert(): void {

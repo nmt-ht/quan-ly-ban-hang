@@ -262,8 +262,8 @@ export class SalesOrdersComponent {
     this.exporting.set(true);
     try {
       const all = (await this.orders.page({ ...this.filters(), page: 1, pageSize: 5000 })).rows;
-      await downloadWorkbook(exportFileName('Đơn hàng bán'), [{
-        name: 'Đơn hàng bán',
+      await downloadWorkbook(exportFileName('Chứng từ bán hàng'), [{
+        name: 'Chứng từ bán hàng',
         columns: [
           { header: 'Mã đơn', width: 14 },
           { header: 'Ngày đặt', width: 12 },

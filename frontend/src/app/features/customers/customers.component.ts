@@ -165,7 +165,7 @@ export class CustomersComponent {
     { key: 'taxCode', sortByText: true, label: 'Mã số thuế', format: (r) => taxCodeOf(r) || '—', mono: true },
     { key: 'creditDays', label: 'Được nợ', align: 'right', format: (r) => (r.creditDays > 0 ? creditLabel(r.creditDays) : '—'), filterValue: (r) => r.creditDays },
     {
-      key: 'orderCount', label: 'Đơn hàng', align: 'right',
+      key: 'orderCount', label: 'Chứng từ bán hàng', align: 'right',
       format: (r) => String(this.svc.statsOf(r.id).orderCount), filterValue: (r) => this.svc.statsOf(r.id).orderCount,
     },
     {

@@ -1,7 +1,7 @@
 @if (voucher(); as v) {
   <div class="voucher screen-only">
     <header class="voucher-bar">
-      <a class="icon-action" routerLink="/thu-chi" aria-label="Về danh sách phiếu thu chi" title="Về danh sách"><app-nav-icon name="arrow-left" /></a>
+      <a class="icon-action" routerLink="/thu-chi" aria-label="Về danh sách thu, chi tiền" title="Về danh sách"><app-nav-icon name="arrow-left" /></a>
       <h1>{{ title() }} <span class="num">{{ v.code }}</span></h1>
       <app-copy-button [text]="v.code" label="số phiếu" />
       @if (v.isCancelled) { <span class="badge cvv-cancelled">Đã huỷ</span> }
@@ -101,6 +101,7 @@
       </p>
       <div class="toolbar">
         <app-print-menu kind="cash-voucher" label="In phiếu" />
+        @if (canEmail()) { <button type="button" class="btn" (click)="email()"><app-nav-icon name="mail" />Gửi email</button> }
         @if (partner(); as p) {
           <a class="btn" [routerLink]="p.ledger" [queryParams]="{ partnerId: p.id }">Sổ công nợ</a>
         }
@@ -149,6 +150,8 @@
   <div class="card empty-state">
     <h3>Không tìm thấy phiếu</h3>
     <p>Đường dẫn có thể không đúng.</p>
-    <a class="btn" routerLink="/thu-chi">Về phiếu thu chi</a>
+    <a class="btn" routerLink="/thu-chi">Về danh sách thu, chi tiền</a>
   </div>
 }
+
+<app-email-compose #emailDlg (sent)="notice.set($event)" />

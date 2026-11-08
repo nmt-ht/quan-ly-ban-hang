@@ -92,6 +92,16 @@
   visibility: hidden;
 }
 
+// Email PDF (print-pdf.ts): the printouts laid out off-screen at A4's printable width, white, then drawn to canvas.
+:root[data-paper-capture] .print-only {
+  display: block !important;
+  position: absolute;
+  top: 0;
+  left: -10000px;
+  width: 182mm;
+  background: #fff;
+}
+
 // ---------- the paper ----------
 // Not inside @media print: .print-only hides it on screen, and the K80 roll is measured on screen
 // (PrintService.fitRoll) with the same rules the printer gets.

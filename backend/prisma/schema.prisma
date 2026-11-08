@@ -1128,3 +1128,51 @@ model DebtReminder {
 
   @@index([customerId, createdAt])
 }
+
+// ---------- Email gửi đi (Hệ thống › Email gửi đi) ----------
+
+/** How this doanh nghiệp sends email. One row (id 1). The SMTP password is sealed (AES-256-GCM), never sent back. */
+model MailSettings {
+  id             Int       @id @default(1)
+  mode           String    @default("OFF") // OFF · SMTP (the company's own mailbox) · SYSTEM (the platform sends for it)
+  fromName       String? // shown as the sender, e.g. "Ninh Trang"
+  fromEmail      String? // SMTP mode: the mailbox it sends from
+  replyTo        String? // where customers' replies go (SYSTEM mode: the company's email)
+  bcc            String? // a copy of every email to this address (lưu vết)
+  host           String?
+  port           Int?
+  secure         Boolean   @default(false) // true = TLS from the start (465); false = STARTTLS (587)
+  username       String?
+  passwordSealed String?
+  verifiedAt     DateTime? // last successful "Gửi thử"
+  updatedAt      DateTime  @default(now()) @updatedAt
+}
+
+/** Subject and body for one kind of document; {placeholders} are filled when the email is composed. */
+model MailTemplate {
+  kind      String   @id // quotation · sales_order · purchase_order · cash_receipt · debt_reminder · debt_reconcile
+  subject   String
+  body      String
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+/** Every email sent (or tried): who, to whom, about which document, and how it went. */
+model EmailLog {
+  id         String   @id @default(uuid())
+  at         DateTime @default(now())
+  kind       String // MailTemplate.kind, or "test"
+  docId      String?
+  docCode    String?
+  to         String[]
+  cc         String[]
+  subject    String
+  attachment String? // file name of the PDF, when one went
+  status     String // SENT · FAILED
+  error      String?
+  messageId  String?
+  sentById   String?
+  sentByName String
+
+  @@index([kind, docId, at])
+  @@index([at])
+}

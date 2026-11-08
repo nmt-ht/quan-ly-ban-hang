@@ -193,7 +193,7 @@ export class DebtAgingComponent {
     this.exporting.set(true);
     const side = this.side() === 'PHAI_TRA' ? 'phải trả' : 'phải thu';
     try {
-      await downloadWorkbook(exportFileName(`Tuổi nợ ${side}`), [
+      await downloadWorkbook(exportFileName(`Phân tích tuổi nợ ${side}`), [
         {
           name: 'Theo đối tác',
           columns: [

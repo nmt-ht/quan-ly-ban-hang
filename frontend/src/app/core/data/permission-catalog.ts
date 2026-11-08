@@ -10,23 +10,24 @@ export const PERMISSION_MODULES: PermissionModule[] = [
     { code: 'user.delete', label: 'Xoá người dùng' },
     { code: 'user.reset_password', label: 'Đặt lại mật khẩu' },
   ]},
-  { key: 'position', label: 'Chức vụ', permissions: [
-    { code: 'position.view', label: 'Xem chức vụ' },
-    { code: 'position.create', label: 'Thêm chức vụ' },
-    { code: 'position.update', label: 'Sửa chức vụ' },
-    { code: 'position.delete', label: 'Xoá chức vụ' },
-    { code: 'position.assign_permission', label: 'Phân quyền cho chức vụ' },
+  { key: 'position', label: 'Vai trò', permissions: [
+    { code: 'position.view', label: 'Xem vai trò' },
+    { code: 'position.create', label: 'Thêm vai trò' },
+    { code: 'position.update', label: 'Sửa vai trò' },
+    { code: 'position.delete', label: 'Xoá vai trò' },
+    { code: 'position.assign_permission', label: 'Phân quyền cho vai trò' },
   ]},
   { key: 'company', label: 'Công ty', permissions: [
-    { code: 'company.view', label: 'Xem thông tin công ty' },
-    { code: 'company.update', label: 'Sửa thông tin công ty' },
+    { code: 'company.view', label: 'Xem thông tin doanh nghiệp' },
+    { code: 'company.update', label: 'Sửa thông tin doanh nghiệp (cả email gửi đi)' },
+    { code: 'email.send', label: 'Gửi email chứng từ cho khách hàng / NCC' },
     { code: 'period.lock', label: 'Khoá sổ / bỏ khoá sổ kỳ kế toán' },
   ]},
-  { key: 'category', label: 'Nhóm hàng', permissions: [
-    { code: 'category.view', label: 'Xem nhóm hàng' },
-    { code: 'category.create', label: 'Thêm nhóm hàng' },
-    { code: 'category.update', label: 'Sửa nhóm hàng' },
-    { code: 'category.delete', label: 'Xoá nhóm hàng' },
+  { key: 'category', label: 'Nhóm VTHH', permissions: [
+    { code: 'category.view', label: 'Xem nhóm VTHH' },
+    { code: 'category.create', label: 'Thêm nhóm VTHH' },
+    { code: 'category.update', label: 'Sửa nhóm VTHH' },
+    { code: 'category.delete', label: 'Xoá nhóm VTHH' },
   ]},
   { key: 'warehouse', label: 'Kho', permissions: [
     { code: 'warehouse.view', label: 'Xem kho' },
@@ -38,7 +39,7 @@ export const PERMISSION_MODULES: PermissionModule[] = [
     { code: 'tag.view', label: 'Xem thẻ' },
     { code: 'tag.manage', label: 'Quản lý thẻ' },
   ]},
-  { key: 'product', label: 'Hàng hoá', permissions: [
+  { key: 'product', label: 'Vật tư hàng hoá', permissions: [
     { code: 'product.view', label: 'Xem hàng hoá' },
     { code: 'product.create', label: 'Thêm hàng hoá' },
     { code: 'product.update', label: 'Sửa hàng hoá' },
@@ -50,8 +51,8 @@ export const PERMISSION_MODULES: PermissionModule[] = [
   { key: 'price', label: 'Giá', permissions: [
     { code: 'product.update_price', label: 'Sửa giá bán' },
     { code: 'product.view_cost_price', label: 'Xem giá vốn' },
-    { code: 'pricelist.manage', label: 'Quản lý bảng giá' },
-    { code: 'promotion.manage', label: 'Quản lý khuyến mãi' },
+    { code: 'pricelist.manage', label: 'Quản lý chính sách giá' },
+    { code: 'promotion.manage', label: 'Quản lý khuyến mại' },
   ]},
   { key: 'bom', label: 'Định mức', permissions: [
     { code: 'bom.view', label: 'Xem định mức' },
@@ -74,35 +75,35 @@ export const PERMISSION_MODULES: PermissionModule[] = [
     { code: 'stock.view', label: 'Xem tồn kho' },
     { code: 'stock.view_value', label: 'Xem giá trị tồn kho' },
   ]},
-  { key: 'stock_voucher', label: 'Phiếu kho', permissions: [
+  { key: 'stock_voucher', label: 'Nhập, xuất kho', permissions: [
     { code: 'stock.import', label: 'Lập phiếu nhập kho' },
     { code: 'stock.import_price', label: 'Nhập đơn giá trên phiếu nhập' },
     { code: 'stock.export', label: 'Lập phiếu xuất kho' },
     { code: 'stock.transfer', label: 'Chuyển kho' },
     { code: 'stock.adjust', label: 'Điều chỉnh tồn kho' },
-    { code: 'stock.cancel', label: 'Huỷ phiếu kho' },
+    { code: 'stock.cancel', label: 'Huỷ chứng từ kho' },
     { code: 'stock.overdraw', label: 'Xuất vượt tồn kho' },
   ]},
   { key: 'stocktake', label: 'Kiểm kê', permissions: [
     { code: 'stock.stocktake', label: 'Kiểm kê kho' },
   ]},
-  { key: 'purchase', label: 'Đơn nhập hàng', permissions: [
-    { code: 'purchase.view', label: 'Xem đơn nhập hàng' },
-    { code: 'purchase.create', label: 'Tạo đơn nhập hàng' },
-    { code: 'purchase.update', label: 'Sửa đơn nhập hàng' },
-    { code: 'purchase.approve', label: 'Duyệt đơn nhập hàng' },
+  { key: 'purchase', label: 'Đơn mua hàng', permissions: [
+    { code: 'purchase.view', label: 'Xem đơn mua hàng' },
+    { code: 'purchase.create', label: 'Tạo đơn mua hàng' },
+    { code: 'purchase.update', label: 'Sửa đơn mua hàng' },
+    { code: 'purchase.approve', label: 'Duyệt đơn mua hàng' },
     { code: 'purchase.receive', label: 'Xác nhận nhận hàng' },
-    { code: 'purchase.cancel', label: 'Huỷ đơn nhập hàng' },
+    { code: 'purchase.cancel', label: 'Huỷ đơn mua hàng' },
     { code: 'purchase.return', label: 'Trả lại hàng mua' },
   ]},
   { key: 'order', label: 'Đơn bán hàng', permissions: [
-    { code: 'order.view', label: 'Xem đơn hàng' },
+    { code: 'order.view', label: 'Xem chứng từ bán hàng' },
     { code: 'order.view_all', label: 'Xem đơn của mọi người bán' },
-    { code: 'order.create', label: 'Tạo đơn hàng' },
-    { code: 'order.update', label: 'Sửa đơn hàng' },
-    { code: 'order.cancel', label: 'Huỷ đơn hàng' },
+    { code: 'order.create', label: 'Tạo chứng từ bán hàng' },
+    { code: 'order.update', label: 'Sửa chứng từ bán hàng' },
+    { code: 'order.cancel', label: 'Huỷ chứng từ bán hàng' },
     { code: 'order.update_price', label: 'Sửa đơn giá trên đơn' },
-    { code: 'order.discount', label: 'Chiết khấu ngoài khuyến mãi' },
+    { code: 'order.discount', label: 'Chiết khấu ngoài khuyến mại' },
     { code: 'order.below_min_price', label: 'Bán dưới giá tối thiểu' },
     { code: 'order.return', label: 'Nhận hàng trả lại' },
   ]},
@@ -141,11 +142,11 @@ export const PERMISSION_MODULES: PermissionModule[] = [
     { code: 'debt.adjust', label: 'Điều chỉnh công nợ' },
     { code: 'debt.remind', label: 'Nhắc nợ khách hàng' },
   ]},
-  { key: 'voucher', label: 'Phiếu thu chi', permissions: [
-    { code: 'voucher.view', label: 'Xem phiếu thu chi' },
+  { key: 'voucher', label: 'Thu, chi tiền', permissions: [
+    { code: 'voucher.view', label: 'Xem phiếu thu, chi' },
     { code: 'voucher.create_receipt', label: 'Lập phiếu thu' },
     { code: 'voucher.create_payment', label: 'Lập phiếu chi' },
-    { code: 'voucher.cancel', label: 'Huỷ phiếu thu chi' },
+    { code: 'voucher.cancel', label: 'Huỷ phiếu thu, chi' },
     { code: 'voucher.manage_category', label: 'Quản lý loại thu chi' },
     { code: 'voucher.manage_account', label: 'Quản lý tài khoản tiền' },
     { code: 'voucher.overdraw', label: 'Chi vượt tồn quỹ' },
@@ -163,8 +164,8 @@ export const PERMISSION_MODULES: PermissionModule[] = [
     { code: 'report.delivery', label: 'Báo cáo giao hàng' },
     { code: 'report.view_profit', label: 'Xem lợi nhuận, lãi gộp' },
   ]},
-  { key: 'audit', label: 'Nhật ký hoạt động', permissions: [
-    { code: 'audit.view', label: 'Xem nhật ký hoạt động' },
+  { key: 'audit', label: 'Nhật ký truy cập', permissions: [
+    { code: 'audit.view', label: 'Xem nhật ký truy cập' },
   ]},
 ];
 

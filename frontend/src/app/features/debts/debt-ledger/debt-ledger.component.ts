@@ -1,4 +1,7 @@
 import { Component, computed, effect, inject, input, signal, viewChild } from '@angular/core';
+import { EmailComposeComponent } from '../../../shared/email-compose/email-compose.component';
+import { MailKind } from '../../../core/services/mail.service';
+import { pdfName } from '../../../shared/print/print-pdf';
 import { RouterLink } from '@angular/router';
 import { DataStore } from '../../../core/services/data-store.service';
 import { DebtEntry, DebtService } from '../../../core/services/debt.service';
@@ -36,7 +39,7 @@ const SIDE = {
     listTitle: 'Công nợ phải trả', listPath: '/cong-no/nha-cung-cap', partner: 'nhà cung cấp', detailPath: '/nha-cung-cap',
     voucherPath: '/thu-chi/lap/chi', voucherLabel: 'Lập phiếu chi', partnerParam: 'supplierId', settledLabel: 'Đã trả đủ',
     prepaidNote: 'Đang trả trước cho nhà cung cấp',
-    hint: 'Phát sinh tăng khi nhập kho hàng của đơn nhập; giảm khi lập phiếu chi trả nhà cung cấp.',
+    hint: 'Phát sinh tăng khi nhập kho hàng của đơn mua hàng; giảm khi lập phiếu chi trả nhà cung cấp.',
     empty: 'Công nợ phải trả phát sinh khi nhập kho hàng từ nhà cung cấp này.',
     partyA: 'Bên mua (Bên A)', partyB: 'Bên bán (Bên B)', owes: 'Bên A còn phải trả Bên B', prepaid: 'Bên A đã trả trước cho Bên B',
   },
@@ -56,6 +59,7 @@ const SIDE = {
   selector: 'app-debt-ledger',
   standalone: true,
   imports: [
+    EmailComposeComponent,
     RouterLink, FormsModule, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, PeriodFilterComponent, PrintDocumentComponent, VietQrComponent,
     RemindDialogComponent,
   ],
@@ -170,6 +174,27 @@ export class DebtLedgerComponent {
   printNotice(): void {
     this.printMode.set('thong-bao');
     setTimeout(() => window.print());
+  }
+
+  // ---------- gửi email (as MISA): biên bản đối chiếu / thông báo công nợ, kèm đúng tờ in ----------
+  private readonly emailDlg = viewChild(EmailComposeComponent);
+  readonly canEmail = computed(() => this.auth.can('email.send'));
+
+  email(kind: Extract<MailKind, 'debt_reconcile' | 'debt_reminder'>): void {
+    const p = this.partner();
+    const r = this.row();
+    if (!p || !r) return;
+    const mail = this.side() === 'PHAI_TRA' ? this.data.suppliers().find((x) => x.id === p.id)?.email : this.data.customers().find((x) => x.id === p.id)?.email;
+    const mode = kind === 'debt_reconcile' ? 'doi-chieu' : 'thong-bao';
+    const today = new Date().toISOString().slice(0, 10);
+    void this.emailDlg()?.open({
+      kind, docId: p.id, docCode: p.code, to: [mail], partner: p.name,
+      vars: { ten_khach: p.name, ngay: formatDay(today), so_du: formatVnd(r.balance), han: r.nextDue ? formatDay(r.nextDue) : '' },
+      pdf: {
+        filename: pdfName(kind === 'debt_reconcile' ? 'Bien ban doi chieu cong no' : 'Thong bao cong no', p.code),
+        prepare: () => this.printMode.set(mode),
+      },
+    });
   }
 
   remind(): void {

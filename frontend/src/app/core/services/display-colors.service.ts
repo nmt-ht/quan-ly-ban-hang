@@ -54,8 +54,8 @@ export const TAG_GROUPS: TagGroup[] = [
   },
   {
     id: 'warehouse-voucher',
-    label: 'Loại phiếu kho',
-    hint: 'Cột Loại của Phiếu kho.',
+    label: 'Loại chứng từ kho',
+    hint: 'Cột Loại của Chứng từ kho.',
     items: items(
       { NHAP: 'Nhập kho', XUAT: 'Xuất kho', CHUYEN: 'Chuyển kho', KIEM_KE: 'Kiểm kê', TRA_VE: 'Nhập trả về' },
       { NHAP: 150, XUAT: 25, CHUYEN: 240, KIEM_KE: 285, TRA_VE: 65 },
@@ -64,7 +64,7 @@ export const TAG_GROUPS: TagGroup[] = [
   {
     id: 'user-status',
     label: 'Trạng thái người dùng',
-    hint: 'Cột Trạng thái của Thiết lập › Người dùng.',
+    hint: 'Cột Trạng thái của Hệ thống › Quản lý người dùng.',
     items: items({ ACTIVE: 'Đang hoạt động', DISABLED: 'Đã khoá' }, { ACTIVE: 150, DISABLED: 'neutral' }),
   },
   {
@@ -81,8 +81,8 @@ export const TAG_GROUPS: TagGroup[] = [
   },
   {
     id: 'sales-order',
-    label: 'Trạng thái đơn hàng bán',
-    hint: 'Cột Trạng thái của Đơn hàng bán.',
+    label: 'Trạng thái chứng từ bán hàng',
+    hint: 'Cột Trạng thái của Chứng từ bán hàng.',
     items: items(SALES_ORDER_STATUS_LABEL, {
       CHO_SAN_XUAT: 65, DANG_SAN_XUAT: 285, CHO_GIAO_HANG: 200, DANG_GIAO: 240,
       HOAN_THANH: 150, GIAO_MOT_PHAN: 95, TRA_TOAN_BO: 25, HUY: 'neutral',
@@ -96,8 +96,8 @@ export const TAG_GROUPS: TagGroup[] = [
   },
   {
     id: 'purchase-order',
-    label: 'Trạng thái đơn nhập hàng',
-    hint: 'Cột Trạng thái của Đơn nhập hàng.',
+    label: 'Trạng thái đơn mua hàng',
+    hint: 'Cột Trạng thái của Đơn mua hàng.',
     items: items(PURCHASE_ORDER_STATUS_LABEL, {
       NHAP: 'neutral', DA_GUI_NCC: 240, NHAN_MOT_PHAN: 65, DA_NHAN_DU: 200, HOAN_TAT: 150, HUY: 25,
     }),
