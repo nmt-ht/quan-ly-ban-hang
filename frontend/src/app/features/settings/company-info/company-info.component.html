@@ -101,7 +101,7 @@
     <section class="card section-block co-lock" aria-labelledby="co-stock-title">
       <h3 id="co-stock-title" class="form-section-title">Xuất kho</h3>
       <label class="check-line">
-        <input type="checkbox" [checked]="allowNegative()" [disabled]="!canPolicy || policyBusy()" (change)="setStockPolicy($any($event.target).checked)" />
+        <input type="checkbox" [checked]="allowNegative()" [disabled]="!canPolicy || policyBusy()" (change)="setStockPolicy($any($event.target))" />
         <span>Cho xuất quá số tồn</span>
         <span class="hint">
           Bỏ chọn thì giao hàng, xuất kho chuyến, xuất vật tư sản xuất và phiếu xuất tay làm tồn kho âm sẽ bị từ chối;

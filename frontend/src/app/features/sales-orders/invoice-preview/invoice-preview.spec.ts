@@ -119,4 +119,15 @@ describe('hoá đơn điều chỉnh giảm và hoá đơn ngoại tệ', () => 
     expect(inv.rows[0]).toMatchObject({ unitPrice: 4.5, amount: 9 });
     expect(inv).toMatchObject({ total: 9, vndTotal: 228_600 });
   });
+
+  it('thành tiền nguyên tệ = SL × đơn giá, tổng cộng từ các dòng; quy đổi VND là công nợ của đơn', () => {
+    const o = order([
+      line({ id: 'la', productId: 'a', quantity: 10_000, unitPrice: 9_412, unitPriceFx: 0.37, vatRate: 0 }),
+      line({ id: 'lb', productId: 'b', quantity: 10_000, unitPrice: 500_000, vatRate: 0 }), // giá VND theo bảng giá
+    ]);
+    const inv = invoiceData(o, orderedSlices(o), name, 1, 25_437);
+    expect(inv.rows[0]).toMatchObject({ unitPrice: 0.37, amount: 3_700 });
+    expect(inv.rows[1]).toMatchObject({ unitPrice: 19.66, amount: 196_600 });
+    expect(inv).toMatchObject({ taxable: 200_300, total: 200_300, vndTotal: 5_094_120_000 });
+  });
 });

@@ -1,7 +1,7 @@
 import { Product, ProductionOrder, SalesOrder, SalesOrderLine } from '../../core/models/domain.models';
 import {
   canCancel, canClose, canDeliver, canEdit, deriveStatus, defaultWarehouse, lineDiscount, lineRemaining, linesNeedingLsx,
-  orderTotals, priceFor, receivedValueOf,
+  orderTotals, priceFor, receivedValueOf, fromFx, requoteFx, toFx, withLineDiscount,
 } from './sales-order.rules';
 
 const line = (productId: string, quantity: number, unitPrice: number, extra: Partial<SalesOrderLine> = {}): SalesOrderLine =>
@@ -130,5 +130,34 @@ describe('trạng thái đơn bán', () => {
     expect(defaultWarehouse({ type: 'VAT_TU', defaultWarehouseId: 'wh-vattu' } as Product)).toBe('wh-vattu');
     expect(defaultWarehouse({ type: 'DICH_VU', defaultWarehouseId: 'wh-vattu' } as Product)).toBe('');
     expect(defaultWarehouse(undefined)).toBe('');
+  });
+});
+
+describe('ngoại tệ: quy đổi đơn giá và tính lại chiết khấu khi đổi tỷ giá', () => {
+  const fxLine = (o: Partial<{ quantity: number | null; unitPrice: number | null; unitPriceFx: number | null; discountRate: number | null; discountAmount: number | null; isGift: boolean }>) => ({
+    quantity: 10, unitPrice: 200_000, unitPriceFx: 4.5, discountRate: null, discountAmount: null, isGift: false, ...o,
+  });
+
+  it('quy đổi: VND làm tròn đồng như máy chủ, nguyên tệ làm tròn cent như hoá đơn', () => {
+    expect(fromFx(4.5, 25_437)).toBe(114_467);
+    expect(toFx(500_000, 25_437)).toBe(19.66);
+  });
+
+  it('đổi tỷ giá: dòng giá nguyên tệ lấy đơn giá VND mới, tiền CK theo tỷ lệ CK', () => {
+    const { lines, changed } = requoteFx([fxLine({ discountRate: 10, discountAmount: 200_000 })], 25_400);
+    expect(changed).toBe(true);
+    expect(lines[0]).toMatchObject({ unitPrice: 114_300, discountRate: 10, discountAmount: 114_300 });
+  });
+
+  it('dòng không có giá nguyên tệ, hàng tặng, hoặc đã đúng giá: giữ nguyên, changed = false', () => {
+    const input = [fxLine({ unitPriceFx: null }), fxLine({ isGift: true }), fxLine({ unitPrice: 114_300 })];
+    const { lines, changed } = requoteFx(input, 25_400);
+    expect(changed).toBe(false);
+    expect(lines).toEqual(input);
+  });
+
+  it('tiền CK gõ tay kéo theo tỷ lệ CK, và không vượt thành tiền', () => {
+    const l = fxLine({ unitPrice: 100_000, discountAmount: 2_000_000 });
+    expect(withLineDiscount(l, { discountAmount: 2_000_000 })).toMatchObject({ discountAmount: 1_000_000, discountRate: 100 });
   });
 });

@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { Prisma, PurchaseOrderStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { SequenceService } from '../../prisma/sequence.service.js';
-import { InventoryService, VoucherLineInput } from '../inventory/inventory.service.js';
+import { InventoryService, StockActor, VoucherLineInput } from '../inventory/inventory.service.js';
 import { fromDay, toDay, vnDay } from '../../common/text.js';
 import { AuditService } from '../../audit/audit.service.js';
 import { PURCHASE_RETURN_INCLUDE, purchaseReturnToApi } from './purchase-returns.js';
@@ -221,7 +221,7 @@ export class PurchaseOrdersService {
    * quantities raised (never past the ordered quantity), status recomputed. receivedValue — and with it
    * công nợ phải trả — follows from the lines. Dịch vụ lines are received without a phiếu kho.
    */
-  receive(id: string, input: ReceiptInput, userId: string) {
+  receive(id: string, input: ReceiptInput, user: StockActor) {
     return this.prisma.$transaction(async (tx) => {
       const o = await this.locked(tx, id);
       if (!canReceive(o.status)) throw new BadRequestException('Đơn này không ở trạng thái nhận hàng được.');
@@ -261,7 +261,7 @@ export class PurchaseOrdersService {
         voucherIds.push(await this.inventory.post(tx, {
           type: 'NHAP', date: day, warehouseId, lines, purchaseOrderId: o.id,
           reason: `Nhập hàng theo đơn ${o.code}${input.note ? ` — ${input.note}` : ''}`,
-        }, userId));
+        }, user));
       }
 
       for (const [i, l] of o.lines.entries()) {

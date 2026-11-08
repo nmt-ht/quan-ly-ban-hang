@@ -243,3 +243,51 @@ export function saleTypeIssue(o: {
   if (currency || o.exchangeRate) return 'Đơn bán trong nước thu bằng VND — bỏ loại tiền và tỷ giá, hoặc chọn loại Xuất khẩu.';
   return null;
 }
+
+// ---------- ngoại tệ (đơn xuất khẩu thu bằng ngoại tệ) ----------
+
+/** Số tiền nguyên tệ to the cent. */
+export const cents = (n: number) => Math.round(n * 100) / 100;
+/** VND ra nguyên tệ to the cent: đơn giá on the hoá đơn of a dòng with no đơn giá nguyên tệ (and its placeholder). */
+export const toFx = (vnd: number, rate: number) => cents(vnd / rate);
+/** Nguyên tệ ra VND: đơn giá VND làm tròn đồng, as the server works it out (SalesService.checkInput). */
+export const fromFx = (fx: number, rate: number) => Math.round(fx * rate);
+
+export interface DiscountedLine {
+  quantity: number | null;
+  unitPrice: number | null;
+  discountRate: number | null;
+  discountAmount: number | null;
+}
+
+/** Keep tỷ lệ CK and tiền CK in step (MISA): the one typed drives the other. */
+export function withLineDiscount<L extends DiscountedLine>(l: L, change: Partial<L>): L {
+  const gross = Math.round((l.quantity ?? 0) * (l.unitPrice ?? 0));
+  if ('discountAmount' in change) {
+    const amt = Math.min(gross, Math.max(0, l.discountAmount ?? 0));
+    return { ...l, discountAmount: amt || null, discountRate: gross && amt ? Math.round((amt / gross) * 10000) / 100 : null };
+  }
+  if ('discountRate' in change || 'quantity' in change || 'unitPrice' in change) {
+    const rate = l.discountRate ?? 0;
+    return rate ? { ...l, discountAmount: Math.round((gross * Math.min(rate, 100)) / 100) } : l;
+  }
+  return l;
+}
+
+/**
+ * After the tỷ giá changes: every dòng priced in nguyên tệ (not hàng tặng) gets đơn giá VND = nguyên tệ × tỷ giá, its
+ * tiền CK following its tỷ lệ CK. `changed` false = no dòng moved, so khuyến mãi need not be re-applied.
+ */
+export function requoteFx<L extends DiscountedLine & { unitPriceFx: number | null; isGift: boolean }>(
+  lines: L[], rate: number,
+): { lines: L[]; changed: boolean } {
+  let changed = false;
+  const out = lines.map((l) => {
+    if (l.isGift || l.unitPriceFx == null) return l;
+    const vnd = fromFx(l.unitPriceFx, rate);
+    if (vnd === l.unitPrice) return l;
+    changed = true;
+    return withLineDiscount({ ...l, unitPrice: vnd }, { unitPrice: vnd } as Partial<L>);
+  });
+  return { lines: out, changed };
+}

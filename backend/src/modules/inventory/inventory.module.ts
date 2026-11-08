@@ -93,14 +93,14 @@ export class InventoryController {
     // Đơn giá trên phiếu nhập needs its own permission (Thủ kho does not see purchase prices): drop it otherwise.
     const pricing = user.permissions.includes('stock.import_price');
     const lines = dto.lines.map((l) => (pricing ? l : { ...l, unitPrice: undefined }));
-    return this.inventory.create({ ...dto, lines }, user.id);
+    return this.inventory.create({ ...dto, lines }, user);
   }
 
   @RequirePermissions('stock.cancel')
   @Post('warehouse-vouchers/:id/cancel')
   @HttpCode(HttpStatus.OK)
   cancel(@Param('id') id: string, @Body() dto: CancelDto, @CurrentUser() user: AuthUser) {
-    return this.inventory.cancel(id, dto.reason, user.id);
+    return this.inventory.cancel(id, dto.reason, user);
   }
 }
 

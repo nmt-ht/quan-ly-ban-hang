@@ -5,7 +5,11 @@ import { SequenceService } from '../../prisma/sequence.service.js';
 import { fromDay, toDay } from '../../common/text.js';
 import { AuditService } from '../../audit/audit.service.js';
 import { assertOpenPeriod, documentDay } from '../../common/period-lock.js';
+import { AuthUser } from '../../auth/auth.service.js';
 import { VoucherLookups, WarehouseVoucherPageQuery, relatedWhere, voucherPageOf, voucherWhere } from './warehouse-voucher-page.js';
+
+/** Who lập / huỷ a phiếu: id for createdBy, permissions for stock.overdraw. */
+export type StockActor = Pick<AuthUser, 'id' | 'permissions'>;
 
 const TYPE_LABEL: Record<WarehouseVoucherType, string> = { NHAP: 'phiếu nhập kho', XUAT: 'phiếu xuất kho', CHUYEN: 'phiếu chuyển kho', KIEM_KE: 'phiếu kiểm kê' };
 
@@ -168,19 +172,19 @@ export class InventoryService {
   }
 
   /** Lập phiếu on its own (manual vouchers). Other modules call `post` inside their own transaction. */
-  create(input: VoucherInput, userId: string) {
+  create(input: VoucherInput, actor: StockActor) {
     return this.prisma.$transaction(async (tx) => {
       await documentDay(tx, input.date, 'Phiếu kho'); // not after hôm nay (post checks the closed kỳ again)
       // A kho put out of use takes no new phiếu lập tay (vouchers other chứng từ write keep working for old lines).
       const ids = [input.warehouseId, ...(input.type === 'CHUYEN' && input.targetWarehouseId ? [input.targetWarehouseId] : [])];
       const off = await tx.warehouse.findFirst({ where: { id: { in: ids }, isActive: false }, select: { name: true } });
       if (off) throw new BadRequestException(`Kho "${off.name}" đã ngừng dùng — chọn kho khác, hoặc dùng lại kho ở Thiết lập › Kho.`);
-      return this.voucher(await this.post(tx, input, userId), tx);
+      return this.voucher(await this.post(tx, input, actor), tx);
     });
   }
 
   /** Number, store and apply one voucher; returns its id. Runs inside the caller's transaction. */
-  async post(tx: Tx, input: VoucherInput, userId: string): Promise<string> {
+  async post(tx: Tx, input: VoucherInput, actor: StockActor): Promise<string> {
     const { type, warehouseId } = input;
     await assertOpenPeriod(tx, input.date, 'Phiếu kho');
     const target = type === 'CHUYEN' ? input.targetWarehouseId : undefined;
@@ -222,13 +226,13 @@ export class InventoryService {
       data: {
         code: await this.sequences.nextCode(VOUCHER_PREFIX[type], tx),
         type, date: fromDay(input.date)!, warehouseId, targetWarehouseId: target ?? null,
-        reason: input.reason ?? null, note: input.note ?? null, createdById: userId,
+        reason: input.reason ?? null, note: input.note ?? null, createdById: actor.id,
         purchaseOrderId: input.purchaseOrderId ?? null, salesOrderId: input.salesOrderId ?? null,
         productionOrderId: input.productionOrderId ?? null, deliveryTripId: input.deliveryTripId ?? null,
         lines: { create: rows },
       },
     });
-    await this.checkStock(tx, await this.applyStock(tx, type, warehouseId, target, rows, 1), userId);
+    await this.checkStock(tx, await this.applyStock(tx, type, warehouseId, target, rows, 1), actor);
     const where = warehouses.find((w) => w.id === warehouseId)?.name + (target ? ` → ${warehouses.find((w) => w.id === target)?.name}` : '');
     await this.audit.log(tx, {
       action: 'warehouse_voucher.create', entityType: 'WarehouseVoucher', entityId: v.id, entityCode: v.code,
@@ -238,7 +242,7 @@ export class InventoryService {
   }
 
   /** Huỷ phiếu: stock goes back to before the voucher; the voucher stays, marked cancelled. */
-  async cancel(id: string, reason: string | undefined, userId?: string) {
+  async cancel(id: string, reason: string | undefined, actor: StockActor) {
     return this.prisma.$transaction(async (tx) => {
       // Locked: two huỷ at once cannot both pass and take the stock back twice.
       await tx.$queryRaw`SELECT "id" FROM "WarehouseVoucher" WHERE "id" = ${id} FOR UPDATE`;
@@ -248,7 +252,7 @@ export class InventoryService {
       const fromDocument = v.purchaseOrderId || v.salesOrderId || v.productionOrderId || v.deliveryTripId ||
         SOURCE_IN_REASON.some((re) => re.test(v.reason ?? ''));
       if (fromDocument) throw new BadRequestException('Phiếu này lập từ chứng từ khác — huỷ ở chứng từ gốc.');
-      await this.reverse(tx, id, reason, userId);
+      await this.reverse(tx, id, reason, actor);
       return this.voucher(id, tx);
     });
   }
@@ -257,7 +261,7 @@ export class InventoryService {
    * Undoes a voucher inside the caller's transaction (stock back to before it, the voucher kept, marked huỷ). For the
    * chứng từ gốc that wrote it — e.g. huỷ phiếu trả hàng; a voucher already huỷ is left as it is.
    */
-  async reverse(tx: Tx, id: string, reason: string | undefined, userId?: string): Promise<void> {
+  async reverse(tx: Tx, id: string, reason: string | undefined, actor: StockActor): Promise<void> {
     const v = await tx.warehouseVoucher.findUnique({ where: { id }, include: { lines: true } });
     if (!v) throw new NotFoundException('Không tìm thấy phiếu kho');
     if (v.isCancelled) return;
@@ -277,7 +281,7 @@ export class InventoryService {
       await this.saveCosts(tx, costs);
     }
     const lines = v.lines.map((l) => ({ productId: l.productId, delta: l.delta.toNumber() }));
-    await this.checkStock(tx, await this.applyStock(tx, v.type, v.warehouseId, v.targetWarehouseId ?? undefined, lines, -1), userId);
+    await this.checkStock(tx, await this.applyStock(tx, v.type, v.warehouseId, v.targetWarehouseId ?? undefined, lines, -1), actor);
     await tx.warehouseVoucher.update({ where: { id }, data: { isCancelled: true, cancelReason: reason ?? null, cancelledAt: new Date() } });
     await this.audit.log(tx, {
       action: 'warehouse_voucher.cancel', entityType: 'WarehouseVoucher', entityId: id, entityCode: v.code,
@@ -398,10 +402,10 @@ export class InventoryService {
 
   /**
    * Không xuất quá số tồn (as MISA), when Thông tin công ty turns "Cho xuất quá số tồn" off: a phiếu that leaves a kho
-   * below 0 is refused, unless `userId` has stock.overdraw. Runs after the stock moved, inside the same transaction.
+   * below 0 is refused, unless `actor` has stock.overdraw. Runs after the stock moved, inside the same transaction.
    */
-  private async checkStock(tx: Tx, lowered: { productId: string; warehouseId: string }[], userId: string | undefined) {
-    if (!lowered.length) return;
+  private async checkStock(tx: Tx, lowered: { productId: string; warehouseId: string }[], actor: StockActor) {
+    if (!lowered.length || actor.permissions.includes('stock.overdraw')) return;
     const policy = await tx.companyInfo.findUnique({ where: { id: 1 }, select: { allowNegativeStock: true } });
     if (policy?.allowNegativeStock ?? true) return;
     const short = await tx.stockLevel.findFirst({
@@ -409,10 +413,6 @@ export class InventoryService {
       include: { product: { select: { code: true, baseUnit: true } }, warehouse: { select: { name: true } } },
     });
     if (!short) return;
-    if (userId) {
-      const user = await tx.user.findUnique({ where: { id: userId }, select: { role: { select: { isSystem: true, permissions: { where: { permissionCode: 'stock.overdraw' } } } } } });
-      if (user?.role.isSystem || user?.role.permissions.length) return;
-    }
     throw new BadRequestException(
       `${short.product.code}: ${short.warehouse.name} không đủ tồn — thiếu ${round4(-short.quantity.toNumber())} ${short.product.baseUnit}. `
         + 'Công ty đang không cho xuất quá số tồn; cần quyền "Xuất vượt tồn kho".',

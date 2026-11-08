@@ -492,7 +492,7 @@ export class SalesService {
           type: 'XUAT', date: input.date, warehouseId, salesOrderId: o.id,
           reason: `Xuất kho giao đơn ${o.code}${input.note ? ` — ${input.note}` : ''}`,
           lines: [...m].map(([productId, quantity]) => ({ productId, quantity })),
-        }, user.id));
+        }, user));
       }
       for (const [i, l] of o.lines.entries()) {
         if (nums[i].receivedQuantity !== l.receivedQuantity.toNumber()) {
@@ -638,7 +638,7 @@ export class SalesService {
         voucherIds.push(await this.inventory.post(tx, {
           type: 'XUAT', date: today, warehouseId, productionOrderId: x.id, reason: `Xuất vật tư cho ${x.code}`,
           lines: [...m].map(([productId, quantity]): VoucherLineInput => ({ productId, quantity })),
-        }, user.id));
+        }, user));
       }
       await tx.productionOrder.update({ where: { id: x.id }, data: { status: 'DANG_SAN_XUAT', startDate: fromDay(today) } });
       await this.refreshStatus(tx, x.sourceOrderId);
@@ -671,7 +671,7 @@ export class SalesService {
         voucherId = await this.inventory.post(tx, {
           type: 'NHAP', date: today, warehouseId: target, productionOrderId: x.id, reason: `Nhập thành phẩm từ xưởng: ${x.code}`,
           lines: [{ productId: x.productId, quantity: qty, unitCost: used.length ? material / qty : undefined }],
-        }, user.id);
+        }, user);
       }
       await tx.productionOrder.update({ where: { id: x.id }, data: { status: 'HOAN_TAT', completeDate: fromDay(today), producedQuantity: qty } });
       await this.refreshStatus(tx, x.sourceOrderId);

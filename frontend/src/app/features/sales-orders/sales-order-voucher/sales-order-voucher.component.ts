@@ -28,7 +28,7 @@ import { VAT_RATES, round4 } from '../../purchase-orders/purchase-order.rules';
 import {
   CUSTOMER_PRICE_LABEL, CUSTOMER_TYPE_LABEL, canCancel, canClose, canDeliver, canEdit, defaultWarehouse, deliveredPercent,
   lineRemaining, linesNeedingLsx, movesStock, needsProduction, orderTotals, priceFor,
-  CURRENCIES, SALE_TYPE_LABEL, belowMinPrice, foreignCurrency, saleTypeIssue,
+  CURRENCIES, SALE_TYPE_LABEL, belowMinPrice, foreignCurrency, fromFx, requoteFx, saleTypeIssue, toFx, withLineDiscount,
 } from '../sales-order.rules';
 import { InvoicePreviewComponent } from '../invoice-preview/invoice-preview.component';
 import { SalesOrderDraft, SalesOrderService } from '../sales-order.service';
@@ -408,17 +408,12 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
     };
   }
 
-  /** The line as it will be saved — for the quy đổi shown under a nguyên tệ đơn giá. */
-  toLineOf(d: DraftLine): SalesOrderLine {
-    return this.toLine(d);
-  }
-
   private toLine(d: DraftLine): SalesOrderLine {
     const ratio = this.ratio(d);
     const qty = d.quantity ?? 0;
-    // Ngoại tệ: the VND đơn giá is the nguyên tệ × tỷ giá, as the server works it out.
+    // Ngoại tệ: unitPrice is kept at nguyên tệ × tỷ giá (setPriceFx, syncFx), as the server works it out.
     const fx = this.fxRate() && d.unitPriceFx != null ? d.unitPriceFx : null;
-    const price = fx !== null ? Math.round(fx * this.fxRate()!) : d.unitPrice ?? 0;
+    const price = d.unitPrice ?? 0;
     return {
       id: d.lineId ?? crypto.randomUUID(),
       productId: d.productId,
@@ -528,7 +523,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   // ---------- grid editing ----------
   patch(i: number, change: Partial<DraftLine>): void {
     const typed = 'discountRate' in change || 'discountAmount' in change ? { discountManual: true, promotionId: null } : {};
-    this.lines.update((ls) => ls.map((l, j) => (j === i ? this.withDiscount({ ...l, ...change, ...typed }, change) : l)));
+    this.lines.update((ls) => ls.map((l, j) => (j === i ? withLineDiscount({ ...l, ...change, ...typed }, change) : l)));
     this.reprice();
   }
 
@@ -577,11 +572,13 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
       this.exchangeRate.set(null);
     }
     this.lines.update((ls) => ls.map((l) => (l.productId ? { ...l, vatRate: this.vatFor(this.product(l.productId)) } : l)));
+    this.syncFx();
   }
 
   setCurrency(c: string): void {
     this.currency.set(c);
     if (!foreignCurrency(c)) this.exchangeRate.set(null);
+    this.syncFx();
   }
 
   openInvoicePreview(): void {
@@ -615,26 +612,13 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
     return this.data.promotions().filter((p) => ids.has(p.id));
   });
 
-  /** Keep tỷ lệ CK and tiền CK in step (MISA): the one typed drives the other. */
-  private withDiscount(l: DraftLine, change: Partial<DraftLine>): DraftLine {
-    const gross = Math.round((l.quantity ?? 0) * (l.unitPrice ?? 0));
-    if ('discountAmount' in change) {
-      const amt = Math.min(gross, Math.max(0, l.discountAmount ?? 0));
-      return { ...l, discountAmount: amt || null, discountRate: gross && amt ? Math.round((amt / gross) * 10000) / 100 : null };
-    }
-    if ('discountRate' in change || 'quantity' in change || 'unitPrice' in change) {
-      const rate = l.discountRate ?? 0;
-      return rate ? { ...l, discountAmount: Math.round((gross * Math.min(rate, 100)) / 100) } : l;
-    }
-    return l;
-  }
-
   setProduct(i: number, productId: string): void {
     const p = this.product(productId);
     this.patch(i, {
       productId,
       unitName: '',
       unitPrice: p ? priceFor(p, this.customerType(), '', this.listItems()) : null,
+      unitPriceFx: null,
       priceManual: false,
       vatRate: this.vatFor(p),
       warehouseId: defaultWarehouse(p),
@@ -647,7 +631,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
     const p = this.product(l.productId);
     if (!p) return;
     // Unit change re-prices from the price list (the unit may have its own price).
-    this.patch(i, { unitName, unitPrice: priceFor(p, this.customerType(), unitName, this.listItems()), priceManual: false });
+    this.patch(i, { unitName, unitPrice: priceFor(p, this.customerType(), unitName, this.listItems()), unitPriceFx: null, priceManual: false });
   }
 
   setPrice(i: number, price: number | null): void {
@@ -657,7 +641,41 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   /** Đơn giá nguyên tệ typed on a đơn thu bằng ngoại tệ. */
   setPriceFx(i: number, value: number | string | null): void {
     const fx = value === null || value === '' ? null : Math.max(0, Number(value));
-    this.patch(i, { unitPriceFx: fx, unitPrice: fx !== null && this.fxRate() ? Math.round(fx * this.fxRate()!) : this.lines()[i].unitPrice, priceManual: true });
+    if (fx === null) {
+      // Cleared: back to the bảng giá, as a dòng with no giá typed (its nguyên tệ shows as the placeholder).
+      const l = this.lines()[i];
+      const p = this.product(l.productId);
+      this.patch(i, { unitPriceFx: null, unitPrice: p ? priceFor(p, this.customerType(), l.unitName, this.listItems()) : null, priceManual: false });
+      return;
+    }
+    this.patch(i, { unitPriceFx: fx, unitPrice: this.vndOf(fx) ?? this.lines()[i].unitPrice, priceManual: true });
+  }
+
+  /** Nguyên tệ quy đổi ra VND at the đơn's tỷ giá; null without a tỷ giá or a giá. */
+  private vndOf(fx: number | null): number | null {
+    const rate = this.fxRate();
+    return fx !== null && rate ? fromFx(fx, rate) : null;
+  }
+
+  /** VND ra nguyên tệ, rounded as the hoá đơn prints it — the placeholder of a dòng with no đơn giá nguyên tệ. */
+  fxOf(vnd: number | null): number | null {
+    const rate = this.fxRate();
+    return vnd && rate ? toFx(vnd, rate) : null;
+  }
+
+  /** After tỷ giá / loại tiền changes: re-quy đổi every dòng priced in nguyên tệ, with its chiết khấu and khuyến mãi. */
+  private syncFx(): void {
+    const rate = this.fxRate();
+    if (!rate) return;
+    const { lines, changed } = requoteFx(this.lines(), rate);
+    if (!changed) return;
+    this.lines.set(lines);
+    this.reprice();
+  }
+
+  setExchangeRate(rate: number | null): void {
+    this.exchangeRate.set(rate);
+    this.syncFx();
   }
 
   /** Changing the customer re-prices every line whose price was not typed by hand. */
@@ -697,7 +715,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
     this.lines.update((ls) =>
       ls.map((l) => {
         const p = this.product(l.productId);
-        return p && !l.priceManual ? this.withDiscount({ ...l, unitPrice: priceFor(p, type, l.unitName, this.listItems()) }, { unitPrice: 0 }) : l;
+        return p && !l.priceManual ? withLineDiscount({ ...l, unitPrice: priceFor(p, type, l.unitName, this.listItems()) }, { unitPrice: 0 }) : l;
       }),
     );
     this.reprice();

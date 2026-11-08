@@ -40,13 +40,15 @@ export class CompanyInfoComponent {
   readonly allowNegative = computed(() => this.svc.info().allowNegativeStock ?? true);
   readonly policyBusy = signal(false);
 
-  async setStockPolicy(allow: boolean): Promise<void> {
+  async setStockPolicy(box: HTMLInputElement): Promise<void> {
+    const allow = box.checked;
     this.policyBusy.set(true);
     this.failure.set('');
     try {
       await this.svc.setStockPolicy(allow);
     } catch (e) {
       this.failure.set(errorText(e));
+      box.checked = this.allowNegative(); // not saved: the box shows the setting as it still is
       return;
     } finally {
       this.policyBusy.set(false);

@@ -225,7 +225,7 @@ export class TripsService {
         voucherIds.push(await this.inventory.post(tx, {
           type: 'XUAT', date: day, warehouseId, deliveryTripId: id, reason: `Xuất kho giao hàng — chuyến ${t.code}`,
           lines: [...m].map(([productId, quantity]) => ({ productId, quantity })),
-        }, user.id));
+        }, user));
       }
       await tx.deliveryTrip.update({ where: { id }, data: { status: 'DA_XUAT_KHO', shippedAt: new Date() } });
       const codes = await this.inventory.codes(tx, voucherIds);
@@ -371,7 +371,7 @@ export class TripsService {
           type: 'NHAP', date: day, warehouseId, deliveryTripId: id, reason: `Nhập trả về — chuyến ${t.code} (${[...refs].join(', ')})`,
           // Hàng mang về goes back in at the giá vốn it left the kho at.
           lines: [...m].map(([productId, quantity]) => ({ productId, quantity, unitCost: issued.get(productId) })),
-        }, user.id));
+        }, user));
       }
       await tx.deliveryTrip.update({ where: { id }, data: { status: 'XE_VE_KHO', returnedAt: new Date() } });
       const codes = await this.inventory.codes(tx, voucherIds);

@@ -122,7 +122,7 @@ export class PurchaseReturnsService {
         voucherId = await this.inventory.post(tx, {
           type: 'XUAT', date: dto.date, warehouseId: dto.warehouseId, purchaseOrderId: o.id, lines,
           reason: `Trả lại hàng mua — đơn ${o.code} (${code})`, note: dto.note,
-        }, user.id);
+        }, user);
       }
       const r = await tx.purchaseReturn.create({
         data: {
@@ -141,14 +141,14 @@ export class PurchaseReturnsService {
   }
 
   /** Huỷ phiếu trả: the phiếu xuất is undone, the value counts against công nợ phải trả again. The phiếu stays, marked huỷ. */
-  async cancel(orderId: string, returnId: string, reason: string | undefined) {
+  async cancel(orderId: string, returnId: string, reason: string | undefined, user: AuthUser) {
     return this.prisma.$transaction(async (tx: Tx) => {
       await tx.$queryRaw`SELECT "id" FROM "PurchaseOrder" WHERE "id" = ${orderId} FOR UPDATE`;
       const r = await tx.purchaseReturn.findUnique({ where: { id: returnId }, include: { order: { select: { id: true, code: true } } } });
       if (!r || r.orderId !== orderId) throw new NotFoundException('Không tìm thấy phiếu trả lại hàng mua');
       if (r.isCancelled) throw new BadRequestException(`${r.code} đã huỷ rồi.`);
       await assertOpenPeriod(tx, r.date, `Huỷ ${r.code}:`);
-      if (r.voucherId) await this.inventory.reverse(tx, r.voucherId, `Huỷ phiếu trả lại hàng mua ${r.code}`);
+      if (r.voucherId) await this.inventory.reverse(tx, r.voucherId, `Huỷ phiếu trả lại hàng mua ${r.code}`, user);
       const out = await tx.purchaseReturn.update({
         where: { id: returnId }, data: { isCancelled: true, cancelReason: reason ?? null, cancelledAt: new Date() }, include: PURCHASE_RETURN_INCLUDE,
       });
@@ -181,6 +181,6 @@ export class PurchaseReturnsController {
   @Post(':returnId/cancel')
   @HttpCode(HttpStatus.OK)
   async cancel(@Param('id') id: string, @Param('returnId') returnId: string, @Body() dto: CancelPurchaseReturnDto, @CurrentUser() user: AuthUser) {
-    return shown(purchaseReturnToApi(await this.returns.cancel(id, returnId, dto.reason)), user);
+    return shown(purchaseReturnToApi(await this.returns.cancel(id, returnId, dto.reason, user)), user);
   }
 }

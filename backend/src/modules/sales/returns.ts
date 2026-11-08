@@ -125,7 +125,7 @@ export class SalesReturnsService {
         voucherId = await this.inventory.post(tx, {
           type: 'NHAP', date: dto.date, warehouseId: dto.warehouseId, salesOrderId: o.id, lines,
           reason: `Nhập trả về — đơn ${o.code} (${code})`, note: dto.note,
-        }, user.id);
+        }, user);
       }
       const r = await tx.salesReturn.create({
         data: {
@@ -151,7 +151,7 @@ export class SalesReturnsService {
       if (!r || r.orderId !== orderId) throw new NotFoundException('Không tìm thấy phiếu trả hàng');
       if (r.isCancelled) throw new BadRequestException(`${r.code} đã huỷ rồi.`);
       await assertOpenPeriod(tx, r.date, `Huỷ ${r.code}:`);
-      if (r.voucherId) await this.inventory.reverse(tx, r.voucherId, `Huỷ phiếu trả hàng ${r.code}`, user.id);
+      if (r.voucherId) await this.inventory.reverse(tx, r.voucherId, `Huỷ phiếu trả hàng ${r.code}`, user);
       const out = await tx.salesReturn.update({
         where: { id: returnId }, data: { isCancelled: true, cancelReason: reason ?? null, cancelledAt: new Date() }, include: RETURN_INCLUDE,
       });

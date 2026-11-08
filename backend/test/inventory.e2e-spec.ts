@@ -93,6 +93,15 @@ describe('Kho (e2e)', () => {
       await storekeeper.post('/api/warehouse-vouchers', voucher('XUAT', [{ productId: itemId, quantity: have }])).expect(201); // đúng bằng tồn
       await manager.post('/api/warehouse-vouchers', voucher('XUAT', [{ productId: itemId, quantity: 1 }])).expect(201); // Quản lý có stock.overdraw
       expect(await stock(itemId, 'wh-vattu')).toBe(-1);
+      // Huỷ phiếu nhập after its hàng went out takes the kho below 0 too: refused the same way, except for stock.overdraw.
+      const pnk = (await storekeeper.post('/api/warehouse-vouchers', voucher('NHAP', [{ productId: itemId, quantity: 4 }])).expect(201)).body;
+      await storekeeper.post('/api/warehouse-vouchers', voucher('XUAT', [{ productId: itemId, quantity: 3 }])).expect(201);
+      expect(await stock(itemId, 'wh-vattu')).toBe(0);
+      const cancelRefused = (await storekeeper.post(`/api/warehouse-vouchers/${pnk.id}/cancel`, { reason: 'Nhập nhầm' }).expect(400)).body;
+      expect(cancelRefused.message).toContain('không đủ tồn — thiếu 4');
+      expect(await stock(itemId, 'wh-vattu')).toBe(0); // nothing moved, phiếu not huỷ
+      await manager.post(`/api/warehouse-vouchers/${pnk.id}/cancel`, { reason: 'Nhập nhầm' }).expect(200);
+      expect(await stock(itemId, 'wh-vattu')).toBe(-4);
     } finally {
       await ceo.put('/api/company/stock-policy', { allowNegativeStock: true }).expect(200);
     }

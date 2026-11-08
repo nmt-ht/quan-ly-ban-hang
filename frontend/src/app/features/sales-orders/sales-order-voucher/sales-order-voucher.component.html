@@ -78,7 +78,7 @@
           </select>
           @if (currency() !== 'VND') {
             <input type="number" min="0" step="any" class="num-input" placeholder="Tỷ giá" [attr.aria-label]="'Tỷ giá ' + currency() + ' ra VND'"
-              [ngModel]="exchangeRate()" (ngModelChange)="exchangeRate.set($event)"
+              [ngModel]="exchangeRate()" (ngModelChange)="setExchangeRate($event)"
               [attr.aria-invalid]="attempted() && !((exchangeRate() ?? 0) > 0) ? 'true' : null" />
           }
           <p class="pay-hint">Hàng xuất khẩu chịu <strong>thuế GTGT 0%</strong> (cần hợp đồng, tờ khai hải quan, thanh toán qua ngân hàng). Thu bằng ngoại tệ: nhập đơn giá theo nguyên tệ, đơn giá VND tự quy đổi theo tỷ giá; công nợ và doanh thu ghi bằng VND quy đổi.</p>
@@ -409,8 +409,9 @@
                     <td class="c-num">
                       @if (editable() && !l.isGift && fxCode()) {
                         <input type="number" min="0" step="0.01" class="num-input" [ngModel]="l.unitPriceFx" (ngModelChange)="setPriceFx(i, $event)"
+                          [placeholder]="l.unitPriceFx == null ? (fxOf(l.unitPrice) ?? '') : ''"
                           [attr.aria-label]="'Đơn giá ' + fxCode() + ' dòng ' + (i + 1)" />
-                        <span class="so-fx">{{ fxRate() ? '≈ ' + (toLineOf(l).unitPrice).toLocaleString('vi-VN') + ' ₫' : 'Nhập tỷ giá để quy đổi' }}</span>
+                        <span class="so-fx">{{ fxRate() ? '≈ ' + (l.unitPrice ?? 0).toLocaleString('vi-VN', { maximumFractionDigits: 0 }) + ' ₫' : 'Nhập tỷ giá để quy đổi' }}</span>
                       } @else if (editable() && !l.isGift) {
                         <input type="text" appMoney [ngModel]="l.unitPrice" (ngModelChange)="setPrice(i, $event)"
                           [class.is-manual]="l.priceManual && l.productId" [title]="l.priceManual ? 'Giá sửa tay' : 'Giá theo bảng giá'"

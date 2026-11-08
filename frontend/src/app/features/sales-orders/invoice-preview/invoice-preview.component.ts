@@ -5,7 +5,7 @@ import { DataStore } from '../../../core/services/data-store.service';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { PrintMenuComponent } from '../../../shared/print/print-menu.component';
 import { vndInWords } from '../../../shared/vnd-words';
-import { LineSlice, deliverySlices, foreignCurrency, orderedSlices, receivedSlices, sliceCalc } from '../sales-order.rules';
+import { LineSlice, cents, deliverySlices, foreignCurrency, orderedSlices, receivedSlices, sliceCalc, toFx } from '../sales-order.rules';
 
 /** One row of the goods table: hàng hoá, hàng khuyến mại or a chiết khấu thương mại row (negative). */
 export interface InvoiceRow {
@@ -86,23 +86,27 @@ export function invoiceData(
 }
 
 /**
- * Hoá đơn của đơn thu bằng ngoại tệ (as MISA): đơn giá in nguyên tệ (as typed on the dòng, else VND ÷ tỷ giá), every
- * số tiền in nguyên tệ to the cent, and the tổng thanh toán quy đổi ra VND kept beside it.
+ * Hoá đơn của đơn thu bằng ngoại tệ (as MISA): đơn giá in nguyên tệ (as typed on the dòng, else VND ÷ tỷ giá), thành
+ * tiền = SL × đơn giá, and the tổng worked out from the dòng in nguyên tệ, so the hoá đơn multiplies out and adds up.
+ * The tổng thanh toán in VND (the công nợ, from đơn giá VND làm tròn đồng) is kept beside it as the quy đổi.
  */
 function inForeignCurrency(o: SalesOrder, slices: LineSlice[], d: InvoiceData, rate: number): InvoiceData {
-  const fx = (n: number) => Math.round((n / rate) * 100) / 100;
   let goods = 0;
-  return {
-    rows: d.rows.map((r) => {
-      if (r.kind === 'discount') return { ...r, amount: fx(r.amount) };
-      const l = o.lines[slices[goods++].index]; // goods and gift rows follow the slices, in order
-      if (r.kind === 'gift') return r;
-      const unitPrice = l.unitPriceFx ?? fx(l.unitPrice);
-      return { ...r, unitPrice, amount: Math.round((r.quantity ?? 0) * unitPrice * 100) / 100 };
-    }),
-    groups: d.groups.map((g) => ({ ...g, taxable: fx(g.taxable), vat: fx(g.vat) })),
-    taxable: fx(d.taxable), vat: fx(d.vat), total: fx(d.total), vndTotal: d.total,
-  };
+  const rows = d.rows.map((r) => {
+    if (r.kind === 'discount') return { ...r, amount: toFx(r.amount, rate) };
+    const l = o.lines[slices[goods++].index]; // goods and gift rows follow the slices, in order
+    if (r.kind === 'gift') return r;
+    const unitPrice = l.unitPriceFx ?? toFx(l.unitPrice, rate);
+    return { ...r, unitPrice, amount: cents((r.quantity ?? 0) * unitPrice) };
+  });
+  // Per thuế suất: tiền hàng = its dòng hàng and chiết khấu (gift rows carry no thuế suất), thuế on that.
+  const groups = d.groups.map((g) => {
+    const taxable = cents(rows.filter((r) => r.vatRate === g.vatRate).reduce((s, r) => s + r.amount, 0));
+    return { vatRate: g.vatRate, taxable, vat: cents((taxable * g.vatRate) / 100) };
+  });
+  const taxable = cents(groups.reduce((s, g) => s + g.taxable, 0));
+  const vat = cents(groups.reduce((s, g) => s + g.vat, 0));
+  return { rows, groups, taxable, vat, total: cents(taxable + vat), vndTotal: d.total };
 }
 
 /** Một hoá đơn có thể dựng từ đơn: một đợt giao, hàng đã giao gộp lại, cả đơn theo số đặt, hoặc một phiếu trả hàng. */
@@ -182,7 +186,8 @@ export class InvoicePreviewComponent {
   readonly sourceKey = signal<string | null>(null);
   readonly source = computed(() => {
     const list = this.sources();
-    return list.find((s) => s.key === this.sourceKey()) ?? list[list.length - 1];
+    // Mặc định: the latest hoá đơn bán, not a hoá đơn điều chỉnh (those follow the sale sources).
+    return list.find((s) => s.key === this.sourceKey()) ?? list.filter((s) => !s.adjust).at(-1)!; // saleSources always gives one
   });
 
   readonly invoice = computed(() => {
@@ -195,7 +200,8 @@ export class InvoicePreviewComponent {
   /** Hoá đơn trước điều chỉnh: the đợt giao (or whole đơn) the hàng trả came from — the reference the adjustment names. */
   readonly adjusted = computed(() => {
     const sales = this.sources().filter((s) => !s.adjust);
-    return sales.filter((s) => s.date <= this.source().date).at(-1) ?? sales[0];
+    const day = this.source().date.slice(0, 10);
+    return sales.filter((s) => s.date.slice(0, 10) <= day).at(-1) ?? sales[0];
   });
   readonly abs = Math.abs;
 

@@ -109,7 +109,7 @@ export class PurchaseOrdersController {
   @Post(':id/receive')
   @HttpCode(HttpStatus.OK)
   async receive(@Param('id') id: string, @Body() dto: ReceiptDto, @CurrentUser() user: AuthUser) {
-    const o = await this.orders.receive(id, dto, user.id);
+    const o = await this.orders.receive(id, dto, user);
     return seesPurchasePrices(user) ? o : withoutPrices(o);
   }
 
