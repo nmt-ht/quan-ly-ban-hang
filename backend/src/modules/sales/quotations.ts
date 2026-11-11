@@ -15,6 +15,7 @@ import { SequenceService } from '../../prisma/sequence.service.js';
 import { AuditService } from '../../audit/audit.service.js';
 import { diff, vnd } from '../../audit/audit.diff.js';
 import { orderTotals } from './sales-order.rules.js';
+import { quotationVisibleTo } from './order-access.js';
 import { SaleLineInput, checkPartyAndPrices, lineRows } from './sales.service.js';
 
 type Tx = Prisma.TransactionClient;
@@ -109,9 +110,7 @@ export class QuotationsService {
   ) {}
 
   private visibleTo(user: AuthUser): Prisma.QuotationWhereInput {
-    const perms = user.permissions;
-    if (perms.includes('order.view_all') || !perms.includes('quote.create')) return {};
-    return { OR: [{ salesRepId: user.id }, { createdById: user.id }] };
+    return quotationVisibleTo(user);
   }
 
   async list(user: AuthUser) {

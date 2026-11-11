@@ -12,6 +12,13 @@ export function orderVisibleTo(user: AuthUser): Prisma.SalesOrderWhereInput {
   return { OR: [{ salesRepId: user.id }, { createdById: user.id }] };
 }
 
+/** Báo giá follow the same rule: a seller (quote.create) without order.view_all sees only the ones they quote or made. */
+export function quotationVisibleTo(user: AuthUser): Prisma.QuotationWhereInput {
+  const perms = user.permissions;
+  if (perms.includes('order.view_all') || !perms.includes('quote.create')) return {};
+  return { OR: [{ salesRepId: user.id }, { createdById: user.id }] };
+}
+
 /**
  * Locks the order row for the rest of the transaction (two changes at once queue up) and refuses an order `user` may
  * not see, as if it did not exist.

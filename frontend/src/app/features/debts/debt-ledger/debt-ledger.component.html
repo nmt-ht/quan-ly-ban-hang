@@ -24,7 +24,7 @@
         @if (isReceivable()) {
           <button type="button" class="btn" [disabled]="!row() || amountDue() <= 0" (click)="printNotice()"
             title="In thông báo các khoản còn nợ kèm mã VietQR chuyển khoản, gửi khách"><app-nav-icon name="printer" />Thông báo công nợ</button>
-          @if (canEmail()) {
+          @if (canEmail() && canRemind()) {
             <button type="button" class="btn" [disabled]="!row() || amountDue() <= 0" (click)="email('debt_reminder')" title="Gửi thông báo công nợ (PDF, có mã VietQR) qua email">
               <app-nav-icon name="mail" />Gửi thông báo
             </button>

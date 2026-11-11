@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_TEMPLATES, MAIL_FIELDS, MAIL_KINDS, explainSmtpError, fill, isMailKind, parseAddresses, toHtml } from './mail.rules.js';
+import { DEFAULT_TEMPLATES, MAIL_FIELDS, MAIL_KINDS, explainSmtpError, fill, isMailKind, isPrivateAddress, isSmtpPort, parseAddresses, toHtml } from './mail.rules.js';
 
 describe('mail rules', () => {
   it('fills placeholders; a missing value shows as … so the gap is seen before sending', () => {
@@ -31,6 +31,16 @@ describe('mail rules', () => {
     expect(html).toContain('&lt;b&gt;anh&lt;/b&gt;');
     expect(html).toContain('Dòng 2<br>Dòng 3');
     expect(html.match(/<p /g)).toHaveLength(2);
+  });
+
+  it('refuses SMTP hosts on the server\'s own network, and non-mail ports', () => {
+    for (const ip of ['127.0.0.1', '10.1.2.3', '172.16.0.1', '172.31.255.255', '192.168.1.1', '169.254.169.254', '100.64.0.1', '0.0.0.0', '::1', '::', 'fd00::1', 'fe80::1', '::ffff:127.0.0.1', '::ffff:7f00:1'])
+      expect(isPrivateAddress(ip), ip).toBe(true);
+    for (const ip of ['142.250.4.108', '172.32.0.1', '52.97.1.1', '2607:f8b0:4023::6c'])
+      expect(isPrivateAddress(ip), ip).toBe(false);
+    expect(isSmtpPort(587)).toBe(true);
+    expect(isSmtpPort(465)).toBe(true);
+    expect(isSmtpPort(5432)).toBe(false);
   });
 
   it('explains the common SMTP failures in Vietnamese', () => {

@@ -101,6 +101,26 @@ export const SMTP_PRESETS = [
   { key: 'yandex', label: 'Yandex', host: 'smtp.yandex.com', port: 465, secure: true, hint: 'Tạo mật khẩu ứng dụng cho Mail.' },
 ] as const;
 
+/** The ports mail providers submit on. Any other port is refused, so the settings form cannot probe other services. */
+export const SMTP_PORTS = [25, 465, 587, 2465, 2525, 2587] as const;
+export const isSmtpPort = (port: number): boolean => (SMTP_PORTS as readonly number[]).includes(port);
+
+/**
+ * An address on this server's own network (loopback, private, link-local, CGNAT, cloud metadata, multicast…): an SMTP
+ * host that resolves to one is refused, so a company's settings cannot reach into the platform's internal services.
+ */
+export function isPrivateAddress(ip: string): boolean {
+  const v = ip.toLowerCase().replace(/^::ffff:(?=\d+\.\d+\.\d+\.\d+$)/, '');
+  const m = v.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (m) {
+    const [a, b, c] = [Number(m[1]), Number(m[2]), Number(m[3])];
+    return a === 0 || a === 10 || a === 127 || a >= 224 || (a === 100 && b >= 64 && b <= 127) || (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 192 && b === 0 && c === 0) || (a === 198 && (b === 18 || b === 19));
+  }
+  // IPv6: unspecified, loopback, unique-local fc00::/7, link-local fe80::/10, and any other IPv4-mapped form.
+  return v === '::' || v === '::1' || /^f[cd]/.test(v) || /^fe[89ab]/.test(v) || v.startsWith('::ffff:');
+}
+
 /** A short Vietnamese reason for a failed send — the SMTP errors people actually hit. */
 export function explainSmtpError(e: unknown): string {
   const err = e as { code?: string; responseCode?: number; message?: string };

@@ -1,8 +1,15 @@
-import { BadRequestException, Body, Controller, ForbiddenException, Get, HttpCode, HttpStatus, Injectable, Module, Post, Put, Query, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException, Body, Controller, ForbiddenException, Get, HttpCode, HttpStatus, Injectable, Logger, Module, NotFoundException, Post, Put, Query,
+  UseGuards,
+} from '@nestjs/common';
 import { Type } from 'class-transformer';
 import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, ValidateNested } from 'class-validator';
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
+import { lookup } from 'node:dns/promises';
+import { isIP } from 'node:net';
 import nodemailer from 'nodemailer';
+import type { Prisma } from '@prisma/client';
+import { orderVisibleTo, quotationVisibleTo } from '../sales/order-access.js';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard.js';
 import { PermissionsGuard } from '../../auth/permissions.guard.js';
 import { CurrentUser, RequirePermissions } from '../../auth/permissions.decorator.js';
@@ -11,8 +18,8 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuditService } from '../../audit/audit.service.js';
 import { OptionalEmail, OptionalText, Text } from '../../common/dto.js';
 import {
-  DEFAULT_TEMPLATES, MAIL_FIELDS, MAIL_KINDS, MAX_ATTACHMENT_BYTES, MAX_RECIPIENTS, SMTP_PRESETS, explainSmtpError, isMailKind,
-  parseAddresses, toHtml,
+  DEFAULT_TEMPLATES, MAIL_FIELDS, MAIL_KINDS, MAX_ATTACHMENT_BYTES, MAX_RECIPIENTS, SMTP_PORTS, SMTP_PRESETS, explainSmtpError, isMailKind,
+  isPrivateAddress, isSmtpPort, parseAddresses, toHtml,
 } from './mail.rules.js';
 import type { MailKind } from './mail.rules.js';
 
@@ -49,6 +56,9 @@ const systemSender = () => {
   const from = process.env.MAIL_SYSTEM_FROM?.trim();
   return url && from ? { url, from } : null;
 };
+
+/** Development only (a local Mailpit / MailHog): MAIL_ALLOW_PRIVATE_SMTP=1 lifts the public-host and port checks. */
+const privateSmtpAllowed = () => process.env.MAIL_ALLOW_PRIVATE_SMTP === '1';
 
 // ---------- DTOs ----------
 
@@ -101,6 +111,8 @@ type Settings = Awaited<ReturnType<PrismaService['mailSettings']['findUnique']>>
 
 @Injectable()
 export class MailService {
+  private readonly logger = new Logger('Mail');
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
@@ -136,8 +148,12 @@ export class MailService {
     if (dto.mode === 'SMTP' && !(dto.host && dto.port && dto.fromEmail && dto.username))
       throw new BadRequestException('Email riêng cần máy chủ SMTP, cổng, địa chỉ gửi và tài khoản.');
     if (dto.mode === 'SYSTEM' && !systemSender()) throw new BadRequestException('Máy chủ chưa cấu hình dịch vụ gửi hộ.');
+    if (dto.mode === 'SMTP' && !privateSmtpAllowed() && !isSmtpPort(dto.port!)) throw new BadRequestException(`Cổng SMTP phải là một trong: ${SMTP_PORTS.join(', ')}.`);
     const passwordSealed = dto.password === undefined ? before.passwordSealed : dto.password === '' ? null : seal(dto.password);
-    const changedTransport = dto.host !== before.host || dto.port !== before.port || dto.username !== before.username || dto.secure !== before.secure ||
+    // Anything that changes how (or as whom) the mail goes out voids the last "Gửi thử". Absent fields are stored as null,
+    // so compare them as null — else every save would look like a change.
+    const changed = (k: 'host' | 'port' | 'username' | 'fromEmail') => (dto[k] ?? null) !== before[k];
+    const changedTransport = changed('host') || changed('port') || changed('username') || changed('fromEmail') || dto.secure !== before.secure ||
       passwordSealed !== before.passwordSealed || dto.mode !== before.mode;
     await this.prisma.$transaction(async (tx) => {
       await tx.mailSettings.update({
@@ -200,10 +216,52 @@ export class MailService {
         replyTo: s.replyTo || company?.email || undefined, bcc: s.bcc || undefined, settings: s,
       };
     }
+    // Connect to the address checked here (not the name again), so a DNS answer cannot change between check and connect;
+    // TLS still verifies the certificate against the name.
+    const address = await this.publicSmtpAddress(s.host!, s.port!);
     return {
-      tx: nodemailer.createTransport({ host: s.host!, port: s.port!, secure: s.secure, auth: { user: s.username!, pass: unseal(s.passwordSealed!)! }, ...timeouts }),
+      tx: nodemailer.createTransport({
+        host: address, port: s.port!, secure: s.secure, auth: { user: s.username!, pass: unseal(s.passwordSealed!)! },
+        ...(isIP(s.host!) ? {} : { tls: { servername: s.host! } }), ...timeouts,
+      }),
       from: { name, address: s.fromEmail! }, replyTo: s.replyTo || undefined, bcc: s.bcc || undefined, settings: s,
     };
+  }
+
+  /**
+   * The address an SMTP host resolves to — refused when it is on this server's own network or the port is not a mail
+   * port, so a company's settings cannot be used to reach (or scan) the platform's internal services.
+   */
+  private async publicSmtpAddress(host: string, port: number): Promise<string> {
+    const open = privateSmtpAllowed();
+    if (!open && !isSmtpPort(port)) throw new BadRequestException(`Cổng SMTP phải là một trong: ${SMTP_PORTS.join(', ')}.`);
+    let addresses: { address: string }[];
+    try {
+      addresses = await lookup(host, { all: true, verbatim: true });
+    } catch {
+      throw new BadRequestException('Không tìm thấy máy chủ SMTP — kiểm tra lại tên máy chủ.');
+    }
+    if (!addresses.length) throw new BadRequestException('Không tìm thấy máy chủ SMTP — kiểm tra lại tên máy chủ.');
+    if (!open && addresses.some((a) => isPrivateAddress(a.address))) throw new BadRequestException('Máy chủ SMTP phải là một địa chỉ công khai trên Internet.');
+    return addresses[0].address;
+  }
+
+  /** Writes the log row and audit entry of one send. A write that fails is reported, never thrown: by then the email
+   *  has gone (or failed) whatever the database says, and the caller's answer must say so. */
+  private async record(data: Omit<Prisma.EmailLogUncheckedCreateInput, 'id' | 'at'>, audit: { action: string; summary: string; entityCode?: string }, user: AuthUser) {
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const row = await tx.emailLog.create({ data });
+        await this.audit.log(tx, {
+          action: audit.action, entityType: data.kind === 'test' ? 'MailSettings' : 'EmailLog', entityId: data.kind === 'test' ? '1' : row.id,
+          entityCode: audit.entityCode, summary: audit.summary, actor: { id: user.id, name: user.name },
+        });
+        return row;
+      });
+    } catch (err) {
+      this.logger.error(`Email ${data.status} but its log could not be written: ${(err as Error)?.message ?? err}`);
+      return null;
+    }
   }
 
   /** "Gửi thử": a short email to the signed-in user (or the address given) through the saved settings. */
@@ -212,25 +270,22 @@ export class MailService {
     if (bad.length || ok.length !== 1) throw new BadRequestException('Địa chỉ nhận thư thử không hợp lệ.');
     const t = await this.transport();
     const subject = 'Thư thử từ Ninh Trang ERP';
+    const base = { kind: 'test', to: ok, cc: [], subject, sentById: user.id, sentByName: user.name };
+    let messageId: string | undefined;
     try {
-      const info = await t.tx.sendMail({
+      ({ messageId } = await t.tx.sendMail({
         from: t.from, to: ok[0], replyTo: t.replyTo, subject,
         text: `Thiết lập email gửi đi hoạt động tốt.\n\nGửi bởi ${user.name} lúc ${new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}.`,
-      });
-      await this.prisma.$transaction(async (tx) => {
-        await tx.mailSettings.update({ where: { id: 1 }, data: { verifiedAt: new Date() } });
-        await tx.emailLog.create({ data: { kind: 'test', to: ok, cc: [], subject, status: 'SENT', messageId: info.messageId, sentById: user.id, sentByName: user.name } });
-        await this.audit.log(tx, { action: 'mail.test', entityType: 'MailSettings', entityId: '1', summary: `Gửi thư thử tới ${ok[0]}`, actor: { id: user.id, name: user.name } });
-      });
-      return { ok: true, to: ok[0] };
+      }));
     } catch (e) {
       const reason = explainSmtpError(e);
-      await this.prisma.$transaction(async (tx) => {
-        await tx.emailLog.create({ data: { kind: 'test', to: ok, cc: [], subject, status: 'FAILED', error: reason, sentById: user.id, sentByName: user.name } });
-        await this.audit.log(tx, { action: 'mail.test_failed', entityType: 'MailSettings', entityId: '1', summary: `Gửi thư thử thất bại: ${reason}`, actor: { id: user.id, name: user.name } });
-      });
+      await this.record({ ...base, status: 'FAILED', error: reason }, { action: 'mail.test_failed', summary: `Gửi thư thử thất bại: ${reason}` }, user);
       throw new BadRequestException(reason);
     }
+    // Sent: the settings work, whatever happens to the bookkeeping below.
+    await this.prisma.mailSettings.update({ where: { id: 1 }, data: { verifiedAt: new Date() } }).catch((err: Error) => this.logger.error(`verifiedAt not saved: ${err.message}`));
+    await this.record({ ...base, status: 'SENT', messageId }, { action: 'mail.test', summary: `Gửi thư thử tới ${ok[0]}` }, user);
+    return { ok: true, to: ok[0] };
   }
 
   /** Per user: at most SEND_LIMIT emails per SEND_WINDOW — a document goes out by hand, never in bulk. */
@@ -249,6 +304,7 @@ export class MailService {
     this.brake(user.id);
     const need = MAIL_KINDS[dto.kind].permission;
     if (!user.permissions.includes(need)) throw new ForbiddenException(`Vai trò của bạn chưa có quyền: ${need}`);
+    if (dto.docId && !(await this.seesDoc(user, dto.kind, dto.docId))) throw new NotFoundException('Không tìm thấy chứng từ');
     const to = parseAddresses(dto.to);
     const cc = parseAddresses(dto.cc ?? []);
     if (to.bad.length || cc.bad.length) throw new BadRequestException(`Địa chỉ email không hợp lệ: ${[...to.bad, ...cc.bad].join(', ')}`);
@@ -266,37 +322,43 @@ export class MailService {
       attachment: dto.attachment?.filename ?? null, sentById: user.id, sentByName: user.name,
     };
     const what = `${MAIL_KINDS[dto.kind].label}${dto.docCode ? ` ${dto.docCode}` : ''}`;
+    let messageId: string | undefined;
     try {
-      const info = await t.tx.sendMail({
+      ({ messageId } = await t.tx.sendMail({
         from: t.from, to: to.ok, cc: cc.ok.length ? cc.ok : undefined, bcc: t.bcc, replyTo: t.replyTo, subject: dto.subject,
         text: dto.body, html: toHtml(dto.body),
         attachments: content ? [{ filename: dto.attachment!.filename, content, contentType: 'application/pdf' }] : undefined,
-      });
-      const log = await this.prisma.$transaction(async (tx) => {
-        const row = await tx.emailLog.create({ data: { ...base, status: 'SENT', messageId: info.messageId } });
-        await this.audit.log(tx, {
-          action: 'mail.send', entityType: 'EmailLog', entityId: row.id, entityCode: dto.docCode, summary: `Gửi email ${what} tới ${to.ok.join(', ')}`,
-          actor: { id: user.id, name: user.name },
-        });
-        return row;
-      });
-      return log;
+      }));
     } catch (e) {
       const reason = explainSmtpError(e);
-      await this.prisma.$transaction(async (tx) => {
-        const row = await tx.emailLog.create({ data: { ...base, status: 'FAILED', error: reason } });
-        await this.audit.log(tx, {
-          action: 'mail.send_failed', entityType: 'EmailLog', entityId: row.id, entityCode: dto.docCode, summary: `Gửi email ${what} thất bại: ${reason}`,
-          actor: { id: user.id, name: user.name },
-        });
-      });
+      await this.record({ ...base, status: 'FAILED', error: reason }, { action: 'mail.send_failed', entityCode: dto.docCode, summary: `Gửi email ${what} thất bại: ${reason}` }, user);
       throw new BadRequestException(`Chưa gửi được: ${reason}`);
     }
+    // The email is out. A log that cannot be written must not turn into "chưa gửi được" — the user would send it again.
+    const row = await this.record({ ...base, status: 'SENT', messageId }, { action: 'mail.send', entityCode: dto.docCode, summary: `Gửi email ${what} tới ${to.ok.join(', ')}` }, user);
+    return row ?? { id: null, at: new Date(), ...base, status: 'SENT', error: null, messageId: messageId ?? null };
   }
 
-  /** Nhật ký gửi: of one document (kind + docId), or the latest 200 for the settings page. */
-  async log(kind?: string, docId?: string) {
+  /** Whether `user` may see the document an email is about. Báo giá and đơn bán follow the seller rule; the other kinds
+   *  have no per-user visibility — their permission (MAIL_KINDS) is the rule. */
+  private async seesDoc(user: AuthUser, kind: MailKind, docId: string): Promise<boolean> {
+    if (kind === 'quotation') return (await this.prisma.quotation.count({ where: { id: docId, ...quotationVisibleTo(user) } })) > 0;
+    if (kind === 'sales_order') return (await this.prisma.salesOrder.count({ where: { id: docId, ...orderVisibleTo(user) } })) > 0;
+    return true;
+  }
+
+  /**
+   * Nhật ký gửi: of one document (kind + docId), or the latest 200 for the settings page. Only company.update reads
+   * across documents; anyone else reads one document's history, and only of a document they may see.
+   */
+  async log(user: AuthUser, kind?: string, docId?: string) {
     if (kind && !isMailKind(kind) && kind !== 'test') throw new BadRequestException('Loại chứng từ không hợp lệ');
+    if (!user.permissions.includes('company.update')) {
+      if (!docId || !kind || !isMailKind(kind)) throw new ForbiddenException('Chỉ người quản lý thiết lập email xem được toàn bộ nhật ký gửi.');
+      const need = MAIL_KINDS[kind].permission;
+      if (!user.permissions.includes(need)) throw new ForbiddenException(`Vai trò của bạn chưa có quyền: ${need}`);
+      if (!(await this.seesDoc(user, kind, docId))) throw new NotFoundException('Không tìm thấy chứng từ');
+    }
     return this.prisma.emailLog.findMany({
       where: { ...(kind ? { kind } : {}), ...(docId ? { docId } : {}) }, orderBy: { at: 'desc' }, take: docId ? 50 : 200,
     });
@@ -368,8 +430,7 @@ export class MailController {
   @RequirePermissions('email.send')
   @Get('log')
   log(@CurrentUser() user: AuthUser, @Query('kind') kind?: string, @Query('docId') docId?: string) {
-    if (!docId && !user.permissions.includes('company.update')) throw new ForbiddenException('Chỉ người quản lý thiết lập email xem được toàn bộ nhật ký gửi.');
-    return this.mail.log(kind, docId);
+    return this.mail.log(user, kind, docId);
   }
 }
 

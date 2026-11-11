@@ -9,7 +9,7 @@ import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { CopyButtonComponent } from '../../../shared/copy-button/copy-button.component';
 import { NO_PERIOD, PeriodFilterComponent, PeriodValue } from '../../../shared/period-filter/period-filter.component';
 import { amountTone, formatVnd, formatVndSigned } from '../../../shared/format.util';
-import { formatDay, inRange, rangeLabel } from '../../../shared/period';
+import { formatDay, inRange, isoDay, rangeLabel } from '../../../shared/period';
 import { downloadWorkbook, exportFileName } from '../../../shared/excel.util';
 import { PrintDocumentComponent } from '../../../shared/print/print-document.component';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
@@ -80,7 +80,7 @@ export class DebtLedgerComponent {
   readonly period = signal<PeriodValue>(NO_PERIOD);
   readonly openOnly = signal(false);
   readonly exporting = signal(false);
-  readonly today = new Date().toISOString().slice(0, 10);
+  readonly today = isoDay(new Date());
 
   readonly t = computed(() => SIDE[this.side()]);
 
@@ -186,7 +186,7 @@ export class DebtLedgerComponent {
     if (!p || !r) return;
     const mail = this.side() === 'PHAI_TRA' ? this.data.suppliers().find((x) => x.id === p.id)?.email : this.data.customers().find((x) => x.id === p.id)?.email;
     const mode = kind === 'debt_reconcile' ? 'doi-chieu' : 'thong-bao';
-    const today = new Date().toISOString().slice(0, 10);
+    const today = isoDay(new Date());
     void this.emailDlg()?.open({
       kind, docId: p.id, docCode: p.code, to: [mail], partner: p.name,
       vars: { ten_khach: p.name, ngay: formatDay(today), so_du: formatVnd(r.balance), han: r.nextDue ? formatDay(r.nextDue) : '' },

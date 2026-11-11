@@ -23,6 +23,7 @@ import { dashboard } from './dashboard.js';
 import { alerts } from './alerts.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { SalesService } from '../sales/sales.service.js';
+import { quotationVisibleTo } from '../sales/order-access.js';
 import { CashAccountsService } from '../cash/cash-catalog.module.js';
 import { fromDay } from '../../common/text.js';
 import { seesPurchasePrices } from '../../common/purchase-prices.js';
@@ -125,13 +126,10 @@ export class AlertsService {
 
   /** Báo giá đang mở with a hạn hiệu lực, as the user's báo giá list shows them (same visibility rule). */
   private async openQuotes(user: AuthUser) {
-    const own = can(user, 'order.view_all') || !can(user, 'quote.create') ? {} : { OR: [{ salesRepId: user.id }, { createdById: user.id }] };
-    const rows = await this.prisma.quotation.findMany({ where: { AND: [own, { status: 'MOI', validUntil: { not: null, gte: fromDay(isoDay(new Date(Date.now() - 30 * 86_400_000)))! } }] }, select: { validUntil: true } });
+    const rows = await this.prisma.quotation.findMany({ where: { AND: [quotationVisibleTo(user), { status: 'MOI', validUntil: { not: null, gte: fromDay(isoDay(new Date(Date.now() - 30 * 86_400_000)))! } }] }, select: { validUntil: true } });
     return rows.map((r) => ({ validUntil: r.validUntil!.toISOString().slice(0, 10) }));
   }
 }
-
-const can = (user: AuthUser, p: string) => user.permissions.includes(p);
 
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller()
