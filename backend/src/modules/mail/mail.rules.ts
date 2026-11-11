@@ -56,17 +56,6 @@ export const DEFAULT_TEMPLATES: Record<MailKind, { subject: string; body: string
   },
 };
 
-/**
- * {ten_khach} → its value; an empty one becomes "…" so the gap is seen before sending — except an optional tail
- * after " · " (the signature's phone), which simply drops out.
- */
-export function fill(text: string, values: Record<string, string | undefined>): string {
-  const has = (k: string) => !!values[k]?.trim();
-  return text
-    .replace(/ · \{([a-z_]+)\}/g, (all, k: string) => (has(k) ? all : ''))
-    .replace(/\{([a-z_]+)\}/g, (_, k: string) => (has(k) ? values[k]!.trim() : '…'));
-}
-
 const EMAIL = /^[^\s@<>(),;:"[\]]+@[^\s@<>(),;:"[\]]+\.[^\s@<>(),;:"[\]]{2,}$/;
 export const isEmail = (s: string): boolean => EMAIL.test(s) && s.length <= 254;
 

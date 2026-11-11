@@ -104,7 +104,7 @@ export const MAIL_KIND_LABEL: Record<MailKind | 'test', string> = {
   test: 'Thư thử',
 };
 
-/** {ten_khach} → value; a missing one shows as … (seen before sending), an optional " · {x}" tail drops out — as the server's fill(). */
+/** {ten_khach} → value; a missing one shows as … (seen before sending), an optional " · {x}" tail drops out. */
 export function fillTemplate(text: string, values: Record<string, string | undefined>): string {
   const has = (k: string) => !!values[k]?.trim();
   return text

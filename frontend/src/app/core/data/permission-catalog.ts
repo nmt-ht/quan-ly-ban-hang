@@ -23,6 +23,11 @@ export const PERMISSION_MODULES: PermissionModule[] = [
     { code: 'email.send', label: 'Gửi email chứng từ cho khách hàng / NCC' },
     { code: 'period.lock', label: 'Khoá sổ / bỏ khoá sổ kỳ kế toán' },
   ]},
+  { key: 'einvoice', label: 'Hoá đơn điện tử', permissions: [
+    { code: 'einvoice.view', label: 'Xem hoá đơn điện tử' },
+    { code: 'einvoice.issue', label: 'Phát hành, điều chỉnh, thay thế hoá đơn điện tử' },
+    { code: 'einvoice.settings', label: 'Thiết lập kết nối hoá đơn điện tử' },
+  ]},
   { key: 'category', label: 'Nhóm VTHH', permissions: [
     { code: 'category.view', label: 'Xem nhóm VTHH' },
     { code: 'category.create', label: 'Thêm nhóm VTHH' },

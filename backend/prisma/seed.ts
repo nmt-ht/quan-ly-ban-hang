@@ -30,6 +30,11 @@ const PERMISSION_MODULES: { key: string; permissions: { code: string; label: str
     { code: 'email.send', label: 'Gửi email chứng từ cho khách hàng / NCC' },
     { code: 'period.lock', label: 'Khoá sổ / bỏ khoá sổ kỳ kế toán' },
   ]},
+  { key: 'einvoice', permissions: [
+    { code: 'einvoice.view', label: 'Xem hoá đơn điện tử' },
+    { code: 'einvoice.issue', label: 'Phát hành, điều chỉnh, thay thế hoá đơn điện tử' },
+    { code: 'einvoice.settings', label: 'Thiết lập kết nối hoá đơn điện tử' },
+  ]},
   { key: 'category', permissions: [
     { code: 'category.view', label: 'Xem nhóm hàng' },
     { code: 'category.create', label: 'Thêm nhóm hàng' },
@@ -197,13 +202,13 @@ const ACCOUNTANT = [
   'debt.view', 'debt.settle', 'debt.adjust', 'debt.remind',
   'voucher.view', 'voucher.create_receipt', 'voucher.create_payment', 'voucher.cancel', 'voucher.manage_category', 'voucher.manage_account',
   'report.dashboard', 'report.sales', 'report.stock', 'report.purchase', 'report.debt', 'report.cashflow', 'report.production', 'report.delivery',
-  'report.view_profit',
+  'report.view_profit', 'einvoice.view', 'einvoice.issue',
 ];
 const SALE = [
   'customer.view', 'customer.create', 'customer.update', 'customer.delete',
   'order.view', 'order.create', 'order.update', 'order.cancel', 'order.update_price',
   'quote.view', 'quote.create', 'quote.update', 'quote.cancel',
-  'product.view', 'stock.view', 'tag.view', 'production.view', 'trip.view', 'report.dashboard', 'report.sales',
+  'product.view', 'stock.view', 'tag.view', 'production.view', 'trip.view', 'report.dashboard', 'report.sales', 'einvoice.view',
 ];
 const STOREKEEPER = [
   'warehouse.view', 'category.view', 'product.view', 'bom.view', 'supplier.view', 'order.view',

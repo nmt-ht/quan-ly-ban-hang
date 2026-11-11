@@ -23,6 +23,7 @@ import { SalesModule } from './modules/sales/sales.module.js';
 import { DeliveryModule } from './modules/delivery/delivery.module.js';
 import { CashVouchersModule } from './modules/cash/cash-vouchers.module.js';
 import { MailModule } from './modules/mail/mail.module.js';
+import { EInvoiceModule } from './modules/einvoice/einvoice.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
 import { PricingModule } from './modules/pricing/pricing.module.js';
 import { PlatformModule } from './platform/platform.module.js';
@@ -62,6 +63,8 @@ import { PrismaExceptionFilter } from './common/prisma-exception.filter.js';
     ReportsModule,
     // Email gửi đi: báo giá, chứng từ, nhắc nợ… cho khách hàng / NCC
     MailModule,
+    // Hoá đơn điện tử: phát hành qua nhà cung cấp (MISA meInvoice; Thử nghiệm)
+    EInvoiceModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

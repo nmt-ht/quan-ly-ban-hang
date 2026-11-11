@@ -53,6 +53,7 @@ model User {
   quotationsAsRep   Quotation[]        @relation("QuotationRep")
   promotions        Promotion[]        @relation("PromotionCreatedBy")
   debtReminders     DebtReminder[]     @relation("DebtReminderCreatedBy")
+  einvoices         EInvoice[]         @relation("EInvoiceCreatedBy")
 }
 
 enum UserStatus {
@@ -619,6 +620,7 @@ model SalesOrder {
   quotation          Quotation?
   deliveries         SalesOrderDelivery[]
   payNowReceipts     CashVoucher[]
+  einvoices          EInvoice[]
 }
 
 /**
@@ -636,6 +638,7 @@ model SalesOrderDelivery {
 
   lines    SalesOrderDeliveryLine[]
   receipts CashVoucher[]
+  einvoices EInvoice[]
 
   @@index([orderId])
 }
@@ -941,6 +944,7 @@ model SalesReturn {
   createdAt    DateTime          @default(now())
 
   lines SalesReturnLine[]
+  einvoices EInvoice[]
 
   @@index([orderId])
 }
@@ -1175,4 +1179,73 @@ model EmailLog {
 
   @@index([kind, docId, at])
   @@index([at])
+}
+
+// ---------- Hoá đơn điện tử (Bán hàng › Hoá đơn điện tử, Hệ thống › Hoá đơn điện tử) ----------
+
+/**
+ * How this doanh nghiệp phát hành hoá đơn điện tử. One row (id 1). The provider secret is sealed (common/secret-box.ts).
+ */
+model EInvoiceSettings {
+  id           Int       @id @default(1)
+  provider     String    @default("NONE") // NONE · FAKE (thử, không gửi cơ quan thuế) · MISA (meInvoice)
+  environment  String    @default("SANDBOX") // SANDBOX · PRODUCTION
+  baseUrl      String?
+  username     String? // tài khoản / app id at the provider
+  secretSealed String? // mật khẩu / app secret, sealed
+  templateCode String    @default("1") // ký hiệu mẫu số: 1 = hoá đơn GTGT
+  series       String? // ký hiệu hoá đơn, e.g. C26TAA (C = có mã của CQT, 26 = năm, T = doanh nghiệp đăng ký, AA)
+  autoEmail    Boolean   @default(false) // gửi hoá đơn cho người mua khi đã phát hành
+  verifiedAt   DateTime? // last successful "Kết nối thử"
+  updatedAt    DateTime  @default(now()) @updatedAt
+}
+
+/**
+ * Một hoá đơn điện tử: gốc (ORIGINAL — một đợt giao, hoặc cả đơn), điều chỉnh (ADJUST — e.g. a phiếu trả hàng) or thay
+ * thế (REPLACE). `buyer` and `lines` are what was sent, kept as issued. `partnerKey` is the idempotency key the provider
+ * gets: a retry after a timeout asks about the same key, never issues a second hoá đơn. One live ORIGINAL per đợt / per
+ * đơn and one live ADJUST per phiếu trả hàng are enforced by partial unique indexes (migration 20261111100000).
+ */
+model EInvoice {
+  id               String              @id @default(uuid())
+  kind             String // ORIGINAL · ADJUST · REPLACE
+  status           String              @default("PENDING") // PENDING · ISSUED · FAILED · REPLACED
+  orderId          String
+  order            SalesOrder          @relation(fields: [orderId], references: [id])
+  deliveryId       String?
+  delivery         SalesOrderDelivery? @relation(fields: [deliveryId], references: [id], onDelete: Restrict)
+  returnId         String?
+  salesReturn      SalesReturn?        @relation(fields: [returnId], references: [id], onDelete: Restrict)
+  originalId       String?
+  original         EInvoice?           @relation("EInvoiceOriginal", fields: [originalId], references: [id])
+  followUps        EInvoice[]          @relation("EInvoiceOriginal")
+  partnerKey       String              @unique
+  provider         String
+  providerRef      String? // the provider's id of the hoá đơn (transaction id)
+  templateCode     String
+  series           String
+  number           String? // số hoá đơn, given by the provider when it is issued
+  taxAuthorityCode String? // mã của cơ quan thuế (MCCQT)
+  lookupCode       String? // mã tra cứu for the buyer
+  issueDate        DateTime            @db.Date
+  buyer            Json
+  lines            Json
+  taxable          Decimal
+  vat              Decimal
+  total            Decimal // VND: what was booked to công nợ (negative on an điều chỉnh giảm)
+  currency         String?
+  exchangeRate     Decimal?
+  totalFx          Decimal?
+  reason           String? // ADJUST / REPLACE: lý do
+  error            String?
+  attempts         Int                 @default(0)
+  nextPollAt       DateTime?
+  createdById      String
+  createdBy        User                @relation("EInvoiceCreatedBy", fields: [createdById], references: [id])
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @default(now()) @updatedAt
+
+  @@index([orderId])
+  @@index([status, nextPollAt])
+  @@index([issueDate])
 }

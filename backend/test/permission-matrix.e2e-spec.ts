@@ -35,10 +35,10 @@ const FAKE_ID = 'qa-khong-ton-tai';
 
 // Seven built-in roles (prisma/seed.ts) and how many permissions each has by default.
 const ROLES = [
-  { id: 'role-ceo', name: 'CEO', count: 113 },
-  { id: 'role-manager', name: 'Quản lý', count: 104 },
-  { id: 'role-accountant', name: 'Kế toán', count: 52 },
-  { id: 'role-sale', name: 'Sale', count: 20 },
+  { id: 'role-ceo', name: 'CEO', count: 117 },
+  { id: 'role-manager', name: 'Quản lý', count: 108 },
+  { id: 'role-accountant', name: 'Kế toán', count: 54 },
+  { id: 'role-sale', name: 'Sale', count: 21 },
   { id: 'role-thukho', name: 'Thủ kho', count: 19 },
   { id: 'role-giaohang', name: 'Nhân viên giao hàng', count: 6 },
   { id: 'role-xuong', name: 'Nhân viên xưởng', count: 5 },
@@ -342,14 +342,14 @@ describe.skipIf(!enabled)('Ma trận phân quyền & kịch bản theo chức v�
       {
         module: 'Chức vụ & phân quyền', title: 'Không gỡ quyền hay tắt chức vụ CEO', role: 'CEO',
         steps: ['PUT /api/roles/role-ceo/permissions với danh sách chỉ còn customer.view', 'PATCH /api/roles/role-ceo/active với isActive=false', 'GET /api/auth/me của CEO'],
-        expected: 'Hai lệnh sửa bị từ chối (4xx); CEO vẫn đủ 113 quyền',
+        expected: 'Hai lệnh sửa bị từ chối (4xx); CEO vẫn đủ 117 quyền',
       },
       async () => {
         const a = await api().put('/api/roles/role-ceo/permissions').set(bearer(ceo)).send({ codes: ['customer.view'] });
         const b = await api().patch('/api/roles/role-ceo/active').set(bearer(ceo)).send({ isActive: false });
         const me = await api().get('/api/auth/me').set(bearer(ceo));
         const n = (me.body.permissions ?? []).length;
-        return [a.status >= 400 && a.status < 500 && b.status >= 400 && b.status < 500 && n === 113, `gỡ quyền ${a.status}, tắt ${b.status}, CEO còn ${n} quyền`];
+        return [a.status >= 400 && a.status < 500 && b.status >= 400 && b.status < 500 && n === 117, `gỡ quyền ${a.status}, tắt ${b.status}, CEO còn ${n} quyền`];
       },
     );
     expect(ok).toBe(true);
@@ -504,7 +504,7 @@ describe.skipIf(!enabled)('Ma trận phân quyền & kịch bản theo chức v�
       {
         module: 'Chức vụ & phân quyền', title: 'Danh mục quyền giao diện khớp máy chủ', role: '—',
         steps: ['Đọc mã quyền trong frontend/src/app/core/data/permission-catalog.ts', 'Đọc bảng Permission sau khi seed'],
-        expected: 'Hai danh sách giống hệt nhau (113 mã)',
+        expected: 'Hai danh sách giống hệt nhau (117 mã)',
       },
       async () => {
         const onlyFront = [...frontCodes].filter((c) => !dbCodes.has(c));
@@ -550,6 +550,11 @@ describe.skipIf(!enabled)('Ma trận phân quyền & kịch bản theo chức v�
             special: type === 'SalesOrder' ? (a) => (a.perms.has('audit.view') ? true : a.perms.has('order.view_all') || !a.perms.has('order.create') ? null : false) : undefined,
           });
         }
+        continue;
+      }
+      if (r.method === 'GET' && r.path === '/api/mail/log') {
+        // Without docId it is the whole nhật ký gửi: the service also wants company.update (MailService.log).
+        probes.push({ route: r, url: r.path, all: [...r.all, 'company.update'], any: r.any, label: 'toàn bộ nhật ký gửi' });
         continue;
       }
       probes.push({ route: r, url: r.path.replace(/:[a-zA-Z]+/g, FAKE_ID), all: r.all, any: r.any, label: '' });

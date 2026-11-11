@@ -16,6 +16,7 @@ import { InventoryService, VoucherLineInput } from '../inventory/inventory.servi
 import { SaleLine, orderTotals, round4 } from './sales-order.rules.js';
 import { lockOrderFor } from './order-access.js';
 import { assertOpenPeriod } from '../../common/period-lock.js';
+import { assertReturnNotInvoiced } from '../einvoice/einvoice-guards.js';
 
 type Tx = Prisma.TransactionClient;
 
@@ -151,6 +152,7 @@ export class SalesReturnsService {
       if (!r || r.orderId !== orderId) throw new NotFoundException('Không tìm thấy phiếu trả hàng');
       if (r.isCancelled) throw new BadRequestException(`${r.code} đã huỷ rồi.`);
       await assertOpenPeriod(tx, r.date, `Huỷ ${r.code}:`);
+      await assertReturnNotInvoiced(tx, r.id, r.code);
       if (r.voucherId) await this.inventory.reverse(tx, r.voucherId, `Huỷ phiếu trả hàng ${r.code}`, user);
       const out = await tx.salesReturn.update({
         where: { id: returnId }, data: { isCancelled: true, cancelReason: reason ?? null, cancelledAt: new Date() }, include: RETURN_INCLUDE,

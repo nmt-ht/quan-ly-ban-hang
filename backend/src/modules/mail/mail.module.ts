@@ -4,7 +4,7 @@ import {
 } from '@nestjs/common';
 import { Type } from 'class-transformer';
 import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, ValidateNested } from 'class-validator';
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
+import { seal, unseal } from '../../common/company-secret.js';
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import nodemailer from 'nodemailer';
@@ -22,33 +22,6 @@ import {
   isPrivateAddress, isSmtpPort, parseAddresses, toHtml,
 } from './mail.rules.js';
 import type { MailKind } from './mail.rules.js';
-
-// ---------- the SMTP password, sealed at rest ----------
-// AES-256-GCM with a key derived from MAIL_SECRET (else PLATFORM_SECRET, else JWT_SECRET). Changing that secret makes the
-// stored password unreadable: the screen then asks for it again — nothing else breaks.
-function mailKey(): Buffer {
-  const secret = process.env.MAIL_SECRET || process.env.PLATFORM_SECRET || process.env.JWT_SECRET || '';
-  if (secret.length < 16) throw new BadRequestException('Máy chủ chưa đặt MAIL_SECRET (hoặc JWT_SECRET) đủ dài để mã hoá mật khẩu email.');
-  return createHash('sha256').update(`ninhtrang-mail:${secret}`).digest();
-}
-
-function seal(plain: string): string {
-  const iv = randomBytes(12);
-  const c = createCipheriv('aes-256-gcm', mailKey(), iv);
-  const data = Buffer.concat([c.update(plain, 'utf8'), c.final()]);
-  return Buffer.concat([iv, c.getAuthTag(), data]).toString('base64');
-}
-
-function unseal(sealed: string): string | null {
-  try {
-    const raw = Buffer.from(sealed, 'base64');
-    const d = createDecipheriv('aes-256-gcm', mailKey(), raw.subarray(0, 12));
-    d.setAuthTag(raw.subarray(12, 28));
-    return Buffer.concat([d.update(raw.subarray(28)), d.final()]).toString('utf8');
-  } catch {
-    return null;
-  }
-}
 
 /** The platform's own sender ("hệ thống gửi hộ"): on only when the server has MAIL_SYSTEM_URL + MAIL_SYSTEM_FROM. */
 const systemSender = () => {

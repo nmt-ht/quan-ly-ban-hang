@@ -10,6 +10,7 @@ import { fromDay, toDay, vnDay } from '../../common/text.js';
 import { AuditService } from '../../audit/audit.service.js';
 import { documentDay } from '../../common/period-lock.js';
 import { diff, vnd } from '../../audit/audit.diff.js';
+import { releaseDeliveries } from '../einvoice/einvoice-guards.js';
 
 const STATUS_AFTER: Record<string, string> = { HOAN_THANH: 'nhận đủ', GIAO_MOT_PHAN: 'nhận một phần', TRA_TOAN_BO: 'không nhận gì' };
 
@@ -295,6 +296,9 @@ export class TripsService {
       const returned = await tx.salesReturn.findFirst({ where: { orderId, isCancelled: false }, select: { code: true } });
       if (returned) throw new BadRequestException(`Đơn đã có phiếu trả hàng ${returned.code} — huỷ phiếu trả trước khi bỏ chốt giao.`);
       const o = await this.sales.locked(tx, orderId);
+      const removed = (await tx.salesOrderDelivery.findMany({ where: { orderId, tripId: id }, select: { id: true } })).map((d) => d.id);
+      // A hoá đơn điện tử already sent for what the khách received keeps it received.
+      await releaseDeliveries(tx, orderId, removed, o.code);
       const before = receivedValueOf(o.lines.map(saleLine), o.discountAmount.toNumber());
       for (const load of t.loads.filter((l) => l.orderLine.orderId === orderId)) {
         const got = load.receivedQuantity?.toNumber() ?? 0;
@@ -302,7 +306,6 @@ export class TripsService {
         await tx.deliveryTripLoad.update({ where: { id: load.id }, data: { receivedQuantity: null } });
       }
       await tx.deliveryTripOrder.update({ where: { tripId_orderId: { tripId: id, orderId } }, data: { confirmedAt: null, confirmNote: null } });
-      const removed = (await tx.salesOrderDelivery.findMany({ where: { orderId, tripId: id }, select: { id: true } })).map((d) => d.id);
       // Its phiếu thu tiền ngay are cancelled first, while they still point at the đợt.
       const { cancelled } = await this.afterReceipt(tx, orderId, before, vnDay(), user, { removedDeliveryIds: removed });
       await tx.salesOrderDelivery.deleteMany({ where: { id: { in: removed } } });

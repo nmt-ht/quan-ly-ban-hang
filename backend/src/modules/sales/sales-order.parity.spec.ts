@@ -1,7 +1,11 @@
 // Giao diện và máy chủ tính đơn bán bằng hai bản quy tắc giống nhau (frontend sales-order.rules.ts và file này
 // bên cạnh). Test này chạy cả hai trên cùng một loạt đơn sinh ngẫu nhiên (hạt giống cố định) và đòi kết quả
 // khớp tới từng đồng — sửa một bên mà quên bên kia là đỏ.
-import * as server from './sales-order.rules.js';
+import * as rules from './sales-order.rules.js';
+import * as invoice from './invoice.rules.js';
+
+const server = { ...rules, ...invoice };
+const { round4 } = rules;
 
 /** The part of the frontend's rules this test calls; its own types live in the frontend project. */
 interface ScreenRules {
@@ -19,6 +23,18 @@ interface ScreenRules {
 // Loaded by URL at run time: the frontend lies outside this project's rootDir, so tsc must not follow the import.
 const SCREEN_RULES = new URL('../../../../frontend/src/app/features/sales-orders/sales-order.rules.ts', import.meta.url).href;
 const screen = (await import(/* @vite-ignore */ SCREEN_RULES)) as ScreenRules;
+
+/** The frontend's invoice rules (features/sales-orders/invoice.rules.ts), against the server's invoice.rules.ts. */
+interface ScreenInvoiceRules {
+  invoiceData(o: unknown, slices: unknown[], name: (id: string) => string, sign?: 1 | -1, fxRate?: number | null): unknown;
+}
+const SCREEN_INVOICE = new URL('../../../../frontend/src/app/features/sales-orders/invoice.rules.ts', import.meta.url).href;
+const screenInvoice = (await import(/* @vite-ignore */ SCREEN_INVOICE)) as ScreenInvoiceRules;
+const screenSlices = screen as unknown as {
+  deliverySlices(o: unknown, id: string): unknown[];
+  orderedSlices(o: unknown): unknown[];
+  receivedSlices(o: unknown): unknown[];
+};
 
 function rng(seed: number) {
   let s = seed;
@@ -92,6 +108,39 @@ describe('quy tắc đơn bán: giao diện và máy chủ ra cùng kết quả'
       const lines = c.lines.map((l, i) => ({ ...l, isGift: i === 2 }));
       expect(screen.belowMinPrice(lines, c.orderDiscount, (id) => floors[id])).toEqual(server.belowMinPrice(lines, c.orderDiscount, (id) => floors[id]));
     }
+  });
+
+  it('hoá đơn (invoiceData) khớp: cả đơn, hàng đã giao, từng đợt, điều chỉnh giảm, ngoại tệ', () => {
+    const name = (id: string) => `Hàng ${id}`;
+    cases.forEach((c, n) => {
+      const lines = c.lines.map((l, i) => ({
+        ...l, isGift: (n + i) % 7 === 3, unitPriceFx: (n + i) % 5 === 0 ? 1.37 : null,
+        length: i === 1 ? 120 : null, width: i === 1 ? 60 : null,
+      }));
+      // Up to two đợt giao that add up to the received quantity, the later one with whatever is left.
+      const first = lines.flatMap((l) => (l.receivedQuantity > 0 ? [{ orderLineId: l.id, quantity: round4(l.receivedQuantity / 2) || l.receivedQuantity }] : []));
+      const second = lines.flatMap((l) => {
+        const rest = round4(l.receivedQuantity - (first.find((x) => x.orderLineId === l.id)?.quantity ?? 0));
+        return rest > 0 ? [{ orderLineId: l.id, quantity: rest }] : [];
+      });
+      const deliveries = [{ id: 'd1', lines: first }, { id: 'd2', lines: second }];
+      const order = { lines, discountAmount: c.orderDiscount, deliveries };
+      const sliceSets: [string, unknown[], unknown[]][] = [
+        ['ordered', server.orderedSlices(order), screenSlices.orderedSlices(order)],
+        ['received', server.receivedSlices(order), screenSlices.receivedSlices(order)],
+        ['d1', server.deliverySlices(order, 'd1'), screenSlices.deliverySlices(order, 'd1')],
+        ['d2', server.deliverySlices(order, 'd2'), screenSlices.deliverySlices(order, 'd2')],
+      ];
+      for (const [key, a, b] of sliceSets) {
+        expect([key, b]).toEqual([key, a]);
+        for (const sign of [1, -1] as const) {
+          for (const rate of [null, 25_400]) {
+            const want = invoice.invoiceData(order, a as never, name, sign, rate);
+            expect([key, sign, rate, screenInvoice.invoiceData(order, b, name, sign, rate)]).toEqual([key, sign, rate, want]);
+          }
+        }
+      }
+    });
   });
 
   it('priceFor khớp với mọi loại khách, ĐVT và bảng giá', () => {
