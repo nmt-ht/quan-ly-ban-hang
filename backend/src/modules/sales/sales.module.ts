@@ -8,6 +8,7 @@ import { CurrentUser, RequireAnyPermission, RequirePermissions } from '../../aut
 import type { AuthUser } from '../../auth/auth.service.js';
 import { OptionalDay, OptionalText, Text } from '../../common/dto.js';
 import { InventoryModule } from '../inventory/inventory.module.js';
+import { AccountingModule } from '../accounting/accounting.module.js';
 import { SalesService } from './sales.service.js';
 import { ReceivablesService } from './receivables.service.js';
 import { SalesReturnsController, SalesReturnsService } from './returns.js';
@@ -202,8 +203,8 @@ export class SalesController {
   @RequirePermissions('production.cancel')
   @Post('production-orders/:id/cancel')
   @HttpCode(HttpStatus.OK)
-  cancelProduction(@Param('id') id: string, @Body() dto: ReasonDto) {
-    return this.sales.cancelProduction(id, dto.reason);
+  cancelProduction(@Param('id') id: string, @Body() dto: ReasonDto, @CurrentUser() user: AuthUser) {
+    return this.sales.cancelProduction(id, dto.reason, user);
   }
 }
 
@@ -221,7 +222,7 @@ export class ReceivablesController {
 }
 
 @Module({
-  imports: [InventoryModule],
+  imports: [InventoryModule, AccountingModule],
   controllers: [SalesController, SalesReturnsController, QuotationsController, ReceivablesController, DebtRemindersController],
   providers: [SalesService, SalesReturnsService, QuotationsService, ReceivablesService, DebtRemindersService],
   exports: [SalesService, ReceivablesService],

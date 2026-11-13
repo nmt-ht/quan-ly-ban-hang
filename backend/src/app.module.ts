@@ -25,6 +25,7 @@ import { CashVouchersModule } from './modules/cash/cash-vouchers.module.js';
 import { MailModule } from './modules/mail/mail.module.js';
 import { EInvoiceModule } from './modules/einvoice/einvoice.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
+import { AccountingModule } from './modules/accounting/accounting.module.js';
 import { PricingModule } from './modules/pricing/pricing.module.js';
 import { PlatformModule } from './platform/platform.module.js';
 import { DecimalInterceptor } from './common/decimal.interceptor.js';
@@ -61,6 +62,8 @@ import { PrismaExceptionFilter } from './common/prisma-exception.filter.js';
     CashVouchersModule,
     // Đợt 7 — tổng quan, báo cáo
     ReportsModule,
+    // Đợt 8 — kế toán (sổ cái, TT133)
+    AccountingModule,
     // Email gửi đi: báo giá, chứng từ, nhắc nợ… cho khách hàng / NCC
     MailModule,
     // Hoá đơn điện tử: phát hành qua nhà cung cấp (MISA meInvoice; Thử nghiệm)

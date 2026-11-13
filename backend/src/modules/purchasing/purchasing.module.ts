@@ -7,6 +7,7 @@ import { CurrentUser, RequirePermissions } from '../../auth/permissions.decorato
 import type { AuthUser } from '../../auth/auth.service.js';
 import { OptionalText, Text } from '../../common/dto.js';
 import { InventoryModule } from '../inventory/inventory.module.js';
+import { AccountingModule } from '../accounting/accounting.module.js';
 import { PurchaseOrdersService, withoutPrices } from './purchase-orders.service.js';
 import { listParam, parsePageQuery, windowStart } from '../../common/paging.js';
 import { PurchaseOrderPageQuery } from './purchase-order-page.js';
@@ -142,7 +143,7 @@ export class PayablesController {
 }
 
 @Module({
-  imports: [InventoryModule],
+  imports: [InventoryModule, AccountingModule],
   controllers: [PurchaseOrdersController, PurchaseReturnsController, PayablesController],
   providers: [PurchaseOrdersService, PurchaseReturnsService, PayablesService],
   exports: [PurchaseOrdersService, PayablesService],

@@ -54,6 +54,11 @@ model User {
   promotions        Promotion[]        @relation("PromotionCreatedBy")
   debtReminders     DebtReminder[]     @relation("DebtReminderCreatedBy")
   einvoices         EInvoice[]         @relation("EInvoiceCreatedBy")
+  journalEntries    JournalEntry[]     @relation("JournalCreatedBy")
+  fixedAssets       FixedAsset[]       @relation("FixedAssetCreatedBy")
+  prepaidItems      PrepaidItem[]      @relation("PrepaidItemCreatedBy")
+  productionCosts   ProductionCost[]   @relation("ProductionCostCreatedBy")
+  payrollRuns       PayrollRun[]       @relation("PayrollRunCreatedBy")
 }
 
 enum UserStatus {
@@ -108,6 +113,9 @@ model CompanyInfo {
   // Cho xuất quá số tồn (as MISA's tuỳ chọn): false = a phiếu xuất leaving a kho below 0 is refused, except for
   // stock.overdraw. True by default, as before.
   allowNegativeStock Boolean @default(true)
+  // Kế toán kép: ngày bắt đầu ghi sổ. Chứng từ từ ngày này trở đi mới sinh bút toán tự động
+  // (không hồi tố dữ liệu cũ; số dư trước đó khai ở OpeningBalance). Null = chưa bật sổ cái.
+  ledgerStartDate    DateTime? @db.Date
 }
 
 model Tag {
@@ -365,6 +373,106 @@ model ProductionOrder {
   updatedAt        DateTime              @default(now()) @updatedAt
 
   warehouseVouchers WarehouseVoucher[]
+  costs             ProductionCost[]
+}
+
+// Bộ phận của nhân viên — quyết định TK chi phí lương: quản lý → 642, bán hàng → 641, sản xuất trực tiếp → 154.
+enum PayrollCenter {
+  QUAN_LY
+  BAN_HANG
+  SAN_XUAT
+}
+
+// Nhân viên hưởng lương. Mức lương đóng bảo hiểm = insuranceSalary, nếu trống thì lấy baseSalary.
+model Employee {
+  id              String        @id @default(uuid())
+  code            String        @unique // NV#####
+  name            String
+  center          PayrollCenter @default(QUAN_LY)
+  baseSalary      Decimal // lương cơ bản tháng
+  allowance       Decimal       @default(0) // phụ cấp cố định tháng (tính thuế, không tính bảo hiểm)
+  insuranceSalary Decimal? // lương đóng bảo hiểm; null = baseSalary
+  dependents      Int           @default(0) // số người phụ thuộc đã đăng ký
+  isActive        Boolean       @default(true)
+  note            String?
+  createdAt       DateTime      @default(now())
+
+  payrollLines PayrollLine[]
+}
+
+// Tham số tính lương — một dòng duy nhất, sửa ở Thiết lập lương (quy định đổi theo thời gian).
+model PayrollSettings {
+  id                  Int     @id @default(1)
+  bhxhEmployee        Decimal @default(8) // % người lao động
+  bhytEmployee        Decimal @default(1.5)
+  bhtnEmployee        Decimal @default(1)
+  bhxhEmployer        Decimal @default(17.5) // % doanh nghiệp (gồm 0,5% TNLĐ-BNN)
+  bhytEmployer        Decimal @default(3)
+  bhtnEmployer        Decimal @default(1)
+  kpcd                Decimal @default(2) // kinh phí công đoàn, doanh nghiệp đóng
+  socialCap           Decimal @default(50600000) // trần lương đóng BHXH, BHYT (20 × lương cơ sở)
+  unemploymentCap     Decimal @default(106200000) // trần lương đóng BHTN (20 × lương tối thiểu vùng)
+  personalDeduction   Decimal @default(15500000) // giảm trừ bản thân / tháng
+  dependentDeduction  Decimal @default(6200000) // giảm trừ mỗi người phụ thuộc / tháng
+  brackets            Json // [{ upTo: số | null, rate: % }] biểu thuế luỹ tiến theo thu nhập tính thuế tháng
+}
+
+// Một bảng lương của một tháng (period = 'YYYY-MM', mỗi tháng một bảng).
+model PayrollRun {
+  id          String   @id @default(uuid())
+  period      String   @unique
+  date        DateTime @db.Date // ngày hạch toán = cuối tháng
+  createdById String
+  createdBy   User     @relation("PayrollRunCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  lines PayrollLine[]
+}
+
+model PayrollLine {
+  id         String        @id @default(uuid())
+  runId      String
+  run        PayrollRun    @relation(fields: [runId], references: [id], onDelete: Cascade)
+  employeeId String
+  employee   Employee      @relation(fields: [employeeId], references: [id])
+  center     PayrollCenter // chốt theo lúc tính lương
+  gross      Decimal // tổng thu nhập: lương + phụ cấp + điều chỉnh tháng
+  adjustment Decimal       @default(0) // thưởng / phụ cấp phát sinh tháng này
+  bhxhEe     Decimal
+  bhytEe     Decimal
+  bhtnEe     Decimal
+  taxable    Decimal // thu nhập tính thuế
+  pit        Decimal // thuế TNCN
+  net        Decimal // thực lĩnh
+  bhxhEr     Decimal
+  bhytEr     Decimal
+  bhtnEr     Decimal
+  kpcd       Decimal
+
+  @@index([runId])
+}
+
+enum ProductionCostKind {
+  NHAN_CONG // chi phí nhân công trực tiếp
+  SAN_XUAT_CHUNG // chi phí sản xuất chung
+}
+
+// Chi phí nhân công / sản xuất chung nhập thêm cho một lệnh sản xuất (vật tư lấy từ phiếu xuất kho).
+// Cộng vào TK 154 và vào giá thành đơn vị của thành phẩm khi nghiệm thu.
+model ProductionCost {
+  id             String             @id @default(uuid())
+  orderId        String
+  order          ProductionOrder    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  kind           ProductionCostKind
+  amount         Decimal
+  date           DateTime           @db.Date
+  description    String?
+  creditAccount  String // TK đối ứng bên Có: 334, 111, 112, 331, 214, 242
+  createdById    String
+  createdBy      User               @relation("ProductionCostCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime           @default(now())
+
+  @@index([orderId])
 }
 
 // ---------- Purchasing ----------
@@ -843,14 +951,16 @@ enum PartnerType {
 
 // Loại thu chi — decides whether a voucher is tied to a customer, a supplier or nobody.
 model CashCategory {
-  code        String      @id
-  name        String
-  kind        VoucherKind
-  partnerType PartnerType
-  isDefault   Boolean     @default(false)
-  isActive    Boolean     @default(true)
-  isSystem    Boolean     @default(false) // built-in: partner type cannot change
-  sortOrder   Int         @default(0)
+  code              String      @id
+  name              String
+  kind              VoucherKind
+  partnerType       PartnerType
+  isDefault         Boolean     @default(false)
+  isActive          Boolean     @default(true)
+  isSystem          Boolean     @default(false) // built-in: partner type cannot change
+  sortOrder         Int         @default(0)
+  // Kế toán: TK đối ứng mặc định khi sinh bút toán cho phiếu thuộc loại này (sửa được ở Thiết lập).
+  defaultAccountCode String?
 }
 
 model CashVoucher {
@@ -895,6 +1005,169 @@ model CashAllocation {
   voucher   CashVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
   ref       String
   amount    Decimal
+}
+
+// ---------- Kế toán (sổ cái, TT133) ----------
+
+enum AccountKind {
+  TAI_SAN // Tài sản
+  NO_PHAI_TRA // Nợ phải trả
+  VON_CSH // Vốn chủ sở hữu
+  DOANH_THU // Doanh thu
+  CHI_PHI // Chi phí
+  KQKD // Xác định kết quả kinh doanh (911)
+}
+
+enum NormalSide {
+  NO // số dư thường bên Nợ
+  CO // số dư thường bên Có
+}
+
+// Nguồn sinh bút toán — để truy vết & đảo đúng chứng từ gốc.
+enum JournalSource {
+  SALES_DELIVERY
+  CASH_VOUCHER
+  PURCHASE_RECEIPT
+  SALES_RETURN
+  PURCHASE_RETURN
+  PRODUCTION
+  PAYROLL
+  CLOSING
+  MANUAL
+  REVERSAL
+}
+
+// Hệ thống tài khoản TT133. `code` là khoá tự nhiên (111, 131, 156, 3331…).
+model Account {
+  code       String      @id
+  name       String
+  parentCode String?
+  kind       AccountKind
+  normalSide NormalSide
+  isDetail   Boolean     @default(true) // chỉ TK chi tiết mới được ghi bút toán
+  isActive   Boolean     @default(true)
+  sortOrder  Int         @default(0)
+
+  lines JournalLine[]
+}
+
+// Chứng từ ghi sổ (bút toán). refType/refId trỏ tới chứng từ gốc để truy vết & đảo.
+model JournalEntry {
+  id          String        @id @default(uuid())
+  code        String        @unique // BT0000001 (sequence "BT")
+  date        DateTime      @db.Date // ngày hạch toán
+  description String?
+  source      JournalSource @default(MANUAL)
+  refType     String? // "SalesOrderDelivery" | "CashVoucher" | "PurchaseOrderReceipt" | ...
+  refId       String?
+  isReversal  Boolean       @default(false)
+  createdById String
+  createdBy   User          @relation("JournalCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime      @default(now())
+
+  lines JournalLine[]
+
+  @@index([refType, refId])
+  @@index([date])
+}
+
+model JournalLine {
+  id          String       @id @default(uuid())
+  entryId     String
+  entry       JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  accountCode String
+  account     Account      @relation(fields: [accountCode], references: [code])
+  debit       Decimal      @default(0)
+  credit      Decimal      @default(0)
+  partnerType PartnerType? // tái dùng enum sẵn có
+  customerId  String?
+  supplierId  String?
+  description String?
+
+  @@index([entryId])
+  @@index([accountCode])
+}
+
+// Số dư đầu kỳ khi bắt đầu dùng sổ cái. period = năm "2026".
+model OpeningBalance {
+  accountCode String
+  period      String
+  debit       Decimal @default(0)
+  credit      Decimal @default(0)
+
+  @@id([accountCode, period])
+}
+
+enum FixedAssetStatus {
+  DANG_DUNG // đang sử dụng
+  DA_THANH_LY // đã thanh lý / ngừng
+}
+
+// Tài sản cố định — khấu hao đường thẳng (nguyên giá / số tháng sử dụng).
+model FixedAsset {
+  id               String           @id @default(uuid())
+  code             String           @unique // TS#####
+  name             String
+  cost             Decimal // nguyên giá
+  usageStartDate   DateTime         @db.Date // ngày đưa vào sử dụng
+  usefulLifeMonths Int // số tháng khấu hao
+  expenseAccount   String           @default("642") // TK chi phí khấu hao (642/627/641)
+  accumulated      Decimal          @default(0) // hao mòn luỹ kế đã ghi
+  status           FixedAssetStatus @default(DANG_DUNG)
+  disposedDate     DateTime?        @db.Date
+  note             String?
+  createdById      String
+  createdBy        User             @relation("FixedAssetCreatedBy", fields: [createdById], references: [id])
+  createdAt        DateTime         @default(now())
+
+  depreciations DepreciationEntry[]
+}
+
+enum PrepaidStatus {
+  DANG_PHAN_BO // còn phân bổ
+  HET_PHAN_BO // đã phân bổ hết
+}
+
+// Công cụ dụng cụ / chi phí trả trước — ghi nhận vào TK 242 rồi phân bổ đều theo tháng vào chi phí.
+model PrepaidItem {
+  id               String        @id @default(uuid())
+  code             String        @unique // CC#####
+  name             String
+  cost             Decimal // tổng giá trị cần phân bổ
+  startDate        DateTime      @db.Date // ngày bắt đầu phân bổ
+  allocationMonths Int // số tháng phân bổ
+  expenseAccount   String        @default("642") // TK chi phí nhận phân bổ
+  fundingAccount   String        @default("153") // TK đối ứng khi ghi nhận vào 242 (153/111/112/331)
+  allocated        Decimal       @default(0) // đã phân bổ luỹ kế
+  status           PrepaidStatus @default(DANG_PHAN_BO)
+  note             String?
+  createdById      String
+  createdBy        User          @relation("PrepaidItemCreatedBy", fields: [createdById], references: [id])
+  createdAt        DateTime      @default(now())
+
+  allocations PrepaidAllocation[]
+}
+
+// Một lần phân bổ của một khoản trong một tháng (period = 'YYYY-MM') — chống phân bổ trùng.
+model PrepaidAllocation {
+  id     String      @id @default(uuid())
+  itemId String
+  item   PrepaidItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  period String
+  amount Decimal
+
+  @@unique([itemId, period])
+}
+
+// Một lần trích khấu hao của một TSCĐ trong một tháng (period = 'YYYY-MM') — chống trích trùng.
+model DepreciationEntry {
+  id      String     @id @default(uuid())
+  assetId String
+  asset   FixedAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  period  String
+  amount  Decimal
+
+  @@unique([assetId, period])
 }
 
 // Nhật ký hoạt động: who did what, to which record, when. Append-only — the migration adds triggers

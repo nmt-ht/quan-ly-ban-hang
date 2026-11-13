@@ -8,6 +8,7 @@ import { CurrentUser, RequirePermissions } from '../../auth/permissions.decorato
 import type { AuthUser } from '../../auth/auth.service.js';
 import { OptionalText, Text } from '../../common/dto.js';
 import { fromDay, toDay, vnDay } from '../../common/text.js';
+import { LedgerService } from '../accounting/ledger.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { SequenceService } from '../../prisma/sequence.service.js';
 import { AuditService } from '../../audit/audit.service.js';
@@ -72,6 +73,7 @@ export class SalesReturnsService {
     private readonly sequences: SequenceService,
     private readonly inventory: InventoryService,
     private readonly audit: AuditService,
+    private readonly ledger: LedgerService,
   ) {}
 
   async create(orderId: string, dto: SalesReturnDto, user: AuthUser) {
@@ -140,6 +142,37 @@ export class SalesReturnsService {
         summary: `Nhận trả hàng ${code} · ${rows.length} dòng · ${vnd(amount)} (giảm công nợ) · ${dto.reason}`,
         related: [code, ...(r.voucher ? [r.voucher.code] : [])],
       });
+
+      // Kế toán: đảo doanh thu + VAT (giảm phải thu), và đảo giá vốn (hàng nhập lại kho).
+      if (await this.ledger.isLedgerActive(tx, dto.date)) {
+        let taxable = 0;
+        for (const row of rows) {
+          const i = o.lines.findIndex((l) => l.id === row.orderLineId);
+          taxable += Math.round((totals.lines[i].taxable * row.quantity) / o.lines[i].quantity.toNumber());
+        }
+        await this.ledger.postEntry(tx, {
+          date: dto.date, source: 'SALES_RETURN', refType: 'SalesReturn', refId: r.id, createdById: user.id,
+          description: `Trả hàng bán - đơn ${o.code} (${code})`,
+          lines: [
+            { accountCode: '511', debit: taxable },
+            { accountCode: '3331', debit: amount - taxable },
+            { accountCode: '131', credit: amount, partnerType: 'KHACH_HANG', customerId: o.customerId },
+          ],
+        });
+        if (voucherId) {
+          const cl = await tx.warehouseVoucherLine.findMany({ where: { voucherId }, select: { quantity: true, unitCost: true, product: { select: { type: true } } } });
+          let c155 = 0, c156 = 0;
+          for (const x of cl) { const amt = x.quantity.toNumber() * (x.unitCost?.toNumber() ?? 0); if (x.product.type === 'THANH_PHAM') c155 += amt; else c156 += amt; }
+          const r155 = Math.round(c155), r156 = Math.round(c156);
+          if (r155 + r156 > 0) {
+            await this.ledger.postEntry(tx, {
+              date: dto.date, source: 'SALES_RETURN', refType: 'SalesReturn', refId: r.id, createdById: user.id,
+              description: `Nhập lại giá vốn - trả hàng ${code}`,
+              lines: [{ accountCode: '155', debit: r155 }, { accountCode: '156', debit: r156 }, { accountCode: '632', credit: r155 + r156 }],
+            });
+          }
+        }
+      }
       return returnToApi(r);
     });
   }
@@ -154,6 +187,7 @@ export class SalesReturnsService {
       await assertOpenPeriod(tx, r.date, `Huỷ ${r.code}:`);
       await assertReturnNotInvoiced(tx, r.id, r.code);
       if (r.voucherId) await this.inventory.reverse(tx, r.voucherId, `Huỷ phiếu trả hàng ${r.code}`, user);
+      await this.ledger.reverseEntriesFor(tx, 'SalesReturn', r.id, { date: toDay(r.date)!, createdById: user.id, description: `Huỷ phiếu trả hàng ${r.code}` });
       const out = await tx.salesReturn.update({
         where: { id: returnId }, data: { isCancelled: true, cancelReason: reason ?? null, cancelledAt: new Date() }, include: RETURN_INCLUDE,
       });

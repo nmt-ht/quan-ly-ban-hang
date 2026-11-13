@@ -3,6 +3,7 @@ import { Prisma, PurchaseOrderStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { SequenceService } from '../../prisma/sequence.service.js';
 import { InventoryService, StockActor, VoucherLineInput } from '../inventory/inventory.service.js';
+import { LedgerService } from '../accounting/ledger.service.js';
 import { fromDay, toDay, vnDay } from '../../common/text.js';
 import { AuditService } from '../../audit/audit.service.js';
 import { PURCHASE_RETURN_INCLUDE, purchaseReturnToApi } from './purchase-returns.js';
@@ -86,6 +87,7 @@ export class PurchaseOrdersService {
     private readonly sequences: SequenceService,
     private readonly inventory: InventoryService,
     private readonly audit: AuditService,
+    private readonly ledger: LedgerService,
   ) {}
 
   /** An order as the edit diff compares it: NCC by name, lines as "VT0000001 × 10 Cái @ 50.000 ₫ · VAT 8%". */
@@ -277,7 +279,32 @@ export class PurchaseOrdersService {
       const before = receivedValueOf(o.lines.map(numbers));
       // One khoản công nợ phải trả per lần nhận hàng.
       if (saved.receivedValue! - before > 0) {
-        await tx.purchaseOrderReceipt.create({ data: { orderId: id, date: fromDay(day)!, amount: saved.receivedValue! - before } });
+        const receipt = await tx.purchaseOrderReceipt.create({ data: { orderId: id, date: fromDay(day)!, amount: saved.receivedValue! - before } });
+        // Kế toán: Nợ 156/155/642 (giá trị hàng/dịch vụ chưa thuế) + Nợ 133 (VAT đầu vào) / Có 331 (phải trả NCC).
+        if (await this.ledger.isLedgerActive(tx, day)) {
+          const amount = saved.receivedValue! - before;
+          let g156 = 0, g155 = 0, g642 = 0;
+          for (const [i, l] of o.lines.entries()) {
+            const delta = round4(received[i] - l.receivedQuantity.toNumber());
+            if (delta <= 0) continue;
+            const goods = Math.round(delta * l.unitPrice.toNumber());
+            const type = products.get(l.productId);
+            if (type === 'THANH_PHAM') g155 += goods;
+            else if (type === 'DICH_VU') g642 += goods;
+            else g156 += goods;
+          }
+          const vat = amount - (g156 + g155 + g642); // phần còn lại = thuế GTGT (gộp chênh lệch làm tròn)
+          const lines = [];
+          if (g156) lines.push({ accountCode: '156', debit: g156 });
+          if (g155) lines.push({ accountCode: '155', debit: g155 });
+          if (g642) lines.push({ accountCode: '642', debit: g642 });
+          if (vat) lines.push({ accountCode: '133', debit: vat });
+          lines.push({ accountCode: '331', credit: amount, partnerType: 'NHA_CUNG_CAP' as const, supplierId: o.supplierId });
+          await this.ledger.postEntry(tx, {
+            date: day, source: 'PURCHASE_RECEIPT', refType: 'PurchaseOrderReceipt', refId: receipt.id, createdById: user.id,
+            description: `Nhập mua hàng - đơn ${o.code}`, lines,
+          });
+        }
       }
       await this.audit.log(tx, {
         action: 'purchase_order.receive', entityType: 'PurchaseOrder', entityId: id, entityCode: o.code,

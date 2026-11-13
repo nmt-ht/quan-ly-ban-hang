@@ -172,6 +172,14 @@ export const PERMISSION_MODULES: PermissionModule[] = [
   { key: 'audit', label: 'Nhật ký truy cập', permissions: [
     { code: 'audit.view', label: 'Xem nhật ký truy cập' },
   ]},
+  { key: 'accounting', label: 'Kế toán', permissions: [
+    { code: 'accounting.view', label: 'Xem sổ sách kế toán (nhật ký, sổ cái, cân đối)' },
+    { code: 'accounting.manual', label: 'Nhập bút toán thủ công' },
+    { code: 'accounting.reverse', label: 'Đảo / huỷ bút toán' },
+    { code: 'accounting.opening', label: 'Nhập số dư đầu kỳ' },
+    { code: 'accounting.manage_account', label: 'Quản lý hệ thống tài khoản' },
+    { code: 'accounting.payroll', label: 'Quản lý nhân viên, tính và chốt bảng lương' },
+  ]},
 ];
 
 export const ALL_PERMISSION_CODES: string[] = PERMISSION_MODULES.flatMap((m) => m.permissions.map((p) => p.code));

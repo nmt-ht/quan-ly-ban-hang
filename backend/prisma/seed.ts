@@ -179,6 +179,14 @@ const PERMISSION_MODULES: { key: string; permissions: { code: string; label: str
   { key: 'audit', permissions: [
     { code: 'audit.view', label: 'Xem nhật ký hoạt động' },
   ]},
+  { key: 'accounting', permissions: [
+    { code: 'accounting.view', label: 'Xem sổ sách kế toán (nhật ký, sổ cái, cân đối)' },
+    { code: 'accounting.manual', label: 'Nhập bút toán thủ công' },
+    { code: 'accounting.reverse', label: 'Đảo / huỷ bút toán' },
+    { code: 'accounting.opening', label: 'Nhập số dư đầu kỳ' },
+    { code: 'accounting.manage_account', label: 'Quản lý hệ thống tài khoản' },
+    { code: 'accounting.payroll', label: 'Quản lý nhân viên, tính và chốt bảng lương' },
+  ]},
 ];
 
 const ALL_PERMISSION_CODES = PERMISSION_MODULES.flatMap((m) => m.permissions.map((p) => p.code));
@@ -203,6 +211,7 @@ const ACCOUNTANT = [
   'voucher.view', 'voucher.create_receipt', 'voucher.create_payment', 'voucher.cancel', 'voucher.manage_category', 'voucher.manage_account',
   'report.dashboard', 'report.sales', 'report.stock', 'report.purchase', 'report.debt', 'report.cashflow', 'report.production', 'report.delivery',
   'report.view_profit', 'einvoice.view', 'einvoice.issue',
+  'accounting.view', 'accounting.manual', 'accounting.reverse', 'accounting.opening', 'accounting.manage_account', 'accounting.payroll',
 ];
 const SALE = [
   'customer.view', 'customer.create', 'customer.update', 'customer.delete',
@@ -229,10 +238,50 @@ const ROLES: { id: string; name: string; description: string; isSystem?: boolean
 ];
 
 const CASH_CATEGORIES = [
-  { code: 'THU_KH', name: 'Thu tiền khách hàng', kind: 'THU', partnerType: 'KHACH_HANG', isDefault: true, sortOrder: 0 },
-  { code: 'THU_KHAC', name: 'Thu khác', kind: 'THU', partnerType: 'KHAC', isDefault: false, sortOrder: 1 },
-  { code: 'CHI_NCC', name: 'Chi trả nhà cung cấp', kind: 'CHI', partnerType: 'NHA_CUNG_CAP', isDefault: true, sortOrder: 2 },
-  { code: 'CHI_KHAC', name: 'Chi khác', kind: 'CHI', partnerType: 'KHAC', isDefault: false, sortOrder: 3 },
+  { code: 'THU_KH', name: 'Thu tiền khách hàng', kind: 'THU', partnerType: 'KHACH_HANG', isDefault: true, sortOrder: 0, defaultAccountCode: '131' },
+  { code: 'THU_KHAC', name: 'Thu khác', kind: 'THU', partnerType: 'KHAC', isDefault: false, sortOrder: 1, defaultAccountCode: '711' },
+  { code: 'CHI_NCC', name: 'Chi trả nhà cung cấp', kind: 'CHI', partnerType: 'NHA_CUNG_CAP', isDefault: true, sortOrder: 2, defaultAccountCode: '331' },
+  { code: 'CHI_KHAC', name: 'Chi khác', kind: 'CHI', partnerType: 'KHAC', isDefault: false, sortOrder: 3, defaultAccountCode: '642' },
+  { code: 'CHI_LUONG', name: 'Chi lương nhân viên', kind: 'CHI', partnerType: 'KHAC', isDefault: false, sortOrder: 4, defaultAccountCode: '334' },
+] as const;
+
+// Hệ thống tài khoản TT133 (bộ rút gọn cho nghiệp vụ hiện có). [code, name, parentCode, kind, normalSide, isDetail]
+const CHART = [
+  ['111', 'Tiền mặt', null, 'TAI_SAN', 'NO', true],
+  ['112', 'Tiền gửi ngân hàng', null, 'TAI_SAN', 'NO', true],
+  ['131', 'Phải thu của khách hàng', null, 'TAI_SAN', 'NO', true],
+  ['133', 'Thuế GTGT được khấu trừ', null, 'TAI_SAN', 'NO', true],
+  ['141', 'Tạm ứng', null, 'TAI_SAN', 'NO', true],
+  ['152', 'Nguyên liệu, vật liệu', null, 'TAI_SAN', 'NO', true],
+  ['153', 'Công cụ, dụng cụ', null, 'TAI_SAN', 'NO', true],
+  ['154', 'Chi phí sản xuất, kinh doanh dở dang', null, 'TAI_SAN', 'NO', true],
+  ['155', 'Thành phẩm', null, 'TAI_SAN', 'NO', true],
+  ['156', 'Hàng hóa', null, 'TAI_SAN', 'NO', true],
+  ['211', 'Tài sản cố định', null, 'TAI_SAN', 'NO', true],
+  ['214', 'Hao mòn tài sản cố định', null, 'TAI_SAN', 'CO', true],
+  ['242', 'Chi phí trả trước', null, 'TAI_SAN', 'NO', true],
+  ['331', 'Phải trả cho người bán', null, 'NO_PHAI_TRA', 'CO', true],
+  ['333', 'Thuế và các khoản phải nộp Nhà nước', null, 'NO_PHAI_TRA', 'CO', false],
+  ['3331', 'Thuế GTGT phải nộp', '333', 'NO_PHAI_TRA', 'CO', true],
+  ['3335', 'Thuế thu nhập cá nhân', '333', 'NO_PHAI_TRA', 'CO', true],
+  ['338', 'Phải trả, phải nộp khác', null, 'NO_PHAI_TRA', 'CO', false],
+  ['3382', 'Kinh phí công đoàn', '338', 'NO_PHAI_TRA', 'CO', true],
+  ['3383', 'Bảo hiểm xã hội', '338', 'NO_PHAI_TRA', 'CO', true],
+  ['3384', 'Bảo hiểm y tế', '338', 'NO_PHAI_TRA', 'CO', true],
+  ['3385', 'Bảo hiểm thất nghiệp', '338', 'NO_PHAI_TRA', 'CO', true],
+  ['334', 'Phải trả người lao động', null, 'NO_PHAI_TRA', 'CO', true],
+  ['411', 'Vốn đầu tư của chủ sở hữu', null, 'VON_CSH', 'CO', true],
+  ['421', 'Lợi nhuận sau thuế chưa phân phối', null, 'VON_CSH', 'CO', true],
+  ['511', 'Doanh thu bán hàng và cung cấp dịch vụ', null, 'DOANH_THU', 'CO', true],
+  ['515', 'Doanh thu hoạt động tài chính', null, 'DOANH_THU', 'CO', true],
+  ['632', 'Giá vốn hàng bán', null, 'CHI_PHI', 'NO', true],
+  ['635', 'Chi phí tài chính', null, 'CHI_PHI', 'NO', true],
+  ['641', 'Chi phí bán hàng', null, 'CHI_PHI', 'NO', true],
+  ['642', 'Chi phí quản lý kinh doanh', null, 'CHI_PHI', 'NO', true],
+  ['711', 'Thu nhập khác', null, 'DOANH_THU', 'CO', true],
+  ['811', 'Chi phí khác', null, 'CHI_PHI', 'NO', true],
+  ['821', 'Chi phí thuế thu nhập doanh nghiệp', null, 'CHI_PHI', 'NO', true],
+  ['911', 'Xác định kết quả kinh doanh', null, 'KQKD', 'NO', true],
 ] as const;
 
 // Một doanh nghiệp mới tạo từ Quản trị nền tảng (src/platform/tenants.service.ts) passes:
@@ -267,8 +316,25 @@ async function main() {
     }
   }
 
+  // Backfill quyền kế toán mới cho các vai trò mặc định đã tồn tại (chỉ THÊM, không gỡ — tôn trọng chỉnh sửa tay).
+  const ACCOUNTING_CODES = ['accounting.view', 'accounting.manual', 'accounting.reverse', 'accounting.opening', 'accounting.manage_account', 'accounting.payroll'];
+  for (const roleId of ['role-manager', 'role-accountant']) {
+    if (await prisma.role.findUnique({ where: { id: roleId } })) {
+      await prisma.rolePermission.createMany({ data: ACCOUNTING_CODES.map((permissionCode) => ({ roleId, permissionCode })), skipDuplicates: true });
+    }
+  }
+
   for (const c of CASH_CATEGORIES) {
-    await prisma.cashCategory.upsert({ where: { code: c.code }, update: {}, create: { ...c, isActive: true, isSystem: true } });
+    await prisma.cashCategory.upsert({ where: { code: c.code }, update: { defaultAccountCode: c.defaultAccountCode }, create: { ...c, isActive: true, isSystem: true } });
+  }
+
+  // Hệ thống tài khoản TT133
+  for (const [code, name, parentCode, kind, normalSide, isDetail] of CHART) {
+    await prisma.account.upsert({
+      where: { code },
+      update: { name, parentCode: parentCode ?? null, kind, normalSide, isDetail },
+      create: { code, name, parentCode: parentCode ?? null, kind, normalSide, isDetail },
+    });
   }
 
   await prisma.companyInfo.upsert({

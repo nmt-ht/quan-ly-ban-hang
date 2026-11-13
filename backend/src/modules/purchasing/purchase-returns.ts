@@ -15,6 +15,7 @@ import { SequenceService } from '../../prisma/sequence.service.js';
 import { AuditService } from '../../audit/audit.service.js';
 import { vnd } from '../../audit/audit.diff.js';
 import { InventoryService, VoucherLineInput } from '../inventory/inventory.service.js';
+import { LedgerService } from '../accounting/ledger.service.js';
 import { round4 } from './purchase-order.rules.js';
 
 type Tx = Prisma.TransactionClient;
@@ -71,6 +72,7 @@ export class PurchaseReturnsService {
     private readonly sequences: SequenceService,
     private readonly inventory: InventoryService,
     private readonly audit: AuditService,
+    private readonly ledger: LedgerService,
   ) {}
 
   async create(orderId: string, dto: PurchaseReturnDto, user: AuthUser) {
@@ -136,6 +138,30 @@ export class PurchaseReturnsService {
         summary: `Trả lại hàng mua ${code} · ${o.supplier.code} ${o.supplier.name} · ${rows.length} dòng · ${vnd(amount)} (giảm công nợ phải trả) · ${dto.reason}`,
         related: [code, o.supplier.code, ...(r.voucher ? [r.voucher.code] : [])],
       });
+
+      // Kế toán: Nợ 331 (giảm phải trả) / Có 156/155/642 (hàng ra) + Có 133 (hoàn thuế đầu vào).
+      if (await this.ledger.isLedgerActive(tx, dto.date)) {
+        let g156 = 0, g155 = 0, g642 = 0;
+        for (const row of rows) {
+          const l = o.lines.find((x) => x.id === row.orderLineId)!;
+          const value = Math.round(row.quantity * l.unitPrice.toNumber());
+          if (l.product.type === 'THANH_PHAM') g155 += value;
+          else if (l.product.type === 'DICH_VU') g642 += value;
+          else g156 += value;
+        }
+        const vat = amount - (g156 + g155 + g642);
+        const lines: { accountCode: string; debit?: number; credit?: number; partnerType?: 'NHA_CUNG_CAP'; supplierId?: string }[] = [
+          { accountCode: '331', debit: amount, partnerType: 'NHA_CUNG_CAP', supplierId: o.supplierId },
+        ];
+        if (g156) lines.push({ accountCode: '156', credit: g156 });
+        if (g155) lines.push({ accountCode: '155', credit: g155 });
+        if (g642) lines.push({ accountCode: '642', credit: g642 });
+        if (vat) lines.push({ accountCode: '133', credit: vat });
+        await this.ledger.postEntry(tx, {
+          date: dto.date, source: 'PURCHASE_RETURN', refType: 'PurchaseReturn', refId: r.id, createdById: user.id,
+          description: `Trả lại hàng mua - đơn ${o.code} (${code})`, lines,
+        });
+      }
       return r;
     });
   }
@@ -149,6 +175,7 @@ export class PurchaseReturnsService {
       if (r.isCancelled) throw new BadRequestException(`${r.code} đã huỷ rồi.`);
       await assertOpenPeriod(tx, r.date, `Huỷ ${r.code}:`);
       if (r.voucherId) await this.inventory.reverse(tx, r.voucherId, `Huỷ phiếu trả lại hàng mua ${r.code}`, user);
+      await this.ledger.reverseEntriesFor(tx, 'PurchaseReturn', r.id, { date: toDay(r.date)!, createdById: user.id, description: `Huỷ phiếu trả lại hàng mua ${r.code}` });
       const out = await tx.purchaseReturn.update({
         where: { id: returnId }, data: { isCancelled: true, cancelReason: reason ?? null, cancelledAt: new Date() }, include: PURCHASE_RETURN_INCLUDE,
       });

@@ -591,6 +591,90 @@ export interface CompanyInfo {
   lockDate?: string | null;
   /** Cho xuất quá số tồn (as MISA); false = phiếu làm tồn kho âm bị từ chối, trừ quyền "Xuất vượt tồn kho". */
   allowNegativeStock?: boolean;
+  /** Kế toán kép: ngày bắt đầu ghi sổ. Chứng từ từ ngày này mới sinh bút toán tự động. Null = chưa bật sổ cái. */
+  ledgerStartDate?: string | null;
+}
+
+// ---------- Kế toán (sổ cái, TT133) ----------
+export type AccountKind = 'TAI_SAN' | 'NO_PHAI_TRA' | 'VON_CSH' | 'DOANH_THU' | 'CHI_PHI' | 'KQKD';
+export interface Account {
+  code: string;
+  name: string;
+  parentCode?: string | null;
+  kind: AccountKind;
+  normalSide: 'NO' | 'CO';
+  isDetail: boolean;
+  isActive: boolean;
+  sortOrder: number;
+}
+export interface JournalLineView {
+  accountCode: string;
+  accountName: string;
+  debit: number;
+  credit: number;
+  description?: string | null;
+}
+export interface JournalEntryView {
+  id: string;
+  code: string;
+  date: string;
+  description?: string | null;
+  source: string;
+  isReversal: boolean;
+  lines: JournalLineView[];
+}
+export interface LedgerRow { date: string; code: string; description?: string | null; debit: number; credit: number; balance: number; }
+export interface LedgerView { account: Account; openingNo: number; openingCo: number; period: string; rows: LedgerRow[]; }
+export interface TrialBalanceRow {
+  code: string; name: string; openingNo: number; openingCo: number; debit: number; credit: number; closingNo: number; closingCo: number;
+}
+export interface TrialBalanceView { period: string; rows: TrialBalanceRow[]; totals: { od: number; oc: number; pd: number; pc: number; cd: number; cc: number }; }
+export interface OpeningRow { code: string; name: string; normalSide: 'NO' | 'CO'; debit: number; credit: number; }
+export interface OpeningBalancesView { period: string; rows: OpeningRow[]; }
+export interface StatementItem { label: string; amount: number; strong?: boolean; }
+export interface IncomeStatementView { period: string; items: StatementItem[]; profitAfterTax: number; }
+export interface BalanceSheetView {
+  period: string;
+  assets: { label: string; amount: number }[];
+  resources: { label: string; amount: number }[];
+  totalAssets: number; totalResources: number; balanced: boolean;
+}
+export type PayrollCenterKey = 'QUAN_LY' | 'BAN_HANG' | 'SAN_XUAT';
+export interface EmployeeView {
+  id: string; code: string; name: string; center: PayrollCenterKey; baseSalary: number; allowance: number;
+  insuranceSalary?: number; dependents: number; isActive: boolean; note?: string;
+}
+/** upTo vắng = bậc cuối, không giới hạn (API bỏ giá trị null). */
+export interface TaxBracketView { upTo?: number | null; rate: number }
+export interface PayrollParamsView {
+  bhxhEmployee: number; bhytEmployee: number; bhtnEmployee: number;
+  bhxhEmployer: number; bhytEmployer: number; bhtnEmployer: number; kpcd: number;
+  socialCap: number; unemploymentCap: number; personalDeduction: number; dependentDeduction: number;
+  brackets: TaxBracketView[];
+}
+export interface PayrollRowView {
+  employeeId: string; code: string; name: string; center: PayrollCenterKey; adjustment: number;
+  gross: number; bhxhEe: number; bhytEe: number; bhtnEe: number; taxable: number; pit: number; net: number;
+  bhxhEr: number; bhytEr: number; bhtnEr: number; kpcd: number;
+}
+export interface PayrollTotals { gross: number; net: number; pit: number; employeeInsurance: number; employerCost: number }
+export interface PayrollSheetView { period: string; existing: boolean; rows: PayrollRowView[]; totals: PayrollTotals }
+export interface PayrollRunSummary extends PayrollTotals { id: string; period: string; date: string; employees: number }
+
+export interface ProductionCostRow {
+  id: string; code: string; status: 'NHAP' | 'DANG_SAN_XUAT' | 'HOAN_TAT';
+  productCode: string; productName: string; quantity: number; produced: number | null;
+  material: number; labor: number; overhead: number; total: number; unitCost: number;
+}
+export interface PrepaidItemView {
+  id: string; code: string; name: string; cost: number; allocated: number; remaining: number;
+  startDate: string; allocationMonths: number; monthly: number;
+  expenseAccount: string; fundingAccount: string; status: 'DANG_PHAN_BO' | 'HET_PHAN_BO'; note?: string;
+}
+export interface FixedAssetView {
+  id: string; code: string; name: string; cost: number; accumulated: number;
+  usageStartDate: string; usefulLifeMonths: number; expenseAccount: string;
+  status: 'DANG_DUNG' | 'DA_THANH_LY'; monthly: number; remaining: number; note?: string;
 }
 
 // A tag colour is a hue (0–360) or 'neutral' (grey). Lightness and chroma are fixed by the

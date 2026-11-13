@@ -20,6 +20,8 @@ import { AuditService } from '../../audit/audit.service.js';
 import { vnd } from '../../audit/audit.diff.js';
 import { listParam, parsePageQuery, windowStart } from '../../common/paging.js';
 import { CashVoucherPageQuery, cashPageOf, cashWhere, refWhere } from './cash-voucher-page.js';
+import { LedgerService } from '../accounting/ledger.service.js';
+import { AccountingModule } from '../accounting/accounting.module.js';
 
 export class AllocationDto {
   @Text(30) ref!: string; // mã chứng từ công nợ (DN…/DH…, or a phiếu hoàn tiền)
@@ -58,6 +60,7 @@ export class CashVouchersService {
     private readonly prisma: PrismaService,
     private readonly sequences: SequenceService,
     private readonly audit: AuditService,
+    private readonly ledger: LedgerService,
   ) {}
 
   /**
@@ -162,6 +165,7 @@ export class CashVouchersService {
           + (merged.size ? ` · đối trừ chọn tay ${[...merged].map(([r, a]) => `${r} ${vnd(a)}`).join(', ')}` : '') + overdrawn,
         related: [...merged.keys(), ...(partner ? [partner.code] : [])],
       });
+      await this.ledger.postCashVoucher(tx, v.id, user.id); // bút toán tiền (nếu sổ cái đã bật)
       return cashToApi(v);
     });
   }
@@ -186,6 +190,7 @@ export class CashVouchersService {
         action: 'cash_voucher.cancel', entityType: 'CashVoucher', entityId: id, entityCode: v.code,
         summary: `Huỷ ${v.kind === 'THU' ? 'phiếu thu' : 'phiếu chi'} ${v.code} (${vnd(v.amount)})${reason ? `: ${reason}` : ''}${overdrawn}`,
       });
+      await this.ledger.cancelCashVoucher(tx, id, user.id); // đảo bút toán tiền
       return s;
     });
     return cashToApi(saved);
@@ -235,5 +240,5 @@ export class CashVouchersController {
   }
 }
 
-@Module({ controllers: [CashVouchersController], providers: [CashVouchersService], exports: [CashVouchersService] })
+@Module({ imports: [AccountingModule], controllers: [CashVouchersController], providers: [CashVouchersService], exports: [CashVouchersService] })
 export class CashVouchersModule {}

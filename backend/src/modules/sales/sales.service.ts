@@ -20,6 +20,9 @@ import { SalesOrderPageQuery, orderWhere, pageOf } from './sales-order-page.js';
 import { lockOrderFor, orderVisibleTo } from './order-access.js';
 import { assertOpenPeriod, documentDay } from '../../common/period-lock.js';
 import { activeWhere, forCustomer, giftsFor, lineDiscountFor, orderDiscountFor, toRule } from '../pricing/promotion.rules.js';
+import { sliceCalc } from './invoice.rules.js';
+import { LedgerService } from '../accounting/ledger.service.js';
+import { ProductionAccountingService } from '../accounting/production-accounting.js';
 
 type Tx = Prisma.TransactionClient;
 
@@ -191,6 +194,8 @@ export class SalesService {
     private readonly inventory: InventoryService,
     private readonly audit: AuditService,
     private readonly receivables: ReceivablesService,
+    private readonly ledger: LedgerService,
+    private readonly productionAccounting: ProductionAccountingService,
   ) {}
 
   /** An order with names instead of ids, lines as "SP0000003 × 2 m² (120×80) @ 150.000 ₫ · CK 5.000 ₫ · VAT 8%". */
@@ -525,6 +530,52 @@ export class SalesService {
         },
       });
       const { receipts } = await this.syncPayNow(tx, o, delta, input.date, user, { deliveryId: delivery.id });
+
+      // Kế toán: ghi doanh thu + VAT + giá vốn cho đợt giao (nếu sổ cái đã bật)
+      if (await this.ledger.isLedgerActive(tx, input.date)) {
+        const invLines = o.lines.map((l, i) => ({ ...nums[i], id: l.id, unit: l.unit }));
+        const slices = o.lines
+          .map((l, i) => ({ index: i, before: l.receivedQuantity.toNumber(), quantity: round4(nums[i].receivedQuantity - l.receivedQuantity.toNumber()) }))
+          .filter((s) => s.quantity > 0);
+        const calc = sliceCalc({ lines: invLines, discountAmount: o.discountAmount.toNumber() }, slices);
+        const taxable = calc.reduce((s, c) => s + c.taxable, 0);
+        const vat = calc.reduce((s, c) => s + c.vat, 0);
+        if (taxable + vat > 0) {
+          await this.ledger.postEntry(tx, {
+            date: input.date, source: 'SALES_DELIVERY', refType: 'SalesOrderDelivery', refId: delivery.id, createdById: user.id,
+            description: `Doanh thu đơn ${o.code}`,
+            lines: [
+              { accountCode: '131', debit: taxable + vat, partnerType: 'KHACH_HANG', customerId: o.customerId },
+              { accountCode: '511', credit: taxable },
+              { accountCode: '3331', credit: vat },
+            ],
+          });
+        }
+        if (voucherIds.length) {
+          const costLines = await tx.warehouseVoucherLine.findMany({
+            where: { voucherId: { in: voucherIds } },
+            select: { quantity: true, unitCost: true, product: { select: { type: true } } },
+          });
+          let c155 = 0, c156 = 0;
+          for (const cl of costLines) {
+            const amt = cl.quantity.toNumber() * (cl.unitCost?.toNumber() ?? 0);
+            if (cl.product.type === 'THANH_PHAM') c155 += amt; else c156 += amt;
+          }
+          const r155 = Math.round(c155), r156 = Math.round(c156);
+          if (r155 + r156 > 0) {
+            await this.ledger.postEntry(tx, {
+              date: input.date, source: 'SALES_DELIVERY', refType: 'SalesOrderDelivery', refId: delivery.id, createdById: user.id,
+              description: `Giá vốn đơn ${o.code}`,
+              lines: [
+                { accountCode: '632', debit: r155 + r156 },
+                { accountCode: '155', credit: r155 },
+                { accountCode: '156', credit: r156 },
+              ],
+            });
+          }
+        }
+      }
+
       await this.audit.log(tx, {
         action: 'sales_order.deliver', entityType: 'SalesOrder', entityId: id, entityCode: o.code,
         summary: `Giao hàng đơn ${o.code}: khách nhận ${vnd(delta)} · ${STATUS_LABEL[status]}`
@@ -565,6 +616,7 @@ export class SalesService {
         action: 'cash_voucher.create', entityType: 'CashVoucher', entityId: v.id, entityCode: v.code,
         summary: `Tự lập phiếu thu ${v.code}: ${vnd(delta)} · ${description} · ${account?.name ?? ''}`, related: [o.code],
       });
+      await this.ledger.postCashVoucher(tx, v.id, user.id); // bút toán thu tiền ngay
       return { ...out, receipts: [cashToApi(v)] };
     }
     const removed = link.removedDeliveryIds ?? [];
@@ -586,6 +638,7 @@ export class SalesService {
         action: 'cash_voucher.cancel', entityType: 'CashVoucher', entityId: v.id, entityCode: v.code,
         summary: `Tự huỷ phiếu thu ${v.code} (${vnd(amount)}): khách bỏ nhận hàng đơn ${o.code}${overdrawn}`, related: [o.code],
       });
+      await this.ledger.cancelCashVoucher(tx, v.id, user.id); // đảo bút toán thu tiền ngay
       out.cancelled.push(v.id);
       left -= amount;
     }
@@ -652,6 +705,7 @@ export class SalesService {
         }, user));
       }
       await tx.productionOrder.update({ where: { id: x.id }, data: { status: 'DANG_SAN_XUAT', startDate: fromDay(today) } });
+      await this.productionAccounting.onStart(tx, { id: x.id, code: x.code, productId: x.productId }, today, user.id); // Nợ 154 / Có 156, 155
       await this.refreshStatus(tx, x.sourceOrderId);
       const codes = await this.inventory.codes(tx, voucherIds);
       await this.logLsx(tx, x, 'production_order.start',
@@ -679,12 +733,15 @@ export class SalesService {
           select: { delta: true, unitCost: true, product: { select: { avgCost: true } } },
         });
         const material = used.reduce((s, l) => s + l.delta.toNumber() * (l.unitCost ?? l.product.avgCost).toNumber(), 0);
+        // Nhân công / sản xuất chung nhập thêm (kế toán) cũng nằm trong giá thành: không có thì số này là 0 và giá thành như cũ.
+        const extra = await this.productionAccounting.extraCost(tx, x.id);
         voucherId = await this.inventory.post(tx, {
           type: 'NHAP', date: today, warehouseId: target, productionOrderId: x.id, reason: `Nhập thành phẩm từ xưởng: ${x.code}`,
-          lines: [{ productId: x.productId, quantity: qty, unitCost: used.length ? material / qty : undefined }],
+          lines: [{ productId: x.productId, quantity: qty, unitCost: used.length || extra > 0 ? (material + extra) / qty : undefined }],
         }, user);
       }
       await tx.productionOrder.update({ where: { id: x.id }, data: { status: 'HOAN_TAT', completeDate: fromDay(today), producedQuantity: qty } });
+      await this.productionAccounting.onComplete(tx, { id: x.id, code: x.code, productId: x.productId }, qty, today, user.id); // Nợ 155 / Có 154
       await this.refreshStatus(tx, x.sourceOrderId);
       const codes = await this.inventory.codes(tx, voucherId ? [voucherId] : []);
       const ordered = x.quantity.toNumber();
@@ -696,11 +753,12 @@ export class SalesService {
   }
 
   /** Huỷ lệnh (Nháp hoặc Đang sản xuất). Vật tư đã xuất không tự nhập lại — lập phiếu nhập nếu còn dùng được. */
-  cancelProduction(lsxId: string, reason: string | undefined) {
+  cancelProduction(lsxId: string, reason: string | undefined, user: AuthUser) {
     return this.prisma.$transaction(async (tx) => {
       const x = await this.lockedLsx(tx, lsxId);
       if (x.status !== 'NHAP' && x.status !== 'DANG_SAN_XUAT') throw new BadRequestException('Lệnh này đã xong hoặc đã huỷ.');
       await tx.productionOrder.update({ where: { id: x.id }, data: { status: 'HUY', cancelReason: reason ?? null } });
+      await this.productionAccounting.onCancel(tx, { id: x.id, code: x.code, productId: x.productId }, vnDay(), user.id); // Nợ 632 / Có 154
       await this.refreshStatus(tx, x.sourceOrderId);
       await this.logLsx(tx, x, 'production_order.cancel',
         `Huỷ lệnh sản xuất ${x.code}${x.status === 'DANG_SAN_XUAT' ? ' đang chạy (vật tư đã xuất không tự nhập lại)' : ''}${reason ? `: ${reason}` : ''}`,
