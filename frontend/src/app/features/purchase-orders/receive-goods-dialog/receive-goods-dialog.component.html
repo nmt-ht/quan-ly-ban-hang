@@ -22,6 +22,21 @@
         <button type="button" class="btn" (click)="clearAll()">Xoá số nhận</button>
       </div>
     </div>
+    <!-- Hoá đơn GTGT của NCC: có thể để trống và bổ sung sau ở thẻ "Hoá đơn NCC" của đơn. -->
+    <div class="rg-meta rg-invoice">
+      <label class="field">
+        <span>Ký hiệu hoá đơn NCC</span>
+        <input type="text" maxlength="20" placeholder="VD: C26TAA" [ngModel]="invoiceSeries()" (ngModelChange)="invoiceSeries.set($event)" />
+      </label>
+      <label class="field">
+        <span>Số hoá đơn NCC</span>
+        <input type="text" maxlength="30" placeholder="VD: 0000123" [ngModel]="invoiceNo()" (ngModelChange)="invoiceNo.set($event)" />
+      </label>
+      <label class="field">
+        <span>Ngày hoá đơn</span>
+        <input type="date" [ngModel]="invoiceDate()" (ngModelChange)="invoiceDate.set($event)" />
+      </label>
+    </div>
 
     <div class="rg-scroll">
       <table appFrozenCols="1" class="rg-table">

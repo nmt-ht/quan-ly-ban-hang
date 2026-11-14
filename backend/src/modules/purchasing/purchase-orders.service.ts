@@ -7,12 +7,13 @@ import { LedgerService } from '../accounting/ledger.service.js';
 import { fromDay, toDay, vnDay } from '../../common/text.js';
 import { AuditService } from '../../audit/audit.service.js';
 import { PURCHASE_RETURN_INCLUDE, purchaseReturnToApi } from './purchase-returns.js';
+import { cleanSupplierInvoice } from './supplier-invoice.dto.js';
 import { documentDay } from '../../common/period-lock.js';
 import { OPEN_STATUSES, PurchaseOrderPageQuery, purchasePageOf, purchaseWhere } from './purchase-order-page.js';
 import { diff, vnd } from '../../audit/audit.diff.js';
 import {
   LineNumbers, STATUS_LABEL, canCancel, canComplete, canEdit, canReceive, canSend, receivedValueOf, round4, statusAfterReceipt,
-  totalValueOf,
+  taxBreakdownOf, totalValueOf,
 } from './purchase-order.rules.js';
 
 type Tx = Prisma.TransactionClient;
@@ -39,6 +40,10 @@ export interface OrderInput {
 export interface ReceiptInput {
   date: string;
   note?: string;
+  /** Hoá đơn GTGT của NCC cho lần nhận này (có thể bổ sung sau). */
+  invoiceSeries?: string;
+  invoiceNo?: string;
+  invoiceDate?: string;
   items: { lineIndex: number; quantity: number; warehouseId: string }[];
 }
 
@@ -46,6 +51,7 @@ const INCLUDE = {
   lines: { orderBy: { sortOrder: 'asc' } },
   createdBy: { select: { email: true } },
   returns: { include: PURCHASE_RETURN_INCLUDE, orderBy: { createdAt: 'asc' } },
+  receipts: { orderBy: [{ date: 'asc' }, { createdAt: 'asc' }] },
 } as const satisfies Prisma.PurchaseOrderInclude;
 
 type Row = Prisma.PurchaseOrderGetPayload<{ include: typeof INCLUDE }>;
@@ -55,10 +61,15 @@ const numbers = (l: Row['lines'][number]): LineNumbers => ({
 });
 
 /** The frontend's PurchaseOrder: day-only dates, creator e-mail, totals derived from the lines. */
-export function orderToApi({ lines, createdBy, createdById: _c, date, sentDate, receivedDate, returns, ...o }: Row) {
+export function orderToApi({ lines, createdBy, createdById: _c, date, sentDate, receivedDate, returns, receipts, ...o }: Row) {
   const nums = lines.map(numbers);
   return {
     ...o,
+    // Từng lần nhận hàng và hoá đơn GTGT của NCC kèm theo (bổ sung được sau khi hoá đơn về).
+    receipts: receipts.map((r) => ({
+      id: r.id, date: toDay(r.date)!, amount: r.amount.toNumber() as number | null,
+      invoiceSeries: r.invoiceSeries, invoiceNo: r.invoiceNo, invoiceDate: toDay(r.invoiceDate),
+    })),
     date: toDay(date)!,
     sentDate: toDay(sentDate),
     receivedDate: toDay(receivedDate),
@@ -76,6 +87,7 @@ export function orderToApi({ lines, createdBy, createdById: _c, date, sentDate, 
 export function withoutPrices(o: ReturnType<typeof orderToApi>) {
   return {
     ...o, totalValue: null, receivedValue: null, returnedValue: null, lines: o.lines.map((l) => ({ ...l, unitPrice: null })),
+    receipts: o.receipts.map((r) => ({ ...r, amount: null })),
     returns: o.returns.map((r) => ({ ...r, amount: null, lines: r.lines.map((l) => ({ ...l, amount: null })) })),
   };
 }
@@ -227,6 +239,7 @@ export class PurchaseOrdersService {
     return this.prisma.$transaction(async (tx) => {
       const o = await this.locked(tx, id);
       if (!canReceive(o.status)) throw new BadRequestException('Đơn này không ở trạng thái nhận hàng được.');
+      const invoice = cleanSupplierInvoice(input);
       // Ngày nhận: not after hôm nay, not before the đơn was đặt, not in the closed kỳ.
       const day = await documentDay(tx, input.date, 'Nhận hàng', [[`ngày đặt đơn ${o.code}`, toDay(o.date)]]);
       const products = new Map(
@@ -279,20 +292,28 @@ export class PurchaseOrdersService {
       const before = receivedValueOf(o.lines.map(numbers));
       // One khoản công nợ phải trả per lần nhận hàng.
       if (saved.receivedValue! - before > 0) {
-        const receipt = await tx.purchaseOrderReceipt.create({ data: { orderId: id, date: fromDay(day)!, amount: saved.receivedValue! - before } });
+        const amount = saved.receivedValue! - before;
+        let g156 = 0, g155 = 0, g642 = 0;
+        const taxed: { goods: number; rate: number }[] = [];
+        for (const [i, l] of o.lines.entries()) {
+          const delta = round4(received[i] - l.receivedQuantity.toNumber());
+          if (delta <= 0) continue;
+          const goods = Math.round(delta * l.unitPrice.toNumber());
+          const type = products.get(l.productId);
+          if (type === 'THANH_PHAM') g155 += goods;
+          else if (type === 'DICH_VU') g642 += goods;
+          else g156 += goods;
+          taxed.push({ goods, rate: l.vatRate.toNumber() });
+        }
+        const receipt = await tx.purchaseOrderReceipt.create({
+          data: {
+            orderId: id, date: fromDay(day)!, amount,
+            invoiceSeries: invoice.series, invoiceNo: invoice.no, invoiceDate: fromDay(invoice.date),
+            taxBreakdown: taxBreakdownOf(taxed, amount),
+          },
+        });
         // Kế toán: Nợ 156/155/642 (giá trị hàng/dịch vụ chưa thuế) + Nợ 133 (VAT đầu vào) / Có 331 (phải trả NCC).
         if (await this.ledger.isLedgerActive(tx, day)) {
-          const amount = saved.receivedValue! - before;
-          let g156 = 0, g155 = 0, g642 = 0;
-          for (const [i, l] of o.lines.entries()) {
-            const delta = round4(received[i] - l.receivedQuantity.toNumber());
-            if (delta <= 0) continue;
-            const goods = Math.round(delta * l.unitPrice.toNumber());
-            const type = products.get(l.productId);
-            if (type === 'THANH_PHAM') g155 += goods;
-            else if (type === 'DICH_VU') g642 += goods;
-            else g156 += goods;
-          }
           const vat = amount - (g156 + g155 + g642); // phần còn lại = thuế GTGT (gộp chênh lệch làm tròn)
           const lines = [];
           if (g156) lines.push({ accountCode: '156', debit: g156 });
@@ -311,7 +332,23 @@ export class PurchaseOrdersService {
         summary: `Nhận hàng đơn ${o.code}: ${vnd(saved.receivedValue - before)}, công nợ phải trả tăng · ${STATUS_LABEL[status]}${input.note ? ` · ${input.note}` : ''}`,
         related: await this.inventory.codes(tx, voucherIds),
       });
-      return saved;
+      // Đọc lại sau khi đã ghi lần nhận: đơn trả về phải có lần nhận mới (và hoá đơn NCC của nó).
+      return this.findOne(id, tx);
+    });
+  }
+
+  /** Bổ sung / sửa hoá đơn GTGT của NCC cho một lần nhận (hoá đơn thường về sau hàng). Không đổi số tiền nên không chạm sổ cái. */
+  setReceiptInvoice(orderId: string, receiptId: string, input: { invoiceSeries?: string; invoiceNo?: string; invoiceDate?: string }) {
+    return this.prisma.$transaction(async (tx) => {
+      const r = await tx.purchaseOrderReceipt.findUnique({ where: { id: receiptId }, include: { order: { select: { id: true, code: true } } } });
+      if (!r || r.orderId !== orderId) throw new NotFoundException('Không tìm thấy lần nhận hàng của đơn này.');
+      const { series, no, date } = cleanSupplierInvoice(input);
+      await tx.purchaseOrderReceipt.update({ where: { id: receiptId }, data: { invoiceSeries: series, invoiceNo: no, invoiceDate: fromDay(date) } });
+      await this.audit.log(tx, {
+        action: 'purchase_order.receipt_invoice', entityType: 'PurchaseOrder', entityId: orderId, entityCode: r.order.code,
+        summary: `Hoá đơn NCC cho lần nhận ${toDay(r.date)} của đơn ${r.order.code}: ${no ? `${series ?? ''} ${no}`.trim() : 'bỏ trống'}`,
+      });
+      return this.findOne(orderId, tx);
     });
   }
 

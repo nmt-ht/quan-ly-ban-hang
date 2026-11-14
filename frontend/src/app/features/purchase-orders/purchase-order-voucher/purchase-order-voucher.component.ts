@@ -7,7 +7,7 @@ import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DataStore } from '../../../core/services/data-store.service';
-import { Product, PurchaseOrder, PurchaseOrderLine, PurchaseReturn } from '../../../core/models/domain.models';
+import { Product, PurchaseOrder, PurchaseOrderLine, PurchaseReceipt, PurchaseReturn } from '../../../core/models/domain.models';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { CopyButtonComponent } from '../../../shared/copy-button/copy-button.component';
 import { MoneyInputDirective } from '../../../shared/money-input.directive';
@@ -122,7 +122,7 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
   readonly note = signal('');
   readonly lines = signal<DraftLine[]>([emptyLine()]);
   readonly attempted = signal(false);
-  readonly tab = signal<'hang' | 'phieu' | 'tra-hang' | 'nhat-ky'>('hang');
+  readonly tab = signal<'hang' | 'phieu' | 'hoa-don' | 'tra-hang' | 'nhat-ky'>('hang');
   readonly notice = signal('');
 
   // ---------- gửi email: đơn mua hàng cho nhà cung cấp + PDF ----------
@@ -461,8 +461,43 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
     this.tab.set('phieu');
   }
 
+  // ---------- hoá đơn GTGT của NCC cho từng lần nhận ----------
+  readonly supplierInvoices = computed(() => this.order()?.receipts ?? []);
+  readonly missingInvoices = computed(() => this.supplierInvoices().filter((r) => !r.invoiceNo).length);
+  readonly canEditInvoice = computed(() => this.auth.can('purchase.receive') || this.auth.can('accounting.manual'));
+  /** Lần nhận đang sửa hoá đơn, và các ô đang nhập. */
+  readonly editingInvoice = signal<string | null>(null);
+  readonly invSeries = signal('');
+  readonly invNo = signal('');
+  readonly invDate = signal('');
+  readonly invError = signal('');
+
+  editInvoice(r: PurchaseReceipt): void {
+    this.invSeries.set(r.invoiceSeries ?? '');
+    this.invNo.set(r.invoiceNo ?? '');
+    this.invDate.set(r.invoiceDate ?? '');
+    this.invError.set('');
+    this.editingInvoice.set(r.id);
+  }
+
+  async saveInvoice(): Promise<void> {
+    const id = this.editingInvoice();
+    if (!id) return;
+    if ((this.invSeries().trim() || this.invDate()) && !this.invNo().trim()) {
+      this.invError.set('Nhập số hoá đơn (hoặc xoá ký hiệu và ngày hoá đơn).');
+      return;
+    }
+    const o = await this.attempt(() => this.orders.setReceiptInvoice(this.id()!, id, {
+      invoiceSeries: this.invSeries().trim() || undefined, invoiceNo: this.invNo().trim() || undefined, invoiceDate: this.invDate() || undefined,
+    }));
+    if (o) {
+      this.editingInvoice.set(null);
+      this.notice.set('Đã lưu hoá đơn nhà cung cấp.');
+    }
+  }
+
   // ---------- trả lại hàng mua (as MISA) ----------
-  readonly returns = computed(() => this.order()?.returns ?? []);
+  readonly returns =computed(() => this.order()?.returns ?? []);
   readonly activeReturns = computed(() => this.returns().filter((r) => !r.isCancelled).length);
   /** Hàng đã nhận của một đơn chưa huỷ có thể trả lại nhà cung cấp. */
   readonly canReturn = computed(() => {

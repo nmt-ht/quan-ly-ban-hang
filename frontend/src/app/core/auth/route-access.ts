@@ -27,6 +27,7 @@ const RULES: [RegExp, string[]][] = [
   [/^\/mua-hang\/[^/]+\/sua$/, ['purchase.update']],
   [/^\/mua-hang(\/|$)/, ['purchase.view']],
   [/^\/cong-no(\/|$)/, ['debt.view']],
+  [/^\/hoa-don-mua(\/|$)/, ['purchase.view']],
 
   [/^\/khach-hang\/them(-moi)?$/, ['customer.create']],
   [/^\/khach-hang\/[^/]+\/sua$/, ['customer.update']],

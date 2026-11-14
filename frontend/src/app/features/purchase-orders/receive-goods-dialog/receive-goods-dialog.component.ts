@@ -47,6 +47,9 @@ export class ReceiveGoodsDialogComponent {
   readonly error = signal('');
   readonly busy = signal(false);
   readonly note = signal('');
+  readonly invoiceSeries = signal('');
+  readonly invoiceNo = signal('');
+  readonly invoiceDate = signal('');
   readonly attempted = signal(false);
   readonly money = formatVnd;
   /** Thủ kho receives by quantity: no giá nhập (the server sends none). */
@@ -82,6 +85,9 @@ export class ReceiveGoodsDialogComponent {
     );
     this.date.set(isoDay(new Date()));
     this.note.set('');
+    this.invoiceSeries.set('');
+    this.invoiceNo.set('');
+    this.invoiceDate.set('');
     this.attempted.set(false);
     this.dialog().nativeElement.showModal();
   }
@@ -117,6 +123,8 @@ export class ReceiveGoodsDialogComponent {
   readonly issues = computed(() => {
     const out: string[] = [];
     if (!this.date()) out.push('Chọn ngày nhận');
+    if (this.invoiceDate() && this.invoiceDate() > isoDay(new Date())) out.push('Ngày hoá đơn không được sau hôm nay');
+    if ((this.invoiceSeries().trim() || this.invoiceDate()) && !this.invoiceNo().trim()) out.push('Nhập số hoá đơn NCC (hoặc xoá ký hiệu và ngày hoá đơn)');
     this.rows().forEach((r) => {
       const e = this.rowError(r);
       if (e) out.push(`${r.productCode}: ${e}`);
@@ -137,6 +145,11 @@ export class ReceiveGoodsDialogComponent {
         this.receiving().map((r) => ({ lineIndex: r.lineIndex, quantity: r.quantity ?? 0, warehouseId: r.warehouseId })),
         this.date(),
         this.note().trim(),
+        {
+          invoiceSeries: this.invoiceSeries().trim() || undefined,
+          invoiceNo: this.invoiceNo().trim() || undefined,
+          invoiceDate: this.invoiceDate() || undefined,
+        },
       );
     } catch (e) {
       this.error.set(errorText(e));

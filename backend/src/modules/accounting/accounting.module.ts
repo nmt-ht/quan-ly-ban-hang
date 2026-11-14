@@ -19,6 +19,8 @@ import { FixedAssetsController, FixedAssetsService } from './fixed-assets.js';
 import { PrepaidItemsController, PrepaidItemsService } from './prepaid-items.js';
 import { ProductionAccountingService, ProductionCostsController, ProductionCostsService } from './production-accounting.js';
 import { EmployeesController, PayrollController, PayrollService } from './payroll.js';
+import { BooksController, BooksService } from './books.js';
+import { VatController, VatService } from './vat.js';
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const num = (d: Prisma.Decimal | null | undefined) => (d ? d.toNumber() : 0);
@@ -399,8 +401,8 @@ export class AccountingController {
 }
 
 @Module({
-  controllers: [AccountingController, FixedAssetsController, PrepaidItemsController, ProductionCostsController, EmployeesController, PayrollController],
-  providers: [AccountingService, LedgerService, FixedAssetsService, PrepaidItemsService, ProductionAccountingService, ProductionCostsService, PayrollService],
+  controllers: [AccountingController, FixedAssetsController, PrepaidItemsController, ProductionCostsController, EmployeesController, PayrollController, BooksController, VatController],
+  providers: [AccountingService, LedgerService, FixedAssetsService, PrepaidItemsService, ProductionAccountingService, ProductionCostsService, PayrollService, BooksService, VatService],
   exports: [LedgerService, ProductionAccountingService],
 })
 export class AccountingModule {}

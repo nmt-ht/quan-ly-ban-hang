@@ -55,6 +55,7 @@ model User {
   debtReminders     DebtReminder[]     @relation("DebtReminderCreatedBy")
   einvoices         EInvoice[]         @relation("EInvoiceCreatedBy")
   journalEntries    JournalEntry[]     @relation("JournalCreatedBy")
+  purchaseBills     PurchaseBill[]     @relation("PurchaseBillCreatedBy")
   fixedAssets       FixedAsset[]       @relation("FixedAssetCreatedBy")
   prepaidItems      PrepaidItem[]      @relation("PrepaidItemCreatedBy")
   productionCosts   ProductionCost[]   @relation("ProductionCostCreatedBy")
@@ -98,21 +99,21 @@ model RolePermission {
 }
 
 model CompanyInfo {
-  id        Int       @id @default(1)
-  name      String
-  address   String?
-  taxCode   String?
-  phone     String?
-  email     String?
-  website   String?
-  logo      String? // URL of the uploaded logo
+  id                 Int       @id @default(1)
+  name               String
+  address            String?
+  taxCode            String?
+  phone              String?
+  email              String?
+  website            String?
+  logo               String? // URL of the uploaded logo
   // Thiết lập › Màu hiển thị: only the changed colours, `${group}:${key}` → hue 0–359 or "neutral".
-  tagColors Json      @default("{}")
+  tagColors          Json      @default("{}")
   // Khoá sổ: chứng từ dated on or before it cannot be lập, sửa or huỷ (common/period-lock.ts).
-  lockDate  DateTime? @db.Date
+  lockDate           DateTime? @db.Date
   // Cho xuất quá số tồn (as MISA's tuỳ chọn): false = a phiếu xuất leaving a kho below 0 is refused, except for
   // stock.overdraw. True by default, as before.
-  allowNegativeStock Boolean @default(true)
+  allowNegativeStock Boolean   @default(true)
   // Kế toán kép: ngày bắt đầu ghi sổ. Chứng từ từ ngày này trở đi mới sinh bút toán tự động
   // (không hồi tố dữ liệu cũ; số dư trước đó khai ở OpeningBalance). Null = chưa bật sổ cái.
   ledgerStartDate    DateTime? @db.Date
@@ -402,19 +403,19 @@ model Employee {
 
 // Tham số tính lương — một dòng duy nhất, sửa ở Thiết lập lương (quy định đổi theo thời gian).
 model PayrollSettings {
-  id                  Int     @id @default(1)
-  bhxhEmployee        Decimal @default(8) // % người lao động
-  bhytEmployee        Decimal @default(1.5)
-  bhtnEmployee        Decimal @default(1)
-  bhxhEmployer        Decimal @default(17.5) // % doanh nghiệp (gồm 0,5% TNLĐ-BNN)
-  bhytEmployer        Decimal @default(3)
-  bhtnEmployer        Decimal @default(1)
-  kpcd                Decimal @default(2) // kinh phí công đoàn, doanh nghiệp đóng
-  socialCap           Decimal @default(50600000) // trần lương đóng BHXH, BHYT (20 × lương cơ sở)
-  unemploymentCap     Decimal @default(106200000) // trần lương đóng BHTN (20 × lương tối thiểu vùng)
-  personalDeduction   Decimal @default(15500000) // giảm trừ bản thân / tháng
-  dependentDeduction  Decimal @default(6200000) // giảm trừ mỗi người phụ thuộc / tháng
-  brackets            Json // [{ upTo: số | null, rate: % }] biểu thuế luỹ tiến theo thu nhập tính thuế tháng
+  id                 Int     @id @default(1)
+  bhxhEmployee       Decimal @default(8) // % người lao động
+  bhytEmployee       Decimal @default(1.5)
+  bhtnEmployee       Decimal @default(1)
+  bhxhEmployer       Decimal @default(17.5) // % doanh nghiệp (gồm 0,5% TNLĐ-BNN)
+  bhytEmployer       Decimal @default(3)
+  bhtnEmployer       Decimal @default(1)
+  kpcd               Decimal @default(2) // kinh phí công đoàn, doanh nghiệp đóng
+  socialCap          Decimal @default(50600000) // trần lương đóng BHXH, BHYT (20 × lương cơ sở)
+  unemploymentCap    Decimal @default(106200000) // trần lương đóng BHTN (20 × lương tối thiểu vùng)
+  personalDeduction  Decimal @default(15500000) // giảm trừ bản thân / tháng
+  dependentDeduction Decimal @default(6200000) // giảm trừ mỗi người phụ thuộc / tháng
+  brackets           Json // [{ upTo: số | null, rate: % }] biểu thuế luỹ tiến theo thu nhập tính thuế tháng
 }
 
 // Một bảng lương của một tháng (period = 'YYYY-MM', mỗi tháng một bảng).
@@ -460,17 +461,17 @@ enum ProductionCostKind {
 // Chi phí nhân công / sản xuất chung nhập thêm cho một lệnh sản xuất (vật tư lấy từ phiếu xuất kho).
 // Cộng vào TK 154 và vào giá thành đơn vị của thành phẩm khi nghiệm thu.
 model ProductionCost {
-  id             String             @id @default(uuid())
-  orderId        String
-  order          ProductionOrder    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  kind           ProductionCostKind
-  amount         Decimal
-  date           DateTime           @db.Date
-  description    String?
-  creditAccount  String // TK đối ứng bên Có: 334, 111, 112, 331, 214, 242
-  createdById    String
-  createdBy      User               @relation("ProductionCostCreatedBy", fields: [createdById], references: [id])
-  createdAt      DateTime           @default(now())
+  id            String             @id @default(uuid())
+  orderId       String
+  order         ProductionOrder    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  kind          ProductionCostKind
+  amount        Decimal
+  date          DateTime           @db.Date
+  description   String?
+  creditAccount String // TK đối ứng bên Có: 334, 111, 112, 331, 214, 242
+  createdById   String
+  createdBy     User               @relation("ProductionCostCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime           @default(now())
 
   @@index([orderId])
 }
@@ -493,6 +494,7 @@ model Supplier {
 
   products       SupplierProduct[]
   purchaseOrders PurchaseOrder[]
+  purchaseBills  PurchaseBill[]
   cashVouchers   CashVoucher[]
 }
 
@@ -563,14 +565,60 @@ model PurchaseOrderLine {
  * (as MISA: mỗi chứng từ mua hàng một hạn thanh toán).
  */
 model PurchaseOrderReceipt {
-  id        String        @id @default(uuid())
-  orderId   String
-  order     PurchaseOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  date      DateTime      @db.Date
-  amount    Decimal
-  createdAt DateTime      @default(now())
+  id            String        @id @default(uuid())
+  orderId       String
+  order         PurchaseOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  date          DateTime      @db.Date
+  amount        Decimal
+  createdAt     DateTime      @default(now())
+  // Hoá đơn GTGT của NCC cho lần nhận này (nhập lúc nhận hoặc bổ sung sau khi hoá đơn về) — để lên bảng kê mua vào.
+  invoiceSeries String?
+  invoiceNo     String?
+  invoiceDate   DateTime?     @db.Date
+  // Giá trị chưa thuế và thuế GTGT của lần nhận theo từng thuế suất: [{ rate, taxable, vat }]. Null ở lần nhận cũ.
+  taxBreakdown  Json?
 
   @@index([orderId])
+}
+
+/**
+ * Hoá đơn mua hàng / dịch vụ KHÔNG qua kho (HM…): điện, nước, vận chuyển, thuê ngoài… Ghi Nợ chi phí (+ Nợ 133) / Có 331;
+ * là một khoản công nợ phải trả như lần nhận hàng, trả bằng phiếu chi cho NCC. Huỷ: đảo bút toán.
+ */
+model PurchaseBill {
+  id            String             @id @default(uuid())
+  code          String             @unique
+  supplierId    String
+  supplier      Supplier           @relation(fields: [supplierId], references: [id])
+  date          DateTime           @db.Date
+  description   String?
+  invoiceSeries String?
+  invoiceNo     String?
+  invoiceDate   DateTime?          @db.Date
+  taxable       Decimal // tổng chưa thuế
+  vat           Decimal // tổng thuế GTGT
+  total         Decimal // tổng thanh toán = công nợ phải trả
+  isCancelled   Boolean            @default(false)
+  cancelReason  String?
+  cancelledAt   DateTime?
+  createdById   String
+  createdBy     User               @relation("PurchaseBillCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime           @default(now())
+  lines         PurchaseBillLine[]
+
+  @@index([supplierId])
+  @@index([date])
+}
+
+model PurchaseBillLine {
+  id          String       @id @default(uuid())
+  billId      String
+  bill        PurchaseBill @relation(fields: [billId], references: [id], onDelete: Cascade)
+  accountCode String // TK chi phí (642, 641, 811, 635) hoặc 242
+  description String
+  amount      Decimal // chưa thuế
+  vatRate     Decimal      @default(0)
+  sortOrder   Int          @default(0)
 }
 
 /**
@@ -744,8 +792,8 @@ model SalesOrderDelivery {
   tripId    String?
   createdAt DateTime   @default(now())
 
-  lines    SalesOrderDeliveryLine[]
-  receipts CashVoucher[]
+  lines     SalesOrderDeliveryLine[]
+  receipts  CashVoucher[]
   einvoices EInvoice[]
 
   @@index([orderId])
@@ -802,9 +850,9 @@ model SalesOrderLine {
   promotionId      String? // khuyến mãi đã áp vào dòng (Pha 1.6) — chỉ để ghi nhận
   isGift           Boolean    @default(false) // hàng tặng: chiết khấu 100%
 
-  tripLoads   DeliveryTripLoad[]
+  tripLoads     DeliveryTripLoad[]
   deliveryLines SalesOrderDeliveryLine[]
-  returnLines SalesReturnLine[]
+  returnLines   SalesReturnLine[]
 }
 
 // ---------- Delivery ----------
@@ -951,40 +999,40 @@ enum PartnerType {
 
 // Loại thu chi — decides whether a voucher is tied to a customer, a supplier or nobody.
 model CashCategory {
-  code              String      @id
-  name              String
-  kind              VoucherKind
-  partnerType       PartnerType
-  isDefault         Boolean     @default(false)
-  isActive          Boolean     @default(true)
-  isSystem          Boolean     @default(false) // built-in: partner type cannot change
-  sortOrder         Int         @default(0)
+  code               String      @id
+  name               String
+  kind               VoucherKind
+  partnerType        PartnerType
+  isDefault          Boolean     @default(false)
+  isActive           Boolean     @default(true)
+  isSystem           Boolean     @default(false) // built-in: partner type cannot change
+  sortOrder          Int         @default(0)
   // Kế toán: TK đối ứng mặc định khi sinh bút toán cho phiếu thuộc loại này (sửa được ở Thiết lập).
   defaultAccountCode String?
 }
 
 model CashVoucher {
-  id            String      @id @default(uuid())
-  code          String      @unique
-  date          DateTime
-  kind          VoucherKind
-  category      String // name of the CashCategory at the time of saving
-  partnerType   PartnerType
-  customerId    String?
-  customer      Customer?   @relation(fields: [customerId], references: [id])
-  supplierId    String?
-  supplier      Supplier?   @relation(fields: [supplierId], references: [id])
-  accountId     String
-  account       CashAccount @relation(fields: [accountId], references: [id])
-  amount        Decimal
-  settledAmount Decimal     @default(0)
-  description   String?
-  isCancelled   Boolean     @default(false)
-  cancelReason  String?
-  cancelledAt   DateTime?
-  createdById   String
-  createdBy     User        @relation("CashVoucherCreatedBy", fields: [createdById], references: [id])
-  createdAt     DateTime    @default(now())
+  id                   String              @id @default(uuid())
+  code                 String              @unique
+  date                 DateTime
+  kind                 VoucherKind
+  category             String // name of the CashCategory at the time of saving
+  partnerType          PartnerType
+  customerId           String?
+  customer             Customer?           @relation(fields: [customerId], references: [id])
+  supplierId           String?
+  supplier             Supplier?           @relation(fields: [supplierId], references: [id])
+  accountId            String
+  account              CashAccount         @relation(fields: [accountId], references: [id])
+  amount               Decimal
+  settledAmount        Decimal             @default(0)
+  description          String?
+  isCancelled          Boolean             @default(false)
+  cancelReason         String?
+  cancelledAt          DateTime?
+  createdById          String
+  createdBy            User                @relation("CashVoucherCreatedBy", fields: [createdById], references: [id])
+  createdAt            DateTime            @default(now())
   // "Thu tiền ngay": the đơn bán this phiếu thu was made for by itself (SalesService.syncPayNow), and the đợt giao it
   // collects — bỏ chốt that đợt cancels exactly these. Both null = lập tay.
   salesOrderId         String?
@@ -1028,6 +1076,8 @@ enum JournalSource {
   SALES_DELIVERY
   CASH_VOUCHER
   PURCHASE_RECEIPT
+  PURCHASE_BILL
+  VAT_OFFSET
   SALES_RETURN
   PURCHASE_RETURN
   PRODUCTION
@@ -1216,7 +1266,7 @@ model SalesReturn {
   createdBy    User              @relation("SalesReturnCreatedBy", fields: [createdById], references: [id])
   createdAt    DateTime          @default(now())
 
-  lines SalesReturnLine[]
+  lines     SalesReturnLine[]
   einvoices EInvoice[]
 
   @@index([orderId])
@@ -1408,7 +1458,9 @@ model DebtReminder {
 
 // ---------- Email gửi đi (Hệ thống › Email gửi đi) ----------
 
-/** How this doanh nghiệp sends email. One row (id 1). The SMTP password is sealed (AES-256-GCM), never sent back. */
+/**
+ * How this doanh nghiệp sends email. One row (id 1). The SMTP password is sealed (AES-256-GCM), never sent back.
+ */
 model MailSettings {
   id             Int       @id @default(1)
   mode           String    @default("OFF") // OFF · SMTP (the company's own mailbox) · SYSTEM (the platform sends for it)
@@ -1425,7 +1477,9 @@ model MailSettings {
   updatedAt      DateTime  @default(now()) @updatedAt
 }
 
-/** Subject and body for one kind of document; {placeholders} are filled when the email is composed. */
+/**
+ * Subject and body for one kind of document; {placeholders} are filled when the email is composed.
+ */
 model MailTemplate {
   kind      String   @id // quotation · sales_order · purchase_order · cash_receipt · debt_reminder · debt_reconcile
   subject   String
@@ -1433,7 +1487,9 @@ model MailTemplate {
   updatedAt DateTime @default(now()) @updatedAt
 }
 
-/** Every email sent (or tried): who, to whom, about which document, and how it went. */
+/**
+ * Every email sent (or tried): who, to whom, about which document, and how it went.
+ */
 model EmailLog {
   id         String   @id @default(uuid())
   at         DateTime @default(now())

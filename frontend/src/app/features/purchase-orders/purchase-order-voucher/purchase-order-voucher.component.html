@@ -131,6 +131,11 @@
         <button type="button" role="tab" [attr.aria-selected]="tab() === 'phieu'" (click)="tab.set('phieu')">
           Phiếu nhập kho @if (receipts().length) { <span class="tab-count num">{{ receipts().length }}</span> }
         </button>
+        @if (supplierInvoices().length) {
+          <button type="button" role="tab" [attr.aria-selected]="tab() === 'hoa-don'" (click)="tab.set('hoa-don')">
+            Hoá đơn NCC @if (missingInvoices()) { <span class="tab-count num" title="Lần nhận chưa có hoá đơn">{{ missingInvoices() }} thiếu</span> }
+          </button>
+        }
         @if (returns().length) {
           <button type="button" role="tab" [attr.aria-selected]="tab() === 'tra-hang'" (click)="tab.set('tra-hang')">
             Trả lại hàng <span class="tab-count num">{{ activeReturns() }}</span>
@@ -319,6 +324,49 @@
           </table>
         </div>
         <p class="grid-hint">Hàng trả xuất khỏi kho theo giá mua; giá trị trả (gồm thuế) giảm công nợ phải trả vào ngày trả. Tiền nhà cung cấp hoàn lại thì lập phiếu thu.</p>
+      </section>
+    } @else if (tab() === 'hoa-don') {
+      <section class="card voucher-grid-card">
+        <div class="voucher-grid-scroll">
+          <table class="voucher-grid">
+            <thead>
+              <tr>
+                <th scope="col">Ngày nhận</th>
+                @if (prices) { <th scope="col" class="c-num">Giá trị (gồm thuế)</th> }
+                <th scope="col">Ký hiệu</th>
+                <th scope="col">Số hoá đơn</th>
+                <th scope="col">Ngày hoá đơn</th>
+                <th scope="col"><span class="visually-hidden">Thao tác</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (r of supplierInvoices(); track r.id) {
+                <tr>
+                  <td class="num">{{ day(r.date) }}</td>
+                  @if (prices) { <td class="c-num num">{{ money(r.amount ?? 0) }}</td> }
+                  @if (editingInvoice() === r.id) {
+                    <td><input type="text" maxlength="20" aria-label="Ký hiệu hoá đơn" [ngModel]="invSeries()" (ngModelChange)="invSeries.set($event)" /></td>
+                    <td><input type="text" maxlength="30" aria-label="Số hoá đơn" [ngModel]="invNo()" (ngModelChange)="invNo.set($event)" /></td>
+                    <td><input type="date" aria-label="Ngày hoá đơn" [ngModel]="invDate()" (ngModelChange)="invDate.set($event)" /></td>
+                    <td class="c-act">
+                      <button type="button" class="btn btn-sm btn-primary" (click)="saveInvoice()">Lưu</button>
+                      <button type="button" class="btn btn-sm" (click)="editingInvoice.set(null)">Bỏ qua</button>
+                      @if (invError()) { <span class="text-danger" role="alert">{{ invError() }}</span> }
+                    </td>
+                  } @else {
+                    <td class="num">{{ r.invoiceSeries || '—' }}</td>
+                    <td class="num">@if (r.invoiceNo) { {{ r.invoiceNo }} } @else { <span class="badge badge-warning">Chưa có hoá đơn</span> }</td>
+                    <td class="num">{{ r.invoiceDate ? day(r.invoiceDate) : '—' }}</td>
+                    <td class="c-act">
+                      @if (canEditInvoice()) { <button type="button" class="btn btn-sm" (click)="editInvoice(r)">{{ r.invoiceNo ? 'Sửa' : 'Nhập hoá đơn' }}</button> }
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <p class="grid-hint">Mỗi lần nhận hàng ứng với một hoá đơn GTGT của nhà cung cấp. Lần nhận chưa có số hoá đơn sẽ không vào bảng kê mua vào để khấu trừ thuế (Kế toán › Thuế GTGT).</p>
       </section>
     } @else if (tab() === 'nhat-ky') {
       @if (order(); as o) {

@@ -30,6 +30,7 @@ export const NAV_GROUPS: NavGroup[] = [
   { label: 'Mua hàng', module: 'purchase', links: [
     { label: 'Nhà cung cấp', path: '/nha-cung-cap', icon: 'supplier' },
     { label: 'Đơn mua hàng', path: '/mua-hang', icon: 'cart' },
+    { label: 'Hoá đơn mua dịch vụ', path: '/hoa-don-mua', icon: 'receipt' },
     { label: 'Công nợ phải trả', path: '/cong-no/nha-cung-cap', icon: 'ledger-out' },
   ]},
   { label: 'Bán hàng', module: 'sell', links: [
@@ -50,6 +51,9 @@ export const NAV_GROUPS: NavGroup[] = [
   { label: 'Kế toán', module: 'cash', links: [
     { label: 'Tổng quan kế toán', path: '/ke-toan', icon: 'receipt' },
     { label: 'Sổ nhật ký chung', path: '/ke-toan/so-nhat-ky', icon: 'table' },
+    { label: 'Sổ chi tiết tài khoản', path: '/ke-toan/so-chi-tiet', icon: 'table' },
+    { label: 'Tổng hợp công nợ', path: '/ke-toan/tong-hop-cong-no', icon: 'ledger-in' },
+    { label: 'Thuế GTGT', path: '/ke-toan/thue-gtgt', icon: 'percent' },
     { label: 'Bảng cân đối phát sinh', path: '/ke-toan/can-doi-phat-sinh', icon: 'report' },
     { label: 'Kết quả kinh doanh', path: '/ke-toan/ket-qua-kinh-doanh', icon: 'trending-up' },
     { label: 'Bảng cân đối kế toán', path: '/ke-toan/can-doi-ke-toan', icon: 'table' },

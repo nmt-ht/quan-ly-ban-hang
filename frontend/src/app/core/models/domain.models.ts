@@ -213,6 +213,25 @@ export interface PurchaseOrder {
   returns?: PurchaseReturn[];
   /** Giá trị đã trả lại (phiếu chưa huỷ) — giảm công nợ phải trả; null = giá nhập bị ẩn. */
   returnedValue?: number | null;
+  /** Từng lần nhận hàng và hoá đơn GTGT của NCC kèm theo. */
+  receipts?: PurchaseReceipt[];
+}
+
+/** Một lần nhận hàng của đơn nhập, cùng hoá đơn GTGT của NCC (nhập lúc nhận hoặc bổ sung sau). */
+export interface PurchaseReceipt {
+  id: string;
+  date: string;
+  amount?: number; // gồm thuế; vắng = giá nhập bị ẩn
+  invoiceSeries?: string; // vắng = chưa có hoá đơn (ApiService bỏ các khoá null)
+  invoiceNo?: string;
+  invoiceDate?: string;
+}
+
+/** Hoá đơn GTGT của NCC ghi trên một lần nhận hàng hoặc một hoá đơn mua dịch vụ. */
+export interface SupplierInvoiceInput {
+  invoiceSeries?: string;
+  invoiceNo?: string;
+  invoiceDate?: string;
 }
 
 /** Trả lại hàng mua (as MISA): hàng đã nhận xuất trả nhà cung cấp theo giá mua, giảm công nợ phải trả. */

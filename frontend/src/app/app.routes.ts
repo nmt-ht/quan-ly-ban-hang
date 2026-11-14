@@ -93,6 +93,10 @@ export const routes: Routes = [
       { path: 'ke-toan/nhan-vien', loadComponent: () => import('./features/accounting/employees.component').then((m) => m.AccountingEmployeesComponent) },
       { path: 'ke-toan/luong', loadComponent: () => import('./features/accounting/payroll.component').then((m) => m.AccountingPayrollComponent) },
       { path: 'ke-toan/cong-cu-dung-cu', loadComponent: () => import('./features/accounting/prepaid-items.component').then((m) => m.AccountingPrepaidItemsComponent) },
+      { path: 'ke-toan/so-chi-tiet', loadComponent: () => import('./features/accounting/account-book.component').then((m) => m.AccountingAccountBookComponent) },
+      { path: 'ke-toan/tong-hop-cong-no', loadComponent: () => import('./features/accounting/partner-summary.component').then((m) => m.AccountingPartnerSummaryComponent) },
+      { path: 'ke-toan/thue-gtgt', loadComponent: () => import('./features/accounting/vat.component').then((m) => m.AccountingVatComponent) },
+      { path: 'hoa-don-mua', loadComponent: () => import('./features/purchase-bills/purchase-bills.component').then((m) => m.PurchaseBillsComponent) },
       { path: 'ke-toan/so-cai/:code', loadComponent: () => import('./features/accounting/ledger.component').then((m) => m.AccountingLedgerComponent) },
 
       { path: 'thiet-lap/email', loadComponent: () => import('./features/settings/email-settings/email-settings.component').then((m) => m.EmailSettingsComponent) },

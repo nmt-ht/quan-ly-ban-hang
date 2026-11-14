@@ -3,9 +3,11 @@ import { Type } from 'class-transformer';
 import { ArrayMinSize, IsArray, IsInt, IsISO8601, IsNumber, IsOptional, IsPositive, Matches, Max, Min, ValidateNested } from 'class-validator';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard.js';
 import { PermissionsGuard } from '../../auth/permissions.guard.js';
-import { CurrentUser, RequirePermissions } from '../../auth/permissions.decorator.js';
+import { CurrentUser, RequireAnyPermission, RequirePermissions } from '../../auth/permissions.decorator.js';
 import type { AuthUser } from '../../auth/auth.service.js';
 import { OptionalText, Text } from '../../common/dto.js';
+import { SupplierInvoiceDto } from './supplier-invoice.dto.js';
+import { PurchaseBillsController, PurchaseBillsService } from './purchase-bills.js';
 import { InventoryModule } from '../inventory/inventory.module.js';
 import { AccountingModule } from '../accounting/accounting.module.js';
 import { PurchaseOrdersService, withoutPrices } from './purchase-orders.service.js';
@@ -43,7 +45,7 @@ export class ReceiptItemDto {
   @Text(60) warehouseId!: string;
 }
 
-export class ReceiptDto {
+export class ReceiptDto extends SupplierInvoiceDto {
   @Matches(DAY, DAY_MESSAGE) date!: string;
   @OptionalText(300) note?: string;
   @IsArray() @ArrayMinSize(1) @ValidateNested({ each: true }) @Type(() => ReceiptItemDto) items!: ReceiptItemDto[];
@@ -114,6 +116,14 @@ export class PurchaseOrdersController {
     return seesPurchasePrices(user) ? o : withoutPrices(o);
   }
 
+  // Hoá đơn về sau hàng và thường do kế toán nhập: Thủ kho (nhận hàng) hoặc người ghi sổ được bổ sung số hoá đơn.
+  @RequireAnyPermission('purchase.receive', 'accounting.manual')
+  @Put(':id/receipts/:receiptId/invoice')
+  async setReceiptInvoice(@Param('id') id: string, @Param('receiptId') receiptId: string, @Body() dto: SupplierInvoiceDto, @CurrentUser() user: AuthUser) {
+    const o = await this.orders.setReceiptInvoice(id, receiptId, dto);
+    return seesPurchasePrices(user) ? o : withoutPrices(o);
+  }
+
   @RequirePermissions('purchase.update')
   @Post(':id/complete')
   @HttpCode(HttpStatus.OK)
@@ -144,8 +154,8 @@ export class PayablesController {
 
 @Module({
   imports: [InventoryModule, AccountingModule],
-  controllers: [PurchaseOrdersController, PurchaseReturnsController, PayablesController],
-  providers: [PurchaseOrdersService, PurchaseReturnsService, PayablesService],
+  controllers: [PurchaseOrdersController, PurchaseReturnsController, PurchaseBillsController, PayablesController],
+  providers: [PurchaseOrdersService, PurchaseReturnsService, PurchaseBillsService, PayablesService],
   exports: [PurchaseOrdersService, PayablesService],
 })
 export class PurchasingModule {}

@@ -16,7 +16,7 @@ export class PayablesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async rows(today = vnDay()): Promise<DebtRow[]> {
-    const [suppliers, orders, vouchers, receipts] = await Promise.all([
+    const [suppliers, orders, vouchers, receipts, bills] = await Promise.all([
       this.prisma.supplier.findMany({ orderBy: { name: 'asc' } }),
       this.prisma.purchaseOrder.findMany({
         where: { status: { not: 'HUY' } },
@@ -26,6 +26,8 @@ export class PayablesService {
       this.prisma.warehouseVoucher.findMany({
         where: { isCancelled: false, type: 'NHAP' }, select: { code: true, purchaseOrderId: true, reason: true }, orderBy: { code: 'asc' },
       }),
+      // Hoá đơn mua hàng/dịch vụ không qua kho (HM…): mỗi hoá đơn một khoản phải trả, hạn tính từ ngày hoá đơn.
+      this.prisma.purchaseBill.findMany({ where: { isCancelled: false }, orderBy: [{ date: 'asc' }, { code: 'asc' }] }),
     ]);
     const now = dayMs(today);
 
@@ -44,6 +46,13 @@ export class PayablesService {
           const description = `Nhận hàng đơn nhập ${o.code}` + (pnk.length ? ` (${pnk.join(', ')})` : '');
           return chargesOfOrder({ code: o.code, sourceId: o.id, typeLabel: 'Nhập kho', description }, amount, rounds, legacy, (date) => addDays(date, s.creditDays));
         });
+      for (const b of bills.filter((x) => x.supplierId === s.id)) {
+        const date = toDay(b.date)!;
+        charges.push({
+          ref: b.code, date, dueDate: addDays(date, s.creditDays), amount: b.total.toNumber(), typeLabel: 'Mua hàng không qua kho',
+          description: b.description || `Hoá đơn mua hàng ${b.code}`,
+        });
+      }
       const payments: DebtSettlement[] = [];
       for (const o of orders.filter((x) => x.supplierId === s.id)) {
         for (const r of o.returns) {

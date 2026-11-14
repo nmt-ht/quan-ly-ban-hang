@@ -4,6 +4,9 @@
 // Money: line amounts exclude VAT; totalValue / receivedValue include VAT (= công nợ phải trả once received).
 import { PurchaseOrderStatus } from '@prisma/client';
 
+export { taxBreakdownOf } from '../../common/vat.js';
+export type { TaxBucket } from '../../common/vat.js';
+
 export interface LineNumbers {
   quantity: number;
   unitPrice: number;

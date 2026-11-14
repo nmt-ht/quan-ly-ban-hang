@@ -4,6 +4,9 @@ import {
   Account, BalanceSheetView, EmployeeView, FixedAssetView, IncomeStatementView, JournalEntryView, LedgerView, OpeningBalancesView,
   PayrollCenterKey, PayrollParamsView, PayrollRunSummary, PayrollSheetView, PrepaidItemView, ProductionCostRow, TrialBalanceView,
 } from '../models/domain.models';
+import {
+  AccountBookView, PartnerSummaryView, VatInputsView, VatOutputsView, VatSummaryView,
+} from '../models/books-vat.models';
 
 export interface EmployeeInput {
   name: string; center: PayrollCenterKey; baseSalary: number; allowance?: number; insuranceSalary?: number | null; dependents?: number; note?: string;
@@ -146,6 +149,34 @@ export class AccountingService {
 
   allocatePrepaid(period: string) {
     return this.api.post<{ period: string; total: number; count: number }>('/accounting/prepaid/allocate', { period });
+  }
+
+  // ---------- Sổ sách TT133 ----------
+  accountBook(code: string, from: string, to: string, partnerId?: string) {
+    const q = new URLSearchParams({ code, from, to });
+    if (partnerId) q.set('partnerId', partnerId);
+    return this.api.get<AccountBookView>('/accounting/books/account?' + q.toString());
+  }
+
+  partnerSummary(code: string, from: string, to: string) {
+    return this.api.get<PartnerSummaryView>('/accounting/books/partners?' + new URLSearchParams({ code, from, to }).toString());
+  }
+
+  // ---------- Thuế GTGT ----------
+  vatOutputs(from: string, to: string) {
+    return this.api.get<VatOutputsView>('/accounting/vat/outputs?' + new URLSearchParams({ from, to }).toString());
+  }
+
+  vatInputs(from: string, to: string) {
+    return this.api.get<VatInputsView>('/accounting/vat/inputs?' + new URLSearchParams({ from, to }).toString());
+  }
+
+  vatSummary(from: string, to: string) {
+    return this.api.get<VatSummaryView>('/accounting/vat/summary?' + new URLSearchParams({ from, to }).toString());
+  }
+
+  vatOffset(date: string) {
+    return this.api.post<{ id: string; amount: number; date: string }>('/accounting/vat/offset', { date });
   }
 
   settings() {

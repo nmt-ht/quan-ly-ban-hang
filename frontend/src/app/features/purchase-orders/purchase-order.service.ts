@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { DataStore } from '../../core/services/data-store.service';
-import { PurchaseOrder, PurchaseOrderLine, PurchaseReturn, PurchaseReturnDraft, WarehouseVoucher } from '../../core/models/domain.models';
+import { PurchaseOrder, PurchaseOrderLine, PurchaseReturn, PurchaseReturnDraft, SupplierInvoiceInput, WarehouseVoucher } from '../../core/models/domain.models';
 import { canCancel, canComplete, canEdit, canReceive, canSend } from './purchase-order.rules';
 import { ApiService, upsertById } from '../../core/api/api.service';
 import { CatalogLoader } from '../../core/api/catalog-loader.service';
@@ -118,6 +118,13 @@ export class PurchaseOrderService {
     return r;
   }
 
+  /** Bổ sung / sửa hoá đơn GTGT của NCC cho một lần nhận (hoá đơn thường về sau hàng). */
+  async setReceiptInvoice(orderId: string, receiptId: string, invoice: SupplierInvoiceInput): Promise<PurchaseOrder> {
+    const o = await this.api.put<PurchaseOrder>(`/purchase-orders/${orderId}/receipts/${receiptId}/invoice`, invoice);
+    this.keep(o);
+    return o;
+  }
+
   /** Huỷ phiếu trả: the phiếu xuất is undone and the value counts against công nợ phải trả again. */
   async cancelReturn(orderId: string, returnId: string, reason: string): Promise<PurchaseReturn> {
     const r = await this.api.post<PurchaseReturn>(`/purchase-orders/${orderId}/returns/${returnId}/cancel`, { reason: reason || undefined });
@@ -130,12 +137,12 @@ export class PurchaseOrderService {
    * Nhận hàng: the server writes one phiếu nhập kho per warehouse, moves stock in base units and
    * updates received quantities, receivedValue (= công nợ phải trả, incl. VAT) and the status.
    */
-  async receive(id: string, items: ReceiptItem[], date: string, note: string): Promise<WarehouseVoucher[]> {
+  async receive(id: string, items: ReceiptItem[], date: string, note: string, invoice: SupplierInvoiceInput = {}): Promise<WarehouseVoucher[]> {
     if (!canReceive(this.find(id).status)) throw new Error('Đơn này không ở trạng thái nhận hàng được.');
     const valid = items.filter((i) => i.quantity > 0);
     if (!valid.length) return [];
     const before = new Set(this.data.warehouseVouchers().map((v) => v.id));
-    this.keep(await this.api.post<PurchaseOrder>(`/purchase-orders/${id}/receive`, { items: valid, date, note: note || undefined }));
+    this.keep(await this.api.post<PurchaseOrder>(`/purchase-orders/${id}/receive`, { items: valid, date, note: note || undefined, ...invoice }));
     // The server wrote the phiếu nhập kho and moved stock: read both again.
     await this.loader.loadInventory();
     return this.data.warehouseVouchers().filter((v) => v.purchaseOrderId === id && !before.has(v.id));

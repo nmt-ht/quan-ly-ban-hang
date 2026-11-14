@@ -243,6 +243,7 @@ const CASH_CATEGORIES = [
   { code: 'CHI_NCC', name: 'Chi trả nhà cung cấp', kind: 'CHI', partnerType: 'NHA_CUNG_CAP', isDefault: true, sortOrder: 2, defaultAccountCode: '331' },
   { code: 'CHI_KHAC', name: 'Chi khác', kind: 'CHI', partnerType: 'KHAC', isDefault: false, sortOrder: 3, defaultAccountCode: '642' },
   { code: 'CHI_LUONG', name: 'Chi lương nhân viên', kind: 'CHI', partnerType: 'KHAC', isDefault: false, sortOrder: 4, defaultAccountCode: '334' },
+  { code: 'CHI_THUE', name: 'Nộp thuế GTGT', kind: 'CHI', partnerType: 'KHAC', isDefault: false, sortOrder: 5, defaultAccountCode: '3331' },
 ] as const;
 
 // Hệ thống tài khoản TT133 (bộ rút gọn cho nghiệp vụ hiện có). [code, name, parentCode, kind, normalSide, isDetail]

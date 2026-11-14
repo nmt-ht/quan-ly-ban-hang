@@ -132,6 +132,8 @@ export class CashVouchersService {
         supplierId = dto.partnerId;
         refs = new Set([
           ...(await tx.purchaseOrder.findMany({ where: { supplierId, status: { not: 'HUY' } }, select: { code: true } })).map((o) => o.code),
+          // Hoá đơn mua hàng/dịch vụ không qua kho (HM…) cũng là khoản phải trả đối trừ được.
+          ...(await tx.purchaseBill.findMany({ where: { supplierId, isCancelled: false }, select: { code: true } })).map((b) => b.code),
           ...(await tx.cashVoucher.findMany({ where: { supplierId, kind: dto.kind === 'CHI' ? 'THU' : 'CHI', isCancelled: false }, select: { code: true } })).map((v) => v.code),
         ]);
       }

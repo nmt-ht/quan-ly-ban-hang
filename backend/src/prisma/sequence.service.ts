@@ -12,6 +12,7 @@ const SOURCES: [prefix: string, table: string][] = [
   ['PNK', 'WarehouseVoucher'], ['PXK', 'WarehouseVoucher'], ['PCK', 'WarehouseVoucher'], ['PKK', 'WarehouseVoucher'],
   ['PT', 'CashVoucher'], ['PC', 'CashVoucher'], ['KHO', 'Warehouse'], ['TH', 'SalesReturn'], ['BG', 'Quotation'], ['KM', 'Promotion'],
   ['TLM', 'PurchaseReturn'], ['BT', 'JournalEntry'], ['TS', 'FixedAsset'], ['CC', 'PrepaidItem'], ['NV', 'Employee'],
+  ['HM', 'PurchaseBill'],
 ];
 
 /** Mã chứng từ: prefix + 7 digits (DH0000027), handed out atomically in Postgres. */
