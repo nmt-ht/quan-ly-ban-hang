@@ -21,6 +21,7 @@ import { ProductionAccountingService, ProductionCostsController, ProductionCosts
 import { EmployeesController, PayrollController, PayrollService } from './payroll.js';
 import { BooksController, BooksService } from './books.js';
 import { VatController, VatService } from './vat.js';
+import { CashFlowController, CashFlowService } from './cash-flow.js';
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const num = (d: Prisma.Decimal | null | undefined) => (d ? d.toNumber() : 0);
@@ -201,7 +202,7 @@ export class AccountingService {
     const { closing } = await this.periodMaps(period);
     const is = await this.incomeStatement(period);
     const assets = [
-      { label: 'Tiền (111, 112)', amount: closing('111') + closing('112') },
+      { label: 'Tiền (111, 112, 113)', amount: closing('111') + closing('112') + closing('113') },
       { label: 'Phải thu của khách hàng (131)', amount: closing('131') },
       { label: 'Tạm ứng (141)', amount: closing('141') },
       { label: 'Thuế GTGT được khấu trừ (133)', amount: closing('133') },
@@ -268,7 +269,7 @@ export class AccountingService {
     };
   }
 
-  async saveOpeningBalances(dto: OpeningBalancesDto, user: AuthUser) {
+  async saveOpeningBalances(dto: OpeningBalancesDto, _user: AuthUser) {
     await this.prisma.$transaction(async (tx) => {
       for (const r of dto.rows) {
         await tx.openingBalance.upsert({
@@ -401,8 +402,8 @@ export class AccountingController {
 }
 
 @Module({
-  controllers: [AccountingController, FixedAssetsController, PrepaidItemsController, ProductionCostsController, EmployeesController, PayrollController, BooksController, VatController],
-  providers: [AccountingService, LedgerService, FixedAssetsService, PrepaidItemsService, ProductionAccountingService, ProductionCostsService, PayrollService, BooksService, VatService],
+  controllers: [AccountingController, FixedAssetsController, PrepaidItemsController, ProductionCostsController, EmployeesController, PayrollController, BooksController, VatController, CashFlowController],
+  providers: [AccountingService, LedgerService, FixedAssetsService, PrepaidItemsService, ProductionAccountingService, ProductionCostsService, PayrollService, BooksService, VatService, CashFlowService],
   exports: [LedgerService, ProductionAccountingService],
 })
 export class AccountingModule {}

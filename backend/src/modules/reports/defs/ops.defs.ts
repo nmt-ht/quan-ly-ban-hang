@@ -1,5 +1,6 @@
 // Ported from the frontend's features/reports/defs — same figures as the screens computed before.
 import { orderTotals } from '../../sales/sales-order.rules.js';
+import { TRANSFER_CATEGORY_NAMES } from '../../cash/transfer-categories.js';
 import { formatVnd, inRange } from '../report.rules.js';
 import type { ReportEnv } from '../report.types.js';
 import { ReportDef, ReportResult } from '../report.types.js';
@@ -330,7 +331,8 @@ const cashflow: ReportDef = {
     const accounts = new Map(env.data.cashAccounts().map((a) => [a.id, a.name]));
     const customers = new Map(env.data.customers().map((c) => [c.id, c.name]));
     const suppliers = new Map(env.data.suppliers().map((s) => [s.id, s.name]));
-    const vs = env.data.cashVouchers().filter((v) => !v.isCancelled && inRange(v.date, range));
+    // Chuyển tiền nội bộ chỉ đổi chỗ tiền (có trong sổ quỹ), không phải thu hay chi.
+    const vs = env.data.cashVouchers().filter((v) => !v.isCancelled && !TRANSFER_CATEGORY_NAMES.has(v.category) && inRange(v.date, range));
     const keyOf = (v: (typeof vs)[number]) =>
       group === 'account' ? accounts.get(v.accountId) ?? v.accountId
         : group === 'partner' ? (v.partnerType === 'KHACH_HANG' ? customers.get(v.partnerId ?? '') : v.partnerType === 'NHA_CUNG_CAP' ? suppliers.get(v.partnerId ?? '') : undefined) ?? '(Không gắn đối tác)'

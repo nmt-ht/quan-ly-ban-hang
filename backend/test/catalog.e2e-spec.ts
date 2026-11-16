@@ -177,7 +177,7 @@ describe('Danh mục (e2e)', () => {
 
   it('người dùng: locking and ending sessions revoke tokens at once; the last CEO is protected', async () => {
     const role = (await admin.get('/api/roles').expect(200)).body.find((r: any) => r.id === 'role-sale');
-    expect(role.permissionCount).toBe(20);
+    expect(role.permissionCount).toBe(21);
     const u = (await admin.post('/api/users', { name: 'E2E Sale', email: 'E2E.Sale@ninhtrang.local', roleId: 'role-sale', password: 'Sale12345' }).expect(201)).body;
     created.users.push(u.id);
     expect(u).toMatchObject({ email: 'e2e.sale@ninhtrang.local', mustChangePassword: true });

@@ -75,6 +75,9 @@ export const routes: Routes = [
 
       { path: 'thu-chi/tai-khoan', loadComponent: () => import('./features/cash-vouchers/cash-accounts/cash-accounts.component').then((m) => m.CashAccountsComponent) },
       { path: 'thu-chi/loai', loadComponent: () => import('./features/cash-vouchers/cash-categories/cash-categories.component').then((m) => m.CashCategoriesComponent) },
+      { path: 'thu-chi/chuyen-tien', loadComponent: () => import('./features/cash-ops/cash-transfers.component').then((m) => m.CashTransfersComponent) },
+      { path: 'thu-chi/kiem-ke-quy', loadComponent: () => import('./features/cash-ops/cash-counts.component').then((m) => m.CashCountsComponent) },
+      { path: 'thu-chi/doi-chieu-ngan-hang', loadComponent: () => import('./features/cash-ops/bank-reconciliation.component').then((m) => m.BankReconciliationComponent) },
       { path: 'thu-chi/lap/:kind', loadComponent: () => import('./features/cash-vouchers/cash-voucher-form/cash-voucher-form.component').then((m) => m.CashVoucherFormComponent) },
       { path: 'thu-chi', loadComponent: () => import('./features/cash-vouchers/cash-vouchers.component').then((m) => m.CashVouchersComponent) },
       { path: 'thu-chi/:id', loadComponent: () => import('./features/cash-vouchers/cash-voucher-view/cash-voucher-view.component').then((m) => m.CashVoucherViewComponent) },
@@ -93,6 +96,7 @@ export const routes: Routes = [
       { path: 'ke-toan/nhan-vien', loadComponent: () => import('./features/accounting/employees.component').then((m) => m.AccountingEmployeesComponent) },
       { path: 'ke-toan/luong', loadComponent: () => import('./features/accounting/payroll.component').then((m) => m.AccountingPayrollComponent) },
       { path: 'ke-toan/cong-cu-dung-cu', loadComponent: () => import('./features/accounting/prepaid-items.component').then((m) => m.AccountingPrepaidItemsComponent) },
+      { path: 'ke-toan/luu-chuyen-tien-te', loadComponent: () => import('./features/accounting/cash-flow.component').then((m) => m.AccountingCashFlowComponent) },
       { path: 'ke-toan/so-chi-tiet', loadComponent: () => import('./features/accounting/account-book.component').then((m) => m.AccountingAccountBookComponent) },
       { path: 'ke-toan/tong-hop-cong-no', loadComponent: () => import('./features/accounting/partner-summary.component').then((m) => m.AccountingPartnerSummaryComponent) },
       { path: 'ke-toan/thue-gtgt', loadComponent: () => import('./features/accounting/vat.component').then((m) => m.AccountingVatComponent) },

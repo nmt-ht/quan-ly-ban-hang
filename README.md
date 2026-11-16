@@ -19,7 +19,8 @@ Phần mềm quản lý bán hàng, kho, sản xuất, giao hàng, công nợ v�
 7. [Vận hành](#vận-hành)
 8. [Quy ước bắt buộc khi sửa mã](#quy-ước-bắt-buộc-khi-sửa-mã)
 9. [Ghi chú kỹ thuật theo phân hệ](#ghi-chú-kỹ-thuật-theo-phân-hệ)
-10. [Chưa làm](#chưa-làm)
+10. [Kế toán (TT133)](#kế-toán-tt133)
+11. [Chưa làm](#chưa-làm)
 
 ## Quy trình nghiệp vụ chính
 
@@ -72,7 +73,9 @@ flowchart LR
 | Bán hàng | `/khach-hang`, `/bao-gia`, `/don-hang`, `/bang-gia`, `/khuyen-mai` | Khách hàng (hạn mức công nợ, bảng giá riêng), báo giá, đơn hàng bán, trả hàng, khuyến mãi |
 | Giao hàng | `/giao-hang`, `/xe` | Chuyến giao hàng, chốt giao, chi phí chuyến, danh mục xe |
 | Công nợ | `/cong-no/khach-hang`, `/cong-no/tuoi-no`, `/cong-no/nhac-no` | Sổ chi tiết công nợ, tuổi nợ, nhắc nợ, thông báo công nợ có VietQR |
-| Thu chi | `/thu-chi` | Phiếu thu, phiếu chi, tài khoản tiền (mã VietQR), loại thu chi |
+| Thu chi | `/thu-chi`, `/thu-chi/chuyen-tien`, `/thu-chi/kiem-ke-quy`, `/thu-chi/doi-chieu-ngan-hang` | Phiếu thu, phiếu chi, tài khoản tiền (mã VietQR), loại thu chi; chuyển tiền nội bộ, kiểm kê quỹ, đối chiếu sao kê ngân hàng |
+| Mua hàng (bổ sung) | `/hoa-don-mua` | Hoá đơn NCC trên từng lần nhận hàng; hoá đơn mua hàng / dịch vụ không qua kho |
+| Kế toán | `/ke-toan/...` | Sổ cái TT133, sổ sách, thuế GTGT, báo cáo tài chính, lưu chuyển tiền tệ, tài sản cố định, công cụ dụng cụ, giá thành, tiền lương — xem [Kế toán](#kế-toán-tt133) |
 | Thiết lập | `/thiet-lap/...` | Thông tin công ty và khoá sổ, kho, nhóm hàng, thẻ, người dùng, chức vụ và phân quyền, màu hiển thị, nhật ký hoạt động |
 
 Các chức vụ có sẵn: **CEO** (toàn quyền), **Quản lý**, **Kế toán**, **Sale**, **Thủ kho**, **Nhân viên giao hàng**, **Nhân viên xưởng**. Quyền chỉnh được ở Thiết lập › Chức vụ & phân quyền; máy chủ kiểm quyền trên mọi lệnh gọi, giao diện chỉ ẩn những gì không được dùng.
@@ -361,9 +364,23 @@ Nhật ký hoạt động (Đợt 9): `src/audit/`. Every write logs one line th
 
 </details>
 
+## Kế toán (TT133)
+
+Bật bằng **ngày bắt đầu ghi sổ** (Thiết lập › Thông tin doanh nghiệp) và nhập số dư đầu kỳ ở `/ke-toan/so-du-dau-ky`. Từ ngày đó, mỗi chứng từ tự sinh bút toán trong cùng giao dịch (`LedgerService.postEntry`); bút toán bất biến, sai thì đảo (`reverseEntriesFor`). Mã `BT0000001`.
+
+- **Tự hạch toán:** giao hàng (Nợ 131 / Có 511, 3331; Nợ 632 / Có 155, 156), phiếu thu chi (TK đối ứng theo loại thu chi), nhận hàng mua (Nợ 156 / 155 / 642, 133 / Có 331), trả hàng mua và bán, hoá đơn mua không qua kho `HM…` (Nợ 641 / 642 / 635 / 811 / 242, 133 / Có 331), chuyển tiền nội bộ `CT…` (hai phiếu qua TK 113), sản xuất (154), khấu hao, phân bổ CCDC, lương.
+- **Sổ sách và báo cáo:** `/ke-toan/so-nhat-ky`, `so-chi-tiet` (sổ quỹ 111, sổ tiền gửi 112, công nợ 131 / 331 theo đối tượng), `tong-hop-cong-no`, `can-doi-phat-sinh`, `ket-qua-kinh-doanh`, `can-doi-ke-toan`, `luu-chuyen-tien-te` (trực tiếp, B03-DNN), `thue-gtgt` (bảng kê bán ra / mua vào, đối chiếu 3331 / 133, khấu trừ cuối kỳ). Mã nguồn: `backend/src/modules/accounting/`.
+- **Hoá đơn NCC và thuế đầu vào:** mỗi lần nhận hàng lưu ký hiệu, số, ngày hoá đơn NCC và tách thuế theo thuế suất (`PurchaseOrderReceipt.taxBreakdown`); lần nhận chưa có số hoá đơn không vào bảng kê mua vào.
+- **Chuyển tiền nội bộ, kiểm kê quỹ, đối chiếu sao kê:** `backend/src/modules/cash/` (`cash-transfers.ts`, `cash-counts.ts`, `bank-reconciliation.ts`). Phiếu của chuyển tiền mang loại thu chi hệ thống (`transfer-categories.ts`), chỉ lập và huỷ qua chuyển tiền, và không tính vào thu, chi của dashboard, báo cáo thu chi, thẻ tổng danh sách phiếu.
+- **Quyền mới:** `accounting.view | manual | reverse | opening | manage_account | payroll`. Dữ liệu danh mục kế toán (quyền, cấp quyền, hệ thống tài khoản, loại thu chi hệ thống) có trong migration `20261116090000_p7_accounting_reference_data` để cơ sở dữ liệu cũ (đã có người dùng, `bootstrap.ts` không seed lại) vẫn dùng được; chạy lại nhiều lần an toàn.
+- **Số liệu là hỗ trợ, cần kế toán xác nhận:** tham số lương và bảo hiểm, biểu thuế TNCN, cách xếp tài khoản vào chỉ tiêu lưu chuyển tiền tệ, tách thuế GTGT; chưa gắn chỉ tiêu mẫu 01/GTGT vì mẫu đang đổi.
+- Kế hoạch kế toán, so sánh với MISA, tài liệu tính năng, kế hoạch bàn giao và báo giá nằm trong thư mục `docs/` trên máy phát triển (thư mục này nằm trong `.gitignore`, không đưa lên repo công khai; chỉ `docs/atlas/` được theo dõi).
+
 ## Chưa làm
 
-- Gửi nhắc nợ tự động (SMS brandname, Zalo OA) và hoá đơn điện tử: cần chọn nhà cung cấp và tài khoản API.
+- Hoá đơn điện tử phát hành thật: khung (phát hành, điều chỉnh, thay thế) đã có nhưng mới chạy với nhà cung cấp giả lập; cần viết bộ chuyển đổi cho nhà cung cấp (MISA meInvoice…) và tài khoản kết nối.
+- Gửi nhắc nợ tự động (SMS brandname, Zalo OA): cần chọn nhà cung cấp và tài khoản API.
+- Kế toán: giảm giá hàng bán / chiết khấu, chi phí mua hàng phân bổ vào giá nhập, FIFO và tính lại giá xuất, ngoại tệ, thuế TNDN, in mẫu TT133, sổ chi tiết vật tư có giá trị.
 - Ảnh hàng hoá và logo công ty đang lưu dạng data URL trong cơ sở dữ liệu; chưa chuyển sang lưu trữ đối tượng (R2 / S3).
 - Link theo dõi đơn cho khách, ảnh xác nhận giao hàng (POD), ticket hỗ trợ.
 - Phân trang phía máy chủ cho chuyến giao hàng và lệnh sản xuất (khi số lượng lớn).

@@ -4,6 +4,18 @@ import type { AuthUser } from '../../auth/auth.service.js';
 import { fromDay } from '../../common/text.js';
 import { vnd } from '../../audit/audit.diff.js';
 
+/** Số dư sổ sách của một tài khoản tiền vào cuối ngày `until` (YYYY-MM-DD; bỏ trống = đến nay): số dư đầu + thu − chi của phiếu chưa huỷ. */
+export async function bookBalance(
+  db: Pick<Prisma.TransactionClient, 'cashVoucher'>, account: { id: string; openingBalance: Prisma.Decimal }, until?: string,
+): Promise<number> {
+  const sums = await db.cashVoucher.groupBy({
+    by: ['kind'],
+    where: { accountId: account.id, isCancelled: false, ...(until ? { date: { lt: new Date(fromDay(until)!.getTime() + 86_400_000) } } : {}) },
+    _sum: { amount: true },
+  });
+  return sums.reduce((s, x) => s + (x.kind === 'THU' ? 1 : -1) * (x._sum.amount?.toNumber() ?? 0), account.openingBalance.toNumber());
+}
+
 /**
  * Không chi vượt tồn quỹ (as MISA): the account's số dư on `day` and today must both cover `amount` — a phiếu chi, or a
  * phiếu thu being huỷ (`cancelling`, its code), which takes its money back out of the quỹ (by hand, or by bỏ chốt giao).

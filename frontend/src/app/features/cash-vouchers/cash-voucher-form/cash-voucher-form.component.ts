@@ -6,6 +6,7 @@ import { map } from 'rxjs';
 import { DataStore } from '../../../core/services/data-store.service';
 import { DebtRow, DebtService } from '../../../core/services/debt.service';
 import { CashAllocation, VoucherKind } from '../../../core/models/domain.models';
+import { TRANSFER_CATEGORY_NAMES } from '../transfer-categories';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { MoneyInputDirective } from '../../../shared/money-input.directive';
 import { formatVnd } from '../../../shared/format.util';
@@ -49,7 +50,7 @@ export class CashVoucherFormComponent {
   /** Loại đang dùng của loại phiếu; loại mặc định đứng đầu. */
   readonly categories = computed(() =>
     this.data.cashCategories()
-      .filter((c) => c.kind === this.kind() && c.isActive)
+      .filter((c) => c.kind === this.kind() && c.isActive && !TRANSFER_CATEGORY_NAMES.has(c.name))
       .sort((a, b) => Number(!!b.isDefault) - Number(!!a.isDefault)),
   );
   readonly categoryHint = categoryHint;
@@ -83,7 +84,7 @@ export class CashVoucherFormComponent {
         const fromSupplier = kind === 'CHI' ? q.get('supplierId') : null;
         const fromCustomer = kind === 'THU' ? q.get('customerId') : null;
         // ?category=CHI_KHAC&amount=…&desc=… pre-fill a voucher from another screen (e.g. chi phí chuyến).
-        const cats = this.data.cashCategories().filter((c) => c.kind === kind && c.isActive);
+        const cats = this.data.cashCategories().filter((c) => c.kind === kind && c.isActive && !TRANSFER_CATEGORY_NAMES.has(c.name));
         const cat = cats.find((c) => c.code === q.get('category'));
         this.categoryCode.set(cat?.code ?? cats.find((c) => c.isDefault)?.code ?? cats[0]?.code ?? '');
         this.date.set(isoDay(new Date()));

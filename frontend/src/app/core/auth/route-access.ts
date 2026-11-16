@@ -45,6 +45,7 @@ const RULES: [RegExp, string[]][] = [
 
   [/^\/thu-chi\/tai-khoan$/, ['voucher.manage_account']],
   [/^\/thu-chi\/loai$/, ['voucher.manage_category']],
+  [/^\/thu-chi\/doi-chieu-ngan-hang$/, ['voucher.manage_account']],
   [/^\/thu-chi\/lap\/thu$/, ['voucher.create_receipt']],
   [/^\/thu-chi\/lap\/chi$/, ['voucher.create_payment']],
   [/^\/thu-chi(\/|$)/, ['voucher.view']],

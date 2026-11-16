@@ -3,6 +3,7 @@
 import type { DebtRow } from '../../common/debt-rows.js';
 import { lineRemaining, orderTotals } from '../sales/sales-order.rules.js';
 import type { ReportData } from './report-data.service.js';
+import { TRANSFER_CATEGORY_NAMES } from '../cash/transfer-categories.js';
 import { type CostBook, inRange } from './report.rules.js';
 
 const DAY = 86_400_000;
@@ -185,7 +186,8 @@ export function dashboard({ data, cost, debt, showProfit, showPurchases, showSto
     .slice(0, 10);
 
   // ---------- dòng tiền ----------
-  const vs = data.cashVouchers().filter((v) => !v.isCancelled && inRange(v.date, range));
+  // Chuyển tiền nội bộ chỉ đổi chỗ tiền, không phải thu hay chi.
+  const vs = data.cashVouchers().filter((v) => !v.isCancelled && !TRANSFER_CATEGORY_NAMES.has(v.category) && inRange(v.date, range));
   const thu = vs.filter((v) => v.kind === 'THU').reduce((s, v) => s + v.amount, 0);
   const chi = vs.filter((v) => v.kind === 'CHI').reduce((s, v) => s + v.amount, 0);
   const accounts = data.cashAccounts().filter((a) => a.isActive !== false).map((a) => ({ id: a.id, name: a.name, balance: a.balance }));
@@ -198,7 +200,7 @@ export function dashboard({ data, cost, debt, showProfit, showPurchases, showSto
     .filter((v) => v.type === 'NHAP' && !v.isCancelled && (!!v.purchaseOrderId || /theo đơn DN\d+/.test(v.reason ?? '')))
     .map((v) => ({ date: v.date.slice(0, 10), value: v.lines.reduce((s, l) => s + (l.unitPrice ?? 0) * l.quantity, 0) }));
   const thuOf = (r: { from: string; to: string }) =>
-    data.cashVouchers().filter((v) => !v.isCancelled && v.kind === 'THU' && inRange(v.date, r)).reduce((s, v) => s + v.amount, 0);
+    data.cashVouchers().filter((v) => !v.isCancelled && v.kind === 'THU' && !TRANSFER_CATEGORY_NAMES.has(v.category) && inRange(v.date, r)).reduce((s, v) => s + v.amount, 0);
   const purchasesOf = (r: { from: string; to: string }) => Math.round(receipts.filter((x) => inRange(x.date, r)).reduce((s, x) => s + x.value, 0));
   const lastMonth = to.slice(0, 7);
   const months = Array.from({ length: 12 }, (_, i) => {

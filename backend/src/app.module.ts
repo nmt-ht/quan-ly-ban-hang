@@ -22,6 +22,7 @@ import { PurchasingModule } from './modules/purchasing/purchasing.module.js';
 import { SalesModule } from './modules/sales/sales.module.js';
 import { DeliveryModule } from './modules/delivery/delivery.module.js';
 import { CashVouchersModule } from './modules/cash/cash-vouchers.module.js';
+import { CashOpsModule } from './modules/cash/cash-ops.module.js';
 import { MailModule } from './modules/mail/mail.module.js';
 import { EInvoiceModule } from './modules/einvoice/einvoice.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
@@ -64,6 +65,8 @@ import { PrismaExceptionFilter } from './common/prisma-exception.filter.js';
     ReportsModule,
     // Đợt 8 — kế toán (sổ cái, TT133)
     AccountingModule,
+    // Quỹ & ngân hàng: chuyển tiền nội bộ, kiểm kê quỹ, đối chiếu sao kê
+    CashOpsModule,
     // Email gửi đi: báo giá, chứng từ, nhắc nợ… cho khách hàng / NCC
     MailModule,
     // Hoá đơn điện tử: phát hành qua nhà cung cấp (MISA meInvoice; Thử nghiệm)

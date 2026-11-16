@@ -6,6 +6,7 @@ import { CashAccountType, PartnerType, Prisma, VoucherKind } from '@prisma/clien
 import { foldVi, fromDay } from '../../common/text.js';
 import { DAY, slicePage, sortRows } from '../../common/paging.js';
 import type { cashToApi } from './cash-voucher.mapper.js';
+import { TRANSFER_CATEGORY_NAMES } from './transfer-categories.js';
 
 export const CASH_SORTS = ['code', 'date', 'category', 'partner', 'account', 'amount', 'description', 'createdBy'] as const;
 
@@ -73,8 +74,10 @@ export function cashPageOf(all: ApiCash[], q: CashVoucherPageQuery, lk: CashLook
   const ofCategory = matched.filter((v) => !q.categories?.length || q.categories.includes(v.category));
 
   const live = ofCategory.filter((v) => !v.isCancelled);
+  // Chuyển tiền nội bộ chỉ đổi chỗ tiền, không phải thu hay chi: không cộng vào thẻ tổng (vẫn có trong danh sách).
+  const real = live.filter((v) => !TRANSFER_CATEGORY_NAMES.has(v.category));
   const sum = (kind: VoucherKind, type?: CashAccountType) =>
-    live.filter((v) => v.kind === kind && (!type || lk.accounts.get(v.accountId)?.type === type)).reduce((s, v) => s + v.amount.toNumber(), 0);
+    real.filter((v) => v.kind === kind && (!type || lk.accounts.get(v.accountId)?.type === type)).reduce((s, v) => s + v.amount.toNumber(), 0);
   const thu = sum('THU');
   const chi = sum('CHI');
   const cards = {

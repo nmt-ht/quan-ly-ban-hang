@@ -38,28 +38,31 @@ model User {
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
 
-  salesOrders       SalesOrder[]       @relation("SalesOrderCreatedBy")
-  salesOrdersAsRep  SalesOrder[]       @relation("SalesOrderRep")
-  purchaseOrders    PurchaseOrder[]    @relation("PurchaseOrderCreatedBy")
-  warehouseVouchers WarehouseVoucher[] @relation("WarehouseVoucherCreatedBy")
-  cashVouchers      CashVoucher[]      @relation("CashVoucherCreatedBy")
-  productionOrders  ProductionOrder[]  @relation("ProductionOrderCreatedBy")
-  deliveryTrips     DeliveryTrip[]     @relation("DeliveryTripCreatedBy")
-  vehiclesAsDriver  Vehicle[]          @relation("VehicleDriver")
-  managedWarehouses Warehouse[]        @relation("WarehouseManager")
-  salesReturns      SalesReturn[]      @relation("SalesReturnCreatedBy")
-  purchaseReturns   PurchaseReturn[]   @relation("PurchaseReturnCreatedBy")
-  quotations        Quotation[]        @relation("QuotationCreatedBy")
-  quotationsAsRep   Quotation[]        @relation("QuotationRep")
-  promotions        Promotion[]        @relation("PromotionCreatedBy")
-  debtReminders     DebtReminder[]     @relation("DebtReminderCreatedBy")
-  einvoices         EInvoice[]         @relation("EInvoiceCreatedBy")
-  journalEntries    JournalEntry[]     @relation("JournalCreatedBy")
-  purchaseBills     PurchaseBill[]     @relation("PurchaseBillCreatedBy")
-  fixedAssets       FixedAsset[]       @relation("FixedAssetCreatedBy")
-  prepaidItems      PrepaidItem[]      @relation("PrepaidItemCreatedBy")
-  productionCosts   ProductionCost[]   @relation("ProductionCostCreatedBy")
-  payrollRuns       PayrollRun[]       @relation("PayrollRunCreatedBy")
+  salesOrders       SalesOrder[]        @relation("SalesOrderCreatedBy")
+  salesOrdersAsRep  SalesOrder[]        @relation("SalesOrderRep")
+  purchaseOrders    PurchaseOrder[]     @relation("PurchaseOrderCreatedBy")
+  warehouseVouchers WarehouseVoucher[]  @relation("WarehouseVoucherCreatedBy")
+  cashVouchers      CashVoucher[]       @relation("CashVoucherCreatedBy")
+  productionOrders  ProductionOrder[]   @relation("ProductionOrderCreatedBy")
+  deliveryTrips     DeliveryTrip[]      @relation("DeliveryTripCreatedBy")
+  vehiclesAsDriver  Vehicle[]           @relation("VehicleDriver")
+  managedWarehouses Warehouse[]         @relation("WarehouseManager")
+  salesReturns      SalesReturn[]       @relation("SalesReturnCreatedBy")
+  purchaseReturns   PurchaseReturn[]    @relation("PurchaseReturnCreatedBy")
+  quotations        Quotation[]         @relation("QuotationCreatedBy")
+  quotationsAsRep   Quotation[]         @relation("QuotationRep")
+  promotions        Promotion[]         @relation("PromotionCreatedBy")
+  debtReminders     DebtReminder[]      @relation("DebtReminderCreatedBy")
+  einvoices         EInvoice[]          @relation("EInvoiceCreatedBy")
+  journalEntries    JournalEntry[]      @relation("JournalCreatedBy")
+  purchaseBills     PurchaseBill[]      @relation("PurchaseBillCreatedBy")
+  fixedAssets       FixedAsset[]        @relation("FixedAssetCreatedBy")
+  prepaidItems      PrepaidItem[]       @relation("PrepaidItemCreatedBy")
+  productionCosts   ProductionCost[]    @relation("ProductionCostCreatedBy")
+  payrollRuns       PayrollRun[]        @relation("PayrollRunCreatedBy")
+  cashTransfers     CashTransfer[]      @relation("CashTransferCreatedBy")
+  cashCounts        CashCount[]         @relation("CashCountCreatedBy")
+  statementLines    BankStatementLine[] @relation("StatementLineCreatedBy")
 }
 
 enum UserStatus {
@@ -984,6 +987,10 @@ model CashAccount {
 
   vouchers          CashVoucher[]
   payNowSalesOrders SalesOrder[]
+  transfersFrom     CashTransfer[]      @relation("TransferFrom")
+  transfersTo       CashTransfer[]      @relation("TransferTo")
+  counts            CashCount[]
+  statementLines    BankStatementLine[]
 }
 
 enum VoucherKind {
@@ -1040,10 +1047,89 @@ model CashVoucher {
   salesOrderDeliveryId String?
   salesOrderDelivery   SalesOrderDelivery? @relation(fields: [salesOrderDeliveryId], references: [id])
 
-  allocations CashAllocation[]
+  allocations   CashAllocation[]
+  // Chuyển tiền nội bộ: hai phiếu (chi ở quỹ đi, thu ở quỹ đến) thuộc một CashTransfer; đối chiếu sao kê khớp một dòng sao kê.
+  transferOut   CashTransfer?      @relation("TransferOut")
+  transferIn    CashTransfer?      @relation("TransferIn")
+  statementLine BankStatementLine?
 
   @@index([salesOrderId])
   @@index([salesOrderDeliveryId])
+}
+
+/**
+ * Chuyển tiền nội bộ CT… (quỹ tiền mặt ↔ ngân hàng, ngân hàng ↔ ngân hàng): một phiếu chi ở quỹ đi và một phiếu thu ở quỹ đến,
+ * loại thu chi hệ thống, hạch toán qua TK 113 (tiền đang chuyển) nên số dư từng quỹ, sổ quỹ và sổ cái đều đúng như hai phiếu thường.
+ * Huỷ chuyển tiền huỷ cả hai phiếu.
+ */
+model CashTransfer {
+  id            String      @id @default(uuid())
+  code          String      @unique
+  date          DateTime    @db.Date
+  fromAccountId String
+  fromAccount   CashAccount @relation("TransferFrom", fields: [fromAccountId], references: [id])
+  toAccountId   String
+  toAccount     CashAccount @relation("TransferTo", fields: [toAccountId], references: [id])
+  amount        Decimal
+  description   String?
+  outVoucherId  String      @unique
+  outVoucher    CashVoucher @relation("TransferOut", fields: [outVoucherId], references: [id])
+  inVoucherId   String      @unique
+  inVoucher     CashVoucher @relation("TransferIn", fields: [inVoucherId], references: [id])
+  isCancelled   Boolean     @default(false)
+  cancelReason  String?
+  cancelledAt   DateTime?
+  createdById   String
+  createdBy     User        @relation("CashTransferCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime    @default(now())
+
+  @@index([date])
+}
+
+/**
+ * Biên bản kiểm kê quỹ tiền mặt KQ…: số dư sổ sách tại ngày kiểm kê (chốt lúc lưu), số đếm thực tế (theo mệnh giá) và chênh lệch.
+ */
+model CashCount {
+  id            String      @id @default(uuid())
+  code          String      @unique
+  date          DateTime    @db.Date
+  accountId     String
+  account       CashAccount @relation(fields: [accountId], references: [id])
+  bookAmount    Decimal
+  countedAmount Decimal
+  difference    Decimal // thực tế − sổ sách: dương = thừa quỹ, âm = thiếu quỹ
+  denominations Json? // [{ value, count }]
+  countedBy     String? // người kiểm kê
+  note          String?
+  isCancelled   Boolean     @default(false)
+  cancelReason  String?
+  cancelledAt   DateTime?
+  createdById   String
+  createdBy     User        @relation("CashCountCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime    @default(now())
+
+  @@index([accountId, date])
+}
+
+/**
+ * Một dòng sao kê ngân hàng (nhập tay hoặc từ Excel), khớp tối đa một phiếu thu/chi của cùng tài khoản.
+ */
+model BankStatementLine {
+  id          String       @id @default(uuid())
+  accountId   String
+  account     CashAccount  @relation(fields: [accountId], references: [id])
+  date        DateTime     @db.Date
+  description String?
+  reference   String? // số tham chiếu / số giao dịch của ngân hàng
+  amountIn    Decimal      @default(0) // tiền vào (ghi có)
+  amountOut   Decimal      @default(0) // tiền ra (ghi nợ)
+  voucherId   String?      @unique
+  voucher     CashVoucher? @relation(fields: [voucherId], references: [id])
+  createdById String
+  createdBy   User         @relation("StatementLineCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime     @default(now())
+
+  @@index([accountId, date])
 }
 
 // Đối trừ "Chọn tay": amount taken off each debt document (mã đơn DN…/DH…).

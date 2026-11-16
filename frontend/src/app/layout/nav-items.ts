@@ -46,6 +46,9 @@ export const NAV_GROUPS: NavGroup[] = [
   ]},
   { label: 'Quỹ & ngân hàng', module: 'cash', links: [
     { label: 'Thu, chi tiền', path: '/thu-chi', icon: 'cash' },
+    { label: 'Chuyển tiền nội bộ', path: '/thu-chi/chuyen-tien', icon: 'arrows-inout' },
+    { label: 'Kiểm kê quỹ', path: '/thu-chi/kiem-ke-quy', icon: 'table' },
+    { label: 'Đối chiếu ngân hàng', path: '/thu-chi/doi-chieu-ngan-hang', icon: 'ledger-in' },
     { label: 'Phân tích tuổi nợ', path: '/cong-no/tuoi-no', icon: 'hourglass' },
   ]},
   { label: 'Kế toán', module: 'cash', links: [
@@ -57,6 +60,7 @@ export const NAV_GROUPS: NavGroup[] = [
     { label: 'Bảng cân đối phát sinh', path: '/ke-toan/can-doi-phat-sinh', icon: 'report' },
     { label: 'Kết quả kinh doanh', path: '/ke-toan/ket-qua-kinh-doanh', icon: 'trending-up' },
     { label: 'Bảng cân đối kế toán', path: '/ke-toan/can-doi-ke-toan', icon: 'table' },
+    { label: 'Lưu chuyển tiền tệ', path: '/ke-toan/luu-chuyen-tien-te', icon: 'trending-up' },
     { label: 'Tài sản cố định', path: '/ke-toan/tai-san', icon: 'grid' },
     { label: 'Công cụ dụng cụ', path: '/ke-toan/cong-cu-dung-cu', icon: 'tag' },
     { label: 'Giá thành sản xuất', path: '/ke-toan/gia-thanh', icon: 'factory' },

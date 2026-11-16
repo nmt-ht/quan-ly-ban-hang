@@ -16,6 +16,7 @@ import { fromDay, toDay } from '../../common/text.js';
 import { assertOpenPeriod, documentDay } from '../../common/period-lock.js';
 import { CASH_INCLUDE, cashToApi } from './cash-voucher.mapper.js';
 import { overdraw } from './cash-balance.js';
+import { TRANSFER_CATEGORY_NAMES } from './transfer-categories.js';
 import { AuditService } from '../../audit/audit.service.js';
 import { vnd } from '../../audit/audit.diff.js';
 import { listParam, parsePageQuery, windowStart } from '../../common/paging.js';
@@ -107,7 +108,15 @@ export class CashVouchersService {
   }
 
   async create(dto: CashVoucherDto, user: AuthUser) {
-    return this.prisma.$transaction(async (tx) => {
+    if (TRANSFER_CATEGORY_NAMES.has(dto.category)) {
+      throw new BadRequestException('Chuyển tiền nội bộ lập ở màn hình Chuyển tiền nội bộ (Thu, chi tiền), không lập bằng phiếu thu chi thường.');
+    }
+    return this.prisma.$transaction((tx) => this.createIn(tx, dto, user));
+  }
+
+  /** Lập phiếu trong một transaction có sẵn — chuyển tiền nội bộ lập hai phiếu cùng lúc. */
+  async createIn(tx: Prisma.TransactionClient, dto: CashVoucherDto, user: AuthUser) {
+    {
       await documentDay(tx, dto.date, dto.kind === 'THU' ? 'Phiếu thu' : 'Phiếu chi'); // not after hôm nay, not in the closed kỳ
       const category = await tx.cashCategory.findFirst({ where: { kind: dto.kind, name: dto.category, isActive: true } });
       if (!category) throw new BadRequestException(`Loại "${dto.category}" không có hoặc đã ngừng dùng.`);
@@ -169,7 +178,7 @@ export class CashVouchersService {
       });
       await this.ledger.postCashVoucher(tx, v.id, user.id); // bút toán tiền (nếu sổ cái đã bật)
       return cashToApi(v);
-    });
+    }
   }
 
   /**
@@ -177,7 +186,14 @@ export class CashVouchersService {
    * Huỷ a phiếu thu takes its money out of the quỹ again: refused when that leaves the quỹ âm (see overdraw).
    */
   async cancel(id: string, reason: string | undefined, user: AuthUser) {
-    const saved = await this.prisma.$transaction(async (tx) => {
+    const transfer = await this.prisma.cashTransfer.findFirst({ where: { OR: [{ outVoucherId: id }, { inVoucherId: id }] }, select: { code: true } });
+    if (transfer) throw new BadRequestException(`Phiếu này thuộc chuyển tiền nội bộ ${transfer.code} — huỷ ở màn hình Chuyển tiền nội bộ.`);
+    return cashToApi(await this.prisma.$transaction((tx) => this.cancelIn(tx, id, reason, user)));
+  }
+
+  /** Huỷ phiếu trong một transaction có sẵn (huỷ chuyển tiền nội bộ huỷ cả hai phiếu). */
+  async cancelIn(tx: Prisma.TransactionClient, id: string, reason: string | undefined, user: AuthUser) {
+    {
       // Locked: two huỷ at once cannot both pass, nor both take the money out of the quỹ.
       await tx.$queryRaw`SELECT "id" FROM "CashVoucher" WHERE "id" = ${id} FOR UPDATE`;
       const v = await tx.cashVoucher.findUnique({ where: { id }, include: { account: true } });
@@ -193,9 +209,9 @@ export class CashVouchersService {
         summary: `Huỷ ${v.kind === 'THU' ? 'phiếu thu' : 'phiếu chi'} ${v.code} (${vnd(v.amount)})${reason ? `: ${reason}` : ''}${overdrawn}`,
       });
       await this.ledger.cancelCashVoucher(tx, id, user.id); // đảo bút toán tiền
+      await tx.bankStatementLine.updateMany({ where: { voucherId: id }, data: { voucherId: null } }); // dòng sao kê đã khớp phiếu này thành chưa khớp
       return s;
-    });
-    return cashToApi(saved);
+    }
   }
 }
 

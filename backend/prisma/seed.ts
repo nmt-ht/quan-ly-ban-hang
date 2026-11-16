@@ -244,12 +244,16 @@ const CASH_CATEGORIES = [
   { code: 'CHI_KHAC', name: 'Chi khác', kind: 'CHI', partnerType: 'KHAC', isDefault: false, sortOrder: 3, defaultAccountCode: '642' },
   { code: 'CHI_LUONG', name: 'Chi lương nhân viên', kind: 'CHI', partnerType: 'KHAC', isDefault: false, sortOrder: 4, defaultAccountCode: '334' },
   { code: 'CHI_THUE', name: 'Nộp thuế GTGT', kind: 'CHI', partnerType: 'KHAC', isDefault: false, sortOrder: 5, defaultAccountCode: '3331' },
+  // Chuyển tiền nội bộ (CashTransfer): hai phiếu qua TK 113 tiền đang chuyển; tên khớp NOI_BO_CATEGORIES trong cash-transfers.ts.
+  { code: 'CHI_NOIBO', name: 'Chuyển tiền nội bộ', kind: 'CHI', partnerType: 'KHAC', isDefault: false, sortOrder: 6, defaultAccountCode: '113' },
+  { code: 'THU_NOIBO', name: 'Nhận tiền chuyển nội bộ', kind: 'THU', partnerType: 'KHAC', isDefault: false, sortOrder: 7, defaultAccountCode: '113' },
 ] as const;
 
 // Hệ thống tài khoản TT133 (bộ rút gọn cho nghiệp vụ hiện có). [code, name, parentCode, kind, normalSide, isDetail]
 const CHART = [
   ['111', 'Tiền mặt', null, 'TAI_SAN', 'NO', true],
   ['112', 'Tiền gửi ngân hàng', null, 'TAI_SAN', 'NO', true],
+  ['113', 'Tiền đang chuyển', null, 'TAI_SAN', 'NO', true],
   ['131', 'Phải thu của khách hàng', null, 'TAI_SAN', 'NO', true],
   ['133', 'Thuế GTGT được khấu trừ', null, 'TAI_SAN', 'NO', true],
   ['141', 'Tạm ứng', null, 'TAI_SAN', 'NO', true],
