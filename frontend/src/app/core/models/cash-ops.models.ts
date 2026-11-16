@@ -44,7 +44,12 @@ export interface CashCountView {
   isCancelled: boolean;
   cancelReason?: string;
   createdBy: string;
+  /** Xử lý chênh lệch: CHO_XU_LY (Nợ 1381 / Có 3381) hoặc TINH_VAO_KET_QUA (811 / 711), kèm số phiếu thu / chi đã lập. */
+  resolution?: CountResolution;
+  resolutionVoucherCode?: string;
 }
+
+export type CountResolution = 'CHO_XU_LY' | 'TINH_VAO_KET_QUA';
 
 export interface CashCountInput {
   accountId: string;

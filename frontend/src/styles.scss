@@ -1904,6 +1904,11 @@ textarea {
   margin-left: auto;
 }
 
+// Năm của một báo cáo theo năm (Bảng cân đối, Sổ cái…): a narrow number box in the filters bar.
+.filters-bar .year-input {
+  width: 5.5rem;
+}
+
 .rp-range {
   margin: 0 0 var(--space-sm);
   font-size: var(--text-xs);
@@ -2630,5 +2635,132 @@ input[type='radio'] {
   .dc-swatch,
   .bell-count {
     forced-color-adjust: none;
+  }
+}
+
+// ---------- sổ sách (Kế toán): sổ chi tiết, tổng hợp công nợ, thuế GTGT, lưu chuyển tiền tệ ----------
+// One table look for the accounting pages, drawn like a report table: it sits in `.rp-surface.rp-grid` (sticky heading and
+// total rows, one-screen panel), numbers right-aligned in mono, a zero muted, opening / closing balances as shaded rows.
+.rp-grid > .book-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.rp-grid > .book-table thead th {
+  position: static;
+}
+
+// A short table (a few rows) on the page: a surface that scrolls sideways on a phone.
+.book-wrap {
+  overflow-x: auto;
+  margin-bottom: var(--space-sm);
+}
+
+.book-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+
+  th,
+  td {
+    padding: 6px var(--space-xs);
+    border-bottom: var(--rule-hair) solid var(--color-rule);
+    text-align: left;
+    vertical-align: middle;
+  }
+
+  thead th {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--color-muted);
+    white-space: nowrap;
+  }
+
+  // Two-line heading (Dư đầu kỳ › Nợ | Có): inside a scrolling report panel the whole thead sticks as one block, so the two
+  // lines can never drift apart (a fixed offset per line left a gap whenever the first line was not exactly --row-h tall).
+  thead tr + tr th {
+    border-top: var(--rule-hair) solid var(--color-rule);
+  }
+
+  thead th.c {
+    text-align: center;
+  }
+
+  .r {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .code {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--color-ink-2);
+    white-space: nowrap;
+  }
+
+  .is-zero {
+    color: var(--color-muted);
+  }
+
+  // A free-text cell in an entry grid (diễn giải dòng, nội dung) takes the width the numbers leave.
+  &.line-table td > input:not(.num) {
+    width: 100%;
+    min-width: 9rem;
+  }
+
+  // A selection tick box column.
+  .check-col {
+    width: 1%;
+    padding-right: 0;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  // Opening balance, a section heading of a statement, a subtotal.
+  .book-open td,
+  .book-head td,
+  .book-sum td {
+    background: var(--color-paper-2);
+    font-weight: 600;
+  }
+
+  .book-head td {
+    color: var(--color-ink);
+  }
+
+  .book-sub td:first-child {
+    padding-left: var(--space-lg);
+  }
+
+  tfoot td {
+    border-top: var(--rule-hair) solid var(--color-rule-strong);
+    border-bottom: none;
+    background: var(--color-paper-2);
+    font-weight: 600;
+  }
+
+  // First line of a bút toán (Sổ nhật ký): a stronger hairline between entries.
+  tr.book-entry td {
+    border-top: var(--rule-hair) solid var(--color-rule-strong);
+  }
+
+  tfoot tr + tr td {
+    border-top: var(--rule-hair) solid var(--color-rule);
+  }
+
+  .book-none {
+    padding: var(--space-md) var(--space-sm);
+    text-align: center;
+    color: var(--color-muted);
+  }
+}
+
+@media (hover: hover) {
+  .book-table tbody tr:not(.book-open, .book-head, .book-sum):hover td {
+    background: var(--color-paper-2);
   }
 }

@@ -100,6 +100,7 @@ export const routes: Routes = [
       { path: 'ke-toan/so-chi-tiet', loadComponent: () => import('./features/accounting/account-book.component').then((m) => m.AccountingAccountBookComponent) },
       { path: 'ke-toan/tong-hop-cong-no', loadComponent: () => import('./features/accounting/partner-summary.component').then((m) => m.AccountingPartnerSummaryComponent) },
       { path: 'ke-toan/thue-gtgt', loadComponent: () => import('./features/accounting/vat.component').then((m) => m.AccountingVatComponent) },
+      { path: 'hoa-don-ban', loadComponent: () => import('./features/einvoice/sales-invoices.component').then((m) => m.SalesInvoicesComponent) },
       { path: 'hoa-don-mua', loadComponent: () => import('./features/purchase-bills/purchase-bills.component').then((m) => m.PurchaseBillsComponent) },
       { path: 'ke-toan/so-cai/:code', loadComponent: () => import('./features/accounting/ledger.component').then((m) => m.AccountingLedgerComponent) },
 

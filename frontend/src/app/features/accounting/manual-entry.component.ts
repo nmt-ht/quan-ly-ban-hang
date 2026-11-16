@@ -1,78 +1,106 @@
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AccountingService } from '../../core/services/accounting.service';
+import { errorText } from '../../core/api/api.service';
 import { Account } from '../../core/models/domain.models';
+import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { formatVnd } from '../../shared/format.util';
+import { MoneyInputDirective } from '../../shared/money-input.directive';
+import { isoDay } from '../../shared/period';
 
-interface LineRow { accountCode: string; debit: number; credit: number; description: string }
+interface LineRow { accountCode: string; debit: number | null; credit: number | null; description: string }
 
 /** /ke-toan/but-toan — nhập bút toán thủ công (cân Nợ = Có). */
 @Component({
   selector: 'app-accounting-manual-entry',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, NavIconComponent, MoneyInputDirective],
   template: `
-    <div class="page-header"><div><h1>Nhập bút toán</h1><p class="subtitle">Tổng Nợ phải bằng tổng Có. Mỗi dòng chỉ ghi Nợ hoặc Có.</p></div></div>
-    @if (failure()) { <div class="notice is-error" role="alert">{{ failure() }}</div> }
-
-    <div class="card section-block" style="padding:16px">
-      <div class="toolbar" style="gap:16px; flex-wrap:wrap; align-items:flex-end">
-        <label>Ngày hạch toán<br><input type="date" [(ngModel)]="date"></label>
-        <label style="flex:1; min-width:260px">Diễn giải<br><input type="text" [(ngModel)]="description" style="width:100%" placeholder="Nội dung bút toán"></label>
+    <p class="subtitle"><a class="crumb" routerLink="/ke-toan/so-nhat-ky">Sổ nhật ký chung</a> / Nhập bút toán</p>
+    <div class="page-header">
+      <div>
+        <h1>Nhập bút toán</h1>
+        <p class="subtitle">Tổng Nợ phải bằng tổng Có. Mỗi dòng chỉ ghi Nợ hoặc Có.</p>
       </div>
+    </div>
+    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
 
-      <table style="width:100%; border-collapse:collapse; margin-top:12px">
-        <thead><tr>
-          <th style="text-align:left">Tài khoản</th><th style="text-align:left">Diễn giải dòng</th>
-          <th style="text-align:right; width:160px">Nợ</th><th style="text-align:right; width:160px">Có</th><th></th>
-        </tr></thead>
-        <tbody>
-          @for (l of lines(); track $index; let i = $index) {
-            <tr>
-              <td>
-                <select [(ngModel)]="l.accountCode" style="width:100%">
-                  <option value="">-- chọn TK --</option>
-                  @for (a of accounts(); track a.code) { <option [value]="a.code">{{ a.code }} — {{ a.name }}</option> }
-                </select>
-              </td>
-              <td><input type="text" [(ngModel)]="l.description" style="width:100%"></td>
-              <td><input type="number" min="0" [(ngModel)]="l.debit" style="width:100%; text-align:right"></td>
-              <td><input type="number" min="0" [(ngModel)]="l.credit" style="width:100%; text-align:right"></td>
-              <td><button type="button" class="btn btn-sm" (click)="removeLine(i)">x</button></td>
-            </tr>
-          }
-          <tr>
-            <td colspan="2" style="text-align:right"><b>Cộng</b></td>
-            <td style="text-align:right"><b>{{ money(totalDebit()) }}</b></td>
-            <td style="text-align:right"><b>{{ money(totalCredit()) }}</b></td><td></td>
-          </tr>
-        </tbody>
-      </table>
+    <section class="card section-block" aria-labelledby="bt-head">
+      <h2 id="bt-head" class="form-section-title">Thông tin chung</h2>
+      <div class="form-grid-3">
+        <div class="field">
+          <label for="bt-date">Ngày hạch toán <span class="required-mark">*</span></label>
+          <input id="bt-date" type="date" [max]="today" [(ngModel)]="date" />
+        </div>
+        <div class="field span-2">
+          <label for="bt-desc">Diễn giải</label>
+          <input id="bt-desc" type="text" maxlength="500" placeholder="Nội dung bút toán" [(ngModel)]="description" />
+        </div>
+      </div>
+    </section>
 
-      <div class="toolbar" style="gap:8px; margin-top:12px">
-        <button type="button" class="btn" (click)="addLine()">+ Thêm dòng</button>
-        <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save()">Ghi sổ</button>
+    <section class="card section-block" aria-labelledby="bt-lines">
+      <h2 id="bt-lines" class="form-section-title">Định khoản</h2>
+      <div class="rp-surface book-wrap">
+        <table class="line-table book-table">
+          <thead><tr>
+            <th scope="col">Tài khoản</th><th scope="col">Diễn giải dòng</th><th scope="col" class="r">Nợ</th><th scope="col" class="r">Có</th>
+            <th scope="col"><span class="visually-hidden">Xoá dòng</span></th>
+          </tr></thead>
+          <tbody>
+            @for (l of lines(); track $index; let i = $index) {
+              <tr>
+                <td>
+                  <select class="account-cell" [attr.aria-label]="'Tài khoản dòng ' + (i + 1)" [(ngModel)]="l.accountCode">
+                    <option value="">Chọn tài khoản…</option>
+                    @for (a of accounts(); track a.code) { <option [value]="a.code">{{ a.code }} — {{ a.name }}</option> }
+                  </select>
+                </td>
+                <td><input type="text" maxlength="300" [attr.aria-label]="'Diễn giải dòng ' + (i + 1)" [(ngModel)]="l.description" /></td>
+                <td class="r"><input type="text" appMoney class="num money-cell" placeholder="0" [attr.aria-label]="'Nợ dòng ' + (i + 1)" [(ngModel)]="l.debit" /></td>
+                <td class="r"><input type="text" appMoney class="num money-cell" placeholder="0" [attr.aria-label]="'Có dòng ' + (i + 1)" [(ngModel)]="l.credit" /></td>
+                <td><button type="button" class="icon-action" [attr.aria-label]="'Xoá dòng ' + (i + 1)" title="Xoá dòng" [disabled]="lines().length <= 2" (click)="removeLine(i)"><app-nav-icon name="trash" /></button></td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr><td colspan="2">Cộng</td><td class="r num">{{ money(totalDebit()) }}</td><td class="r num">{{ money(totalCredit()) }}</td><td></td></tr>
+          </tfoot>
+        </table>
+      </div>
+      <button type="button" class="btn" (click)="addLine()"><app-nav-icon name="plus" />Thêm dòng</button>
+    </section>
+
+    <div class="form-actions-bar">
+      <span class="hint" [class.text-danger]="difference() !== 0" role="status">{{ difference() === 0 ? 'Nợ bằng Có — có thể ghi sổ' : 'Nợ lệch Có ' + money(difference()) }}</span>
+      <div class="form-actions">
         <a class="btn" routerLink="/ke-toan/so-nhat-ky">Huỷ</a>
+        <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save()"><app-nav-icon name="check" />Ghi sổ</button>
       </div>
     </div>
   `,
+  styles: [`.money-cell { width: 8.5rem; text-align: right; } .account-cell { min-width: 12rem; width: 100%; }`],
 })
 export class AccountingManualEntryComponent {
   private readonly svc = inject(AccountingService);
   private readonly router = inject(Router);
   readonly accounts = signal<Account[]>([]);
   readonly lines = signal<LineRow[]>([blank(), blank()]);
-  date = new Date().toISOString().slice(0, 10);
+  readonly today = isoDay(new Date());
+  date = isoDay(new Date());
   description = '';
   readonly saving = signal(false);
   readonly failure = signal('');
   readonly money = formatVnd;
 
-  constructor() { this.svc.accounts().then((a) => this.accounts.set(a.filter((x) => x.isDetail && x.isActive))); }
+  constructor() { this.svc.accounts().then((a) => this.accounts.set(a.filter((x) => x.isDetail && x.isActive))).catch((e) => this.failure.set(errorText(e))); }
 
-  totalDebit() { return this.lines().reduce((s, l) => s + (Number(l.debit) || 0), 0); }
-  totalCredit() { return this.lines().reduce((s, l) => s + (Number(l.credit) || 0), 0); }
+  // Lines are edited in place (ngModel), so the totals are plain methods read on every change detection.
+  totalDebit(): number { return this.lines().reduce((s, l) => s + (Number(l.debit) || 0), 0); }
+  totalCredit(): number { return this.lines().reduce((s, l) => s + (Number(l.credit) || 0), 0); }
+  difference(): number { return this.totalDebit() - this.totalCredit(); }
   addLine() { this.lines.update((ls) => [...ls, blank()]); }
   removeLine(i: number) { this.lines.update((ls) => ls.filter((_, j) => j !== i)); }
 
@@ -86,11 +114,11 @@ export class AccountingManualEntryComponent {
       await this.svc.createManual({ date: this.date, description: this.description || undefined, lines });
       this.router.navigate(['/ke-toan/so-nhat-ky']);
     } catch (e) {
-      this.failure.set(e instanceof Error ? e.message : 'Không ghi được bút toán.');
+      this.failure.set(errorText(e));
     } finally {
       this.saving.set(false);
     }
   }
 }
 
-function blank(): LineRow { return { accountCode: '', debit: 0, credit: 0, description: '' }; }
+function blank(): LineRow { return { accountCode: '', debit: null, credit: null, description: '' }; }

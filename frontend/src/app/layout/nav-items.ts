@@ -39,6 +39,7 @@ export const NAV_GROUPS: NavGroup[] = [
     { label: 'Chính sách giá', path: '/bang-gia', icon: 'tag' },
     { label: 'Chương trình khuyến mại', path: '/khuyen-mai', icon: 'percent' },
     { label: 'Chứng từ bán hàng', path: '/don-hang', icon: 'receipt' },
+    { label: 'Hoá đơn bán ra', path: '/hoa-don-ban', icon: 'receipt' },
     { label: 'Chuyến giao hàng', path: '/giao-hang', icon: 'truck' },
     { label: 'Danh mục xe', path: '/xe', icon: 'car' },
     { label: 'Công nợ phải thu', path: '/cong-no/khach-hang', icon: 'ledger-in' },

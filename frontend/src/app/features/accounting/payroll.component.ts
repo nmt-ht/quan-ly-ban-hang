@@ -1,142 +1,161 @@
-import { Component, inject, signal } from '@angular/core';
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
+import { Component, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AccountingService } from '../../core/services/accounting.service';
+import { errorText } from '../../core/api/api.service';
 import { PayrollParamsView, PayrollRunSummary, PayrollSheetView } from '../../core/models/domain.models';
+import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
+import { DataTableColumn, DataTableComponent } from '../../shared/data-table/data-table.component';
 import { formatVnd } from '../../shared/format.util';
+import { MoneyInputDirective } from '../../shared/money-input.directive';
+import { isoDay } from '../../shared/period';
 import { CENTER_LABEL } from './employees.component';
 
 /** /ke-toan/luong — tính, chốt, huỷ bảng lương tháng; thiết lập tỷ lệ bảo hiểm, giảm trừ, biểu thuế. */
 @Component({
   selector: 'app-accounting-payroll',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, NavIconComponent, DataTableComponent, MoneyInputDirective],
   template: `
     <div class="page-header">
       <div>
         <h1>Bảng lương</h1>
         <p class="subtitle">Tính bảo hiểm và thuế TNCN theo thiết lập. Chốt: Nợ 642/641/154 / Có 334, 3382–3385; rồi Nợ 334 / Có 3383–3385, 3335. Chi lương lập ở Thu, chi tiền, loại "Chi lương nhân viên".</p>
       </div>
-      <label>Kỳ lương<br><input type="month" [(ngModel)]="period" (change)="load()"></label>
     </div>
-    @if (notice()) { <div class="notice" role="status">{{ notice() }}</div> }
-    @if (failure()) { <div class="notice is-error" role="alert">{{ failure() }}</div> }
 
-    <div class="card section-block" style="padding:16px; margin-bottom:12px">
-      <div class="toolbar" style="justify-content:space-between; flex-wrap:wrap; gap:8px">
-        <h3 class="form-section-title" style="margin:0">Thiết lập lương</h3>
-        <button type="button" class="btn btn-sm" (click)="toggleSettings()">{{ showSettings() ? 'Thu gọn' : 'Xem / sửa' }}</button>
+    <div class="filters-bar">
+      <label class="filter-label" for="pl-period">Kỳ lương</label>
+      <input id="pl-period" type="month" [(ngModel)]="period" (change)="load()" />
+    </div>
+    @if (notice()) {
+      <div class="notice" role="status">
+        <span>{{ notice() }}</span>
+        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+      </div>
+    }
+    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
+
+    @if (sheet(); as sh) {
+      <section class="section-bare">
+        <h3>Kỳ {{ sh.period }} — {{ sh.existing ? 'đã chốt' : 'xem trước (chưa chốt)' }}</h3>
+        @if (sh.rows.length) {
+          <dl class="list-totals">
+            <div><dt>Tổng thu nhập</dt><dd class="num">{{ money(sh.totals.gross) }}</dd></div>
+            <div><dt>Thuế TNCN</dt><dd class="num">{{ money(sh.totals.pit) }}</dd></div>
+            <div><dt>Thực lĩnh</dt><dd class="num">{{ money(sh.totals.net) }}</dd></div>
+            <div><dt>Doanh nghiệp đóng thêm</dt><dd class="num">{{ money(sh.totals.employerCost) }}</dd></div>
+          </dl>
+        }
+        <div class="toolbar">
+          @if (!sh.existing) {
+            <button type="button" class="btn" [disabled]="busy()" (click)="load()"><app-nav-icon name="refresh" />Tính lại</button>
+            <button type="button" class="btn btn-primary" [disabled]="busy() || !sh.rows.length" (click)="run()"><app-nav-icon name="check" />Chốt bảng lương</button>
+          } @else {
+            <button type="button" class="btn btn-danger-ghost" [disabled]="busy()" (click)="cancel()">Huỷ bảng lương để tính lại</button>
+          }
+        </div>
+        <div class="rp-surface rp-grid">
+          <table class="line-table book-table">
+            <thead><tr>
+              <th scope="col">Mã</th><th scope="col">Họ tên</th><th scope="col">Bộ phận</th>
+              <th scope="col" class="r">Thưởng / phụ cấp tháng</th><th scope="col" class="r">Tổng thu nhập</th>
+              <th scope="col" class="r">Bảo hiểm NLĐ</th><th scope="col" class="r">Thu nhập tính thuế</th><th scope="col" class="r">Thuế TNCN</th>
+              <th scope="col" class="r">Thực lĩnh</th><th scope="col" class="r">DN đóng (BH + KPCĐ)</th>
+            </tr></thead>
+            <tbody>
+              @for (r of sh.rows; track r.employeeId) {
+                <tr>
+                  <td class="code">{{ r.code }}</td><td>{{ r.name }}</td><td>{{ centerLabel(r.center) }}</td>
+                  <td class="r">
+                    @if (sh.existing) { <span class="num">{{ money(r.adjustment) }}</span> }
+                    @else { <input type="text" appMoney class="num adj-cell" placeholder="0" [attr.aria-label]="'Thưởng, phụ cấp ' + r.name" [(ngModel)]="r.adjustment" /> }
+                  </td>
+                  <td class="r num">{{ money(r.gross) }}</td>
+                  <td class="r num">{{ money(r.bhxhEe + r.bhytEe + r.bhtnEe) }}</td>
+                  <td class="r num">{{ money(r.taxable) }}</td>
+                  <td class="r num" [class.is-zero]="!r.pit">{{ r.pit ? money(r.pit) : '—' }}</td>
+                  <td class="r num"><b>{{ money(r.net) }}</b></td>
+                  <td class="r num">{{ money(r.bhxhEr + r.bhytEr + r.bhtnEr + r.kpcd) }}</td>
+                </tr>
+              } @empty { <tr><td class="book-none" colspan="10">Chưa có nhân viên đang làm việc.</td></tr> }
+            </tbody>
+            @if (sh.rows.length) {
+              <tfoot><tr>
+                <td colspan="4">TỔNG CỘNG</td>
+                <td class="r num">{{ money(sh.totals.gross) }}</td>
+                <td class="r num">{{ money(sh.totals.employeeInsurance) }}</td>
+                <td></td>
+                <td class="r num">{{ money(sh.totals.pit) }}</td>
+                <td class="r num">{{ money(sh.totals.net) }}</td>
+                <td class="r num">{{ money(sh.totals.employerCost) }}</td>
+              </tr></tfoot>
+            }
+          </table>
+        </div>
+      </section>
+    }
+
+    <section class="section-bare">
+      <h3>Các kỳ đã chốt</h3>
+      <app-data-table [columns]="runColumns" [rows]="runs()" [actions]="runActions()" emptyTitle="Chưa chốt bảng lương nào" emptyHint="Chốt bảng lương của một kỳ để thấy ở đây." />
+    </section>
+
+    <section class="card section-block" aria-labelledby="pl-set">
+      <div class="toolbar set-head">
+        <h2 id="pl-set" class="form-section-title">Thiết lập lương</h2>
+        <button type="button" class="btn" [attr.aria-expanded]="showSettings()" (click)="toggleSettings()">{{ showSettings() ? 'Thu gọn' : 'Xem / sửa' }}</button>
       </div>
       @if (showSettings() && settings(); as s) {
-        <p class="subtitle">Mặc định theo quy định áp dụng nửa cuối 2026. Các mức này đổi theo năm, hãy đối chiếu với kế toán trưởng hoặc văn bản mới nhất trước khi chốt lương.</p>
-        <div class="toolbar" style="gap:12px; flex-wrap:wrap; align-items:flex-end">
-          <label>BHXH NLĐ (%)<br><input type="number" step="0.1" [(ngModel)]="s.bhxhEmployee" style="width:90px"></label>
-          <label>BHYT NLĐ (%)<br><input type="number" step="0.1" [(ngModel)]="s.bhytEmployee" style="width:90px"></label>
-          <label>BHTN NLĐ (%)<br><input type="number" step="0.1" [(ngModel)]="s.bhtnEmployee" style="width:90px"></label>
-          <label>BHXH DN (%)<br><input type="number" step="0.1" [(ngModel)]="s.bhxhEmployer" style="width:90px"></label>
-          <label>BHYT DN (%)<br><input type="number" step="0.1" [(ngModel)]="s.bhytEmployer" style="width:90px"></label>
-          <label>BHTN DN (%)<br><input type="number" step="0.1" [(ngModel)]="s.bhtnEmployer" style="width:90px"></label>
-          <label>KPCĐ (%)<br><input type="number" step="0.1" [(ngModel)]="s.kpcd" style="width:90px"></label>
+        <p class="hint">Mặc định theo quy định áp dụng nửa cuối 2026. Các mức này đổi theo năm, hãy đối chiếu với kế toán trưởng hoặc văn bản mới nhất trước khi chốt lương.</p>
+        <div class="form-grid-3">
+          <div class="field"><label for="ps-bhxh-e">BHXH người lao động (%)</label><input id="ps-bhxh-e" type="number" step="0.1" class="num" [(ngModel)]="s.bhxhEmployee" /></div>
+          <div class="field"><label for="ps-bhyt-e">BHYT người lao động (%)</label><input id="ps-bhyt-e" type="number" step="0.1" class="num" [(ngModel)]="s.bhytEmployee" /></div>
+          <div class="field"><label for="ps-bhtn-e">BHTN người lao động (%)</label><input id="ps-bhtn-e" type="number" step="0.1" class="num" [(ngModel)]="s.bhtnEmployee" /></div>
+          <div class="field"><label for="ps-bhxh-r">BHXH doanh nghiệp (%)</label><input id="ps-bhxh-r" type="number" step="0.1" class="num" [(ngModel)]="s.bhxhEmployer" /></div>
+          <div class="field"><label for="ps-bhyt-r">BHYT doanh nghiệp (%)</label><input id="ps-bhyt-r" type="number" step="0.1" class="num" [(ngModel)]="s.bhytEmployer" /></div>
+          <div class="field"><label for="ps-bhtn-r">BHTN doanh nghiệp (%)</label><input id="ps-bhtn-r" type="number" step="0.1" class="num" [(ngModel)]="s.bhtnEmployer" /></div>
+          <div class="field"><label for="ps-kpcd">KPCĐ (%)</label><input id="ps-kpcd" type="number" step="0.1" class="num" [(ngModel)]="s.kpcd" /></div>
+          <div class="field"><label for="ps-cap1">Trần BHXH, BHYT</label><input id="ps-cap1" type="text" appMoney class="num money-field" [(ngModel)]="s.socialCap" /></div>
+          <div class="field"><label for="ps-cap2">Trần BHTN</label><input id="ps-cap2" type="text" appMoney class="num money-field" [(ngModel)]="s.unemploymentCap" /></div>
+          <div class="field"><label for="ps-self">Giảm trừ bản thân</label><input id="ps-self" type="text" appMoney class="num money-field" [(ngModel)]="s.personalDeduction" /></div>
+          <div class="field"><label for="ps-dep">Giảm trừ mỗi người phụ thuộc</label><input id="ps-dep" type="text" appMoney class="num money-field" [(ngModel)]="s.dependentDeduction" /></div>
         </div>
-        <div class="toolbar" style="gap:12px; flex-wrap:wrap; align-items:flex-end; margin-top:8px">
-          <label>Trần BHXH, BHYT<br><input type="number" [(ngModel)]="s.socialCap" style="width:150px; text-align:right"></label>
-          <label>Trần BHTN<br><input type="number" [(ngModel)]="s.unemploymentCap" style="width:150px; text-align:right"></label>
-          <label>Giảm trừ bản thân<br><input type="number" [(ngModel)]="s.personalDeduction" style="width:150px; text-align:right"></label>
-          <label>Giảm trừ / người phụ thuộc<br><input type="number" [(ngModel)]="s.dependentDeduction" style="width:150px; text-align:right"></label>
+
+        <h3 class="form-section-title">Biểu thuế TNCN luỹ tiến (theo thu nhập tính thuế tháng)</h3>
+        <div class="rp-surface book-wrap">
+          <table class="line-table book-table">
+            <thead><tr><th scope="col" class="r">Đến mức (đồng)</th><th scope="col" class="r">Thuế suất (%)</th><th scope="col"><span class="visually-hidden">Xoá bậc</span></th></tr></thead>
+            <tbody>
+              @for (b of s.brackets; track $index; let i = $index) {
+                <tr>
+                  <td class="r"><input type="text" appMoney class="num money-field" [attr.aria-label]="'Đến mức bậc ' + (i + 1)" [(ngModel)]="b.upTo" [placeholder]="i === s.brackets.length - 1 ? 'Không giới hạn' : '0'" /></td>
+                  <td class="r"><input type="number" step="0.5" class="num rate-cell" [attr.aria-label]="'Thuế suất bậc ' + (i + 1)" [(ngModel)]="b.rate" /></td>
+                  <td><button type="button" class="icon-action" [attr.aria-label]="'Xoá bậc ' + (i + 1)" title="Xoá bậc" (click)="removeBracket(i)"><app-nav-icon name="trash" /></button></td>
+                </tr>
+              }
+            </tbody>
+          </table>
         </div>
-        <h4 style="margin:12px 0 4px">Biểu thuế TNCN luỹ tiến (theo thu nhập tính thuế tháng)</h4>
-        <table style="border-collapse:collapse">
-          <thead><tr><th style="text-align:left">Đến mức (đồng)</th><th style="text-align:left">Thuế suất (%)</th><th></th></tr></thead>
-          <tbody>
-            @for (b of s.brackets; track $index; let i = $index) {
-              <tr>
-                <td><input type="number" [(ngModel)]="b.upTo" [placeholder]="i === s.brackets.length - 1 ? 'Không giới hạn' : ''" style="width:170px; text-align:right"></td>
-                <td><input type="number" step="0.5" [(ngModel)]="b.rate" style="width:90px"></td>
-                <td><button type="button" class="btn btn-sm" (click)="removeBracket(i)">x</button></td>
-              </tr>
-            }
-          </tbody>
-        </table>
-        <div class="toolbar" style="gap:8px; margin-top:8px">
-          <button type="button" class="btn btn-sm" (click)="addBracket()">+ Thêm bậc</button>
+        <div class="toolbar">
+          <button type="button" class="btn" (click)="addBracket()"><app-nav-icon name="plus" />Thêm bậc</button>
           <button type="button" class="btn btn-primary" [disabled]="busy()" (click)="saveSettings()">Lưu thiết lập</button>
         </div>
       }
-    </div>
+    </section>
 
-    @if (sheet(); as sh) {
-      <div class="card" style="overflow-x:auto">
-        <div class="toolbar" style="justify-content:space-between; padding:12px 12px 0; flex-wrap:wrap; gap:8px">
-          <h3 class="form-section-title" style="margin:0">
-            Kỳ {{ sh.period }} — {{ sh.existing ? 'đã chốt' : 'xem trước (chưa chốt)' }}
-          </h3>
-          <span style="display:flex; gap:8px">
-            @if (!sh.existing) {
-              <button type="button" class="btn" [disabled]="busy()" (click)="load()">Tính lại</button>
-              <button type="button" class="btn btn-primary" [disabled]="busy() || !sh.rows.length" (click)="run()">Chốt bảng lương</button>
-            } @else {
-              <button type="button" class="btn" [disabled]="busy()" (click)="cancel()">Huỷ bảng lương để tính lại</button>
-            }
-          </span>
-        </div>
-        <table style="width:100%; border-collapse:collapse; margin-top:8px">
-          <thead><tr>
-            <th style="text-align:left">Mã</th><th style="text-align:left">Họ tên</th><th style="text-align:left">Bộ phận</th>
-            <th style="text-align:right">Thưởng/PC tháng</th><th style="text-align:right">Tổng thu nhập</th>
-            <th style="text-align:right">Bảo hiểm NLĐ</th><th style="text-align:right">Thu nhập tính thuế</th><th style="text-align:right">Thuế TNCN</th>
-            <th style="text-align:right">Thực lĩnh</th><th style="text-align:right">DN đóng (BH + KPCĐ)</th>
-          </tr></thead>
-          <tbody>
-            @for (r of sh.rows; track r.employeeId) {
-              <tr>
-                <td>{{ r.code }}</td><td>{{ r.name }}</td><td>{{ centerLabel(r.center) }}</td>
-                <td style="text-align:right">
-                  @if (sh.existing) { {{ money(r.adjustment) }} }
-                  @else { <input type="number" [(ngModel)]="r.adjustment" style="width:120px; text-align:right"> }
-                </td>
-                <td style="text-align:right">{{ money(r.gross) }}</td>
-                <td style="text-align:right">{{ money(r.bhxhEe + r.bhytEe + r.bhtnEe) }}</td>
-                <td style="text-align:right">{{ money(r.taxable) }}</td>
-                <td style="text-align:right">{{ money(r.pit) }}</td>
-                <td style="text-align:right"><b>{{ money(r.net) }}</b></td>
-                <td style="text-align:right">{{ money(r.bhxhEr + r.bhytEr + r.bhtnEr + r.kpcd) }}</td>
-              </tr>
-            } @empty { <tr><td colspan="10" style="text-align:center; padding:16px">Chưa có nhân viên đang làm việc.</td></tr> }
-          </tbody>
-          @if (sh.rows.length) {
-            <tfoot><tr style="font-weight:700; border-top:2px solid var(--border, #ccc)">
-              <td colspan="4">TỔNG CỘNG</td>
-              <td style="text-align:right">{{ money(sh.totals.gross) }}</td>
-              <td style="text-align:right">{{ money(sh.totals.employeeInsurance) }}</td>
-              <td></td>
-              <td style="text-align:right">{{ money(sh.totals.pit) }}</td>
-              <td style="text-align:right">{{ money(sh.totals.net) }}</td>
-              <td style="text-align:right">{{ money(sh.totals.employerCost) }}</td>
-            </tr></tfoot>
-          }
-        </table>
-      </div>
-    }
-
-    <div class="card" style="overflow-x:auto; margin-top:12px">
-      <h3 class="form-section-title" style="padding:12px 12px 0">Các kỳ đã chốt</h3>
-      <table style="width:100%; border-collapse:collapse">
-        <thead><tr>
-          <th style="text-align:left">Kỳ</th><th style="text-align:right">Nhân viên</th><th style="text-align:right">Tổng thu nhập</th>
-          <th style="text-align:right">Thuế TNCN</th><th style="text-align:right">Thực lĩnh</th><th style="text-align:right">DN đóng thêm</th><th></th>
-        </tr></thead>
-        <tbody>
-          @for (r of runs(); track r.id) {
-            <tr>
-              <td>{{ r.period }}</td><td style="text-align:right">{{ r.employees }}</td>
-              <td style="text-align:right">{{ money(r.gross) }}</td><td style="text-align:right">{{ money(r.pit) }}</td>
-              <td style="text-align:right">{{ money(r.net) }}</td><td style="text-align:right">{{ money(r.employerCost) }}</td>
-              <td style="text-align:right"><button type="button" class="btn btn-sm" (click)="open(r.period)">Xem</button></td>
-            </tr>
-          } @empty { <tr><td colspan="7" style="text-align:center; padding:16px">Chưa chốt bảng lương nào.</td></tr> }
-        </tbody>
-      </table>
-    </div>
+    <ng-template #runActionsTpl let-r>
+      <button type="button" class="btn row-act-btn" (click)="open(r.period)">Xem</button>
+    </ng-template>
   `,
+  styles: [`
+    .filter-label { font-size: var(--text-sm); color: var(--color-muted); }
+    .adj-cell { width: 9rem; text-align: right; }
+    .rate-cell { width: 6rem; text-align: right; }
+    .money-field { text-align: right; }
+    .set-head { justify-content: space-between; align-items: center; }
+    .set-head .form-section-title { margin: 0; }
+  `],
 })
 export class AccountingPayrollComponent {
   private readonly svc = inject(AccountingService);
@@ -148,7 +167,18 @@ export class AccountingPayrollComponent {
   readonly notice = signal('');
   readonly failure = signal('');
   readonly money = formatVnd;
-  period = new Date().toISOString().slice(0, 7);
+  period = isoDay(new Date()).slice(0, 7);
+  private readonly runActionsRef = viewChild<TemplateRef<{ $implicit: PayrollRunSummary }>>('runActionsTpl');
+  readonly runActions = computed(() => this.runActionsRef());
+
+  readonly runColumns: DataTableColumn<PayrollRunSummary>[] = [
+    { key: 'period', label: 'Kỳ', mono: true },
+    { key: 'employees', label: 'Nhân viên', align: 'right', format: (r) => String(r.employees) },
+    { key: 'gross', label: 'Tổng thu nhập', align: 'right', format: (r) => formatVnd(r.gross) },
+    { key: 'pit', label: 'Thuế TNCN', align: 'right', format: (r) => formatVnd(r.pit) },
+    { key: 'net', label: 'Thực lĩnh', align: 'right', format: (r) => formatVnd(r.net) },
+    { key: 'employerCost', label: 'DN đóng thêm', align: 'right', format: (r) => formatVnd(r.employerCost) },
+  ];
 
   constructor() { this.load(); this.loadRuns(); }
 
@@ -161,7 +191,7 @@ export class AccountingPayrollComponent {
     try {
       const pv = await this.svc.payrollPreview(this.period, [...keep].map(([employeeId, amount]) => ({ employeeId, amount: Number(amount) || 0 })));
       this.sheet.set(pv.existing ? await this.svc.payrollRunDetail(this.period) : pv);
-    } catch (e) { this.failure.set(e instanceof Error ? e.message : 'Lỗi tải'); }
+    } catch (e) { this.failure.set(errorText(e)); }
   }
 
   async loadRuns() {
@@ -178,7 +208,7 @@ export class AccountingPayrollComponent {
       await this.svc.payrollRun(this.period, sh.rows.map((r) => ({ employeeId: r.employeeId, amount: Number(r.adjustment) || 0 })));
       this.notice.set(`Đã chốt bảng lương kỳ ${this.period}.`);
       this.sheet.set(null); await this.load(); await this.loadRuns();
-    } catch (e) { this.failure.set(e instanceof Error ? e.message : 'Không chốt được.'); }
+    } catch (e) { this.failure.set(errorText(e)); }
     finally { this.busy.set(false); }
   }
 
@@ -189,14 +219,14 @@ export class AccountingPayrollComponent {
       await this.svc.payrollCancel(this.period);
       this.notice.set(`Đã huỷ bảng lương kỳ ${this.period}. Có thể tính lại.`);
       this.sheet.set(null); await this.load(); await this.loadRuns();
-    } catch (e) { this.failure.set(e instanceof Error ? e.message : 'Không huỷ được.'); }
+    } catch (e) { this.failure.set(errorText(e)); }
     finally { this.busy.set(false); }
   }
 
   async toggleSettings() {
     if (this.showSettings()) { this.showSettings.set(false); return; }
     try { this.settings.set(await this.svc.payrollSettings()); this.showSettings.set(true); }
-    catch (e) { this.failure.set(e instanceof Error ? e.message : 'Lỗi tải thiết lập'); }
+    catch (e) { this.failure.set(errorText(e)); }
   }
 
   addBracket() {
@@ -218,7 +248,7 @@ export class AccountingPayrollComponent {
       this.settings.set(await this.svc.savePayrollSettings({ ...s, brackets }));
       this.notice.set('Đã lưu thiết lập lương. Áp dụng cho các bảng lương chốt từ bây giờ.');
       this.sheet.set(null); await this.load();
-    } catch (e) { this.failure.set(e instanceof Error ? e.message : 'Không lưu được.'); }
+    } catch (e) { this.failure.set(errorText(e)); }
     finally { this.busy.set(false); }
   }
 }

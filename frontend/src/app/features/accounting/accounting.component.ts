@@ -1,14 +1,38 @@
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 import { Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AccountingService } from '../../core/services/accounting.service';
 import { AuthService } from '../../core/services/auth.service';
+import { errorText } from '../../core/api/api.service';
+import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { formatDay } from '../../shared/period';
+
+/** Đường tắt tới sổ sách và báo cáo, nhóm theo việc người làm kế toán cần. */
+const GROUPS = [
+  { title: 'Sổ sách', links: [
+    { label: 'Sổ nhật ký chung', to: '/ke-toan/so-nhat-ky' },
+    { label: 'Sổ chi tiết tài khoản', to: '/ke-toan/so-chi-tiet' },
+    { label: 'Tổng hợp công nợ', to: '/ke-toan/tong-hop-cong-no' },
+    { label: 'Bảng cân đối số phát sinh', to: '/ke-toan/can-doi-phat-sinh' },
+  ] },
+  { title: 'Báo cáo và thuế', links: [
+    { label: 'Bảng cân đối kế toán', to: '/ke-toan/can-doi-ke-toan' },
+    { label: 'Kết quả hoạt động kinh doanh', to: '/ke-toan/ket-qua-kinh-doanh' },
+    { label: 'Lưu chuyển tiền tệ', to: '/ke-toan/luu-chuyen-tien-te' },
+    { label: 'Thuế GTGT', to: '/ke-toan/thue-gtgt' },
+  ] },
+  { title: 'Thiết lập sổ', links: [
+    { label: 'Hệ thống tài khoản', to: '/ke-toan/tai-khoan' },
+    { label: 'Số dư đầu kỳ', to: '/ke-toan/so-du-dau-ky' },
+    { label: 'Nhập bút toán', to: '/ke-toan/but-toan' },
+  ] },
+];
 
 /** /ke-toan — tổng quan kế toán + bật/tắt ngày ghi sổ. */
 @Component({
   selector: 'app-accounting',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, NavIconComponent],
   template: `
     <div class="page-header">
       <div>
@@ -17,41 +41,48 @@ import { formatDay } from '../../shared/period';
       </div>
     </div>
 
-    @if (notice()) { <div class="notice" role="status">{{ notice() }}</div> }
-    @if (failure()) { <div class="notice is-error" role="alert">{{ failure() }}</div> }
+    @if (notice()) { <div class="notice" role="status"><span>{{ notice() }}</span></div> }
+    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
 
-    <div class="card section-block" style="padding:16px">
-      <h3 class="form-section-title">Trạng thái ghi sổ</h3>
+    <section class="card section-block" aria-labelledby="kt-state">
+      <h2 id="kt-state" class="form-section-title">Trạng thái ghi sổ</h2>
       @if (loaded()) {
         @if (startDate()) {
-          <p>Đang ghi sổ từ ngày <b>{{ formatDay(startDate()!) }}</b>. Chứng từ từ ngày này trở đi tự sinh bút toán.</p>
+          <p>Đang ghi sổ từ ngày <b class="num">{{ formatDay(startDate()!) }}</b>. Chứng từ từ ngày này trở đi tự sinh bút toán.</p>
         } @else {
           <p>Sổ cái <b>chưa bật</b>. Đặt ngày bắt đầu ghi sổ để hệ thống sinh bút toán tự động.</p>
         }
         @if (canManage) {
-          <div class="toolbar" style="gap:8px; align-items:flex-end; flex-wrap:wrap">
-            <label>Ngày bắt đầu ghi sổ<br><input type="date" [value]="startDate() || ''" #d></label>
-            <button type="button" class="btn btn-primary" (click)="save(d.value)">Lưu</button>
-            @if (startDate()) { <button type="button" class="btn" (click)="save('')">Tắt sổ cái</button> }
+          <div class="form-grid">
+            <div class="field">
+              <label for="kt-start">Ngày bắt đầu ghi sổ</label>
+              <input id="kt-start" type="date" [value]="startDate() || ''" #d />
+            </div>
+          </div>
+          <div class="toolbar">
+            <button type="button" class="btn btn-primary" (click)="save(d.value)"><app-nav-icon name="check" />Lưu</button>
+            @if (startDate()) { <button type="button" class="btn btn-danger-ghost" (click)="save('')">Tắt sổ cái</button> }
           </div>
         }
+      } @else {
+        <p class="subtitle">Đang tải…</p>
       }
-    </div>
+    </section>
 
-    <div class="card section-block" style="padding:16px">
-      <h3 class="form-section-title">Sổ sách &amp; báo cáo</h3>
-      <div class="toolbar" style="flex-wrap:wrap; gap:8px">
-        <a class="btn btn-primary" routerLink="/ke-toan/so-nhat-ky">Sổ nhật ký chung</a>
-        <a class="btn" routerLink="/ke-toan/can-doi-phat-sinh">Bảng cân đối số phát sinh</a>
-        <a class="btn" routerLink="/ke-toan/tai-khoan">Hệ thống tài khoản</a>
-        <a class="btn" routerLink="/ke-toan/so-du-dau-ky">Số dư đầu kỳ</a>
-      </div>
-    </div>
+    @for (g of groups; track g.title) {
+      <section class="section-bare section-block">
+        <h3>{{ g.title }}</h3>
+        <div class="toolbar">
+          @for (l of g.links; track l.to) { <a class="btn" [routerLink]="l.to">{{ l.label }}</a> }
+        </div>
+      </section>
+    }
   `,
 })
 export class AccountingComponent {
   private readonly svc = inject(AccountingService);
   readonly canManage = inject(AuthService).can('accounting.manage_account');
+  readonly groups = GROUPS;
   readonly startDate = signal<string | null>(null);
   readonly loaded = signal(false);
   readonly notice = signal('');
@@ -66,6 +97,8 @@ export class AccountingComponent {
     try {
       const s = await this.svc.settings();
       this.startDate.set(s.ledgerStartDate ?? null);
+    } catch (e) {
+      this.failure.set(errorText(e));
     } finally {
       this.loaded.set(true);
     }
@@ -78,7 +111,7 @@ export class AccountingComponent {
       this.startDate.set(s.ledgerStartDate ?? null);
       this.notice.set(value ? 'Đã bật sổ cái.' : 'Đã tắt sổ cái.');
     } catch (e) {
-      this.failure.set(e instanceof Error ? e.message : 'Không lưu được.');
+      this.failure.set(errorText(e));
     }
   }
 }

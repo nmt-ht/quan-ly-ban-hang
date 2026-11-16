@@ -13,6 +13,7 @@ import { formatVnd } from '../../../shared/format.util';
 import { formatDay, isoDay } from '../../../shared/period';
 import { ACCOUNT_TYPE_LABEL, KIND_TEXT, autoAllocate, categoryHint } from '../cash-voucher.rules';
 import { CashVoucherService } from '../cash-voucher.service';
+import { CashOpsService } from '../../cash-ops/cash-ops.service';
 import { errorText } from '../../../core/api/api.service';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { SearchOption, SearchSelectComponent } from '../../../shared/search-select/search-select.component';
@@ -28,6 +29,7 @@ interface Partner {
 
 // One screen for Lập phiếu thu (/thu-chi/lap/thu) and Lập phiếu chi (/thu-chi/lap/chi).
 // ?supplierId= / ?customerId= pre-selects the partner (row menu "Lập phiếu chi" on Nhà cung cấp).
+// ?account= &date= &amount= &desc= &line= (từ Đối chiếu ngân hàng): điền sẵn từ một dòng sao kê chưa ghi sổ; lưu xong phiếu tự khớp dòng đó.
 @Component({
   selector: 'app-cash-voucher-form',
   standalone: true,
@@ -41,6 +43,9 @@ export class CashVoucherFormComponent {
   private readonly data = inject(DataStore);
   private readonly debt = inject(DebtService);
   private readonly svc = inject(CashVoucherService);
+  private readonly cashOps = inject(CashOpsService);
+  /** Dòng sao kê đang được lập phiếu: lưu xong thì khớp với phiếu vừa lập. */
+  private statementLineId = '';
 
   readonly kind = toSignal(
     this.route.paramMap.pipe(map((p) => (p.get('kind') === 'thu' ? 'THU' : 'CHI') as VoucherKind)),
@@ -95,6 +100,11 @@ export class CashVoucherFormComponent {
         const accounts = this.accounts();
         this.accountId.set((accounts.find((a) => a.isDefault) ?? accounts.find((a) => a.type === 'TIEN_MAT') ?? accounts[0])?.id ?? '');
         this.description.set(q.get('desc') ?? '');
+        const preAccount = q.get('account');
+        if (preAccount && accounts.some((a) => a.id === preAccount)) this.accountId.set(preAccount);
+        const preDate = q.get('date');
+        if (preDate && /^\d{4}-\d{2}-\d{2}$/.test(preDate) && preDate <= isoDay(new Date())) this.date.set(preDate);
+        this.statementLineId = q.get('line') ?? '';
         this.manual.set(false);
         this.picks.set({});
         this.attempted.set(false);
@@ -281,7 +291,15 @@ export class CashVoucherFormComponent {
     } finally {
       this.saving.set(false);
     }
-    const notice = `Đã tạo ${this.kind() === 'CHI' ? 'phiếu chi' : 'phiếu thu'} ${v.code} — ${formatVnd(v.amount)}.`;
+    let notice = `Đã tạo ${this.kind() === 'CHI' ? 'phiếu chi' : 'phiếu thu'} ${v.code} — ${formatVnd(v.amount)}.`;
+    if (this.statementLineId) {
+      try {
+        await this.cashOps.match(this.statementLineId, v.id);
+        notice += ' Đã khớp với dòng sao kê.';
+      } catch (e) {
+        notice += ` Chưa khớp được với dòng sao kê: ${errorText(e)}`;
+      }
+    }
     this.router.navigate(this.returnTo.path, { queryParams: this.returnTo.query, state: { notice } });
   }
 }

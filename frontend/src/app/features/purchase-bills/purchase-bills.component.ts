@@ -1,11 +1,16 @@
-import { Component, computed, inject, signal } from '@angular/core';
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
+import { Component, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService, errorText } from '../../core/api/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { DataStore } from '../../core/services/data-store.service';
 import { PurchaseBillInput, PurchaseBillView } from '../../core/models/books-vat.models';
-import { formatVnd } from '../../shared/format.util';
+import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
+import { DataTableColumn, DataTableComponent } from '../../shared/data-table/data-table.component';
+import { foldVi, formatVnd } from '../../shared/format.util';
+import { MoneyInputDirective } from '../../shared/money-input.directive';
 import { formatDay, isoDay } from '../../shared/period';
+import { SearchOption, SearchSelectComponent } from '../../shared/search-select/search-select.component';
 
 /** TK dùng được trên hoá đơn không qua kho (khớp BILL_ACCOUNTS ở server): hàng tồn kho đi qua phiếu nhập kho. */
 const EXPENSE_ACCOUNTS = [
@@ -27,131 +32,194 @@ const blankRow = (): Row => ({ accountCode: '642', description: '', amount: null
 @Component({
   selector: 'app-purchase-bills',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, NavIconComponent, DataTableComponent, SearchSelectComponent, MoneyInputDirective],
   template: `
     <div class="page-header">
       <div>
         <h1>Hoá đơn mua hàng, dịch vụ</h1>
         <p class="subtitle">Khoản mua không nhập kho (điện, nước, vận chuyển, thuê ngoài…). Ghi chi phí, thuế GTGT đầu vào và công nợ phải trả nhà cung cấp.</p>
       </div>
-      @if (canCreate() && !creating()) { <button type="button" class="btn btn-primary" (click)="startCreate()">Lập hoá đơn mua</button> }
+      @if (canCreate() && !creating()) {
+        <div class="toolbar">
+          <button type="button" class="btn btn-primary" (click)="startCreate()"><app-nav-icon name="plus" />Lập hoá đơn mua</button>
+        </div>
+      }
     </div>
 
-    @if (failure()) { <div class="notice is-error" role="alert">{{ failure() }}</div> }
-    @if (notice()) { <div class="notice" role="status">{{ notice() }}</div> }
-
-    @if (creating()) {
-      <div class="card" style="margin-bottom:16px">
-        <h2 style="margin-top:0">Hoá đơn mua mới</h2>
-        <div class="toolbar" style="flex-wrap:wrap; gap:8px">
-          <label>Nhà cung cấp <span class="required-mark">*</span>
-            <select [ngModel]="supplierId()" (ngModelChange)="supplierId.set($event)">
-              <option value="">— Chọn —</option>
-              @for (s of suppliers(); track s.id) { <option [value]="s.id">{{ s.code }} — {{ s.name }}</option> }
-            </select>
-          </label>
-          <label>Ngày hạch toán <span class="required-mark">*</span> <input type="date" [ngModel]="date()" (ngModelChange)="date.set($event)"></label>
-          <label>Ký hiệu hoá đơn <input type="text" maxlength="20" placeholder="C26TAA" [ngModel]="series()" (ngModelChange)="series.set($event)" style="width:110px"></label>
-          <label>Số hoá đơn <input type="text" maxlength="30" [ngModel]="invoiceNo()" (ngModelChange)="invoiceNo.set($event)" style="width:130px"></label>
-          <label>Ngày hoá đơn <input type="date" [ngModel]="invoiceDate()" (ngModelChange)="invoiceDate.set($event)"></label>
-        </div>
-        <label style="display:block; margin:8px 0">Diễn giải
-          <input type="text" maxlength="300" placeholder="VD: Tiền điện tháng 11" [ngModel]="description()" (ngModelChange)="description.set($event)" style="width:100%">
-        </label>
-
-        <table style="width:100%; border-collapse:collapse">
-          <thead><tr>
-            <th style="text-align:left">Tài khoản hạch toán</th><th style="text-align:left">Nội dung</th>
-            <th style="text-align:right">Thành tiền (chưa thuế)</th><th style="text-align:right">Thuế suất</th><th style="text-align:right">Tiền thuế</th><th></th>
-          </tr></thead>
-          <tbody>
-            @for (r of rows(); track $index; let i = $index) {
-              <tr>
-                <td>
-                  <select [ngModel]="r.accountCode" (ngModelChange)="patch(i, { accountCode: $event })" [attr.aria-label]="'Tài khoản dòng ' + (i + 1)">
-                    @for (a of accounts; track a.code) { <option [value]="a.code">{{ a.code }} — {{ a.name }}</option> }
-                  </select>
-                </td>
-                <td><input type="text" maxlength="200" [ngModel]="r.description" (ngModelChange)="patch(i, { description: $event })" style="width:100%" [attr.aria-label]="'Nội dung dòng ' + (i + 1)"></td>
-                <td style="text-align:right"><input type="number" min="0" step="1" [ngModel]="r.amount" (ngModelChange)="patch(i, { amount: $event })" style="width:150px; text-align:right" [attr.aria-label]="'Thành tiền dòng ' + (i + 1)"></td>
-                <td style="text-align:right">
-                  <select [ngModel]="r.vatRate" (ngModelChange)="patch(i, { vatRate: +$event })" [attr.aria-label]="'Thuế suất dòng ' + (i + 1)">
-                    @for (v of vatRates; track v) { <option [ngValue]="v">{{ v }}%</option> }
-                  </select>
-                </td>
-                <td style="text-align:right">{{ money(lineVat(r)) }}</td>
-                <td>@if (rows().length > 1) { <button type="button" class="btn btn-sm" (click)="removeRow(i)" [attr.aria-label]="'Xoá dòng ' + (i + 1)">Xoá</button> }</td>
-              </tr>
-            }
-          </tbody>
-          <tfoot>
-            <tr style="font-weight:600"><td colspan="2"><button type="button" class="btn btn-sm" (click)="addRow()">+ Thêm dòng</button></td>
-              <td style="text-align:right">{{ money(totals().taxable) }}</td><td></td><td style="text-align:right">{{ money(totals().vat) }}</td><td></td></tr>
-            <tr style="font-weight:700"><td colspan="2">Tổng thanh toán (công nợ phải trả)</td><td colspan="3" style="text-align:right">{{ money(totals().total) }}</td><td></td></tr>
-          </tfoot>
-        </table>
-
-        @if (issue()) { <p class="text-danger" role="alert" style="margin:8px 0 0">{{ issue() }}</p> }
-        <div class="toolbar" style="margin-top:12px">
-          <button type="button" class="btn btn-primary" [disabled]="busy()" (click)="save()">Lưu hoá đơn</button>
-          <button type="button" class="btn" (click)="creating.set(false)">Bỏ qua</button>
-        </div>
+    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
+    @if (notice()) {
+      <div class="notice" role="status">
+        <span>{{ notice() }}</span>
+        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
       </div>
     }
 
-    <div class="card" style="overflow-x:auto">
-      <table style="width:100%; border-collapse:collapse">
-        <thead><tr>
-          <th style="text-align:left">Số chứng từ</th><th style="text-align:left">Ngày</th><th style="text-align:left">Nhà cung cấp</th><th style="text-align:left">Hoá đơn NCC</th><th style="text-align:left">Diễn giải</th>
-          <th style="text-align:right">Chưa thuế</th><th style="text-align:right">Thuế GTGT</th><th style="text-align:right">Tổng cộng</th><th style="text-align:left">Trạng thái</th><th></th>
-        </tr></thead>
-        <tbody>
-          @for (b of bills(); track b.id) {
-            <tr [style.opacity]="b.isCancelled ? 0.55 : 1">
-              <td>{{ b.code }}</td><td>{{ formatDay(b.date) }}</td><td>{{ b.supplierCode }} — {{ b.supplierName }}</td>
-              <td>@if (b.invoiceNo) { {{ b.invoiceSeries }} {{ b.invoiceNo }} } @else { <span class="badge badge-warning">Chưa có hoá đơn</span> }</td>
-              <td>{{ b.description }}</td>
-              <td style="text-align:right">{{ money(b.taxable) }}</td><td style="text-align:right">{{ money(b.vat) }}</td><td style="text-align:right">{{ money(b.total) }}</td>
-              <td>@if (b.isCancelled) { <span class="badge badge-muted" [title]="b.cancelReason || ''">Đã huỷ</span> } @else { <span class="badge badge-success">Đã ghi</span> }</td>
-              <td>
-                @if (!b.isCancelled && canCancel()) {
-                  @if (cancelling() === b.id) {
-                    <input type="text" placeholder="Lý do huỷ" maxlength="300" [ngModel]="reason()" (ngModelChange)="reason.set($event)" style="width:160px" aria-label="Lý do huỷ">
-                    <button type="button" class="btn btn-sm btn-danger-ghost" [disabled]="busy()" (click)="cancel(b)">Xác nhận huỷ</button>
-                    <button type="button" class="btn btn-sm" (click)="cancelling.set(null)">Bỏ qua</button>
-                  } @else {
-                    <button type="button" class="btn btn-sm btn-danger-ghost" (click)="cancelling.set(b.id); reason.set('')">Huỷ</button>
-                  }
-                }
-              </td>
-            </tr>
-          } @empty {
-            <tr><td colspan="10" style="text-align:center; padding:16px">Chưa có hoá đơn mua hàng, dịch vụ nào.</td></tr>
-          }
-        </tbody>
-      </table>
+    @if (creating()) {
+      <section class="card section-block" aria-labelledby="hm-new">
+        <h2 id="hm-new" class="form-section-title">Hoá đơn mua mới</h2>
+        <div class="form-grid-3">
+          <div class="field span-2">
+            <label for="hm-supplier">Nhà cung cấp <span class="required-mark">*</span></label>
+            <app-search-select inputId="hm-supplier" ariaLabel="Nhà cung cấp" [options]="supplierOptions()" [(value)]="supplierId" placeholder="Chọn nhà cung cấp…" />
+          </div>
+          <div class="field">
+            <label for="hm-date">Ngày hạch toán <span class="required-mark">*</span></label>
+            <input id="hm-date" type="date" [max]="today" [ngModel]="date()" (ngModelChange)="date.set($event)" />
+          </div>
+          <div class="field">
+            <label for="hm-series">Ký hiệu hoá đơn</label>
+            <input id="hm-series" type="text" class="num" maxlength="20" placeholder="C26TAA" [ngModel]="series()" (ngModelChange)="series.set($event)" />
+          </div>
+          <div class="field">
+            <label for="hm-no">Số hoá đơn</label>
+            <input id="hm-no" type="text" class="num" maxlength="30" [ngModel]="invoiceNo()" (ngModelChange)="invoiceNo.set($event)" />
+          </div>
+          <div class="field">
+            <label for="hm-idate">Ngày hoá đơn</label>
+            <input id="hm-idate" type="date" [max]="today" [ngModel]="invoiceDate()" (ngModelChange)="invoiceDate.set($event)" />
+          </div>
+          <div class="field span-3">
+            <label for="hm-desc">Diễn giải</label>
+            <input id="hm-desc" type="text" maxlength="300" placeholder="VD: Tiền điện tháng 11" [ngModel]="description()" (ngModelChange)="description.set($event)" />
+          </div>
+        </div>
+
+        <div class="rp-surface book-wrap">
+          <table class="line-table book-table">
+            <thead><tr>
+              <th scope="col">Tài khoản hạch toán</th><th scope="col">Nội dung</th>
+              <th scope="col" class="r">Thành tiền (chưa thuế)</th><th scope="col" class="r">Thuế suất</th><th scope="col" class="r">Tiền thuế</th>
+              <th scope="col"><span class="visually-hidden">Xoá dòng</span></th>
+            </tr></thead>
+            <tbody>
+              @for (r of rows(); track $index; let i = $index) {
+                <tr>
+                  <td>
+                    <select class="account-cell" [ngModel]="r.accountCode" (ngModelChange)="patch(i, { accountCode: $event })" [attr.aria-label]="'Tài khoản dòng ' + (i + 1)">
+                      @for (a of accounts; track a.code) { <option [value]="a.code">{{ a.code }} — {{ a.name }}</option> }
+                    </select>
+                  </td>
+                  <td><input type="text" maxlength="200" [ngModel]="r.description" (ngModelChange)="patch(i, { description: $event })" [attr.aria-label]="'Nội dung dòng ' + (i + 1)" /></td>
+                  <td class="r"><input type="text" appMoney class="num money-cell" placeholder="0" [ngModel]="r.amount" (ngModelChange)="patch(i, { amount: $event })" [attr.aria-label]="'Thành tiền dòng ' + (i + 1)" /></td>
+                  <td class="r">
+                    <select [ngModel]="r.vatRate" (ngModelChange)="patch(i, { vatRate: +$event })" [attr.aria-label]="'Thuế suất dòng ' + (i + 1)">
+                      @for (v of vatRates; track v) { <option [ngValue]="v">{{ v }}%</option> }
+                    </select>
+                  </td>
+                  <td class="r num">{{ money(lineVat(r)) }}</td>
+                  <td>@if (rows().length > 1) { <button type="button" class="icon-action" (click)="removeRow(i)" [attr.aria-label]="'Xoá dòng ' + (i + 1)" title="Xoá dòng"><app-nav-icon name="trash" /></button> }</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr><td colspan="2">Cộng</td><td class="r num">{{ money(totals().taxable) }}</td><td></td><td class="r num">{{ money(totals().vat) }}</td><td></td></tr>
+              <tr><td colspan="2">Tổng thanh toán (công nợ phải trả)</td><td class="r num" colspan="3">{{ money(totals().total) }}</td><td></td></tr>
+            </tfoot>
+          </table>
+        </div>
+        <button type="button" class="btn" (click)="addRow()"><app-nav-icon name="plus" />Thêm dòng</button>
+
+        @if (attempted() && issue()) { <p class="hint text-danger" role="alert">{{ issue() }}</p> }
+        <div class="toolbar">
+          <button type="button" class="btn btn-primary" [disabled]="busy()" (click)="save()">Lưu hoá đơn</button>
+          <button type="button" class="btn" (click)="creating.set(false)">Bỏ qua</button>
+        </div>
+      </section>
+    }
+
+    @if (cancelRow(); as b) {
+      <section class="card section-block" aria-labelledby="hm-cancel">
+        <h2 id="hm-cancel" class="form-section-title">Huỷ hoá đơn {{ b.code }}</h2>
+        <div class="field">
+          <label for="hm-reason">Lý do huỷ</label>
+          <input id="hm-reason" type="text" maxlength="300" [ngModel]="reason()" (ngModelChange)="reason.set($event)" />
+          <span class="hint">Bút toán được đảo và công nợ phải trả nhà cung cấp tính lại.</span>
+        </div>
+        <div class="toolbar">
+          <button type="button" class="btn btn-danger" [disabled]="busy()" (click)="cancel(b)">Xác nhận huỷ</button>
+          <button type="button" class="btn" (click)="cancelling.set(null)">Bỏ qua</button>
+        </div>
+      </section>
+    }
+
+    <div class="filters-bar">
+      <input type="search" class="filter-search" placeholder="Tìm số chứng từ, NCC, số hoá đơn…" aria-label="Tìm hoá đơn mua" [value]="search()" (input)="search.set($any($event.target).value)" />
+      <button type="button" class="filter-toggle" [attr.aria-pressed]="noInvoiceOnly()" (click)="noInvoiceOnly.set(!noInvoiceOnly())">Chỉ chưa có hoá đơn NCC</button>
+      <button type="button" class="filter-toggle" [attr.aria-pressed]="showCancelled()" (click)="showCancelled.set(!showCancelled())">Hiện hoá đơn đã huỷ</button>
     </div>
+
+    @if (live().length) {
+      <dl class="list-totals">
+        <div><dt>Hoá đơn</dt><dd class="num">{{ live().length }}</dd></div>
+        <div><dt>Thuế GTGT đầu vào</dt><dd class="num">{{ money(liveVat()) }}</dd></div>
+        <div><dt>Tổng công nợ phát sinh</dt><dd class="num">{{ money(liveTotal()) }}</dd></div>
+      </dl>
+    }
+
+    <app-data-table
+      [columns]="columns" [rows]="visible()" [actions]="rowActions()" emptyTitle="Chưa có hoá đơn mua hàng, dịch vụ"
+      [emptyHint]="bills().length ? 'Không có hoá đơn nào khớp bộ lọc.' : 'Lập hoá đơn cho điện, nước, vận chuyển, thuê ngoài… để ghi chi phí và thuế đầu vào.'" />
+
+    <ng-template #rowActionsTpl let-b>
+      @if (!b.isCancelled && canCancel()) {
+        <button type="button" class="btn row-act-btn btn-danger-ghost" (click)="cancelling.set(b.id); reason.set('')">Huỷ</button>
+      }
+    </ng-template>
   `,
+  styles: [`.money-cell { width: 8.5rem; text-align: right; } .account-cell { min-width: 12rem; width: 100%; }`],
 })
 export class PurchaseBillsComponent {
   private readonly api = inject(ApiService);
   private readonly auth = inject(AuthService);
   private readonly store = inject(DataStore);
   readonly money = formatVnd;
-  readonly formatDay = formatDay;
   readonly accounts = EXPENSE_ACCOUNTS;
   readonly vatRates = VAT_RATES;
+  readonly today = isoDay(new Date());
+  private readonly rowActionsRef = viewChild<TemplateRef<{ $implicit: PurchaseBillView }>>('rowActionsTpl');
+  readonly rowActions = computed(() => this.rowActionsRef());
+
+  readonly columns: DataTableColumn<PurchaseBillView>[] = [
+    { key: 'code', label: 'Số chứng từ', copy: true },
+    { key: 'date', label: 'Ngày', format: (b) => formatDay(b.date), mono: true },
+    { key: 'supplier', label: 'Nhà cung cấp', format: (b) => `${b.supplierCode} — ${b.supplierName}` },
+    { key: 'invoice', label: 'Hoá đơn NCC', format: (b) => (b.invoiceNo ? `${b.invoiceSeries ?? ''} ${b.invoiceNo}`.trim() : 'Chưa có hoá đơn'), mono: true },
+    { key: 'description', label: 'Diễn giải', format: (b) => b.description ?? '' },
+    { key: 'taxable', label: 'Chưa thuế', align: 'right', format: (b) => formatVnd(b.taxable) },
+    { key: 'vat', label: 'Thuế GTGT', align: 'right', format: (b) => formatVnd(b.vat) },
+    { key: 'total', label: 'Tổng cộng', align: 'right', format: (b) => formatVnd(b.total) },
+    { key: 'status', label: 'Trạng thái', format: (b) => (b.isCancelled ? 'Đã huỷ' : 'Đã ghi'), badge: (b) => (b.isCancelled ? 'badge-muted' : 'badge-success') },
+  ];
 
   readonly bills = signal<PurchaseBillView[]>([]);
   readonly failure = signal('');
   readonly notice = signal('');
   readonly busy = signal(false);
   readonly creating = signal(false);
+  readonly attempted = signal(false);
+  readonly search = signal('');
+  readonly noInvoiceOnly = signal(false);
+  readonly showCancelled = signal(false);
   readonly cancelling = signal<string | null>(null);
+  readonly cancelRow = computed(() => this.bills().find((b) => b.id === this.cancelling()) ?? null);
   readonly reason = signal('');
   readonly canCreate = computed(() => this.auth.can('purchase.create'));
   readonly canCancel = computed(() => this.auth.can('purchase.cancel'));
-  readonly suppliers = computed(() => this.store.suppliers().filter((s) => s.isActive !== false));
+  readonly supplierOptions = computed<SearchOption[]>(() =>
+    this.store.suppliers().filter((s) => s.isActive !== false).sort((a, b) => a.code.localeCompare(b.code, 'vi', { numeric: true }))
+      .map((s) => ({ value: s.id, code: s.code, label: s.name, search: s.taxCode ?? undefined })),
+  );
+
+  readonly live = computed(() => this.bills().filter((b) => !b.isCancelled));
+  readonly liveVat = computed(() => this.live().reduce((s, b) => s + b.vat, 0));
+  readonly liveTotal = computed(() => this.live().reduce((s, b) => s + b.total, 0));
+  readonly visible = computed(() => {
+    const q = foldVi(this.search().trim());
+    return this.bills().filter((b) =>
+      (this.showCancelled() || !b.isCancelled)
+      && (!this.noInvoiceOnly() || !b.invoiceNo)
+      && (!q || foldVi(`${b.code} ${b.supplierCode} ${b.supplierName} ${b.invoiceSeries ?? ''} ${b.invoiceNo ?? ''} ${b.description ?? ''}`).includes(q)));
+  });
 
   readonly supplierId = signal('');
   readonly date = signal(isoDay(new Date()));
@@ -192,6 +260,8 @@ export class PurchaseBillsComponent {
     this.supplierId.set(''); this.date.set(isoDay(new Date())); this.series.set(''); this.invoiceNo.set(''); this.invoiceDate.set(''); this.description.set('');
     this.rows.set([blankRow()]);
     this.failure.set('');
+    this.attempted.set(false);
+    this.cancelling.set(null);
     this.creating.set(true);
   }
 
@@ -203,7 +273,8 @@ export class PurchaseBillsComponent {
   removeRow(i: number) { this.rows.update((rs) => rs.filter((_, j) => j !== i)); }
 
   async save() {
-    if (this.issue() || this.busy()) { this.failure.set(this.issue()); return; }
+    this.attempted.set(true);
+    if (this.issue() || this.busy()) return;
     const body: PurchaseBillInput = {
       supplierId: this.supplierId(), date: this.date(), description: this.description().trim() || undefined,
       invoiceSeries: this.series().trim() || undefined, invoiceNo: this.invoiceNo().trim() || undefined, invoiceDate: this.invoiceDate() || undefined,

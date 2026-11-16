@@ -3,7 +3,7 @@ import { ApiService, upsertById } from '../../core/api/api.service';
 import { DataStore } from '../../core/services/data-store.service';
 import { CashAccount, CashVoucher } from '../../core/models/domain.models';
 import {
-  CashCountInput, CashCountView, CashFlowView, CashTransferInput, CashTransferView, ReconciliationView, StatementRowInput,
+  CashCountInput, CashCountView, CashFlowView, CashTransferInput, CashTransferView, CountResolution, ReconciliationView, StatementRowInput,
 } from '../../core/models/cash-ops.models';
 
 /** Chuyển tiền nội bộ, kiểm kê quỹ, đối chiếu sao kê ngân hàng và lưu chuyển tiền tệ. */
@@ -52,8 +52,35 @@ export class CashOpsService {
     return this.api.post<CashCountView>('/cash-counts', dto);
   }
 
-  cancelCount(id: string, reason?: string) {
-    return this.api.post<CashCountView>(`/cash-counts/${id}/cancel`, { reason });
+  /** Số dư các quỹ và phiếu xử lý chênh lệch đã đổi: đọc lại để màn hình Thu, chi tiền thấy ngay. */
+  private async refreshCount(...voucherCodes: (string | undefined)[]): Promise<void> {
+    const codes = voucherCodes.filter((c): c is string => !!c);
+    const [accounts, vouchers] = await Promise.all([
+      this.api.get<CashAccount[]>('/cash-accounts'),
+      codes.length ? this.api.get<CashVoucher[]>('/cash-vouchers?codes=' + codes.join(',')) : Promise.resolve([] as CashVoucher[]),
+    ]);
+    this.data.cashAccounts.set(accounts);
+    this.data.cashVouchers.update((list) => vouchers.reduce((acc, v) => upsertById(acc, v), list));
+  }
+
+  async cancelCount(c: CashCountView, reason?: string) {
+    const out = await this.api.post<CashCountView>(`/cash-counts/${c.id}/cancel`, { reason });
+    if (c.resolutionVoucherCode) await this.refreshCount(c.resolutionVoucherCode);
+    return out;
+  }
+
+  /** Lập phiếu thu / chi xử lý chênh lệch của biên bản. */
+  async resolveCount(c: CashCountView, option: CountResolution) {
+    const out = await this.api.post<CashCountView>(`/cash-counts/${c.id}/resolve`, { option });
+    await this.refreshCount(out.resolutionVoucherCode);
+    return out;
+  }
+
+  /** Huỷ phiếu xử lý chênh lệch: biên bản trở lại chưa xử lý. */
+  async unresolveCount(c: CashCountView, reason?: string) {
+    const out = await this.api.post<CashCountView>(`/cash-counts/${c.id}/unresolve`, { reason });
+    await this.refreshCount(c.resolutionVoucherCode);
+    return out;
   }
 
   // ---------- đối chiếu sao kê ----------

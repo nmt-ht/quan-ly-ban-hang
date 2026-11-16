@@ -1,10 +1,14 @@
-import { Component, computed, inject, signal } from '@angular/core';
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
+import { Component, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { errorText } from '../../core/api/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { DataStore } from '../../core/services/data-store.service';
 import { CashTransferView } from '../../core/models/cash-ops.models';
+import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
+import { DataTableColumn, DataTableComponent } from '../../shared/data-table/data-table.component';
 import { formatVnd } from '../../shared/format.util';
+import { MoneyInputDirective } from '../../shared/money-input.directive';
 import { formatDay, isoDay } from '../../shared/period';
 import { CashOpsService } from './cash-ops.service';
 
@@ -15,97 +19,140 @@ import { CashOpsService } from './cash-ops.service';
 @Component({
   selector: 'app-cash-transfers',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, NavIconComponent, DataTableComponent, MoneyInputDirective],
   template: `
     <div class="page-header">
       <div>
         <h1>Chuyển tiền nội bộ</h1>
         <p class="subtitle">Nộp tiền mặt vào ngân hàng, rút tiền, chuyển giữa các tài khoản. Số dư hai quỹ đổi chỗ; không tính vào thu, chi của kỳ.</p>
       </div>
-      @if (canCreate() && !creating()) { <button type="button" class="btn btn-primary" (click)="start()">Lập chuyển tiền</button> }
+      @if (canCreate() && !creating()) {
+        <div class="toolbar">
+          <button type="button" class="btn btn-primary" (click)="start()"><app-nav-icon name="plus" />Lập chuyển tiền</button>
+        </div>
+      }
     </div>
-    @if (failure()) { <div class="notice is-error" role="alert">{{ failure() }}</div> }
-    @if (notice()) { <div class="notice" role="status">{{ notice() }}</div> }
+    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
+    @if (notice()) {
+      <div class="notice" role="status">
+        <span>{{ notice() }}</span>
+        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+      </div>
+    }
 
     @if (creating()) {
-      <div class="card" style="margin-bottom:16px">
-        <div class="toolbar" style="flex-wrap:wrap; gap:8px">
-          <label>Chuyển từ <span class="required-mark">*</span>
-            <select [ngModel]="fromId()" (ngModelChange)="fromId.set($event)">
+      <section class="card section-block" aria-labelledby="ct-new">
+        <h2 id="ct-new" class="form-section-title">Chuyển tiền mới</h2>
+        <div class="form-grid">
+          <div class="field">
+            <label for="ct-from">Chuyển từ <span class="required-mark">*</span></label>
+            <select id="ct-from" [ngModel]="fromId()" (ngModelChange)="fromId.set($event)">
               <option value="">— Chọn —</option>
               @for (a of accounts(); track a.id) { <option [value]="a.id">{{ a.name }} (còn {{ money(a.balance) }})</option> }
             </select>
-          </label>
-          <label>Chuyển đến <span class="required-mark">*</span>
-            <select [ngModel]="toId()" (ngModelChange)="toId.set($event)">
+          </div>
+          <div class="field">
+            <label for="ct-to">Chuyển đến <span class="required-mark">*</span></label>
+            <select id="ct-to" [ngModel]="toId()" (ngModelChange)="toId.set($event)">
               <option value="">— Chọn —</option>
               @for (a of accounts(); track a.id) { <option [value]="a.id">{{ a.name }} (còn {{ money(a.balance) }})</option> }
             </select>
-          </label>
-          <label>Ngày <span class="required-mark">*</span> <input type="date" [ngModel]="date()" (ngModelChange)="date.set($event)"></label>
-          <label>Số tiền <span class="required-mark">*</span> <input type="number" min="0" step="1" [ngModel]="amount()" (ngModelChange)="amount.set($event)" style="width:150px; text-align:right"></label>
+          </div>
+          <div class="field">
+            <label for="ct-date">Ngày <span class="required-mark">*</span></label>
+            <input id="ct-date" type="date" [max]="today" [ngModel]="date()" (ngModelChange)="date.set($event)" />
+          </div>
+          <div class="field">
+            <label for="ct-amount">Số tiền <span class="required-mark">*</span></label>
+            <input id="ct-amount" type="text" appMoney class="num amount-input" placeholder="0" [ngModel]="amount()" (ngModelChange)="amount.set($event)" />
+          </div>
         </div>
-        <label style="display:block; margin:8px 0">Diễn giải
-          <input type="text" maxlength="500" placeholder="VD: Nộp tiền bán hàng vào ngân hàng" [ngModel]="description()" (ngModelChange)="description.set($event)" style="width:100%">
-        </label>
-        @if (issue()) { <p class="text-danger" role="alert" style="margin:0 0 8px">{{ issue() }}</p> }
+        <div class="field">
+          <label for="ct-desc">Diễn giải</label>
+          <input id="ct-desc" type="text" maxlength="500" placeholder="VD: Nộp tiền bán hàng vào ngân hàng" [ngModel]="description()" (ngModelChange)="description.set($event)" />
+        </div>
+        @if (attempted() && issue()) { <p class="hint text-danger" role="alert">{{ issue() }}</p> }
         <div class="toolbar">
           <button type="button" class="btn btn-primary" [disabled]="busy()" (click)="save()">Lưu chuyển tiền</button>
           <button type="button" class="btn" (click)="creating.set(false)">Bỏ qua</button>
         </div>
-      </div>
+      </section>
     }
 
-    <div class="card" style="overflow-x:auto">
-      <table style="width:100%; border-collapse:collapse">
-        <thead><tr>
-          <th style="text-align:left">Số chứng từ</th><th style="text-align:left">Ngày</th><th style="text-align:left">Từ</th><th style="text-align:left">Đến</th>
-          <th style="text-align:right">Số tiền</th><th style="text-align:left">Diễn giải</th><th style="text-align:left">Phiếu</th><th style="text-align:left">Trạng thái</th><th></th>
-        </tr></thead>
-        <tbody>
-          @for (t of rows(); track t.id) {
-            <tr [style.opacity]="t.isCancelled ? 0.55 : 1">
-              <td>{{ t.code }}</td><td>{{ formatDay(t.date) }}</td><td>{{ t.fromAccountName }}</td><td>{{ t.toAccountName }}</td>
-              <td style="text-align:right">{{ money(t.amount) }}</td><td>{{ t.description }}</td>
-              <td>{{ t.outVoucherCode }}, {{ t.inVoucherCode }}</td>
-              <td>@if (t.isCancelled) { <span class="badge badge-muted" [title]="t.cancelReason || ''">Đã huỷ</span> } @else { <span class="badge badge-success">Đã chuyển</span> }</td>
-              <td>
-                @if (!t.isCancelled && canCancel()) {
-                  @if (cancelling() === t.id) {
-                    <input type="text" placeholder="Lý do huỷ" maxlength="300" [ngModel]="reason()" (ngModelChange)="reason.set($event)" style="width:150px" aria-label="Lý do huỷ">
-                    <button type="button" class="btn btn-sm btn-danger-ghost" [disabled]="busy()" (click)="cancel(t)">Xác nhận huỷ</button>
-                    <button type="button" class="btn btn-sm" (click)="cancelling.set(null)">Bỏ qua</button>
-                  } @else {
-                    <button type="button" class="btn btn-sm btn-danger-ghost" (click)="cancelling.set(t.id); reason.set('')">Huỷ</button>
-                  }
-                }
-              </td>
-            </tr>
-          } @empty {
-            <tr><td colspan="9" style="text-align:center; padding:16px">Chưa có chuyển tiền nội bộ nào.</td></tr>
-          }
-        </tbody>
-      </table>
+    @if (cancelRow(); as t) {
+      <section class="card section-block" aria-labelledby="ct-cancel">
+        <h2 id="ct-cancel" class="form-section-title">Huỷ chuyển tiền {{ t.code }}</h2>
+        <div class="field">
+          <label for="ct-reason">Lý do huỷ</label>
+          <input id="ct-reason" type="text" maxlength="300" [ngModel]="reason()" (ngModelChange)="reason.set($event)" />
+          <span class="hint">Hai phiếu thu, chi của chuyển tiền cùng huỷ; số dư hai quỹ trở lại như trước. Bị chặn nếu quỹ nhận đã tiêu mất tiền.</span>
+        </div>
+        <div class="toolbar">
+          <button type="button" class="btn btn-danger" [disabled]="busy()" (click)="cancel(t)">Xác nhận huỷ</button>
+          <button type="button" class="btn" (click)="cancelling.set(null)">Bỏ qua</button>
+        </div>
+      </section>
+    }
+
+    <div class="filters-bar">
+      <button type="button" class="filter-toggle" [attr.aria-pressed]="showCancelled()" (click)="showCancelled.set(!showCancelled())">Hiện chuyển tiền đã huỷ</button>
     </div>
+
+    @if (rows().length) {
+      <dl class="list-totals">
+        <div><dt>Số lần chuyển</dt><dd class="num">{{ live().length }}</dd></div>
+        <div><dt>Tổng số tiền đã chuyển</dt><dd class="num">{{ money(total()) }}</dd></div>
+      </dl>
+    }
+
+    <app-data-table
+      [columns]="columns" [rows]="visible()" [actions]="rowActions()" emptyTitle="Chưa có chuyển tiền nội bộ"
+      [emptyHint]="rows().length ? 'Không có chuyển tiền nào khớp bộ lọc.' : 'Lập chuyển tiền đầu tiên để nộp, rút hoặc chuyển tiền giữa các quỹ.'" />
+
+    <ng-template #rowActionsTpl let-t>
+      @if (!t.isCancelled && canCancel()) {
+        <button type="button" class="btn row-act-btn btn-danger-ghost" (click)="cancelling.set(t.id); reason.set('')">Huỷ</button>
+      }
+    </ng-template>
   `,
+  styles: [`.amount-input { text-align: right; }`],
 })
 export class CashTransfersComponent {
   private readonly svc = inject(CashOpsService);
   private readonly auth = inject(AuthService);
   private readonly store = inject(DataStore);
   readonly money = formatVnd;
-  readonly formatDay = formatDay;
+  readonly today = isoDay(new Date());
+  private readonly rowActionsRef = viewChild<TemplateRef<{ $implicit: CashTransferView }>>('rowActionsTpl');
+  readonly rowActions = computed(() => this.rowActionsRef());
+
+  readonly columns: DataTableColumn<CashTransferView>[] = [
+    { key: 'code', label: 'Số chứng từ', copy: true },
+    { key: 'date', label: 'Ngày', format: (t) => formatDay(t.date), mono: true },
+    { key: 'fromAccountName', label: 'Từ' },
+    { key: 'toAccountName', label: 'Đến' },
+    { key: 'amount', label: 'Số tiền', align: 'right', format: (t) => formatVnd(t.amount) },
+    { key: 'description', label: 'Diễn giải', format: (t) => t.description ?? '' },
+    { key: 'vouchers', label: 'Phiếu', format: (t) => `${t.outVoucherCode}, ${t.inVoucherCode}`, mono: true },
+    { key: 'status', label: 'Trạng thái', format: (t) => (t.isCancelled ? 'Đã huỷ' : 'Đã chuyển'), badge: (t) => (t.isCancelled ? 'badge-muted' : 'badge-success') },
+  ];
 
   readonly rows = signal<CashTransferView[]>([]);
   readonly failure = signal('');
   readonly notice = signal('');
   readonly busy = signal(false);
   readonly creating = signal(false);
+  readonly attempted = signal(false);
+  readonly showCancelled = signal(false);
   readonly cancelling = signal<string | null>(null);
+  readonly cancelRow = computed(() => this.rows().find((t) => t.id === this.cancelling()) ?? null);
   readonly reason = signal('');
   readonly accounts = computed(() => this.store.cashAccounts().filter((a) => a.isActive !== false));
   readonly canCreate = computed(() => this.auth.can('voucher.create_receipt') && this.auth.can('voucher.create_payment'));
   readonly canCancel = computed(() => this.auth.can('voucher.cancel'));
+  readonly live = computed(() => this.rows().filter((t) => !t.isCancelled));
+  readonly total = computed(() => this.live().reduce((s, t) => s + t.amount, 0));
+  readonly visible = computed(() => (this.showCancelled() ? this.rows() : this.live()));
 
   readonly fromId = signal('');
   readonly toId = signal('');
@@ -131,12 +178,15 @@ export class CashTransfersComponent {
   start() {
     this.fromId.set(''); this.toId.set(''); this.date.set(isoDay(new Date())); this.amount.set(null); this.description.set('');
     this.failure.set('');
+    this.attempted.set(false);
+    this.cancelling.set(null);
     this.creating.set(true);
   }
 
   async save() {
     if (this.busy()) return;
-    if (this.issue()) { this.failure.set(this.issue()); return; }
+    this.attempted.set(true);
+    if (this.issue()) return;
     this.busy.set(true);
     this.failure.set('');
     try {

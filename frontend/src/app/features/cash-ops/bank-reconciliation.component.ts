@@ -1,9 +1,15 @@
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { errorText } from '../../core/api/api.service';
+import { AuthService } from '../../core/services/auth.service';
 import { DataStore } from '../../core/services/data-store.service';
 import { ReconciliationView, StatementLineView, StatementRowInput } from '../../core/models/cash-ops.models';
-import { readSheet } from '../../shared/excel.util';
+import { parseDay, readSheet } from '../../shared/excel.util';
+import { MoneyInputDirective } from '../../shared/money-input.directive';
+import { PeriodFilterComponent, PeriodValue } from '../../shared/period-filter/period-filter.component';
+import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { formatVnd } from '../../shared/format.util';
 import { formatDay, isoDay } from '../../shared/period';
 import { CashOpsService } from './cash-ops.service';
@@ -16,15 +22,6 @@ const COLS = {
   amountIn: ['thu', 'ghi co', 'tien vao', 'so tien vao', 'phat sinh co', 'credit'],
   amountOut: ['chi', 'ghi no', 'tien ra', 'so tien ra', 'phat sinh no', 'debit'],
 };
-
-function parseDay(v: unknown): string | null {
-  if (v instanceof Date) return v.toISOString().slice(0, 10);
-  const s = String(v ?? '').trim();
-  const dmy = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})/.exec(s);
-  if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
-  const ymd = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
-  return ymd ? `${ymd[1]}-${ymd[2]}-${ymd[3]}` : null;
-}
 
 function parseMoney(v: unknown): number {
   if (typeof v === 'number') return Math.round(Math.abs(v));
@@ -39,134 +36,187 @@ function parseMoney(v: unknown): number {
 @Component({
   selector: 'app-bank-reconciliation',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, NavIconComponent, PeriodFilterComponent, MoneyInputDirective],
   template: `
     <div class="page-header">
       <div>
         <h1>Đối chiếu ngân hàng</h1>
         <p class="subtitle">Nhập sao kê, khớp với phiếu thu / chi, tìm khoản chưa ghi sổ hoặc chưa lên sao kê.</p>
       </div>
+      @if (data()) {
+        <div class="toolbar">
+          <label class="btn"><app-nav-icon name="upload" />Nhập sao kê từ Excel <input type="file" accept=".xlsx" class="visually-hidden" (change)="onFile($event)"></label>
+          <button type="button" class="btn" [attr.aria-pressed]="adding()" (click)="adding.set(!adding())"><app-nav-icon name="plus" />Thêm dòng tay</button>
+          <button type="button" class="btn btn-primary" [disabled]="busy() || !data()!.summary.unmatchedLines" (click)="auto()"><app-nav-icon name="check" />Tự khớp</button>
+        </div>
+      }
     </div>
-    @if (failure()) { <div class="notice is-error" role="alert">{{ failure() }}</div> }
-    @if (notice()) { <div class="notice" role="status">{{ notice() }}</div> }
+    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
+    @if (notice()) {
+      <div class="notice" role="status">
+        <span>{{ notice() }}</span>
+        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+      </div>
+    }
 
-    <div class="toolbar" style="flex-wrap:wrap; gap:8px; margin-bottom:12px">
-      <label>Tài khoản ngân hàng
-        <select [ngModel]="accountId()" (ngModelChange)="accountId.set($event); load()">
-          <option value="">— Chọn —</option>
-          @for (a of accounts(); track a.id) { <option [value]="a.id">{{ a.name }}</option> }
-        </select>
-      </label>
-      <label>Từ ngày <input type="date" [ngModel]="from()" (ngModelChange)="from.set($event)" (change)="load()"></label>
-      <label>Đến ngày <input type="date" [ngModel]="to()" (ngModelChange)="to.set($event)" (change)="load()"></label>
-      <label>Số dư cuối kỳ trên sao kê <input type="number" step="1" [ngModel]="statement()" (ngModelChange)="statement.set($event)" style="width:170px; text-align:right"></label>
+    <div class="filters-bar">
+      <select aria-label="Tài khoản ngân hàng" [value]="accountId()" (change)="accountId.set($any($event.target).value); load()">
+        <option value="">Chọn tài khoản ngân hàng…</option>
+        @for (a of accounts(); track a.id) { <option [value]="a.id" [selected]="a.id === accountId()">{{ a.name }}</option> }
+      </select>
+      <app-period-filter [value]="period()" (valueChange)="onPeriod($event)" />
     </div>
 
     @if (data(); as d) {
-      <div class="toolbar" style="flex-wrap:wrap; gap:8px; margin-bottom:12px">
-        <label class="btn">Nhập sao kê từ Excel <input type="file" accept=".xlsx" (change)="onFile($event)" style="display:none"></label>
-        <button type="button" class="btn" (click)="adding.set(!adding())">Thêm dòng tay</button>
-        <button type="button" class="btn btn-primary" [disabled]="busy() || !d.summary.unmatchedLines" (click)="auto()">Tự khớp</button>
-      </div>
-      <p class="subtitle">File Excel: dòng đầu là tiêu đề, cần cột ngày, diễn giải, số tham chiếu (nếu có), tiền vào (thu / ghi có) và tiền ra (chi / ghi nợ). Dòng cùng số tham chiếu đã nhập thì bỏ qua.</p>
-
       @if (adding()) {
-        <div class="card" style="margin-bottom:12px">
-          <div class="toolbar" style="flex-wrap:wrap; gap:8px">
-            <label>Ngày <input type="date" [ngModel]="manual().date" (ngModelChange)="patchManual({ date: $event })"></label>
-            <label>Diễn giải <input type="text" maxlength="500" [ngModel]="manual().description" (ngModelChange)="patchManual({ description: $event })" style="width:240px"></label>
-            <label>Số tham chiếu <input type="text" maxlength="60" [ngModel]="manual().reference" (ngModelChange)="patchManual({ reference: $event })" style="width:130px"></label>
-            <label>Tiền vào <input type="number" min="0" [ngModel]="manual().amountIn" (ngModelChange)="patchManual({ amountIn: $event })" style="width:130px; text-align:right"></label>
-            <label>Tiền ra <input type="number" min="0" [ngModel]="manual().amountOut" (ngModelChange)="patchManual({ amountOut: $event })" style="width:130px; text-align:right"></label>
-            <button type="button" class="btn btn-primary" [disabled]="busy()" (click)="addManual()">Thêm</button>
+        <section class="card section-block" aria-labelledby="dc-add">
+          <h2 id="dc-add" class="form-section-title">Thêm dòng sao kê</h2>
+          <div class="form-grid-3">
+            <div class="field">
+              <label for="dc-date">Ngày</label>
+              <input id="dc-date" type="date" [ngModel]="manual().date" (ngModelChange)="patchManual({ date: $event })" />
+            </div>
+            <div class="field span-2">
+              <label for="dc-desc">Diễn giải</label>
+              <input id="dc-desc" type="text" maxlength="500" [ngModel]="manual().description" (ngModelChange)="patchManual({ description: $event })" />
+            </div>
+            <div class="field">
+              <label for="dc-ref">Số tham chiếu</label>
+              <input id="dc-ref" type="text" maxlength="60" class="num" [ngModel]="manual().reference" (ngModelChange)="patchManual({ reference: $event })" />
+            </div>
+            <div class="field">
+              <label for="dc-in">Tiền vào</label>
+              <input id="dc-in" type="text" appMoney class="num money-input" placeholder="0" [ngModel]="manual().amountIn" (ngModelChange)="patchManual({ amountIn: $event })" />
+            </div>
+            <div class="field">
+              <label for="dc-out">Tiền ra</label>
+              <input id="dc-out" type="text" appMoney class="num money-input" placeholder="0" [ngModel]="manual().amountOut" (ngModelChange)="patchManual({ amountOut: $event })" />
+            </div>
           </div>
-        </div>
+          <div class="toolbar">
+            <button type="button" class="btn btn-primary" [disabled]="busy()" (click)="addManual()">Thêm dòng</button>
+            <button type="button" class="btn" (click)="adding.set(false)">Đóng</button>
+          </div>
+        </section>
       }
 
-      <div class="card" style="margin-bottom:12px">
-        <table style="width:100%; max-width:640px; border-collapse:collapse">
-          <tbody>
-            <tr><td>Số dư theo sổ sách (cuối ngày {{ formatDay(d.to) }})</td><td style="text-align:right">{{ money(d.bookBalance) }}</td></tr>
-            <tr><td>+ Dòng sao kê chưa ghi sổ (vào − ra) · {{ d.summary.unmatchedLines }} dòng</td><td style="text-align:right">{{ money(d.summary.unmatchedLinesNet) }}</td></tr>
-            <tr><td>− Phiếu chưa lên sao kê (thu − chi) · {{ d.summary.unmatchedVouchers }} phiếu</td><td style="text-align:right">{{ money(d.summary.unmatchedVouchersNet) }}</td></tr>
-            <tr style="font-weight:700"><td>= Số dư sao kê dự kiến</td><td style="text-align:right">{{ money(expected()) }}</td></tr>
+      <dl class="list-totals">
+        <div><dt>Dòng sao kê đã khớp</dt><dd class="num">{{ d.summary.matched }} / {{ d.summary.lines }}</dd></div>
+        <div><dt>Dòng sao kê chưa ghi sổ</dt><dd class="num" [class.text-warning]="d.summary.unmatchedLines > 0">{{ d.summary.unmatchedLines }}</dd></div>
+        <div><dt>Phiếu chưa lên sao kê</dt><dd class="num" [class.text-warning]="d.summary.unmatchedVouchers > 0">{{ d.summary.unmatchedVouchers }}</dd></div>
+      </dl>
+
+      <section class="section-bare">
+        <h3>Số dư sổ sách và sao kê</h3>
+        <div class="rp-surface book-wrap">
+          <table class="book-table">
+            <tbody>
+              <tr><td>Số dư theo sổ sách (cuối ngày {{ formatDay(d.to) }})</td><td class="r num">{{ money(d.bookBalance) }}</td></tr>
+              <tr><td>+ Dòng sao kê chưa ghi sổ (vào − ra) · {{ d.summary.unmatchedLines }} dòng</td><td class="r num">{{ money(d.summary.unmatchedLinesNet) }}</td></tr>
+              <tr><td>− Phiếu chưa lên sao kê (thu − chi) · {{ d.summary.unmatchedVouchers }} phiếu</td><td class="r num">{{ money(d.summary.unmatchedVouchersNet) }}</td></tr>
+              <tr class="book-sum"><td>= Số dư sao kê dự kiến</td><td class="r num">{{ money(expected()) }}</td></tr>
+              <tr>
+                <td><label for="dc-stmt">Số dư cuối kỳ trên sao kê (nhập để so)</label></td>
+                <td class="r"><input id="dc-stmt" type="text" appMoney class="num money-input" placeholder="0" [ngModel]="statement()" (ngModelChange)="statement.set($event)" /></td>
+              </tr>
+            </tbody>
             @if (statement() !== null) {
-              <tr><td>Số dư cuối kỳ trên sao kê</td><td style="text-align:right">{{ money(statement()!) }}</td></tr>
-              <tr style="font-weight:700"><td>Chênh lệch chưa giải thích</td><td style="text-align:right" [class.text-danger]="unexplained() !== 0">{{ money(unexplained()) }}</td></tr>
+              <tfoot><tr>
+                <td>Chênh lệch chưa giải thích</td>
+                <td class="r num" [class.amt-neg]="unexplained() !== 0" [class.is-zero]="unexplained() === 0">{{ money(unexplained()) }}</td>
+              </tr></tfoot>
             }
-          </tbody>
-        </table>
-        <p class="subtitle" style="margin:8px 0 0">Đã khớp {{ d.summary.matched }}/{{ d.summary.lines }} dòng sao kê. Chênh lệch chỉ có nghĩa khi các kỳ trước đã đối chiếu xong và khoảng ngày bắt đầu từ lúc mở tài khoản hoặc sau lần đối chiếu cuối.</p>
-      </div>
+          </table>
+        </div>
+        <p class="rp-notes">Chênh lệch chỉ có nghĩa khi các kỳ trước đã đối chiếu xong và khoảng ngày bắt đầu từ lúc mở tài khoản hoặc sau lần đối chiếu cuối.</p>
+      </section>
 
-      <h2>Dòng sao kê</h2>
-      <div class="card" style="overflow-x:auto; margin-bottom:12px">
-        <table style="width:100%; border-collapse:collapse">
-          <thead><tr>
-            <th style="text-align:left">Ngày</th><th style="text-align:left">Diễn giải</th><th style="text-align:left">Số tham chiếu</th>
-            <th style="text-align:right">Tiền vào</th><th style="text-align:right">Tiền ra</th><th style="text-align:left">Khớp với phiếu</th><th></th>
-          </tr></thead>
-          <tbody>
-            @for (l of d.lines; track l.id) {
-              <tr>
-                <td>{{ formatDay(l.date) }}</td><td>{{ l.description }}</td><td>{{ l.reference }}</td>
-                <td style="text-align:right">{{ l.amountIn ? money(l.amountIn) : '' }}</td><td style="text-align:right">{{ l.amountOut ? money(l.amountOut) : '' }}</td>
-                <td>
-                  @if (l.voucherCode) {
-                    <span class="badge badge-success">{{ l.voucherCode }}</span>
-                    <button type="button" class="btn btn-sm" (click)="unmatch(l)">Bỏ khớp</button>
-                  } @else {
-                    @if (candidates(l).length) {
-                      <select [ngModel]="pick()[l.id] ?? ''" (ngModelChange)="setPick(l.id, $event)" [attr.aria-label]="'Phiếu khớp dòng ' + (l.reference || l.date)">
-                        <option value="">— Chọn phiếu —</option>
-                        @for (v of candidates(l); track v.id) { <option [value]="v.id">{{ v.code }} · {{ formatDay(v.date) }} · {{ money(v.amount) }}</option> }
-                      </select>
-                      <button type="button" class="btn btn-sm" [disabled]="!pick()[l.id]" (click)="match(l)">Khớp</button>
+      <section class="section-bare">
+        <h3>Dòng sao kê</h3>
+        <div class="rp-surface book-wrap">
+          <table class="book-table">
+            <thead><tr>
+              <th scope="col">Ngày</th><th scope="col">Diễn giải</th><th scope="col">Số tham chiếu</th>
+              <th scope="col" class="r">Tiền vào</th><th scope="col" class="r">Tiền ra</th><th scope="col">Khớp với phiếu</th><th scope="col"><span class="visually-hidden">Xoá</span></th>
+            </tr></thead>
+            <tbody>
+              @for (l of d.lines; track l.id) {
+                <tr>
+                  <td class="num">{{ formatDay(l.date) }}</td><td>{{ l.description }}</td><td class="code">{{ l.reference }}</td>
+                  <td class="r num" [class.is-zero]="!l.amountIn">{{ l.amountIn ? money(l.amountIn) : '—' }}</td>
+                  <td class="r num" [class.is-zero]="!l.amountOut">{{ l.amountOut ? money(l.amountOut) : '—' }}</td>
+                  <td>
+                    @if (l.voucherCode) {
+                      <span class="row-actions">
+                        <span class="badge badge-success">{{ l.voucherCode }}</span>
+                        <button type="button" class="btn row-act-btn" (click)="unmatch(l)">Bỏ khớp</button>
+                      </span>
                     } @else {
-                      <span class="badge badge-warning">Chưa ghi sổ</span>
+                      <span class="row-actions">
+                        <span class="badge badge-warning">Chưa ghi sổ</span>
+                        @if (candidates(l).length) {
+                          <select [attr.aria-label]="'Phiếu khớp dòng ' + (l.reference || l.date)" [value]="pick()[l.id] ?? ''" (change)="setPick(l.id, $any($event.target).value)">
+                            <option value="">Chọn phiếu…</option>
+                            @for (v of candidates(l); track v.id) { <option [value]="v.id">{{ v.code }} · {{ formatDay(v.date) }} · {{ money(v.amount) }}</option> }
+                          </select>
+                          <button type="button" class="btn row-act-btn" [disabled]="!pick()[l.id]" (click)="match(l)">Khớp</button>
+                        }
+                        @if (l.amountIn > 0 && canReceipt()) { <button type="button" class="btn row-act-btn" (click)="createVoucher(l)">Lập phiếu thu</button> }
+                        @if (l.amountOut > 0 && canPayment()) { <button type="button" class="btn row-act-btn" (click)="createVoucher(l)">Lập phiếu chi</button> }
+                      </span>
                     }
-                  }
-                </td>
-                <td><button type="button" class="btn btn-sm btn-danger-ghost" (click)="remove(l)">Xoá</button></td>
-              </tr>
-            } @empty {
-              <tr><td colspan="7" style="text-align:center; padding:16px">Chưa có dòng sao kê trong khoảng ngày này. Nhập từ Excel hoặc thêm dòng tay.</td></tr>
-            }
-          </tbody>
-        </table>
-      </div>
+                  </td>
+                  <td><button type="button" class="icon-action" [attr.aria-label]="'Xoá dòng sao kê ' + (l.reference || formatDay(l.date))" title="Xoá dòng" (click)="remove(l)"><app-nav-icon name="trash" /></button></td>
+                </tr>
+              } @empty {
+                <tr><td class="book-none" colspan="7">Chưa có dòng sao kê trong khoảng ngày này. Nhập từ Excel hoặc thêm dòng tay.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <p class="rp-notes">File Excel: dòng đầu là tiêu đề, cần cột ngày, diễn giải, số tham chiếu (nếu có), tiền vào (thu / ghi có) và tiền ra (chi / ghi nợ). Dòng cùng số tham chiếu đã nhập thì bỏ qua.</p>
+      </section>
 
-      <h2>Phiếu chưa có trên sao kê</h2>
-      <div class="card" style="overflow-x:auto">
-        <table style="width:100%; border-collapse:collapse">
-          <thead><tr><th style="text-align:left">Số phiếu</th><th style="text-align:left">Ngày</th><th style="text-align:left">Loại</th><th style="text-align:left">Diễn giải</th><th style="text-align:right">Thu</th><th style="text-align:right">Chi</th></tr></thead>
-          <tbody>
-            @for (v of unmatchedVouchers(); track v.id) {
-              <tr>
-                <td>{{ v.code }}</td><td>{{ formatDay(v.date) }}</td><td>{{ v.category }}</td><td>{{ v.description }}</td>
-                <td style="text-align:right">{{ v.kind === 'THU' ? money(v.amount) : '' }}</td><td style="text-align:right">{{ v.kind === 'CHI' ? money(v.amount) : '' }}</td>
-              </tr>
-            } @empty {
-              <tr><td colspan="6" style="text-align:center; padding:16px">Mọi phiếu của tài khoản này trong kỳ đã có trên sao kê.</td></tr>
-            }
-          </tbody>
-        </table>
-      </div>
+      <section class="section-bare">
+        <h3>Phiếu chưa có trên sao kê</h3>
+        <div class="rp-surface book-wrap">
+          <table class="book-table">
+            <thead><tr><th scope="col">Số phiếu</th><th scope="col">Ngày</th><th scope="col">Loại</th><th scope="col">Diễn giải</th><th scope="col" class="r">Thu</th><th scope="col" class="r">Chi</th></tr></thead>
+            <tbody>
+              @for (v of unmatchedVouchers(); track v.id) {
+                <tr>
+                  <td class="code">{{ v.code }}</td><td class="num">{{ formatDay(v.date) }}</td><td>{{ v.category }}</td><td>{{ v.description }}</td>
+                  <td class="r num" [class.is-zero]="v.kind !== 'THU'">{{ v.kind === 'THU' ? money(v.amount) : '—' }}</td>
+                  <td class="r num" [class.is-zero]="v.kind !== 'CHI'">{{ v.kind === 'CHI' ? money(v.amount) : '—' }}</td>
+                </tr>
+              } @empty {
+                <tr><td class="book-none" colspan="6">Mọi phiếu của tài khoản này trong kỳ đã có trên sao kê.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
     } @else if (!failure()) {
-      <div class="card" style="padding:16px">Chọn tài khoản ngân hàng để bắt đầu.</div>
+      <div class="empty-state"><h3>Chọn tài khoản ngân hàng</h3><p>Chọn tài khoản và kỳ để so sao kê với sổ sách.</p></div>
     }
   `,
 })
 export class BankReconciliationComponent {
   private readonly svc = inject(CashOpsService);
   private readonly store = inject(DataStore);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly auth = inject(AuthService);
+  readonly canReceipt = computed(() => this.auth.can('voucher.create_receipt'));
+  readonly canPayment = computed(() => this.auth.can('voucher.create_payment'));
   readonly money = formatVnd;
   readonly formatDay = formatDay;
 
   readonly accounts = computed(() => this.store.cashAccounts().filter((a) => a.type === 'NGAN_HANG' && a.isActive !== false));
   readonly accountId = signal('');
-  readonly from = signal(`${new Date().getFullYear()}-01-01`);
-  readonly to = signal(isoDay(new Date()));
+  readonly period = signal<PeriodValue>({ preset: 'thisYear', range: { from: `${new Date().getFullYear()}-01-01`, to: isoDay(new Date()) } });
+  readonly from = computed(() => this.period().range.from ?? '');
+  readonly to = computed(() => this.period().range.to ?? '');
   readonly statement = signal<number | null>(null);
   readonly data = signal<ReconciliationView | null>(null);
   readonly failure = signal('');
@@ -185,13 +235,35 @@ export class BankReconciliationComponent {
   readonly unexplained = computed(() => (this.statement() ?? 0) - this.expected());
 
   constructor() {
-    const first = this.accounts()[0];
+    // Quay lại từ màn lập phiếu (hoặc liên kết) với ?account= &from= &to= thì giữ nguyên bộ lọc.
+    const q = this.route.snapshot.queryParamMap;
+    const wanted = q.get('account');
+    const first = this.accounts().find((a) => a.id === wanted) ?? this.accounts()[0];
+    const day = /^\d{4}-\d{2}-\d{2}$/;
+    if (day.test(q.get('from') ?? '') && day.test(q.get('to') ?? '')) this.period.set({ preset: 'custom', range: { from: q.get('from')!, to: q.get('to')! } });
     if (first) { this.accountId.set(first.id); this.load(); }
+    const back = (history.state as { notice?: unknown } | null)?.notice;
+    if (typeof back === 'string') this.notice.set(back);
+  }
+
+  /** Dòng sao kê chưa ghi sổ → màn lập phiếu thu / chi điền sẵn tài khoản, ngày, số tiền, diễn giải; lập xong tự khớp dòng này. */
+  createVoucher(l: StatementLineView) {
+    const back = `/thu-chi/doi-chieu-ngan-hang?${new URLSearchParams({ account: this.accountId(), from: this.from(), to: this.to() })}`;
+    const amount = l.amountIn > 0 ? l.amountIn : l.amountOut;
+    const queryParams: Record<string, string> = { account: this.accountId(), date: l.date, amount: String(amount), line: l.id, back };
+    const desc = [l.description, l.reference].filter(Boolean).join(' · ');
+    if (desc) queryParams['desc'] = desc;
+    void this.router.navigate(['/thu-chi/lap', l.amountIn > 0 ? 'thu' : 'chi'], { queryParams });
   }
 
   /** Phiếu chưa khớp, cùng chiều và số tiền với dòng sao kê. */
   candidates(l: StatementLineView) {
     return this.unmatchedVouchers().filter((v) => (v.kind === 'THU' ? l.amountIn === v.amount && l.amountIn > 0 : l.amountOut === v.amount && l.amountOut > 0));
+  }
+
+  onPeriod(v: PeriodValue) {
+    this.period.set(v);
+    this.load();
   }
 
   setPick(lineId: string, voucherId: string) {

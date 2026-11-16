@@ -1,7 +1,9 @@
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { errorText } from '../../core/api/api.service';
 import { CashFlowView } from '../../core/models/cash-ops.models';
+import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { formatVnd } from '../../shared/format.util';
 import { formatDay } from '../../shared/period';
@@ -14,6 +16,7 @@ const SECTIONS: { title: string; codes: string[]; total: string }[] = [
   { title: 'II. Lưu chuyển tiền từ hoạt động đầu tư', codes: ['21', '22', '23', '24', '25'], total: '30' },
   { title: 'III. Lưu chuyển tiền từ hoạt động tài chính', codes: ['31', '32', '33', '34', '35'], total: '40' },
 ];
+const TAIL = ['50', '60', '61', '70'];
 
 /**
  * /ke-toan/luu-chuyen-tien-te — báo cáo lưu chuyển tiền tệ theo phương pháp trực tiếp (mẫu B03-DNN), lập từ sổ cái: các bút toán có tiền
@@ -22,75 +25,88 @@ const SECTIONS: { title: string; codes: string[]; total: string }[] = [
 @Component({
   selector: 'app-accounting-cash-flow',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, NavIconComponent],
   template: `
     <div class="page-header">
       <div>
         <h1>Báo cáo lưu chuyển tiền tệ</h1>
         <p class="subtitle">Phương pháp trực tiếp (B03-DNN). Phân loại theo tài khoản đối ứng của bút toán tiền — cách xếp từng tài khoản vào chỉ tiêu nên được kế toán trưởng xác nhận.</p>
       </div>
-      <button type="button" class="btn" [disabled]="!data()" (click)="exportExcel()">Xuất Excel</button>
+      <div class="toolbar">
+        <button type="button" class="btn" [disabled]="!data()" (click)="exportExcel()"><app-nav-icon name="download" />Xuất Excel</button>
+      </div>
     </div>
 
-    <div class="toolbar" style="flex-wrap:wrap; gap:8px; margin-bottom:12px">
-      <label>Kỳ báo cáo
-        <select [ngModel]="kind()" (ngModelChange)="kind.set($event); n.set(1); load()">
-          <option value="nam">Cả năm</option><option value="quy">Quý</option><option value="thang">Tháng</option>
-        </select>
-      </label>
+    <div class="filters-bar rp-toolbar">
+      <div class="segmented" role="group" aria-label="Kỳ báo cáo">
+        <button type="button" [attr.aria-pressed]="kind() === 'nam'" (click)="setKind('nam')">Cả năm</button>
+        <button type="button" [attr.aria-pressed]="kind() === 'quy'" (click)="setKind('quy')">Quý</button>
+        <button type="button" [attr.aria-pressed]="kind() === 'thang'" (click)="setKind('thang')">Tháng</button>
+      </div>
       @if (kind() !== 'nam') {
-        <label>{{ kind() === 'thang' ? 'Tháng' : 'Quý' }}
-          <select [ngModel]="n()" (ngModelChange)="n.set(+$event); load()">
-            @for (i of options(); track i) { <option [value]="i">{{ i }}</option> }
-          </select>
-        </label>
+        <select [attr.aria-label]="kind() === 'thang' ? 'Tháng' : 'Quý'" [value]="n()" (change)="n.set(+$any($event.target).value); load()">
+          @for (i of options(); track i) { <option [value]="i" [selected]="i === n()">{{ kind() === 'thang' ? 'Tháng ' : 'Quý ' }}{{ i }}</option> }
+        </select>
       }
-      <label>Năm <input type="number" [ngModel]="year()" (ngModelChange)="year.set(+$event)" (change)="load()" style="width:90px"></label>
-      <span class="subtitle">{{ formatDay(range().from) }} – {{ formatDay(range().to) }}</span>
+      <input type="number" aria-label="Năm" class="year-input" min="2000" max="2100" [value]="year()" (change)="year.set(+$any($event.target).value); load()" />
     </div>
+    <p class="rp-range">Số liệu từ <span class="num">{{ formatDay(range().from) }}</span> đến <span class="num">{{ formatDay(range().to) }}</span></p>
     @if (failure()) { <div class="notice is-error" role="alert">{{ failure() }}</div> }
 
     @if (data(); as d) {
       @if (d.check.difference !== 0) {
         <div class="notice is-error" role="alert">Tiền cuối kỳ theo báo cáo lệch {{ money(d.check.difference) }} so với số dư tiền trên sổ cái ({{ money(d.check.ledgerClosing) }}). Kiểm tra bút toán tiền.</div>
       }
-      <div class="card" style="overflow-x:auto">
-        <table style="width:100%; border-collapse:collapse">
-          <thead><tr><th style="text-align:left">Chỉ tiêu</th><th style="text-align:left; width:60px">Mã số</th><th style="text-align:right">Số tiền</th></tr></thead>
+      <dl class="list-totals">
+        @if (item('20'); as x) { <div><dt>Từ kinh doanh</dt><dd class="num" [class.amt-neg]="x.amount < 0">{{ money(x.amount) }}</dd></div> }
+        @if (item('30'); as x) { <div><dt>Từ đầu tư</dt><dd class="num" [class.amt-neg]="x.amount < 0">{{ money(x.amount) }}</dd></div> }
+        @if (item('40'); as x) { <div><dt>Từ tài chính</dt><dd class="num" [class.amt-neg]="x.amount < 0">{{ money(x.amount) }}</dd></div> }
+        @if (item('70'); as x) { <div><dt>Tiền cuối kỳ</dt><dd class="num">{{ money(x.amount) }}</dd></div> }
+      </dl>
+
+      <div class="rp-surface rp-grid">
+        <table class="book-table">
+          <thead><tr><th scope="col">Chỉ tiêu</th><th scope="col">Mã số</th><th scope="col" class="r">Số tiền</th></tr></thead>
           <tbody>
             @for (s of sections; track s.title) {
-              <tr><td colspan="3" style="font-weight:700; padding-top:12px">{{ s.title }}</td></tr>
+              <tr class="book-head"><td colspan="3">{{ s.title }}</td></tr>
               @for (c of s.codes; track c) {
                 @if (item(c); as it) {
-                  <tr [title]="detailText(it)">
-                    <td style="padding-left:16px">{{ it.label }}</td><td>{{ it.code }}</td><td style="text-align:right">{{ money(it.amount) }}</td>
+                  <tr class="book-sub" [title]="detailText(it)">
+                    <td>{{ it.label }}</td><td class="code">{{ it.code }}</td>
+                    <td class="r num" [class.is-zero]="!it.amount" [class.amt-neg]="it.amount < 0">{{ it.amount ? money(it.amount) : '—' }}</td>
                   </tr>
                 }
               }
               @if (item(s.total); as t) {
-                <tr style="font-weight:700"><td>{{ t.label }}</td><td>{{ t.code }}</td><td style="text-align:right">{{ money(t.amount) }}</td></tr>
+                <tr class="book-sum"><td>{{ t.label }}</td><td class="code">{{ t.code }}</td><td class="r num" [class.amt-neg]="t.amount < 0">{{ money(t.amount) }}</td></tr>
               }
             }
-            <tr><td colspan="3" style="padding-top:12px"></td></tr>
-            @for (c of ['50', '60', '61', '70']; track c) {
+            @for (c of tail; track c) {
               @if (item(c); as it) {
-                <tr style="font-weight:700"><td>{{ it.label }}</td><td>{{ it.code }}</td><td style="text-align:right">{{ money(it.amount) }}</td></tr>
+                <tr class="book-sum"><td>{{ it.label }}</td><td class="code">{{ it.code }}</td><td class="r num" [class.amt-neg]="it.amount < 0">{{ money(it.amount) }}</td></tr>
               }
             }
           </tbody>
         </table>
       </div>
-      <p class="subtitle" style="margin-top:8px">Rê chuột vào một chỉ tiêu để xem các tài khoản đối ứng tạo nên số đó. Số âm là tiền chi ra. Thuế GTGT, bảo hiểm và thuế TNCN nộp ghi vào "chi khác" (07). Tiền đầu kỳ = số dư đầu năm đã nhập + biến động từ đầu năm; ảnh hưởng tỷ giá (61) chưa tính.</p>
+      <details class="rp-notes">
+        <summary>Cách tính số liệu</summary>
+        <p>Rê chuột vào một chỉ tiêu để xem các tài khoản đối ứng tạo nên số đó. Số âm là tiền chi ra.</p>
+        <p>Thuế GTGT, bảo hiểm và thuế TNCN nộp ghi vào "chi khác" (07). Tiền đầu kỳ = số dư đầu năm đã nhập + biến động từ đầu năm; ảnh hưởng tỷ giá (61) chưa tính.</p>
+      </details>
     } @else if (!failure()) {
-      <div class="card" style="padding:16px">Đang tải…</div>
+      <div class="empty-state"><h3>Đang tính số liệu…</h3></div>
     }
   `,
+  styles: [`.year-input { width: 5.5rem; }`],
 })
 export class AccountingCashFlowComponent {
   private readonly svc = inject(CashOpsService);
   readonly money = formatVnd;
   readonly formatDay = formatDay;
   readonly sections = SECTIONS;
+  readonly tail = TAIL;
 
   readonly kind = signal<'nam' | 'quy' | 'thang'>('nam');
   readonly year = signal(new Date().getFullYear());
@@ -108,6 +124,12 @@ export class AccountingCashFlowComponent {
   readonly failure = signal('');
 
   constructor() { this.load(); }
+
+  setKind(k: 'nam' | 'quy' | 'thang') {
+    this.kind.set(k);
+    this.n.set(1);
+    this.load();
+  }
 
   item(code: string) {
     return this.data()?.items.find((i) => i.code === code);
@@ -133,7 +155,7 @@ export class AccountingCashFlowComponent {
       for (const c of s.codes) { const it = this.item(c); if (it) rows.push([it.label, it.code, it.amount]); }
       const t = this.item(s.total); if (t) rows.push([t.label, t.code, t.amount]);
     }
-    for (const c of ['50', '60', '61', '70']) { const it = this.item(c); if (it) rows.push([it.label, it.code, it.amount]); }
+    for (const c of TAIL) { const it = this.item(c); if (it) rows.push([it.label, it.code, it.amount]); }
     await downloadWorkbook(exportFileName(`Báo cáo lưu chuyển tiền tệ ${d.from} đến ${d.to}`), [{
       name: 'B03-DNN', columns: [{ header: 'Chỉ tiêu', width: 80 }, { header: 'Mã số', width: 8 }, { header: 'Số tiền', width: 18, numFmt: '#,##0' }], rows,
     }]);

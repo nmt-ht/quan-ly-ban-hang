@@ -129,3 +129,13 @@ export function exportFileName(title: string, now: Date = new Date()): string {
   const stamp = `${p(now.getDate())}-${p(now.getMonth() + 1)}-${now.getFullYear()} ${p(now.getHours())}h${p(now.getMinutes())}`;
   return `${title.replace(/[\\/:*?"<>|]/g, '-').trim()} - ${stamp}.xlsx`;
 }
+
+/** "YYYY-MM-DD" from a cell: a Date, "d/m/yyyy" (also with . or -) or "yyyy-mm-dd"; null when it is neither. */
+export function parseDay(v: unknown): string | null {
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  const s = String(v ?? '').trim();
+  const dmy = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})/.exec(s);
+  if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
+  const ymd = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  return ymd ? `${ymd[1]}-${ymd[2]}-${ymd[3]}` : null;
+}

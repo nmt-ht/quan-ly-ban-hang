@@ -1,8 +1,11 @@
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 import { Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AccountingService } from '../../core/services/accounting.service';
 import { AuthService } from '../../core/services/auth.service';
+import { errorText } from '../../core/api/api.service';
 import { JournalEntryView } from '../../core/models/domain.models';
+import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { formatVnd } from '../../shared/format.util';
 import { formatDay } from '../../shared/period';
 
@@ -10,41 +13,48 @@ import { formatDay } from '../../shared/period';
 @Component({
   selector: 'app-accounting-journal',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, NavIconComponent],
   template: `
     <div class="page-header">
-      <div><h1>Sổ nhật ký chung</h1><p class="subtitle">Tất cả bút toán theo thời gian (mới nhất trước).</p></div>
-      @if (canManual) { <a class="btn btn-primary" routerLink="/ke-toan/but-toan">+ Nhập bút toán</a> }
+      <div>
+        <h1>Sổ nhật ký chung</h1>
+        <p class="subtitle">{{ entries().length }} bút toán, mới nhất trước.</p>
+      </div>
+      @if (canManual) {
+        <div class="toolbar">
+          <a class="btn btn-primary" routerLink="/ke-toan/but-toan"><app-nav-icon name="plus" />Nhập bút toán</a>
+        </div>
+      }
     </div>
-    @if (failure()) { <div class="notice is-error" role="alert">{{ failure() }}</div> }
+    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
 
-    <div class="card" style="overflow-x:auto">
-      <table style="width:100%; border-collapse:collapse">
+    <div class="rp-surface rp-grid">
+      <table class="book-table">
         <thead><tr>
-          <th style="text-align:left">Ngày</th><th style="text-align:left">Số CT</th><th style="text-align:left">Diễn giải</th>
-          <th style="text-align:left">Tài khoản</th><th style="text-align:right">Nợ</th><th style="text-align:right">Có</th><th></th>
+          <th scope="col">Ngày</th><th scope="col">Số CT</th><th scope="col">Diễn giải</th>
+          <th scope="col">Tài khoản</th><th scope="col" class="r">Nợ</th><th scope="col" class="r">Có</th><th scope="col"><span class="visually-hidden">Thao tác</span></th>
         </tr></thead>
         <tbody>
           @for (e of entries(); track e.id) {
             @for (l of e.lines; track $index; let i = $index) {
-              <tr>
+              <tr [class.book-entry]="i === 0">
                 @if (i === 0) {
-                  <td [attr.rowspan]="e.lines.length">{{ formatDay(e.date) }}</td>
-                  <td [attr.rowspan]="e.lines.length">{{ e.code }}</td>
+                  <td class="num" [attr.rowspan]="e.lines.length">{{ formatDay(e.date) }}</td>
+                  <td class="code" [attr.rowspan]="e.lines.length">{{ e.code }}</td>
                   <td [attr.rowspan]="e.lines.length">{{ e.description }}</td>
                 }
-                <td>{{ l.accountCode }} — {{ l.accountName }}</td>
-                <td style="text-align:right">{{ l.debit ? money(l.debit) : '' }}</td>
-                <td style="text-align:right">{{ l.credit ? money(l.credit) : '' }}</td>
+                <td><span class="code">{{ l.accountCode }}</span> {{ l.accountName }}</td>
+                <td class="r num" [class.is-zero]="!l.debit">{{ l.debit ? money(l.debit) : '—' }}</td>
+                <td class="r num" [class.is-zero]="!l.credit">{{ l.credit ? money(l.credit) : '—' }}</td>
                 @if (i === 0) {
-                  <td [attr.rowspan]="e.lines.length" style="text-align:right">
-                    @if (canReverse && !e.isReversal) { <button type="button" class="btn btn-sm" (click)="reverse(e)">Đảo</button> }
+                  <td class="r" [attr.rowspan]="e.lines.length">
+                    @if (canReverse && !e.isReversal) { <button type="button" class="btn row-act-btn" (click)="reverse(e)">Đảo</button> }
                   </td>
                 }
               </tr>
             }
           } @empty {
-            <tr><td colspan="7" style="text-align:center; padding:16px">Chưa có bút toán nào.</td></tr>
+            <tr><td class="book-none" colspan="7">Chưa có bút toán nào.</td></tr>
           }
         </tbody>
       </table>
@@ -64,11 +74,11 @@ export class AccountingJournalComponent {
   constructor() { this.load(); }
 
   private async load() {
-    try { this.entries.set(await this.svc.journal()); } catch (e) { this.failure.set(e instanceof Error ? e.message : 'Lỗi tải'); }
+    try { this.entries.set(await this.svc.journal()); } catch (e) { this.failure.set(errorText(e)); }
   }
 
   async reverse(e: JournalEntryView) {
     if (!confirm(`Đảo bút toán ${e.code}?`)) return;
-    try { await this.svc.reverse(e.id); await this.load(); } catch (err) { this.failure.set(err instanceof Error ? err.message : 'Lỗi'); }
+    try { await this.svc.reverse(e.id); await this.load(); } catch (err) { this.failure.set(errorText(err)); }
   }
 }

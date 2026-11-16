@@ -1,8 +1,13 @@
-import { Component, inject, signal } from '@angular/core';
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
+import { Component, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AccountingService, EmployeeInput } from '../../core/services/accounting.service';
+import { errorText } from '../../core/api/api.service';
 import { EmployeeView, PayrollCenterKey } from '../../core/models/domain.models';
+import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
+import { DataTableColumn, DataTableComponent } from '../../shared/data-table/data-table.component';
 import { formatVnd } from '../../shared/format.util';
+import { MoneyInputDirective } from '../../shared/money-input.directive';
 
 export const CENTER_LABEL: Record<PayrollCenterKey, string> = {
   QUAN_LY: 'Quản lý (642)', BAN_HANG: 'Bán hàng (641)', SAN_XUAT: 'Sản xuất trực tiếp (154)',
@@ -16,60 +21,74 @@ function blank(): EmployeeInput & { insuranceSalary: number | null } {
 @Component({
   selector: 'app-accounting-employees',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, NavIconComponent, DataTableComponent, MoneyInputDirective],
   template: `
     <div class="page-header">
-      <div><h1>Nhân viên</h1><p class="subtitle">Lương cơ bản, phụ cấp, lương đóng bảo hiểm và người phụ thuộc. Bộ phận quyết định tài khoản chi phí lương.</p></div>
-      <button type="button" class="btn btn-primary" (click)="openForm()">{{ showForm() ? 'Đóng' : '+ Thêm nhân viên' }}</button>
+      <div>
+        <h1>Nhân viên</h1>
+        <p class="subtitle">Lương cơ bản, phụ cấp, lương đóng bảo hiểm và người phụ thuộc. Bộ phận quyết định tài khoản chi phí lương.</p>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn btn-primary" (click)="openForm()"><app-nav-icon [name]="showForm() ? 'x' : 'plus'" />{{ showForm() ? 'Đóng' : 'Thêm nhân viên' }}</button>
+      </div>
     </div>
-    @if (notice()) { <div class="notice" role="status">{{ notice() }}</div> }
-    @if (failure()) { <div class="notice is-error" role="alert">{{ failure() }}</div> }
-
-    @if (showForm()) {
-      <div class="card section-block" style="padding:16px; margin-bottom:12px">
-        <h3 class="form-section-title">{{ editingId() ? 'Sửa nhân viên' : 'Thêm nhân viên' }}</h3>
-        <div class="toolbar" style="gap:12px; flex-wrap:wrap; align-items:flex-end">
-          <label>Họ tên<br><input type="text" [(ngModel)]="form.name" style="min-width:200px"></label>
-          <label>Bộ phận<br>
-            <select [(ngModel)]="form.center">
-              @for (c of centers; track c.key) { <option [value]="c.key">{{ c.label }}</option> }
-            </select>
-          </label>
-          <label>Lương cơ bản<br><input type="number" min="0" [(ngModel)]="form.baseSalary" style="width:140px; text-align:right"></label>
-          <label>Phụ cấp<br><input type="number" min="0" [(ngModel)]="form.allowance" style="width:120px; text-align:right"></label>
-          <label>Lương đóng BH<br><input type="number" min="0" [(ngModel)]="form.insuranceSalary" placeholder="= lương CB" style="width:140px; text-align:right"></label>
-          <label>Người phụ thuộc<br><input type="number" min="0" [(ngModel)]="form.dependents" style="width:90px"></label>
-          <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save()">Lưu</button>
-        </div>
+    @if (notice()) {
+      <div class="notice" role="status">
+        <span>{{ notice() }}</span>
+        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
       </div>
     }
+    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
 
-    <div class="card" style="overflow-x:auto">
-      <table style="width:100%; border-collapse:collapse">
-        <thead><tr>
-          <th style="text-align:left">Mã</th><th style="text-align:left">Họ tên</th><th style="text-align:left">Bộ phận</th>
-          <th style="text-align:right">Lương cơ bản</th><th style="text-align:right">Phụ cấp</th><th style="text-align:right">Lương đóng BH</th>
-          <th style="text-align:right">Phụ thuộc</th><th style="text-align:left">Trạng thái</th><th></th>
-        </tr></thead>
-        <tbody>
-          @for (e of items(); track e.id) {
-            <tr [style.opacity]="e.isActive ? 1 : 0.55">
-              <td>{{ e.code }}</td><td>{{ e.name }}</td><td>{{ centerLabel(e.center) }}</td>
-              <td style="text-align:right">{{ money(e.baseSalary) }}</td>
-              <td style="text-align:right">{{ money(e.allowance) }}</td>
-              <td style="text-align:right">{{ money(e.insuranceSalary ?? e.baseSalary) }}</td>
-              <td style="text-align:right">{{ e.dependents }}</td>
-              <td>{{ e.isActive ? 'Đang làm việc' : 'Đã nghỉ' }}</td>
-              <td style="text-align:right; white-space:nowrap">
-                <button type="button" class="btn btn-sm" (click)="edit(e)">Sửa</button>
-                <button type="button" class="btn btn-sm" (click)="toggle(e)">{{ e.isActive ? 'Cho nghỉ' : 'Kích hoạt' }}</button>
-              </td>
-            </tr>
-          } @empty { <tr><td colspan="9" style="text-align:center; padding:16px">Chưa có nhân viên.</td></tr> }
-        </tbody>
-      </table>
-    </div>
+    @if (showForm()) {
+      <section class="card section-block" aria-labelledby="nv-form">
+        <h2 id="nv-form" class="form-section-title">{{ editingId() ? 'Sửa nhân viên' : 'Thêm nhân viên' }}</h2>
+        <div class="form-grid-3">
+          <div class="field span-2">
+            <label for="nv-name">Họ tên <span class="required-mark">*</span></label>
+            <input id="nv-name" type="text" maxlength="120" [(ngModel)]="form.name" />
+          </div>
+          <div class="field">
+            <label for="nv-center">Bộ phận</label>
+            <select id="nv-center" [(ngModel)]="form.center">
+              @for (c of centers; track c.key) { <option [value]="c.key">{{ c.label }}</option> }
+            </select>
+          </div>
+          <div class="field">
+            <label for="nv-base">Lương cơ bản</label>
+            <input id="nv-base" type="text" appMoney class="num money-field" placeholder="0" [(ngModel)]="form.baseSalary" />
+          </div>
+          <div class="field">
+            <label for="nv-allow">Phụ cấp</label>
+            <input id="nv-allow" type="text" appMoney class="num money-field" placeholder="0" [(ngModel)]="form.allowance" />
+          </div>
+          <div class="field">
+            <label for="nv-ins">Lương đóng bảo hiểm</label>
+            <input id="nv-ins" type="text" appMoney class="num money-field" placeholder="Bằng lương cơ bản" [(ngModel)]="form.insuranceSalary" />
+            <span class="hint">Để trống thì tính theo lương cơ bản.</span>
+          </div>
+          <div class="field">
+            <label for="nv-dep">Người phụ thuộc</label>
+            <input id="nv-dep" type="number" min="0" class="num" [(ngModel)]="form.dependents" />
+          </div>
+        </div>
+        <div class="toolbar">
+          <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save()">Lưu</button>
+          <button type="button" class="btn" (click)="showForm.set(false)">Bỏ qua</button>
+        </div>
+      </section>
+    }
+
+    <app-data-table [columns]="columns" [rows]="items()" [actions]="rowActions()" emptyTitle="Chưa có nhân viên" emptyHint="Thêm nhân viên để tính lương." />
+
+    <ng-template #rowActionsTpl let-e>
+      <span class="row-actions">
+        <button type="button" class="icon-action" [attr.aria-label]="'Sửa ' + e.name" title="Sửa" (click)="edit(e)"><app-nav-icon name="pencil" /></button>
+        <button type="button" class="btn row-act-btn" (click)="toggle(e)">{{ e.isActive ? 'Cho nghỉ' : 'Kích hoạt' }}</button>
+      </span>
+    </ng-template>
   `,
+  styles: [`.money-field { text-align: right; }`],
 })
 export class AccountingEmployeesComponent {
   private readonly svc = inject(AccountingService);
@@ -82,13 +101,24 @@ export class AccountingEmployeesComponent {
   readonly money = formatVnd;
   readonly centers = (Object.keys(CENTER_LABEL) as PayrollCenterKey[]).map((key) => ({ key, label: CENTER_LABEL[key] }));
   form = blank();
+  private readonly rowActionsRef = viewChild<TemplateRef<{ $implicit: EmployeeView }>>('rowActionsTpl');
+  readonly rowActions = computed(() => this.rowActionsRef());
+
+  readonly columns: DataTableColumn<EmployeeView>[] = [
+    { key: 'code', label: 'Mã', copy: true },
+    { key: 'name', label: 'Họ tên' },
+    { key: 'center', label: 'Bộ phận', format: (e) => CENTER_LABEL[e.center] },
+    { key: 'baseSalary', label: 'Lương cơ bản', align: 'right', format: (e) => formatVnd(e.baseSalary) },
+    { key: 'allowance', label: 'Phụ cấp', align: 'right', format: (e) => formatVnd(e.allowance) },
+    { key: 'insuranceSalary', label: 'Lương đóng BH', align: 'right', format: (e) => formatVnd(e.insuranceSalary ?? e.baseSalary) },
+    { key: 'dependents', label: 'Phụ thuộc', align: 'right', format: (e) => String(e.dependents) },
+    { key: 'status', label: 'Trạng thái', format: (e) => (e.isActive ? 'Đang làm việc' : 'Đã nghỉ'), badge: (e) => (e.isActive ? 'badge-success' : 'badge-muted') },
+  ];
 
   constructor() { this.load(); }
 
-  centerLabel(c: PayrollCenterKey) { return CENTER_LABEL[c]; }
-
   async load() {
-    try { this.items.set(await this.svc.employees()); } catch (e) { this.failure.set(e instanceof Error ? e.message : 'Lỗi tải'); }
+    try { this.items.set(await this.svc.employees()); } catch (e) { this.failure.set(errorText(e)); }
   }
 
   openForm() {
@@ -115,13 +145,13 @@ export class AccountingEmployeesComponent {
       this.notice.set(id ? 'Đã cập nhật nhân viên.' : 'Đã thêm nhân viên.');
       this.showForm.set(false);
       await this.load();
-    } catch (e) { this.failure.set(e instanceof Error ? e.message : 'Không lưu được.'); }
+    } catch (e) { this.failure.set(errorText(e)); }
     finally { this.saving.set(false); }
   }
 
   async toggle(e: EmployeeView) {
     this.failure.set('');
     try { await this.svc.updateEmployee(e.id, { isActive: !e.isActive }); await this.load(); }
-    catch (err) { this.failure.set(err instanceof Error ? err.message : 'Không cập nhật được.'); }
+    catch (err) { this.failure.set(errorText(err)); }
   }
 }

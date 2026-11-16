@@ -1,9 +1,12 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
+import { Component, TemplateRef, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { errorText } from '../../core/api/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { DataStore } from '../../core/services/data-store.service';
-import { CashCountView } from '../../core/models/cash-ops.models';
+import { CashCountView, CountResolution } from '../../core/models/cash-ops.models';
+import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
+import { DataTableColumn, DataTableComponent } from '../../shared/data-table/data-table.component';
 import { formatVnd } from '../../shared/format.util';
 import { formatDay, isoDay } from '../../shared/period';
 import { CashOpsService } from './cash-ops.service';
@@ -13,89 +16,138 @@ const NOTES = [500_000, 200_000, 100_000, 50_000, 20_000, 10_000, 5_000, 2_000, 
 
 /**
  * /thu-chi/kiem-ke-quy — kiểm kê quỹ tiền mặt: đếm tiền theo mệnh giá, so với số dư sổ sách cuối ngày, ghi biên bản thừa / thiếu quỹ.
- * Chênh lệch chỉ ghi trên biên bản; xử lý bằng phiếu thu / phiếu chi như thường.
+ * Chênh lệch ghi trên biên bản; "Xử lý chênh lệch" lập phiếu chi (thiếu) hoặc phiếu thu (thừa) để sổ quỹ và sổ cái khớp số đếm.
  */
 @Component({
   selector: 'app-cash-counts',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, NavIconComponent, DataTableComponent],
   template: `
     <div class="page-header">
       <div>
         <h1>Kiểm kê quỹ</h1>
         <p class="subtitle">Đếm tiền mặt theo mệnh giá và so với số dư sổ sách cuối ngày kiểm kê.</p>
       </div>
-      @if (canCreate() && !creating()) { <button type="button" class="btn btn-primary" (click)="start()">Lập biên bản kiểm kê</button> }
+      @if (canCreate() && !creating()) {
+        <div class="toolbar">
+          <button type="button" class="btn btn-primary" (click)="start()"><app-nav-icon name="plus" />Lập biên bản kiểm kê</button>
+        </div>
+      }
     </div>
-    @if (failure()) { <div class="notice is-error" role="alert">{{ failure() }}</div> }
-    @if (notice()) { <div class="notice" role="status">{{ notice() }}</div> }
+    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
+    @if (notice()) {
+      <div class="notice" role="status">
+        <span>{{ notice() }}</span>
+        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
+      </div>
+    }
 
     @if (creating()) {
-      <div class="card" style="margin-bottom:16px">
-        <div class="toolbar" style="flex-wrap:wrap; gap:8px">
-          <label>Quỹ tiền mặt <span class="required-mark">*</span>
-            <select [ngModel]="accountId()" (ngModelChange)="accountId.set($event)">
+      <section class="card section-block" aria-labelledby="kk-new">
+        <h2 id="kk-new" class="form-section-title">Biên bản kiểm kê mới</h2>
+        <div class="form-grid-3">
+          <div class="field">
+            <label for="kk-acc">Quỹ tiền mặt <span class="required-mark">*</span></label>
+            <select id="kk-acc" [ngModel]="accountId()" (ngModelChange)="accountId.set($event)">
               <option value="">— Chọn —</option>
               @for (a of accounts(); track a.id) { <option [value]="a.id">{{ a.name }}</option> }
             </select>
-          </label>
-          <label>Ngày kiểm kê <span class="required-mark">*</span> <input type="date" [ngModel]="date()" (ngModelChange)="date.set($event)"></label>
-          <label>Người kiểm kê <input type="text" maxlength="100" [ngModel]="countedBy()" (ngModelChange)="countedBy.set($event)"></label>
+          </div>
+          <div class="field">
+            <label for="kk-date">Ngày kiểm kê <span class="required-mark">*</span></label>
+            <input id="kk-date" type="date" [max]="today" [ngModel]="date()" (ngModelChange)="date.set($event)" />
+          </div>
+          <div class="field">
+            <label for="kk-by">Người kiểm kê</label>
+            <input id="kk-by" type="text" maxlength="100" [ngModel]="countedBy()" (ngModelChange)="countedBy.set($event)" />
+          </div>
         </div>
-        <table style="width:100%; max-width:560px; border-collapse:collapse; margin:12px 0">
-          <thead><tr><th style="text-align:left">Mệnh giá</th><th style="text-align:right">Số tờ</th><th style="text-align:right">Thành tiền</th></tr></thead>
-          <tbody>
-            @for (n of notes; track n) {
-              <tr>
-                <td>{{ money(n) }}</td>
-                <td style="text-align:right"><input type="number" min="0" step="1" [ngModel]="counts()[n] ?? null" (ngModelChange)="setCount(n, $event)" style="width:90px; text-align:right" [attr.aria-label]="'Số tờ ' + n"></td>
-                <td style="text-align:right">{{ (counts()[n] ?? 0) ? money(n * (counts()[n] ?? 0)) : '' }}</td>
-              </tr>
-            }
-          </tbody>
-          <tfoot><tr style="font-weight:700"><td colspan="2">Tổng tiền đếm được</td><td style="text-align:right">{{ money(counted()) }}</td></tr></tfoot>
-        </table>
-        <p>Số dư sổ sách cuối ngày {{ date() ? formatDay(date()) : '' }}: <b>{{ book() === null ? '…' : money(book()!) }}</b>
+
+        <div class="book-wrap rp-surface">
+          <table class="line-table book-table">
+            <thead><tr><th scope="col">Mệnh giá</th><th scope="col" class="r">Số tờ</th><th scope="col" class="r">Thành tiền</th></tr></thead>
+            <tbody>
+              @for (n of notes; track n) {
+                <tr>
+                  <td class="num">{{ money(n) }}</td>
+                  <td class="r"><input type="number" min="0" step="1" class="num count-input" [ngModel]="counts()[n] ?? null" (ngModelChange)="setCount(n, $event)" [attr.aria-label]="'Số tờ ' + money(n)" /></td>
+                  <td class="r num" [class.is-zero]="!(counts()[n] ?? 0)">{{ (counts()[n] ?? 0) ? money(n * (counts()[n] ?? 0)) : '—' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <dl class="list-totals">
+          <div><dt>Tổng tiền đếm được</dt><dd class="num">{{ money(counted()) }}</dd></div>
+          <div><dt>Số dư sổ sách cuối ngày {{ date() ? formatDay(date()) : '' }}</dt><dd class="num">{{ book() === null ? '…' : money(book()!) }}</dd></div>
           @if (book() !== null) {
-            · Chênh lệch:
-            <b [class.text-danger]="counted() - book()! !== 0">{{ diffText(counted() - book()!) }}</b>
+            <div><dt>Chênh lệch</dt><dd class="num" [class.text-danger]="counted() - book()! !== 0">{{ diffText(counted() - book()!) }}</dd></div>
           }
-        </p>
-        <label style="display:block; margin:8px 0">Ghi chú
-          <input type="text" maxlength="500" [ngModel]="note()" (ngModelChange)="note.set($event)" style="width:100%">
-        </label>
-        @if (issue()) { <p class="text-danger" role="alert" style="margin:0 0 8px">{{ issue() }}</p> }
+        </dl>
+
+        <div class="field">
+          <label for="kk-note">Ghi chú</label>
+          <input id="kk-note" type="text" maxlength="500" [ngModel]="note()" (ngModelChange)="note.set($event)" />
+        </div>
+        @if (issue()) { <p class="hint text-danger" role="alert">{{ issue() }}</p> }
         <div class="toolbar">
           <button type="button" class="btn btn-primary" [disabled]="busy()" (click)="save()">Lưu biên bản</button>
           <button type="button" class="btn" (click)="creating.set(false)">Bỏ qua</button>
         </div>
-      </div>
+      </section>
     }
 
-    <div class="card" style="overflow-x:auto">
-      <table style="width:100%; border-collapse:collapse">
-        <thead><tr>
-          <th style="text-align:left">Số biên bản</th><th style="text-align:left">Ngày</th><th style="text-align:left">Quỹ</th>
-          <th style="text-align:right">Sổ sách</th><th style="text-align:right">Thực tế</th><th style="text-align:right">Chênh lệch</th>
-          <th style="text-align:left">Người kiểm kê</th><th style="text-align:left">Trạng thái</th><th></th>
-        </tr></thead>
-        <tbody>
-          @for (c of rows(); track c.id) {
-            <tr [style.opacity]="c.isCancelled ? 0.55 : 1">
-              <td>{{ c.code }}</td><td>{{ formatDay(c.date) }}</td><td>{{ c.accountName }}</td>
-              <td style="text-align:right">{{ money(c.bookAmount) }}</td><td style="text-align:right">{{ money(c.countedAmount) }}</td>
-              <td style="text-align:right" [class.text-danger]="c.difference !== 0">{{ diffText(c.difference) }}</td>
-              <td>{{ c.countedBy }}</td>
-              <td>@if (c.isCancelled) { <span class="badge badge-muted" [title]="c.cancelReason || ''">Đã huỷ</span> } @else if (c.difference === 0) { <span class="badge badge-success">Khớp</span> } @else { <span class="badge badge-warning">{{ c.difference > 0 ? 'Thừa quỹ' : 'Thiếu quỹ' }}</span> }</td>
-              <td>@if (!c.isCancelled && canCreate()) { <button type="button" class="btn btn-sm btn-danger-ghost" (click)="cancel(c)">Huỷ</button> }</td>
-            </tr>
-          } @empty {
-            <tr><td colspan="9" style="text-align:center; padding:16px">Chưa có biên bản kiểm kê quỹ nào.</td></tr>
-          }
-        </tbody>
-      </table>
+    @if (resolveRow(); as c) {
+      <section class="card section-block" aria-labelledby="kk-res">
+        <h2 id="kk-res" class="form-section-title">Xử lý chênh lệch của {{ c.code }}: {{ diffText(c.difference) }}</h2>
+        <div class="form-grid">
+          <div class="field">
+            <label for="kk-opt">Cách xử lý</label>
+            <select id="kk-opt" [ngModel]="resolving()!.option" (ngModelChange)="resolving.set({ id: c.id, option: $event })">
+              @for (o of options(c.difference); track o.option) { <option [value]="o.option">{{ o.label }}</option> }
+            </select>
+            <span class="hint">Lập một phiếu {{ c.difference < 0 ? 'chi' : 'thu' }} {{ money(c.difference < 0 ? -c.difference : c.difference) }} ngày kiểm kê; huỷ biên bản thì phiếu huỷ theo.</span>
+          </div>
+        </div>
+        <div class="toolbar">
+          <button type="button" class="btn btn-primary" [disabled]="busy()" (click)="resolve(c)">Lập phiếu {{ c.difference < 0 ? 'chi' : 'thu' }}</button>
+          <button type="button" class="btn" (click)="resolving.set(null)">Bỏ qua</button>
+        </div>
+      </section>
+    }
+
+    <div class="filters-bar">
+      <button type="button" class="filter-toggle" [attr.aria-pressed]="pendingOnly()" (click)="pendingOnly.set(!pendingOnly())">Chỉ chênh lệch chưa xử lý</button>
+      <button type="button" class="filter-toggle" [attr.aria-pressed]="showCancelled()" (click)="showCancelled.set(!showCancelled())">Hiện biên bản đã huỷ</button>
     </div>
+
+    @if (rows().length) {
+      <dl class="list-totals">
+        <div><dt>Biên bản</dt><dd class="num">{{ liveCount() }}</dd></div>
+        <div><dt>Chênh lệch chưa xử lý</dt><dd class="num" [class.text-warning]="pendingCount() > 0">{{ pendingCount() }}</dd></div>
+      </dl>
+    }
+
+    <app-data-table
+      [columns]="columns" [rows]="visible()" [actions]="rowActions()" emptyTitle="Chưa có biên bản kiểm kê quỹ"
+      [emptyHint]="rows().length ? 'Không có biên bản nào khớp bộ lọc.' : 'Lập biên bản đầu tiên để so số tiền thực tế với sổ sách.'" />
+
+    <ng-template #rowActionsTpl let-c>
+      @if (!c.isCancelled && canCreate()) {
+        <span class="row-actions">
+          @if (c.difference !== 0 && !c.resolutionVoucherCode) {
+            <button type="button" class="btn row-act-btn" (click)="resolving.set({ id: c.id, option: 'CHO_XU_LY' })">Xử lý chênh lệch</button>
+          }
+          @if (c.resolutionVoucherCode) {
+            <button type="button" class="btn row-act-btn" (click)="unresolve(c)">Huỷ xử lý</button>
+          }
+          <button type="button" class="btn row-act-btn btn-danger-ghost" (click)="cancel(c)">Huỷ</button>
+        </span>
+      }
+    </ng-template>
   `,
+  styles: [`.count-input { width: 6rem; text-align: right; }`],
 })
 export class CashCountsComponent {
   private readonly svc = inject(CashOpsService);
@@ -104,14 +156,40 @@ export class CashCountsComponent {
   readonly money = formatVnd;
   readonly formatDay = formatDay;
   readonly notes = NOTES;
+  readonly today = isoDay(new Date());
+  private readonly rowActionsRef = viewChild<TemplateRef<{ $implicit: CashCountView }>>('rowActionsTpl');
+  readonly rowActions = computed(() => this.rowActionsRef());
+
+  readonly columns: DataTableColumn<CashCountView>[] = [
+    { key: 'code', label: 'Số biên bản', copy: true },
+    { key: 'date', label: 'Ngày', format: (c) => formatDay(c.date), mono: true },
+    { key: 'accountName', label: 'Quỹ' },
+    { key: 'bookAmount', label: 'Sổ sách', align: 'right', format: (c) => formatVnd(c.bookAmount) },
+    { key: 'countedAmount', label: 'Thực tế', align: 'right', format: (c) => formatVnd(c.countedAmount) },
+    { key: 'difference', label: 'Chênh lệch', align: 'right', format: (c) => this.diffText(c.difference), tone: (c) => c.difference, toneFlow: false },
+    { key: 'countedBy', label: 'Người kiểm kê' },
+    { key: 'status', label: 'Trạng thái', format: (c) => this.statusText(c), badge: (c) => this.statusClass(c) },
+  ];
 
   readonly rows = signal<CashCountView[]>([]);
   readonly failure = signal('');
   readonly notice = signal('');
   readonly busy = signal(false);
   readonly creating = signal(false);
+  readonly pendingOnly = signal(false);
+  readonly showCancelled = signal(false);
+  /** Biên bản đang chọn cách xử lý chênh lệch. */
+  readonly resolving = signal<{ id: string; option: CountResolution } | null>(null);
+  readonly resolveRow = computed(() => this.rows().find((c) => c.id === this.resolving()?.id) ?? null);
   readonly canCreate = computed(() => this.auth.can('voucher.manage_account'));
   readonly accounts = computed(() => this.store.cashAccounts().filter((a) => a.type === 'TIEN_MAT' && a.isActive !== false));
+
+  private readonly needsResolve = (c: CashCountView) => !c.isCancelled && c.difference !== 0 && !c.resolutionVoucherCode;
+  readonly liveCount = computed(() => this.rows().filter((c) => !c.isCancelled).length);
+  readonly pendingCount = computed(() => this.rows().filter(this.needsResolve).length);
+  readonly visible = computed(() =>
+    this.rows().filter((c) => (this.showCancelled() || !c.isCancelled) && (!this.pendingOnly() || this.needsResolve(c))),
+  );
 
   readonly accountId = signal('');
   readonly date = signal(isoDay(new Date()));
@@ -142,9 +220,23 @@ export class CashCountsComponent {
     try { this.rows.set(await this.svc.counts()); } catch (e) { this.failure.set(errorText(e)); }
   }
 
+  private statusText(c: CashCountView): string {
+    if (c.isCancelled) return 'Đã huỷ';
+    if (c.difference === 0) return 'Khớp';
+    if (c.resolutionVoucherCode) return `Đã xử lý · ${c.resolutionVoucherCode}`;
+    return c.difference > 0 ? 'Thừa quỹ' : 'Thiếu quỹ';
+  }
+
+  private statusClass(c: CashCountView): string {
+    if (c.isCancelled) return 'badge-muted';
+    if (c.difference === 0 || c.resolutionVoucherCode) return 'badge-success';
+    return 'badge-warning';
+  }
+
   start() {
     this.accountId.set(this.accounts()[0]?.id ?? ''); this.date.set(isoDay(new Date())); this.countedBy.set(''); this.note.set(''); this.counts.set({});
     this.failure.set('');
+    this.resolving.set(null);
     this.creating.set(true);
   }
 
@@ -176,11 +268,46 @@ export class CashCountsComponent {
     }
   }
 
+  /** Các cách xử lý chọn được (khớp CashCountsService.resolve): thiếu → phiếu chi, thừa → phiếu thu. */
+  options(diff: number): { option: CountResolution; label: string }[] {
+    return diff < 0
+      ? [{ option: 'CHO_XU_LY', label: 'Thiếu quỹ chờ xử lý (Nợ 1381 / Có tiền)' }, { option: 'TINH_VAO_KET_QUA', label: 'Tính vào chi phí khác (Nợ 811 / Có tiền)' }]
+      : [{ option: 'CHO_XU_LY', label: 'Thừa quỹ chờ giải quyết (Nợ tiền / Có 3381)' }, { option: 'TINH_VAO_KET_QUA', label: 'Tính vào thu nhập khác (Nợ tiền / Có 711)' }];
+  }
+
+  async resolve(c: CashCountView) {
+    const r = this.resolving();
+    if (!r || this.busy()) return;
+    this.busy.set(true);
+    this.failure.set('');
+    try {
+      const out = await this.svc.resolveCount(c, r.option);
+      this.resolving.set(null);
+      this.notice.set(`Đã lập phiếu ${out.resolutionVoucherCode} xử lý chênh lệch của ${c.code}.`);
+      await this.load();
+    } catch (e) {
+      this.failure.set(errorText(e));
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  async unresolve(c: CashCountView) {
+    this.failure.set('');
+    try {
+      await this.svc.unresolveCount(c);
+      this.notice.set(`Đã huỷ phiếu xử lý chênh lệch của ${c.code}.`);
+      await this.load();
+    } catch (e) {
+      this.failure.set(errorText(e));
+    }
+  }
+
   async cancel(c: CashCountView) {
     this.failure.set('');
     try {
-      await this.svc.cancelCount(c.id);
-      this.notice.set(`Đã huỷ biên bản ${c.code}.`);
+      await this.svc.cancelCount(c);
+      this.notice.set(`Đã huỷ biên bản ${c.code}${c.resolutionVoucherCode ? ` và phiếu xử lý ${c.resolutionVoucherCode}` : ''}.`);
       await this.load();
     } catch (e) {
       this.failure.set(errorText(e));

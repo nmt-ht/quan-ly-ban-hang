@@ -1,9 +1,10 @@
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 import { Component, computed, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { AccountingService } from '../../core/services/accounting.service';
 import { AuthService } from '../../core/services/auth.service';
 import { errorText } from '../../core/api/api.service';
 import { TaxBucket, VatInputsView, VatOutputsView, VatSummaryView } from '../../core/models/books-vat.models';
+import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { formatVnd } from '../../shared/format.util';
 import { formatDay } from '../../shared/period';
@@ -22,31 +23,35 @@ const KIND_LABEL: Record<string, string> = { ORIGINAL: 'Gốc', ADJUST: 'Điều
 @Component({
   selector: 'app-accounting-vat',
   standalone: true,
-  imports: [FormsModule],
+  imports: [NavIconComponent],
   template: `
     <div class="page-header">
       <div>
         <h1>Thuế GTGT</h1>
         <p class="subtitle">Số liệu hỗ trợ lập tờ khai theo kỳ. Mẫu 01/GTGT và các chỉ tiêu có thể thay đổi theo văn bản mới — đối chiếu mẫu hiện hành khi kê khai.</p>
       </div>
+      @if (tab() !== 'tong-hop') {
+        <div class="toolbar">
+          <button type="button" class="btn" [disabled]="tab() === 'ban-ra' ? !outputs()?.rows?.length : !inputs()?.rows?.length" (click)="tab() === 'ban-ra' ? exportOutputs() : exportInputs()">
+            <app-nav-icon name="download" />Xuất Excel
+          </button>
+        </div>
+      }
     </div>
 
-    <div class="toolbar" style="flex-wrap:wrap; gap:8px; margin-bottom:12px">
-      <label>Kỳ kê khai
-        <select [ngModel]="kind()" (ngModelChange)="kind.set($event); load()">
-          <option value="thang">Tháng</option><option value="quy">Quý</option>
-        </select>
-      </label>
-      <label>{{ kind() === 'thang' ? 'Tháng' : 'Quý' }}
-        <select [ngModel]="n()" (ngModelChange)="n.set(+$event); load()">
-          @for (i of options(); track i) { <option [value]="i">{{ i }}</option> }
-        </select>
-      </label>
-      <label>Năm <input type="number" [ngModel]="year()" (ngModelChange)="year.set(+$event)" (change)="load()" style="width:90px"></label>
-      <span class="subtitle">{{ formatDay(range().from) }} – {{ formatDay(range().to) }}</span>
+    <div class="filters-bar rp-toolbar">
+      <div class="segmented" role="group" aria-label="Kỳ kê khai">
+        <button type="button" [attr.aria-pressed]="kind() === 'thang'" (click)="setKind('thang')">Tháng</button>
+        <button type="button" [attr.aria-pressed]="kind() === 'quy'" (click)="setKind('quy')">Quý</button>
+      </div>
+      <select [attr.aria-label]="kind() === 'thang' ? 'Tháng' : 'Quý'" (change)="n.set(+$any($event.target).value); load()">
+        @for (i of options(); track i) { <option [value]="i" [selected]="i === n()">{{ kind() === 'thang' ? 'Tháng ' : 'Quý ' }}{{ i }}</option> }
+      </select>
+      <input type="number" aria-label="Năm" class="year-input" min="2000" max="2100" [value]="year()" (change)="year.set(+$any($event.target).value); load()" />
     </div>
+    <p class="rp-range">Kỳ từ <span class="num">{{ formatDay(range().from) }}</span> đến <span class="num">{{ formatDay(range().to) }}</span></p>
 
-    <div class="detail-tabs" role="tablist" style="margin-bottom:12px">
+    <div class="detail-tabs" role="tablist">
       <button type="button" role="tab" [attr.aria-selected]="tab() === 'tong-hop'" (click)="tab.set('tong-hop')">Tổng hợp</button>
       <button type="button" role="tab" [attr.aria-selected]="tab() === 'ban-ra'" (click)="tab.set('ban-ra')">Bảng kê bán ra @if (outputs()) { <span class="tab-count num">{{ outputs()!.rows.length }}</span> }</button>
       <button type="button" role="tab" [attr.aria-selected]="tab() === 'mua-vao'" (click)="tab.set('mua-vao')">Bảng kê mua vào @if (inputs()) { <span class="tab-count num">{{ inputs()!.rows.length }}</span> }</button>
@@ -57,156 +62,183 @@ const KIND_LABEL: Record<string, string> = { ORIGINAL: 'Gốc', ADJUST: 'Điều
 
     @if (tab() === 'tong-hop') {
       @if (summary(); as s) {
-        <div class="card" style="overflow-x:auto; margin-bottom:12px">
-          <h2 style="margin:0 0 8px">Thuế GTGT đầu ra (bán ra)</h2>
-          <table style="width:100%; border-collapse:collapse">
-            <thead><tr><th style="text-align:left">Thuế suất</th><th style="text-align:right">Giá trị chưa thuế</th><th style="text-align:right">Thuế GTGT</th></tr></thead>
-            <tbody>
-              @for (b of s.output.buckets; track b.rate) { <tr><td>{{ rate(b.rate) }}</td><td style="text-align:right">{{ money(b.taxable) }}</td><td style="text-align:right">{{ money(b.vat) }}</td></tr> }
-              @empty { <tr><td colspan="3" style="text-align:center; padding:12px">Chưa có hoá đơn bán ra trong kỳ.</td></tr> }
-            </tbody>
-            <tfoot><tr style="font-weight:700"><td>Cộng ({{ s.output.invoices }} hoá đơn)</td><td style="text-align:right">{{ money(s.output.taxable) }}</td><td style="text-align:right">{{ money(s.output.vat) }}</td></tr></tfoot>
-          </table>
-        </div>
-
-        <div class="card" style="overflow-x:auto; margin-bottom:12px">
-          <h2 style="margin:0 0 8px">Thuế GTGT đầu vào (mua vào có hoá đơn)</h2>
-          <table style="width:100%; border-collapse:collapse">
-            <thead><tr><th style="text-align:left">Thuế suất</th><th style="text-align:right">Giá trị chưa thuế</th><th style="text-align:right">Thuế GTGT</th></tr></thead>
-            <tbody>
-              @for (b of s.input.buckets; track b.rate) { <tr><td>{{ rate(b.rate) }}</td><td style="text-align:right">{{ money(b.taxable) }}</td><td style="text-align:right">{{ money(b.vat) }}</td></tr> }
-              @empty { <tr><td colspan="3" style="text-align:center; padding:12px">Chưa có hoá đơn mua vào trong kỳ.</td></tr> }
-            </tbody>
-            <tfoot><tr style="font-weight:700"><td>Cộng ({{ s.input.invoices }} hoá đơn)</td><td style="text-align:right">{{ money(s.input.taxable) }}</td><td style="text-align:right">{{ money(s.input.vat) }}</td></tr></tfoot>
-          </table>
-          @if (s.input.uninvoicedCount) {
-            <p class="text-danger" style="margin:8px 0 0">
-              {{ s.input.uninvoicedCount }} khoản mua vào chưa có số hoá đơn NCC (thuế {{ money(s.input.uninvoicedVat) }}) — chưa được tính khấu trừ. Nhập hoá đơn ở thẻ "Hoá đơn NCC" của đơn mua hàng.
-            </p>
+        <dl class="list-totals">
+          <div><dt>Thuế đầu ra</dt><dd class="num">{{ money(s.output.vat) }}</dd></div>
+          <div><dt>Thuế đầu vào được khấu trừ</dt><dd class="num">{{ money(s.input.vat) }}</dd></div>
+          @if (s.payable > 0) {
+            <div><dt>Phải nộp trong kỳ</dt><dd class="num text-warning">{{ money(s.payable) }}</dd></div>
+          } @else {
+            <div><dt>Còn được khấu trừ chuyển kỳ sau</dt><dd class="num">{{ money(s.carryOver) }}</dd></div>
           }
-        </div>
+        </dl>
 
-        <div class="card" style="overflow-x:auto; margin-bottom:12px">
-          <h2 style="margin:0 0 8px">Thuế phải nộp / còn được khấu trừ</h2>
-          <table style="width:100%; border-collapse:collapse">
-            <tbody>
-              <tr><td>Thuế GTGT đầu ra</td><td style="text-align:right">{{ money(s.output.vat) }}</td></tr>
-              <tr><td>Thuế GTGT đầu vào được khấu trừ trong kỳ</td><td style="text-align:right">{{ money(s.input.vat) }}</td></tr>
-              <tr><td>Thuế GTGT còn được khấu trừ kỳ trước chuyển sang <span class="subtitle">(theo sổ cái: 133 − 3331 cuối kỳ trước)</span></td><td style="text-align:right">{{ money(s.carryForward) }}</td></tr>
-            </tbody>
-            <tfoot>
-              @if (s.payable > 0) {
-                <tr style="font-weight:700"><td>Thuế GTGT phải nộp trong kỳ</td><td style="text-align:right">{{ money(s.payable) }}</td></tr>
-              } @else {
-                <tr style="font-weight:700"><td>Thuế GTGT còn được khấu trừ chuyển kỳ sau</td><td style="text-align:right">{{ money(s.carryOver) }}</td></tr>
-              }
-            </tfoot>
-          </table>
-          @if (canOffset()) {
-            <div style="margin-top:12px">
-              @if (!confirmOffset()) {
-                <button type="button" class="btn" (click)="confirmOffset.set(true)">Khấu trừ thuế GTGT cuối kỳ…</button>
-              } @else {
-                <p>Ghi bút toán <b>Nợ 3331 / Có 133</b> bằng số nhỏ hơn của hai số dư tại ngày {{ formatDay(range().to) }}. Mỗi ngày chỉ làm được một lần; sai thì đảo bút toán.</p>
-                <button type="button" class="btn btn-primary" [disabled]="busy()" (click)="offset()">Xác nhận khấu trừ</button>
-                <button type="button" class="btn" (click)="confirmOffset.set(false)">Bỏ qua</button>
-              }
+        <section class="section-bare">
+          <h3>Thuế GTGT đầu ra (bán ra)</h3>
+          <div class="rp-surface book-wrap">
+            <table class="book-table">
+              <thead><tr><th scope="col">Thuế suất</th><th scope="col" class="r">Giá trị chưa thuế</th><th scope="col" class="r">Thuế GTGT</th></tr></thead>
+              <tbody>
+                @for (b of s.output.buckets; track b.rate) { <tr><td>{{ rate(b.rate) }}</td><td class="r num">{{ money(b.taxable) }}</td><td class="r num">{{ money(b.vat) }}</td></tr> }
+                @empty { <tr><td class="book-none" colspan="3">Chưa có hoá đơn bán ra trong kỳ.</td></tr> }
+              </tbody>
+              <tfoot><tr><td>Cộng ({{ s.output.invoices }} hoá đơn)</td><td class="r num">{{ money(s.output.taxable) }}</td><td class="r num">{{ money(s.output.vat) }}</td></tr></tfoot>
+            </table>
+          </div>
+        </section>
+
+        <section class="section-bare">
+          <h3>Thuế GTGT đầu vào (mua vào có hoá đơn)</h3>
+          <div class="rp-surface book-wrap">
+            <table class="book-table">
+              <thead><tr><th scope="col">Thuế suất</th><th scope="col" class="r">Giá trị chưa thuế</th><th scope="col" class="r">Thuế GTGT</th></tr></thead>
+              <tbody>
+                @for (b of s.input.buckets; track b.rate) { <tr><td>{{ rate(b.rate) }}</td><td class="r num">{{ money(b.taxable) }}</td><td class="r num">{{ money(b.vat) }}</td></tr> }
+                @empty { <tr><td class="book-none" colspan="3">Chưa có hoá đơn mua vào trong kỳ.</td></tr> }
+              </tbody>
+              <tfoot><tr><td>Cộng ({{ s.input.invoices }} hoá đơn)</td><td class="r num">{{ money(s.input.taxable) }}</td><td class="r num">{{ money(s.input.vat) }}</td></tr></tfoot>
+            </table>
+          </div>
+          @if (s.input.uninvoicedCount) {
+            <div class="notice is-error" role="alert">
+              {{ s.input.uninvoicedCount }} khoản mua vào chưa có số hoá đơn NCC (thuế {{ money(s.input.uninvoicedVat) }}) — chưa được tính khấu trừ. Nhập hoá đơn ở thẻ "Hoá đơn NCC" của đơn mua hàng.
             </div>
           }
-        </div>
+        </section>
 
-        <div class="card" style="overflow-x:auto">
-          <h2 style="margin:0 0 8px">Đối chiếu với sổ cái</h2>
-          <table style="width:100%; border-collapse:collapse">
-            <thead><tr><th style="text-align:left"></th><th style="text-align:right">Theo sổ cái</th><th style="text-align:right">Theo bảng kê</th><th style="text-align:right">Chênh lệch</th></tr></thead>
-            <tbody>
-              <tr><td>Thuế đầu ra (TK 3331: bán hàng, trả hàng bán)</td><td style="text-align:right">{{ money(s.reconciliation.outputVatLedger) }}</td><td style="text-align:right">{{ money(s.reconciliation.outputVatInvoiced) }}</td><td style="text-align:right" [class.text-danger]="s.reconciliation.outputDifference !== 0">{{ money(s.reconciliation.outputDifference) }}</td></tr>
-              <tr><td>Thuế đầu vào (TK 133: nhận hàng, mua dịch vụ, trả hàng mua)</td><td style="text-align:right">{{ money(s.reconciliation.inputVatLedger) }}</td><td style="text-align:right">{{ money(s.reconciliation.inputVatListed) }}</td><td style="text-align:right" [class.text-danger]="s.reconciliation.inputDifference !== 0">{{ money(s.reconciliation.inputDifference) }}</td></tr>
-            </tbody>
-          </table>
-          <p class="subtitle" style="margin-top:8px">
-            Chênh lệch đầu ra thường là hàng đã giao nhưng chưa xuất hoá đơn điện tử (hoặc xuất khác kỳ). Chênh lệch đầu vào thường là khoản chưa có hoá đơn NCC hoặc hoá đơn ghi khác kỳ nhận hàng.
-          </p>
-        </div>
+        <section class="section-bare">
+          <h3>Thuế phải nộp / còn được khấu trừ</h3>
+          <div class="rp-surface book-wrap">
+            <table class="book-table">
+              <tbody>
+                <tr><td>Thuế GTGT đầu ra</td><td class="r num">{{ money(s.output.vat) }}</td></tr>
+                <tr><td>Thuế GTGT đầu vào được khấu trừ trong kỳ</td><td class="r num">{{ money(s.input.vat) }}</td></tr>
+                <tr><td>Còn được khấu trừ kỳ trước chuyển sang <span class="subtitle">(theo sổ cái: 133 − 3331 cuối kỳ trước)</span></td><td class="r num">{{ money(s.carryForward) }}</td></tr>
+              </tbody>
+              <tfoot>
+                @if (s.payable > 0) {
+                  <tr><td>Thuế GTGT phải nộp trong kỳ</td><td class="r num">{{ money(s.payable) }}</td></tr>
+                } @else {
+                  <tr><td>Thuế GTGT còn được khấu trừ chuyển kỳ sau</td><td class="r num">{{ money(s.carryOver) }}</td></tr>
+                }
+              </tfoot>
+            </table>
+          </div>
+          @if (canOffset()) {
+            @if (!confirmOffset()) {
+              <button type="button" class="btn" (click)="confirmOffset.set(true)">Khấu trừ thuế GTGT cuối kỳ…</button>
+            } @else {
+              <div class="notice" role="alertdialog" aria-label="Xác nhận khấu trừ thuế">
+                <span>Ghi bút toán <b>Nợ 3331 / Có 133</b> bằng số nhỏ hơn của hai số dư tại ngày {{ formatDay(range().to) }}. Mỗi ngày chỉ làm được một lần; sai thì đảo bút toán.</span>
+                <span class="row-actions">
+                  <button type="button" class="btn btn-primary btn-sm" [disabled]="busy()" (click)="offset()">Xác nhận khấu trừ</button>
+                  <button type="button" class="btn btn-sm" (click)="confirmOffset.set(false)">Bỏ qua</button>
+                </span>
+              </div>
+            }
+          }
+        </section>
+
+        <section class="section-bare">
+          <h3>Đối chiếu với sổ cái</h3>
+          <div class="rp-surface book-wrap">
+            <table class="book-table">
+              <thead><tr><th scope="col">Khoản</th><th scope="col" class="r">Theo sổ cái</th><th scope="col" class="r">Theo bảng kê</th><th scope="col" class="r">Chênh lệch</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td>Thuế đầu ra (TK 3331: bán hàng, trả hàng bán)</td>
+                  <td class="r num">{{ money(s.reconciliation.outputVatLedger) }}</td><td class="r num">{{ money(s.reconciliation.outputVatInvoiced) }}</td>
+                  <td class="r num" [class.is-zero]="!s.reconciliation.outputDifference" [class.amt-neg]="s.reconciliation.outputDifference !== 0">{{ money(s.reconciliation.outputDifference) }}</td>
+                </tr>
+                <tr>
+                  <td>Thuế đầu vào (TK 133: nhận hàng, mua dịch vụ, trả hàng mua)</td>
+                  <td class="r num">{{ money(s.reconciliation.inputVatLedger) }}</td><td class="r num">{{ money(s.reconciliation.inputVatListed) }}</td>
+                  <td class="r num" [class.is-zero]="!s.reconciliation.inputDifference" [class.amt-neg]="s.reconciliation.inputDifference !== 0">{{ money(s.reconciliation.inputDifference) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="rp-notes">Chênh lệch đầu ra thường là hàng đã giao nhưng chưa xuất hoá đơn điện tử (hoặc xuất khác kỳ). Chênh lệch đầu vào thường là khoản chưa có hoá đơn NCC hoặc hoá đơn ghi khác kỳ nhận hàng.</p>
+        </section>
       } @else if (!failure()) {
-        <div class="card" style="padding:16px">Đang tải…</div>
+        <div class="empty-state"><h3>Đang tính số liệu…</h3></div>
       }
     } @else if (tab() === 'ban-ra') {
-      <div class="toolbar" style="margin-bottom:8px"><button type="button" class="btn" [disabled]="!outputs()?.rows?.length" (click)="exportOutputs()">Xuất Excel</button></div>
-      <div class="card" style="overflow-x:auto">
-        <table style="width:100%; border-collapse:collapse">
+      <div class="rp-surface rp-grid">
+        <table class="book-table">
           <thead><tr>
-            <th style="text-align:left">Ký hiệu</th><th style="text-align:left">Số hoá đơn</th><th style="text-align:left">Ngày</th><th style="text-align:left">Người mua</th><th style="text-align:left">MST</th>
-            <th style="text-align:left">Loại</th><th style="text-align:right">Chưa thuế</th><th style="text-align:right">Thuế GTGT</th><th style="text-align:right">Tổng cộng</th>
+            <th scope="col">Ký hiệu</th><th scope="col">Số hoá đơn</th><th scope="col">Ngày</th><th scope="col">Người mua</th><th scope="col">MST</th>
+            <th scope="col">Loại</th><th scope="col" class="r">Chưa thuế</th><th scope="col" class="r">Thuế GTGT</th><th scope="col" class="r">Tổng cộng</th>
           </tr></thead>
           <tbody>
             @for (r of outputs()?.rows ?? []; track r.id) {
               <tr>
-                <td>{{ r.templateCode }}{{ r.series }}</td><td>{{ r.number || '—' }}</td><td>{{ formatDay(r.date) }}</td><td>{{ r.buyerName }}</td><td>{{ r.buyerTaxCode }}</td>
+                <td class="code">{{ r.templateCode }}{{ r.series }}</td><td class="code">{{ r.number || '—' }}</td><td class="num">{{ formatDay(r.date) }}</td><td>{{ r.buyerName }}</td><td class="code">{{ r.buyerTaxCode }}</td>
                 <td>{{ kindLabel(r.kind) }}</td>
-                <td style="text-align:right">{{ money(r.taxable) }}</td><td style="text-align:right">{{ money(r.vat) }}</td><td style="text-align:right">{{ money(r.total) }}</td>
+                <td class="r num">{{ money(r.taxable) }}</td><td class="r num">{{ money(r.vat) }}</td><td class="r num">{{ money(r.total) }}</td>
               </tr>
             } @empty {
-              <tr><td colspan="9" style="text-align:center; padding:16px">Không có hoá đơn điện tử đã phát hành trong kỳ.</td></tr>
+              <tr><td class="book-none" colspan="9">Không có hoá đơn điện tử đã phát hành trong kỳ.</td></tr>
             }
           </tbody>
           @if (outputs(); as o) {
-            <tfoot><tr style="font-weight:700; border-top:2px solid var(--border, #ccc)">
-              <td colspan="6">TỔNG CỘNG</td><td style="text-align:right">{{ money(o.totals.taxable) }}</td><td style="text-align:right">{{ money(o.totals.vat) }}</td><td style="text-align:right">{{ money(o.totals.total) }}</td>
+            <tfoot><tr>
+              <td colspan="6">TỔNG CỘNG</td><td class="r num">{{ money(o.totals.taxable) }}</td><td class="r num">{{ money(o.totals.vat) }}</td><td class="r num">{{ money(o.totals.total) }}</td>
             </tr></tfoot>
           }
         </table>
       </div>
-      <p class="subtitle" style="margin-top:8px">Chỉ hoá đơn điện tử đã phát hành; hoá đơn bị thay thế không tính; hoá đơn điều chỉnh giảm ghi số âm.</p>
+      <p class="rp-notes">Chỉ hoá đơn điện tử đã phát hành hoặc đã ghi nhận số; hoá đơn bị thay thế hay đã gỡ không tính; hoá đơn điều chỉnh giảm ghi số âm.</p>
     } @else {
-      <div class="toolbar" style="margin-bottom:8px"><button type="button" class="btn" [disabled]="!inputs()?.rows?.length" (click)="exportInputs()">Xuất Excel</button></div>
-      <div class="card" style="overflow-x:auto; margin-bottom:12px">
-        <table style="width:100%; border-collapse:collapse">
+      <div class="rp-surface rp-grid">
+        <table class="book-table">
           <thead><tr>
-            <th style="text-align:left">Ký hiệu</th><th style="text-align:left">Số hoá đơn</th><th style="text-align:left">Ngày</th><th style="text-align:left">Nhà cung cấp</th><th style="text-align:left">MST</th>
-            <th style="text-align:left">Chứng từ</th><th style="text-align:right">Chưa thuế</th><th style="text-align:right">Thuế GTGT</th>
+            <th scope="col">Ký hiệu</th><th scope="col">Số hoá đơn</th><th scope="col">Ngày</th><th scope="col">Nhà cung cấp</th><th scope="col">MST</th>
+            <th scope="col">Chứng từ</th><th scope="col" class="r">Chưa thuế</th><th scope="col" class="r">Thuế GTGT</th>
           </tr></thead>
           <tbody>
             @for (r of inputs()?.rows ?? []; track $index) {
               <tr>
-                <td>{{ r.series || '' }}</td>
-                <td>{{ r.number }} @if (r.kind === 'TRA_HANG') { <span class="badge badge-warning">Trả hàng</span> }</td>
-                <td>{{ formatDay(r.date) }}</td><td>{{ r.supplierName }}</td><td>{{ r.supplierTaxCode }}</td><td>{{ r.refs }}</td>
-                <td style="text-align:right">{{ money(r.taxable) }}</td><td style="text-align:right">{{ money(r.vat) }}</td>
+                <td class="code">{{ r.series || '' }}</td>
+                <td class="code">{{ r.number }} @if (r.kind === 'TRA_HANG') { <span class="badge badge-warning">Trả hàng</span> }</td>
+                <td class="num">{{ formatDay(r.date) }}</td><td>{{ r.supplierName }}</td><td class="code">{{ r.supplierTaxCode }}</td><td class="code">{{ r.refs }}</td>
+                <td class="r num">{{ money(r.taxable) }}</td><td class="r num">{{ money(r.vat) }}</td>
               </tr>
             } @empty {
-              <tr><td colspan="8" style="text-align:center; padding:16px">Không có hoá đơn mua vào trong kỳ.</td></tr>
+              <tr><td class="book-none" colspan="8">Không có hoá đơn mua vào trong kỳ.</td></tr>
             }
           </tbody>
           @if (inputs(); as i) {
-            <tfoot><tr style="font-weight:700; border-top:2px solid var(--border, #ccc)">
-              <td colspan="6">TỔNG CỘNG</td><td style="text-align:right">{{ money(i.totals.taxable) }}</td><td style="text-align:right">{{ money(i.totals.vat) }}</td>
+            <tfoot><tr>
+              <td colspan="6">TỔNG CỘNG</td><td class="r num">{{ money(i.totals.taxable) }}</td><td class="r num">{{ money(i.totals.vat) }}</td>
             </tr></tfoot>
           }
         </table>
       </div>
-      <p class="subtitle">Dòng "Trả hàng" là phiếu trả lại hàng mua, giảm thuế đầu vào; cần hoá đơn điều chỉnh của NCC để kê khai.</p>
+      <p class="rp-notes">Dòng "Trả hàng" là phiếu trả lại hàng mua, giảm thuế đầu vào; cần hoá đơn điều chỉnh của NCC để kê khai.</p>
 
       @if (inputs()?.uninvoiced?.length) {
-        <h2>Chưa có hoá đơn NCC — chưa được khấu trừ</h2>
-        <div class="card" style="overflow-x:auto">
-          <table style="width:100%; border-collapse:collapse">
-            <thead><tr><th style="text-align:left">Chứng từ</th><th style="text-align:left">Ngày</th><th style="text-align:left">Nhà cung cấp</th><th style="text-align:right">Chưa thuế</th><th style="text-align:right">Thuế GTGT</th></tr></thead>
-            <tbody>
-              @for (u of inputs()!.uninvoiced; track $index) {
-                <tr>
-                  <td>{{ u.ref }} <span class="subtitle">{{ u.source === 'NHAN_HANG' ? '(nhận hàng)' : '(hoá đơn mua)' }}</span></td>
-                  <td>{{ formatDay(u.date) }}</td><td>{{ u.supplierName }}</td>
-                  <td style="text-align:right">{{ money(u.taxable) }}</td>
-                  <td style="text-align:right">@if (u.known) { {{ money(u.vat) }} } @else { <span class="subtitle">không có số liệu</span> }</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
+        <section class="section-bare">
+          <h3>Chưa có hoá đơn NCC — chưa được khấu trừ</h3>
+          <div class="rp-surface book-wrap">
+            <table class="book-table">
+              <thead><tr><th scope="col">Chứng từ</th><th scope="col">Ngày</th><th scope="col">Nhà cung cấp</th><th scope="col" class="r">Chưa thuế</th><th scope="col" class="r">Thuế GTGT</th></tr></thead>
+              <tbody>
+                @for (u of inputs()!.uninvoiced; track $index) {
+                  <tr>
+                    <td><span class="code">{{ u.ref }}</span> <span class="subtitle">{{ u.source === 'NHAN_HANG' ? '(nhận hàng)' : '(hoá đơn mua)' }}</span></td>
+                    <td class="num">{{ formatDay(u.date) }}</td><td>{{ u.supplierName }}</td>
+                    <td class="r num">{{ money(u.taxable) }}</td>
+                    <td class="r num">@if (u.known) { {{ money(u.vat) }} } @else { <span class="subtitle">không có số liệu</span> }</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
       }
     }
   `,
+  styles: [`.year-input { width: 5.5rem; }`],
 })
 export class AccountingVatComponent {
   private readonly svc = inject(AccountingService);
@@ -242,6 +274,11 @@ export class AccountingVatComponent {
   readonly canOffset = computed(() => this.auth.can('accounting.manual'));
 
   constructor() { this.load(); }
+
+  setKind(k: 'thang' | 'quy') {
+    this.kind.set(k);
+    this.load();
+  }
 
   async load() {
     // Đổi giữa tháng và quý thì giữ số trong khoảng hợp lệ.

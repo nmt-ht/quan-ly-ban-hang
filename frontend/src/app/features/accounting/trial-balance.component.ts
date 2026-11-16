@@ -1,7 +1,8 @@
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 import { Component, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AccountingService } from '../../core/services/accounting.service';
+import { errorText } from '../../core/api/api.service';
 import { TrialBalanceView } from '../../core/models/domain.models';
 import { formatVnd } from '../../shared/format.util';
 
@@ -9,60 +10,68 @@ import { formatVnd } from '../../shared/format.util';
 @Component({
   selector: 'app-accounting-trial-balance',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [RouterLink],
   template: `
     <div class="page-header">
-      <div><h1>Bảng cân đối số phát sinh</h1><p class="subtitle">Dư đầu kỳ · phát sinh trong kỳ · dư cuối kỳ của từng tài khoản.</p></div>
-      <label>Kỳ (năm) <input type="number" [(ngModel)]="period" (change)="load()" style="width:90px"></label>
+      <div>
+        <h1>Bảng cân đối số phát sinh</h1>
+        <p class="subtitle">Dư đầu kỳ · phát sinh trong kỳ · dư cuối kỳ của từng tài khoản. Bấm mã tài khoản để xem sổ cái.</p>
+      </div>
+    </div>
+
+    <div class="filters-bar">
+      <input type="number" class="year-input" aria-label="Năm" min="2000" max="2100" [value]="period()" (change)="period.set(+$any($event.target).value); load()" />
     </div>
     @if (failure()) { <div class="notice is-error" role="alert">{{ failure() }}</div> }
 
-    <div class="card" style="overflow-x:auto">
-      <table style="width:100%; border-collapse:collapse">
-        <thead>
-          <tr>
-            <th rowspan="2" style="text-align:left">TK</th><th rowspan="2" style="text-align:left">Tên tài khoản</th>
-            <th colspan="2" style="text-align:center">Dư đầu kỳ</th>
-            <th colspan="2" style="text-align:center">Phát sinh</th>
-            <th colspan="2" style="text-align:center">Dư cuối kỳ</th>
-          </tr>
-          <tr>
-            <th style="text-align:right">Nợ</th><th style="text-align:right">Có</th>
-            <th style="text-align:right">Nợ</th><th style="text-align:right">Có</th>
-            <th style="text-align:right">Nợ</th><th style="text-align:right">Có</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (r of data()?.rows ?? []; track r.code) {
+    @if (data(); as d) {
+      <dl class="list-totals">
+        <div><dt>Phát sinh Nợ</dt><dd class="num">{{ money(d.totals.pd) }}</dd></div>
+        <div><dt>Phát sinh Có</dt><dd class="num">{{ money(d.totals.pc) }}</dd></div>
+        <div><dt>Dư cuối kỳ Nợ</dt><dd class="num">{{ money(d.totals.cd) }}</dd></div>
+        <div><dt>Dư cuối kỳ Có</dt><dd class="num">{{ money(d.totals.cc) }}</dd></div>
+      </dl>
+
+      <div class="rp-surface rp-grid">
+        <table class="book-table">
+          <thead>
             <tr>
-              <td><a [routerLink]="['/ke-toan/so-cai', r.code]">{{ r.code }}</a></td>
-              <td>{{ r.name }}</td>
-              <td style="text-align:right">{{ r.openingNo ? money(r.openingNo) : '' }}</td>
-              <td style="text-align:right">{{ r.openingCo ? money(r.openingCo) : '' }}</td>
-              <td style="text-align:right">{{ r.debit ? money(r.debit) : '' }}</td>
-              <td style="text-align:right">{{ r.credit ? money(r.credit) : '' }}</td>
-              <td style="text-align:right">{{ r.closingNo ? money(r.closingNo) : '' }}</td>
-              <td style="text-align:right">{{ r.closingCo ? money(r.closingCo) : '' }}</td>
+              <th rowspan="2" scope="col">TK</th><th rowspan="2" scope="col">Tên tài khoản</th>
+              <th colspan="2" scope="colgroup" class="c">Dư đầu kỳ</th><th colspan="2" scope="colgroup" class="c">Phát sinh</th><th colspan="2" scope="colgroup" class="c">Dư cuối kỳ</th>
             </tr>
-          } @empty {
-            <tr><td colspan="8" style="text-align:center; padding:16px">Chưa có số liệu.</td></tr>
-          }
-        </tbody>
-        @if (data(); as d) {
+            <tr>
+              <th scope="col" class="r">Nợ</th><th scope="col" class="r">Có</th>
+              <th scope="col" class="r">Nợ</th><th scope="col" class="r">Có</th>
+              <th scope="col" class="r">Nợ</th><th scope="col" class="r">Có</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of d.rows; track r.code) {
+              <tr>
+                <td class="code"><a class="code-link" [routerLink]="['/ke-toan/so-cai', r.code]">{{ r.code }}</a></td>
+                <td>{{ r.name }}</td>
+                <td class="r num" [class.is-zero]="!r.openingNo">{{ r.openingNo ? money(r.openingNo) : '—' }}</td>
+                <td class="r num" [class.is-zero]="!r.openingCo">{{ r.openingCo ? money(r.openingCo) : '—' }}</td>
+                <td class="r num" [class.is-zero]="!r.debit">{{ r.debit ? money(r.debit) : '—' }}</td>
+                <td class="r num" [class.is-zero]="!r.credit">{{ r.credit ? money(r.credit) : '—' }}</td>
+                <td class="r num" [class.is-zero]="!r.closingNo">{{ r.closingNo ? money(r.closingNo) : '—' }}</td>
+                <td class="r num" [class.is-zero]="!r.closingCo">{{ r.closingCo ? money(r.closingCo) : '—' }}</td>
+              </tr>
+            } @empty {
+              <tr><td class="book-none" colspan="8">Chưa có số liệu.</td></tr>
+            }
+          </tbody>
           <tfoot>
-            <tr style="font-weight:700; border-top:2px solid var(--border, #ccc)">
+            <tr>
               <td colspan="2">TỔNG CỘNG</td>
-              <td style="text-align:right">{{ money(d.totals.od) }}</td>
-              <td style="text-align:right">{{ money(d.totals.oc) }}</td>
-              <td style="text-align:right">{{ money(d.totals.pd) }}</td>
-              <td style="text-align:right">{{ money(d.totals.pc) }}</td>
-              <td style="text-align:right">{{ money(d.totals.cd) }}</td>
-              <td style="text-align:right">{{ money(d.totals.cc) }}</td>
+              <td class="r num">{{ money(d.totals.od) }}</td><td class="r num">{{ money(d.totals.oc) }}</td>
+              <td class="r num">{{ money(d.totals.pd) }}</td><td class="r num">{{ money(d.totals.pc) }}</td>
+              <td class="r num">{{ money(d.totals.cd) }}</td><td class="r num">{{ money(d.totals.cc) }}</td>
             </tr>
           </tfoot>
-        }
-      </table>
-    </div>
+        </table>
+      </div>
+    }
   `,
 })
 export class AccountingTrialBalanceComponent {
@@ -70,13 +79,13 @@ export class AccountingTrialBalanceComponent {
   readonly data = signal<TrialBalanceView | null>(null);
   readonly failure = signal('');
   readonly money = formatVnd;
-  period = new Date().getFullYear();
+  readonly period = signal(new Date().getFullYear());
 
   constructor() { this.load(); }
 
   async load() {
     this.failure.set('');
-    try { this.data.set(await this.svc.trialBalance(String(this.period))); }
-    catch (e) { this.failure.set(e instanceof Error ? e.message : 'Lỗi tải'); }
+    try { this.data.set(await this.svc.trialBalance(String(this.period()))); }
+    catch (e) { this.data.set(null); this.failure.set(errorText(e)); }
   }
 }

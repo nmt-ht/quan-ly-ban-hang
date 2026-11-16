@@ -658,6 +658,33 @@ Kho only).
   On a failed save, focus moves to the first invalid field.
 - After saving, go to the detail page with a `history.state.notice`.
 
+## Sổ sách (Kế toán) and Quỹ pages — reference: Sổ chi tiết tài khoản, Kiểm kê quỹ
+Synchronised 16/11/2026 (Hallmark redesign, app scope). **Every page under Kế toán** (tổng quan, nhật ký, sổ chi tiết, sổ cái,
+tổng hợp công nợ, cân đối phát sinh, cân đối kế toán, kết quả kinh doanh, lưu chuyển tiền tệ, thuế GTGT, hệ thống tài khoản,
+số dư đầu kỳ, nhập bút toán, nhân viên, lương, tài sản cố định, công cụ dụng cụ, giá thành), the Quỹ pages (kiểm kê quỹ,
+đối chiếu ngân hàng, chuyển tiền nội bộ) and the two hoá đơn pages (hoá đơn bán ra, hoá đơn mua dịch vụ) follow the same Workbench
+frame as every list and report; no raw px, no `style=""`, no colour outside tokens. A report by year (cân đối, KQKD, sổ cái, số dư đầu kỳ)
+puts one `.year-input` in the filters bar; an entry grid (nhập bút toán, hoá đơn mua, số dư đầu kỳ, lương) is `.line-table.book-table`.
+- **Frame, top-down:** page header (title + one-sentence subtitle left; Xuất Excel / primary verb with its icon right) →
+  `.filters-bar` (a `.segmented` for the one-of-few choice such as Phải thu / Phải trả or Tháng / Quý, the
+  `app-period-filter` "Chọn kỳ" for any date range, selects with `aria-label`, `.filter-toggle` last) → `.rp-range` line when
+  the range is not obvious → `dl.list-totals` (the 2–4 figures that matter) → one data surface.
+- **Sổ sách tables** (`.book-table` in styles.scss, inside `.rp-surface.rp-grid` for long ledgers or `.rp-surface.book-wrap` for a few
+  rows): numbers right-aligned in mono (`.r.num`), a zero shown as a muted "—", codes mono xs (`.code`), opening balance /
+  section heading / subtotal as shaded rows (`.book-open`, `.book-head`, `.book-sum`; `.book-sub` indents a line under a
+  heading), totals in a `tfoot` that stays in view, an empty ledger says so in one row (`.book-none`). Two-line headings
+  (Dư đầu kỳ › Nợ | Có) use `colspan` + a second `tr`; the second line sticks under the first.
+- **Small statements** (thuế phải nộp, đối chiếu sổ cái, số dư sổ sách và sao kê) are a `.section-bare` heading over a
+  `.book-wrap` surface, never a card around a table. A negative or unexplained figure is `.amt-neg` (sign printed, never colour alone).
+- **Record lists** (biên bản kiểm kê, chuyển tiền) use `app-data-table`: codes with copy, money right-aligned, status as a
+  badge, text actions in the sticky actions cell (`.btn.row-act-btn` in `.row-actions`; destructive = `.btn-danger-ghost`).
+  "Hiện … đã huỷ" and "Chỉ … chưa xử lý" are `.filter-toggle`s; cancelled rows are hidden by default and shown muted by the badge, never by opacity.
+- **Create / resolve / cancel forms** open as a `.card.section-block` above the list: `h2.form-section-title`, `.field` labels above
+  inputs with `.required-mark`, `.form-grid` / `.form-grid-3`, VND amounts with `appMoney`, a validation line (`.hint.text-danger`)
+  only after the first save attempt, then primary + "Bỏ qua". A destructive step asks for its reason in the same card ("Xác nhận huỷ").
+- **One tone of success:** a saved action reports in a dismissible `.notice` (`.notice-x`); errors in `.notice.is-error`.
+- A new accounting page uses these parts; it adds a class to styles.scss only when none of them fits.
+
 ## What pages MUST share
 - The brand from Thông tin công ty (`BrandService`): short company name (legal form such as "Công ty TNHH"
   dropped, full name on hover), logo tile or the initials ink mark ("NT"). The same name ends every tab title
