@@ -378,7 +378,7 @@ Bật bằng **ngày bắt đầu ghi sổ** (Thiết lập › Thông tin doanh
 
 ## Chưa làm
 
-- Hoá đơn điện tử phát hành thật: khung (phát hành, điều chỉnh, thay thế) đã có nhưng mới chạy với nhà cung cấp giả lập; cần viết bộ chuyển đổi cho nhà cung cấp (MISA meInvoice…) và tài khoản kết nối.
+- Hoá đơn điện tử phát hành thật: phần máy chủ cho hoá đơn gốc theo đợt giao đã có (chạy với nhà cung cấp giả lập); còn thiếu hoá đơn điều chỉnh / thay thế, toàn bộ giao diện (cài đặt, phát hành, danh sách), bộ chuyển đổi cho nhà cung cấp (MISA meInvoice…) và tài khoản kết nối.
 - Gửi nhắc nợ tự động (SMS brandname, Zalo OA): cần chọn nhà cung cấp và tài khoản API.
 - Kế toán: giảm giá hàng bán / chiết khấu, chi phí mua hàng phân bổ vào giá nhập, FIFO và tính lại giá xuất, ngoại tệ, thuế TNDN, in mẫu TT133, sổ chi tiết vật tư có giá trị.
 - Ảnh hàng hoá và logo công ty đang lưu dạng data URL trong cơ sở dữ liệu; chưa chuyển sang lưu trữ đối tượng (R2 / S3).
