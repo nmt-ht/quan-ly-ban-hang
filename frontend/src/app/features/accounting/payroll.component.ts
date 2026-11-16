@@ -8,6 +8,7 @@ import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { DataTableColumn, DataTableComponent } from '../../shared/data-table/data-table.component';
 import { formatVnd } from '../../shared/format.util';
 import { MoneyInputDirective } from '../../shared/money-input.directive';
+import { MonthPickerComponent } from '../../shared/month-picker/month-picker.component';
 import { isoDay } from '../../shared/period';
 import { CENTER_LABEL } from './employees.component';
 
@@ -15,7 +16,7 @@ import { CENTER_LABEL } from './employees.component';
 @Component({
   selector: 'app-accounting-payroll',
   standalone: true,
-  imports: [FormsModule, NavIconComponent, DataTableComponent, MoneyInputDirective],
+  imports: [FormsModule, NavIconComponent, DataTableComponent, MoneyInputDirective, MonthPickerComponent],
   template: `
     <div class="page-header">
       <div>
@@ -26,7 +27,7 @@ import { CENTER_LABEL } from './employees.component';
 
     <div class="filters-bar">
       <label class="filter-label" for="pl-period">Kỳ lương</label>
-      <input id="pl-period" type="month" [(ngModel)]="period" (change)="load()" />
+      <app-month-picker inputId="pl-period" ariaLabel="Kỳ lương" [(value)]="period" (valueChange)="load()" />
     </div>
     @if (notice()) {
       <div class="notice" role="status">

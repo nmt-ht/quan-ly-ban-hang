@@ -114,7 +114,7 @@
         <div class="field">
           <label for="so-date">Ngày đặt @if (editable()) { <span class="required-mark">*</span> }</label>
           @if (editable()) {
-            <input id="so-date" type="date" [ngModel]="orderDate()" (ngModelChange)="setOrderDate($event)" />
+            <input id="so-date" appDate [ngModel]="orderDate()" (ngModelChange)="setOrderDate($event)" />
           } @else {
             <p class="field-value num">{{ day(orderDate()) }}</p>
           }
@@ -151,7 +151,7 @@
         <div class="field">
           <label for="so-needed">Ngày cần giao</label>
           @if (editable()) {
-            <input id="so-needed" type="date" [min]="orderDate()" [ngModel]="neededByDate()" (ngModelChange)="neededByDate.set($event)" />
+            <input id="so-needed" appDate [min]="orderDate()" [ngModel]="neededByDate()" (ngModelChange)="neededByDate.set($event)" />
           } @else {
             <p class="field-value num">{{ neededByDate() ? day(neededByDate()) : '—' }}</p>
           }

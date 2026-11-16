@@ -29,6 +29,7 @@ import { AuditHistoryComponent } from '../../../shared/audit/audit-history.compo
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 import { SalesOrderService } from '../../sales-orders/sales-order.service';
 import { WarehouseVoucherService } from '../../warehouse-vouchers/warehouse-voucher.service';
+import { DateInputDirective } from '../../../shared/date-input/date-input.directive';
 
 type Tab = 'don' | 'hang' | 'phieu' | 'chi-phi' | 'nhat-ky';
 type PrintMode = 'soan' | 'giao' | null;
@@ -60,7 +61,7 @@ interface ConfirmRow {
 @Component({
   selector: 'app-delivery-trip-voucher',
   standalone: true,
-  imports: [FrozenColsDirective, NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, TripHeaderDialogComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent],
+  imports: [DateInputDirective, FrozenColsDirective, NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, TripHeaderDialogComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent],
   templateUrl: './delivery-trip-voucher.component.html',
   styleUrls: [
     '../../../shared/voucher/voucher.scss',

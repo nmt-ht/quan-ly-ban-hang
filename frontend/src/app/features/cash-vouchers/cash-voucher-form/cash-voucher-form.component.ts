@@ -17,6 +17,7 @@ import { CashOpsService } from '../../cash-ops/cash-ops.service';
 import { errorText } from '../../../core/api/api.service';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { SearchOption, SearchSelectComponent } from '../../../shared/search-select/search-select.component';
+import { DateInputDirective } from '../../../shared/date-input/date-input.directive';
 
 interface Partner {
   id: string;
@@ -33,7 +34,7 @@ interface Partner {
 @Component({
   selector: 'app-cash-voucher-form',
   standalone: true,
-  imports: [SearchSelectComponent, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, MoneyInputDirective],
+  imports: [DateInputDirective, SearchSelectComponent, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, MoneyInputDirective],
   templateUrl: './cash-voucher-form.component.html',
   styleUrl: './cash-voucher-form.component.scss',
 })

@@ -30,6 +30,7 @@ import { AuditHistoryComponent } from '../../../shared/audit/audit-history.compo
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 import { SalesOrderService } from '../../sales-orders/sales-order.service';
 import { SearchOption, SearchSelectComponent } from '../../../shared/search-select/search-select.component';
+import { DateInputDirective } from '../../../shared/date-input/date-input.directive';
 
 type Mode = 'create' | 'edit' | 'view';
 type Tab = 'hang' | 'nhat-ky';
@@ -74,7 +75,7 @@ const DEFAULT_VALID_DAYS = 7;
 @Component({
   selector: 'app-quotation-voucher',
   standalone: true,
-  imports: [EmailComposeComponent, SearchSelectComponent, 
+  imports: [DateInputDirective, EmailComposeComponent, SearchSelectComponent, 
     FrozenColsDirective, NgClass, FormsModule, RouterLink, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
     PaginationComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent,
   ],

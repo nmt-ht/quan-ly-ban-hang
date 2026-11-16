@@ -12,6 +12,7 @@ import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 import { PickableWarehousesPipe } from '../../../shared/pickable-warehouses.pipe';
 import { AuthService } from '../../../core/services/auth.service';
 import { seesPurchasePrices } from '../../../core/auth/purchase-prices';
+import { DateInputDirective } from '../../../shared/date-input/date-input.directive';
 
 interface ReceiveRow {
   lineIndex: number;
@@ -32,7 +33,7 @@ interface ReceiveRow {
 @Component({
   selector: 'app-receive-goods-dialog',
   standalone: true,
-  imports: [PickableWarehousesPipe, FrozenColsDirective, FormsModule, NavIconComponent],
+  imports: [DateInputDirective, PickableWarehousesPipe, FrozenColsDirective, FormsModule, NavIconComponent],
   templateUrl: './receive-goods-dialog.component.html',
   styleUrl: './receive-goods-dialog.component.scss',
 })

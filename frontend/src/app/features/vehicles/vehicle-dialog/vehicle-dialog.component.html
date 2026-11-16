@@ -37,11 +37,11 @@
     <span></span>
     <label class="field">
       <span>Hạn đăng kiểm</span>
-      <input type="date" [ngModel]="regExpiry()" (ngModelChange)="regExpiry.set($event)" />
+      <input appDate [ngModel]="regExpiry()" (ngModelChange)="regExpiry.set($event)" />
     </label>
     <label class="field">
       <span>Hạn bảo hiểm</span>
-      <input type="date" [ngModel]="insExpiry()" (ngModelChange)="insExpiry.set($event)" />
+      <input appDate [ngModel]="insExpiry()" (ngModelChange)="insExpiry.set($event)" />
     </label>
 
     <fieldset class="vd-driver th-note">

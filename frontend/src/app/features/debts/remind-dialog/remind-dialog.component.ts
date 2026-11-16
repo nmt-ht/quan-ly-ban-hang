@@ -13,13 +13,14 @@ import { errorText } from '../../../core/api/api.service';
 import { CHANNEL_LABEL, ReminderChannel, debtTransferNote, maxOverdueDays, phoneDigits, reminderMessage } from '../reminder.rules';
 import { ReminderService } from '../reminder.service';
 import { EmailComposeComponent } from '../../../shared/email-compose/email-compose.component';
+import { DateInputDirective } from '../../../shared/date-input/date-input.directive';
 
 // Nhắc nợ một khách (Pha 2): tin soạn sẵn (sửa được) → sao chép / mở Zalo / gọi / email, rồi ghi nhận lần nhắc với
 // kênh, ghi chú và hẹn trả. Gửi tự động qua SMS / Zalo OA chưa nối — người dùng gửi bằng app của mình.
 @Component({
   selector: 'app-remind-dialog',
   standalone: true,
-  imports: [FormsModule, NavIconComponent, MoneyInputDirective, VietQrComponent, EmailComposeComponent],
+  imports: [DateInputDirective, FormsModule, NavIconComponent, MoneyInputDirective, VietQrComponent, EmailComposeComponent],
   templateUrl: './remind-dialog.component.html',
   styleUrls: ['../../products/product-import-dialog/product-import-dialog.component.scss', './remind-dialog.component.scss'],
 })

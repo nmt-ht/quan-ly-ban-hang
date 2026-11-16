@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CompanyInfo } from '../../../core/models/domain.models';
 import { CompanyService } from '../../../core/services/company.service';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
@@ -10,6 +10,7 @@ import { PHONE_PATTERN, TAX_CODE_PATTERN, WEBSITE_PATTERN } from './company.rule
 import { errorText } from '../../../core/api/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { formatDay } from '../../../shared/period';
+import { DateInputDirective } from '../../../shared/date-input/date-input.directive';
 
 const clean = (s: string) => s.trim();
 
@@ -18,7 +19,7 @@ const clean = (s: string) => s.trim();
 @Component({
   selector: 'app-company-info',
   standalone: true,
-  imports: [ReactiveFormsModule, NavIconComponent, CompanyLetterheadComponent],
+  imports: [FormsModule, ReactiveFormsModule, NavIconComponent, CompanyLetterheadComponent, DateInputDirective],
   templateUrl: './company-info.component.html',
   styleUrl: './company-info.component.scss',
 })

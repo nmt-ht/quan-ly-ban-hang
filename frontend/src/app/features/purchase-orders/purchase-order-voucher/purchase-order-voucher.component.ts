@@ -37,6 +37,7 @@ import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 import { PickableWarehousesPipe } from '../../../shared/pickable-warehouses.pipe';
 import type { ReorderDraft } from '../../inventory/reorder.rules';
 import { SearchOption, SearchSelectComponent } from '../../../shared/search-select/search-select.component';
+import { DateInputDirective } from '../../../shared/date-input/date-input.directive';
 
 type Mode = 'create' | 'edit' | 'view';
 
@@ -68,7 +69,7 @@ const emptyLine = (): DraftLine => ({
 @Component({
   selector: 'app-purchase-order-voucher',
   standalone: true,
-  imports: [EmailComposeComponent, SearchSelectComponent, PickableWarehousesPipe, FrozenColsDirective, 
+  imports: [DateInputDirective, EmailComposeComponent, SearchSelectComponent, PickableWarehousesPipe, FrozenColsDirective, 
     NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
     ReceiveGoodsDialogComponent, PurchaseReturnDialogComponent, PaginationComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent,
   ],

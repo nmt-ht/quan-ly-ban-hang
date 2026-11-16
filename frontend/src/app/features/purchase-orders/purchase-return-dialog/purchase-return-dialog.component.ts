@@ -12,6 +12,7 @@ import { PurchaseOrderService } from '../purchase-order.service';
 import { errorText } from '../../../core/api/api.service';
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 import { PickableWarehousesPipe } from '../../../shared/pickable-warehouses.pipe';
+import { DateInputDirective } from '../../../shared/date-input/date-input.directive';
 
 interface ReturnRow {
   lineId: string;
@@ -36,7 +37,7 @@ const REASONS = ['Hàng lỗi, kém chất lượng', 'Giao sai mẫu / quy các
 @Component({
   selector: 'app-purchase-return-dialog',
   standalone: true,
-  imports: [PickableWarehousesPipe, FrozenColsDirective, FormsModule, NavIconComponent],
+  imports: [DateInputDirective, PickableWarehousesPipe, FrozenColsDirective, FormsModule, NavIconComponent],
   templateUrl: './purchase-return-dialog.component.html',
   styleUrl: '../receive-goods-dialog/receive-goods-dialog.component.scss',
 })

@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, ElementRef, HostListener, computed, model, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
+import { DateInputDirective } from '../date-input/date-input.directive';
 import { DateRange, PERIOD_GROUPS, PERIOD_PRESETS, PeriodPreset, presetRange } from '../period';
 
 export interface PeriodValue {
@@ -14,7 +16,7 @@ export const NO_PERIOD: PeriodValue = { preset: null, range: { from: null, to: n
 @Component({
   selector: 'app-period-filter',
   standalone: true,
-  imports: [NavIconComponent],
+  imports: [FormsModule, NavIconComponent, DateInputDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="period-anchor">
@@ -56,21 +58,21 @@ export const NO_PERIOD: PeriodValue = { preset: null, range: { from: null, to: n
     </div>
 
     <input
-      type="date"
+      appDate
       class="period-date"
       aria-label="Từ ngày"
-      [value]="value().range.from ?? ''"
+      [ngModel]="value().range.from ?? ''"
       [max]="value().range.to ?? ''"
-      (change)="setDate('from', $any($event.target).value)"
+      (ngModelChange)="setDate('from', $event)"
     />
     <span class="period-arrow" aria-hidden="true">→</span>
     <input
-      type="date"
+      appDate
       class="period-date"
       aria-label="Đến ngày"
-      [value]="value().range.to ?? ''"
+      [ngModel]="value().range.to ?? ''"
       [min]="value().range.from ?? ''"
-      (change)="setDate('to', $any($event.target).value)"
+      (ngModelChange)="setDate('to', $event)"
     />
   `,
   styles: [`

@@ -11,6 +11,7 @@ import { formatVnd } from '../../shared/format.util';
 import { MoneyInputDirective } from '../../shared/money-input.directive';
 import { formatDay, isoDay } from '../../shared/period';
 import { CashOpsService } from './cash-ops.service';
+import { DateInputDirective } from '../../shared/date-input/date-input.directive';
 
 /**
  * /thu-chi/chuyen-tien — chuyển tiền nội bộ: nộp tiền mặt vào ngân hàng, rút tiền, chuyển giữa các tài khoản ngân hàng.
@@ -19,7 +20,7 @@ import { CashOpsService } from './cash-ops.service';
 @Component({
   selector: 'app-cash-transfers',
   standalone: true,
-  imports: [FormsModule, NavIconComponent, DataTableComponent, MoneyInputDirective],
+  imports: [DateInputDirective, FormsModule, NavIconComponent, DataTableComponent, MoneyInputDirective],
   template: `
     <div class="page-header">
       <div>
@@ -60,7 +61,7 @@ import { CashOpsService } from './cash-ops.service';
           </div>
           <div class="field">
             <label for="ct-date">Ngày <span class="required-mark">*</span></label>
-            <input id="ct-date" type="date" [max]="today" [ngModel]="date()" (ngModelChange)="date.set($event)" />
+            <input id="ct-date" appDate [max]="today" [ngModel]="date()" (ngModelChange)="date.set($event)" />
           </div>
           <div class="field">
             <label for="ct-amount">Số tiền <span class="required-mark">*</span></label>

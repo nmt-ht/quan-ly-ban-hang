@@ -328,7 +328,7 @@
         @if (can()?.ship || t.status === 'DA_XUAT_KHO') {
           <label class="doc-date" title="Ngày ghi trên phiếu xuất / phiếu nhập trả về và ngày chốt giao — mặc định hôm nay">
             <span>Ngày chứng từ</span>
-            <input type="date" aria-label="Ngày chứng từ" [max]="today" [ngModel]="docDate()" (ngModelChange)="docDate.set($event || today)" />
+            <input appDate aria-label="Ngày chứng từ" [max]="today" [ngModel]="docDate()" (ngModelChange)="docDate.set($event || today)" />
           </label>
         }
         @if (t.orderIds.length) {
@@ -437,7 +437,7 @@
         <div class="rg-meta">
           <label class="field rg-date">
             <span>Ngày khách nhận</span>
-            <input type="date" aria-label="Ngày khách nhận" [max]="today" [ngModel]="confirmDate()" (ngModelChange)="confirmDate.set($event || today)" />
+            <input appDate aria-label="Ngày khách nhận" [max]="today" [ngModel]="confirmDate()" (ngModelChange)="confirmDate.set($event || today)" />
           </label>
           <label class="field rg-note">
             <span>Ghi chú</span>

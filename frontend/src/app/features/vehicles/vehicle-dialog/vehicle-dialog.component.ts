@@ -8,12 +8,13 @@ import { VEHICLE_STATUSES, VEHICLE_TYPES } from '../vehicle.rules';
 import { VehicleService } from '../vehicle.service';
 import { errorText } from '../../../core/api/api.service';
 import { SearchOption, SearchSelectComponent } from '../../../shared/search-select/search-select.component';
+import { DateInputDirective } from '../../../shared/date-input/date-input.directive';
 
 // "Thêm xe" / "Sửa xe <biển số>" — same fields as production.
 @Component({
   selector: 'app-vehicle-dialog',
   standalone: true,
-  imports: [SearchSelectComponent, FormsModule, NavIconComponent],
+  imports: [DateInputDirective, SearchSelectComponent, FormsModule, NavIconComponent],
   templateUrl: './vehicle-dialog.component.html',
   styleUrls: [
     '../../purchase-orders/receive-goods-dialog/receive-goods-dialog.component.scss',

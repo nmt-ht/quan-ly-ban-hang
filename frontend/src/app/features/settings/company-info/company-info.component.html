@@ -124,7 +124,7 @@
         <div class="toolbar co-lock-row">
           <label class="field">
             <span>Khoá sổ đến ngày</span>
-            <input type="date" [value]="lockDraft()" (input)="lockDraft.set($any($event.target).value)" (keydown.enter)="$event.preventDefault()" />
+            <input appDate [ngModel]="lockDraft()" [ngModelOptions]="{ standalone: true }" (ngModelChange)="lockDraft.set($event)" (keydown.enter)="$event.preventDefault()" />
           </label>
           <button type="button" class="btn btn-primary" [disabled]="lockBusy() || !lockDraft() || lockDraft() === lockDate()" (click)="saveLock()">Khoá sổ</button>
           @if (lockDate()) {

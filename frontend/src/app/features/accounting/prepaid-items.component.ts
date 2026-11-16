@@ -9,7 +9,9 @@ import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { DataTableColumn, DataTableComponent } from '../../shared/data-table/data-table.component';
 import { formatVnd } from '../../shared/format.util';
 import { MoneyInputDirective } from '../../shared/money-input.directive';
+import { MonthPickerComponent } from '../../shared/month-picker/month-picker.component';
 import { formatDay, isoDay } from '../../shared/period';
+import { DateInputDirective } from '../../shared/date-input/date-input.directive';
 
 function blankForm(): PrepaidItemInput {
   return { name: '', cost: 0, startDate: isoDay(new Date()), allocationMonths: 12, expenseAccount: '642', fundingAccount: '153' };
@@ -19,7 +21,7 @@ function blankForm(): PrepaidItemInput {
 @Component({
   selector: 'app-accounting-prepaid-items',
   standalone: true,
-  imports: [FormsModule, NavIconComponent, DataTableComponent, MoneyInputDirective],
+  imports: [DateInputDirective, FormsModule, NavIconComponent, DataTableComponent, MoneyInputDirective, MonthPickerComponent],
   template: `
     <div class="page-header">
       <div>
@@ -54,7 +56,7 @@ function blankForm(): PrepaidItemInput {
           </div>
           <div class="field">
             <label for="cc-start">Bắt đầu phân bổ</label>
-            <input id="cc-start" type="date" [(ngModel)]="form.startDate" />
+            <input id="cc-start" appDate [(ngModel)]="form.startDate" />
           </div>
           <div class="field">
             <label for="cc-months">Số tháng</label>
@@ -84,7 +86,7 @@ function blankForm(): PrepaidItemInput {
     @if (canAllocate) {
       <div class="filters-bar">
         <label class="filter-label" for="cc-period">Phân bổ kỳ</label>
-        <input id="cc-period" type="month" [(ngModel)]="period" />
+        <app-month-picker inputId="cc-period" ariaLabel="Kỳ phân bổ" [(value)]="period" />
         <button type="button" class="btn" [disabled]="allocating()" (click)="allocate()">Phân bổ</button>
       </div>
     }

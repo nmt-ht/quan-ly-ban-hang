@@ -12,7 +12,7 @@
   <div class="rg-body th-body">
     <label class="field">
       <span>Ngày chuyến <span class="required-mark">*</span></span>
-      <input type="date" [ngModel]="date()" (ngModelChange)="date.set($event)" [attr.aria-invalid]="attempted() && !date() ? 'true' : null" />
+      <input appDate [ngModel]="date()" (ngModelChange)="date.set($event)" [attr.aria-invalid]="attempted() && !date() ? 'true' : null" />
     </label>
     <label class="field">
       <span>Xe</span>

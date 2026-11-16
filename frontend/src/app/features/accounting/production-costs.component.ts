@@ -10,6 +10,7 @@ import { DataTableColumn, DataTableComponent } from '../../shared/data-table/dat
 import { formatVnd } from '../../shared/format.util';
 import { MoneyInputDirective } from '../../shared/money-input.directive';
 import { isoDay } from '../../shared/period';
+import { DateInputDirective } from '../../shared/date-input/date-input.directive';
 
 const STATUS: Record<string, string> = { NHAP: 'Nháp', DANG_SAN_XUAT: 'Đang sản xuất', HOAN_TAT: 'Đã nghiệm thu' };
 const STATUS_BADGE: Record<string, string> = { NHAP: 'badge-muted', DANG_SAN_XUAT: 'badge-warning', HOAN_TAT: 'badge-success' };
@@ -22,7 +23,7 @@ function blankForm(): ProductionCostInput {
 @Component({
   selector: 'app-accounting-production-costs',
   standalone: true,
-  imports: [FormsModule, NavIconComponent, DataTableComponent, MoneyInputDirective],
+  imports: [DateInputDirective, FormsModule, NavIconComponent, DataTableComponent, MoneyInputDirective],
   template: `
     <div class="page-header">
       <div>
@@ -67,7 +68,7 @@ function blankForm(): ProductionCostInput {
           </div>
           <div class="field">
             <label for="gt-date">Ngày</label>
-            <input id="gt-date" type="date" [(ngModel)]="form.date" />
+            <input id="gt-date" appDate [(ngModel)]="form.date" />
           </div>
           <div class="field">
             <label for="gt-credit">TK đối ứng (Có)</label>

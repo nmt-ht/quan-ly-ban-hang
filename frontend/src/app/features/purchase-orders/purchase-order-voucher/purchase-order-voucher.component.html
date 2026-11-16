@@ -56,7 +56,7 @@
         <div class="field">
           <label for="v-date">Ngày đặt hàng @if (editable()) { <span class="required-mark">*</span> }</label>
           @if (editable()) {
-            <input id="v-date" type="date" [ngModel]="date()" (ngModelChange)="date.set($event)" />
+            <input id="v-date" appDate [ngModel]="date()" (ngModelChange)="date.set($event)" />
           } @else {
             <p class="field-value num">{{ day(date()) }}</p>
           }
@@ -347,7 +347,7 @@
                   @if (editingInvoice() === r.id) {
                     <td><input type="text" maxlength="20" aria-label="Ký hiệu hoá đơn" [ngModel]="invSeries()" (ngModelChange)="invSeries.set($event)" /></td>
                     <td><input type="text" maxlength="30" aria-label="Số hoá đơn" [ngModel]="invNo()" (ngModelChange)="invNo.set($event)" /></td>
-                    <td><input type="date" aria-label="Ngày hoá đơn" [ngModel]="invDate()" (ngModelChange)="invDate.set($event)" /></td>
+                    <td><input appDate aria-label="Ngày hoá đơn" [ngModel]="invDate()" (ngModelChange)="invDate.set($event)" /></td>
                     <td class="c-act">
                       <button type="button" class="btn btn-sm btn-primary" (click)="saveInvoice()">Lưu</button>
                       <button type="button" class="btn btn-sm" (click)="editingInvoice.set(null)">Bỏ qua</button>

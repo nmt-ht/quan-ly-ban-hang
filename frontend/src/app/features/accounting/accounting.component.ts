@@ -1,6 +1,8 @@
 /* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 import { Component, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { DateInputDirective } from '../../shared/date-input/date-input.directive';
 import { AccountingService } from '../../core/services/accounting.service';
 import { AuthService } from '../../core/services/auth.service';
 import { errorText } from '../../core/api/api.service';
@@ -32,7 +34,7 @@ const GROUPS = [
 @Component({
   selector: 'app-accounting',
   standalone: true,
-  imports: [RouterLink, NavIconComponent],
+  imports: [FormsModule, RouterLink, NavIconComponent, DateInputDirective],
   template: `
     <div class="page-header">
       <div>
@@ -56,11 +58,11 @@ const GROUPS = [
           <div class="form-grid">
             <div class="field">
               <label for="kt-start">Ngày bắt đầu ghi sổ</label>
-              <input id="kt-start" type="date" [value]="startDate() || ''" #d />
+              <input id="kt-start" appDate [ngModel]="draft()" (ngModelChange)="draft.set($event)" />
             </div>
           </div>
           <div class="toolbar">
-            <button type="button" class="btn btn-primary" (click)="save(d.value)"><app-nav-icon name="check" />Lưu</button>
+            <button type="button" class="btn btn-primary" (click)="save(draft())"><app-nav-icon name="check" />Lưu</button>
             @if (startDate()) { <button type="button" class="btn btn-danger-ghost" (click)="save('')">Tắt sổ cái</button> }
           </div>
         }
@@ -84,6 +86,8 @@ export class AccountingComponent {
   readonly canManage = inject(AuthService).can('accounting.manage_account');
   readonly groups = GROUPS;
   readonly startDate = signal<string | null>(null);
+  /** Ngày bắt đầu ghi sổ đang nhập (chưa lưu). */
+  readonly draft = signal('');
   readonly loaded = signal(false);
   readonly notice = signal('');
   readonly failure = signal('');
@@ -97,6 +101,7 @@ export class AccountingComponent {
     try {
       const s = await this.svc.settings();
       this.startDate.set(s.ledgerStartDate ?? null);
+      this.draft.set(s.ledgerStartDate?.slice(0, 10) ?? '');
     } catch (e) {
       this.failure.set(errorText(e));
     } finally {
@@ -109,6 +114,7 @@ export class AccountingComponent {
     try {
       const s = await this.svc.setSettings(value || null);
       this.startDate.set(s.ledgerStartDate ?? null);
+      this.draft.set(s.ledgerStartDate?.slice(0, 10) ?? '');
       this.notice.set(value ? 'Đã bật sổ cái.' : 'Đã tắt sổ cái.');
     } catch (e) {
       this.failure.set(errorText(e));

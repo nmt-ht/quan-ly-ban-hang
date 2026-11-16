@@ -54,7 +54,7 @@
           </label>
           <label class="field">
             <span>Khách hẹn trả ngày</span>
-            <input type="date" [min]="today" [ngModel]="promisedDate()" (ngModelChange)="promisedDate.set($event)" />
+            <input appDate [min]="today" [ngModel]="promisedDate()" (ngModelChange)="promisedDate.set($event)" />
           </label>
           <label class="field">
             <span>Số tiền hẹn trả</span>

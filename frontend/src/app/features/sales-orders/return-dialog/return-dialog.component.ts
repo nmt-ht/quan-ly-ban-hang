@@ -11,6 +11,7 @@ import { SalesOrderService } from '../sales-order.service';
 import { errorText } from '../../../core/api/api.service';
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 import { PickableWarehousesPipe } from '../../../shared/pickable-warehouses.pipe';
+import { DateInputDirective } from '../../../shared/date-input/date-input.directive';
 
 interface ReturnRow {
   lineId: string;
@@ -36,7 +37,7 @@ const REASONS = ['Hàng lỗi, hư hỏng', 'Giao nhầm mẫu / kích thước'
 @Component({
   selector: 'app-return-dialog',
   standalone: true,
-  imports: [PickableWarehousesPipe, FrozenColsDirective, FormsModule, NavIconComponent],
+  imports: [DateInputDirective, PickableWarehousesPipe, FrozenColsDirective, FormsModule, NavIconComponent],
   templateUrl: './return-dialog.component.html',
   styleUrl: '../../purchase-orders/receive-goods-dialog/receive-goods-dialog.component.scss',
 })

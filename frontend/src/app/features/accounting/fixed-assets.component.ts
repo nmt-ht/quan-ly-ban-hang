@@ -9,7 +9,9 @@ import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { DataTableColumn, DataTableComponent } from '../../shared/data-table/data-table.component';
 import { formatVnd } from '../../shared/format.util';
 import { MoneyInputDirective } from '../../shared/money-input.directive';
+import { MonthPickerComponent } from '../../shared/month-picker/month-picker.component';
 import { formatDay, isoDay } from '../../shared/period';
+import { DateInputDirective } from '../../shared/date-input/date-input.directive';
 
 const newForm = (): FixedAssetInput => ({ name: '', cost: 0, usageStartDate: isoDay(new Date()), usefulLifeMonths: 12, expenseAccount: '642' });
 
@@ -17,7 +19,7 @@ const newForm = (): FixedAssetInput => ({ name: '', cost: 0, usageStartDate: iso
 @Component({
   selector: 'app-accounting-fixed-assets',
   standalone: true,
-  imports: [FormsModule, NavIconComponent, DataTableComponent, MoneyInputDirective],
+  imports: [DateInputDirective, FormsModule, NavIconComponent, DataTableComponent, MoneyInputDirective, MonthPickerComponent],
   template: `
     <div class="page-header">
       <div>
@@ -52,7 +54,7 @@ const newForm = (): FixedAssetInput => ({ name: '', cost: 0, usageStartDate: iso
           </div>
           <div class="field">
             <label for="ts-start">Ngày đưa vào dùng</label>
-            <input id="ts-start" type="date" [(ngModel)]="form.usageStartDate" />
+            <input id="ts-start" appDate [(ngModel)]="form.usageStartDate" />
           </div>
           <div class="field">
             <label for="ts-months">Số tháng khấu hao</label>
@@ -73,7 +75,7 @@ const newForm = (): FixedAssetInput => ({ name: '', cost: 0, usageStartDate: iso
     @if (canDepreciate) {
       <div class="filters-bar">
         <label class="filter-label" for="ts-period">Trích khấu hao kỳ</label>
-        <input id="ts-period" type="month" [(ngModel)]="period" />
+        <app-month-picker inputId="ts-period" ariaLabel="Kỳ khấu hao" [(value)]="period" />
         <button type="button" class="btn" [disabled]="depreciating()" (click)="depreciate()">Trích khấu hao</button>
       </div>
     }

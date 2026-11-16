@@ -13,6 +13,7 @@ import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { formatVnd } from '../../shared/format.util';
 import { formatDay, isoDay } from '../../shared/period';
 import { CashOpsService } from './cash-ops.service';
+import { DateInputDirective } from '../../shared/date-input/date-input.directive';
 
 // Tiêu đề cột thường gặp của sao kê (đã bỏ dấu, chữ thường): cột nào khớp trước thì dùng.
 const COLS = {
@@ -36,7 +37,7 @@ function parseMoney(v: unknown): number {
 @Component({
   selector: 'app-bank-reconciliation',
   standalone: true,
-  imports: [FormsModule, NavIconComponent, PeriodFilterComponent, MoneyInputDirective],
+  imports: [DateInputDirective, FormsModule, NavIconComponent, PeriodFilterComponent, MoneyInputDirective],
   template: `
     <div class="page-header">
       <div>
@@ -74,7 +75,7 @@ function parseMoney(v: unknown): number {
           <div class="form-grid-3">
             <div class="field">
               <label for="dc-date">Ngày</label>
-              <input id="dc-date" type="date" [ngModel]="manual().date" (ngModelChange)="patchManual({ date: $event })" />
+              <input id="dc-date" appDate [ngModel]="manual().date" (ngModelChange)="patchManual({ date: $event })" />
             </div>
             <div class="field span-2">
               <label for="dc-desc">Diễn giải</label>

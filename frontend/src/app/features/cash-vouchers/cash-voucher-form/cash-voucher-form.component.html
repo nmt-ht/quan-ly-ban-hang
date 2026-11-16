@@ -17,7 +17,7 @@
       </div>
       <div class="field">
         <label for="cv-date">Ngày phiếu <span class="required-mark">*</span></label>
-        <input id="cv-date" type="date" name="date" [ngModel]="date()" (ngModelChange)="date.set($event)"
+        <input id="cv-date" appDate name="date" [ngModel]="date()" (ngModelChange)="date.set($event)"
           [attr.aria-invalid]="attempted() && !date() ? 'true' : null" />
       </div>
       <div class="field">

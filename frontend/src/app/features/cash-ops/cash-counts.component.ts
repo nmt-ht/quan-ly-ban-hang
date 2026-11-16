@@ -10,6 +10,7 @@ import { DataTableColumn, DataTableComponent } from '../../shared/data-table/dat
 import { formatVnd } from '../../shared/format.util';
 import { formatDay, isoDay } from '../../shared/period';
 import { CashOpsService } from './cash-ops.service';
+import { DateInputDirective } from '../../shared/date-input/date-input.directive';
 
 /** Mệnh giá tiền Việt Nam đang lưu hành, từ cao xuống thấp. */
 const NOTES = [500_000, 200_000, 100_000, 50_000, 20_000, 10_000, 5_000, 2_000, 1_000, 500];
@@ -21,7 +22,7 @@ const NOTES = [500_000, 200_000, 100_000, 50_000, 20_000, 10_000, 5_000, 2_000, 
 @Component({
   selector: 'app-cash-counts',
   standalone: true,
-  imports: [FormsModule, NavIconComponent, DataTableComponent],
+  imports: [DateInputDirective, FormsModule, NavIconComponent, DataTableComponent],
   template: `
     <div class="page-header">
       <div>
@@ -55,7 +56,7 @@ const NOTES = [500_000, 200_000, 100_000, 50_000, 20_000, 10_000, 5_000, 2_000, 
           </div>
           <div class="field">
             <label for="kk-date">Ngày kiểm kê <span class="required-mark">*</span></label>
-            <input id="kk-date" type="date" [max]="today" [ngModel]="date()" (ngModelChange)="date.set($event)" />
+            <input id="kk-date" appDate [max]="today" [ngModel]="date()" (ngModelChange)="date.set($event)" />
           </div>
           <div class="field">
             <label for="kk-by">Người kiểm kê</label>

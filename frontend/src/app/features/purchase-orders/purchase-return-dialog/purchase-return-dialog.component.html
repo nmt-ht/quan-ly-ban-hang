@@ -11,7 +11,7 @@
     <div class="rg-meta">
       <label class="field">
         <span>Ngày trả <span class="required-mark">*</span></span>
-        <input type="date" [max]="today" [ngModel]="date()" (ngModelChange)="date.set($event)" />
+        <input appDate [max]="today" [ngModel]="date()" (ngModelChange)="date.set($event)" />
       </label>
       <label class="field">
         <span>Kho xuất trả @if (needsWarehouse()) { <span class="required-mark">*</span> }</span>

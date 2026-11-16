@@ -9,6 +9,7 @@ import { ACTIVE_TRIP } from '../delivery-trip.rules';
 import { VEHICLE_TYPE_LABEL } from '../../vehicles/vehicle.rules';
 import { DeliveryTripService, TripHeader } from '../delivery-trip.service';
 import { errorText } from '../../../core/api/api.service';
+import { DateInputDirective } from '../../../shared/date-input/date-input.directive';
 
 const HIRED = '';
 
@@ -17,7 +18,7 @@ const HIRED = '';
 @Component({
   selector: 'app-trip-header-dialog',
   standalone: true,
-  imports: [FormsModule, NavIconComponent],
+  imports: [DateInputDirective, FormsModule, NavIconComponent],
   templateUrl: './trip-header-dialog.component.html',
   styleUrls: ['../../purchase-orders/receive-goods-dialog/receive-goods-dialog.component.scss', './trip-header-dialog.component.scss'],
 })

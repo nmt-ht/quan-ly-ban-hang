@@ -172,7 +172,7 @@
         <p id="lsx-start-title"><strong>Bắt đầu {{ x.code }}</strong> — xuất vật tư theo định mức, phiếu xuất ghi ngày dưới đây.</p>
         <label class="lsx-qty">
           Ngày bắt đầu
-          <input type="date" aria-label="Ngày bắt đầu" [max]="today" [ngModel]="stepDate()" (ngModelChange)="stepDate.set($event || today)" />
+          <input appDate aria-label="Ngày bắt đầu" [max]="today" [ngModel]="stepDate()" (ngModelChange)="stepDate.set($event || today)" />
         </label>
         <div class="toolbar">
           <button type="button" class="btn" (click)="mode.set('')">Để sau</button>
@@ -190,7 +190,7 @@
         </label>
         <label class="lsx-qty">
           Ngày nghiệm thu
-          <input type="date" aria-label="Ngày nghiệm thu" [min]="x.startDate ?? null" [max]="today" [ngModel]="stepDate()" (ngModelChange)="stepDate.set($event || today)" />
+          <input appDate aria-label="Ngày nghiệm thu" [min]="x.startDate ?? null" [max]="today" [ngModel]="stepDate()" (ngModelChange)="stepDate.set($event || today)" />
         </label>
         @if ((produced() ?? 0) < x.quantity) {
           <p class="form-note text-warning">Ít hơn số lệnh {{ (x.quantity - (produced() ?? 0)).toLocaleString('vi-VN') }} — phần hỏng tính vào giá thành; đơn bán có thể cần lập lệnh bổ sung.</p>

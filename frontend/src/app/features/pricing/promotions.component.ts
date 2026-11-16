@@ -15,6 +15,7 @@ import { HasUnsavedChanges, isSaveShortcut, warnBeforeUnload } from '../../core/
 import { CUSTOMER_TYPE_LABEL } from '../sales-orders/sales-order.rules';
 import { PROMOTION_KIND_LABEL } from '../sales-orders/promotion.rules';
 import { PROMOTION_STATE_LABEL, PricingService, PromotionDraft, PromotionState, promotionState } from './pricing.service';
+import { DateInputDirective } from '../../shared/date-input/date-input.directive';
 
 const KIND_HINT: Record<PromotionKind, string> = {
   GIAM_HANG: 'Giảm % hoặc số tiền mỗi ĐVT chính trên các mặt hàng chọn — tự điền vào chiết khấu dòng.',
@@ -27,7 +28,7 @@ const KIND_HINT: Record<PromotionKind, string> = {
 @Component({
   selector: 'app-promotions',
   standalone: true,
-  imports: [NgClass, FormsModule, RouterLink, NavIconComponent, MoneyInputDirective, ProductPickerComponent, FilterMultiSelectComponent],
+  imports: [DateInputDirective, NgClass, FormsModule, RouterLink, NavIconComponent, MoneyInputDirective, ProductPickerComponent, FilterMultiSelectComponent],
   templateUrl: './promotions.component.html',
   styleUrl: './pricing.scss',
 })

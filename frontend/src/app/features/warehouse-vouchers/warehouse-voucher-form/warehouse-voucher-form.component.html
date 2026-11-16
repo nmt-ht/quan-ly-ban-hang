@@ -50,7 +50,7 @@
         } @else {
           <div class="field">
             <label for="wv-date">Ngày chứng từ <span class="required-mark">*</span></label>
-            <input id="wv-date" type="date" [ngModel]="date()" (ngModelChange)="date.set($event)" />
+            <input id="wv-date" appDate [ngModel]="date()" (ngModelChange)="date.set($event)" />
           </div>
           <div class="field">
             <label for="wv-wh">{{ text().warehouse }} <span class="required-mark">*</span></label>

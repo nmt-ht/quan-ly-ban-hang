@@ -11,6 +11,7 @@ import { SalesOrderService } from '../sales-order.service';
 import { errorText } from '../../../core/api/api.service';
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 import { PickableWarehousesPipe } from '../../../shared/pickable-warehouses.pipe';
+import { DateInputDirective } from '../../../shared/date-input/date-input.directive';
 
 interface DeliverRow {
   lineIndex: number;
@@ -32,7 +33,7 @@ interface DeliverRow {
 @Component({
   selector: 'app-deliver-dialog',
   standalone: true,
-  imports: [PickableWarehousesPipe, FrozenColsDirective, FormsModule, NavIconComponent],
+  imports: [DateInputDirective, PickableWarehousesPipe, FrozenColsDirective, FormsModule, NavIconComponent],
   templateUrl: './deliver-dialog.component.html',
   styleUrl: '../../purchase-orders/receive-goods-dialog/receive-goods-dialog.component.scss',
 })

@@ -11,6 +11,7 @@ import { foldVi, formatVnd } from '../../shared/format.util';
 import { MoneyInputDirective } from '../../shared/money-input.directive';
 import { formatDay, isoDay } from '../../shared/period';
 import { SearchOption, SearchSelectComponent } from '../../shared/search-select/search-select.component';
+import { DateInputDirective } from '../../shared/date-input/date-input.directive';
 
 /** TK dùng được trên hoá đơn không qua kho (khớp BILL_ACCOUNTS ở server): hàng tồn kho đi qua phiếu nhập kho. */
 const EXPENSE_ACCOUNTS = [
@@ -32,7 +33,7 @@ const blankRow = (): Row => ({ accountCode: '642', description: '', amount: null
 @Component({
   selector: 'app-purchase-bills',
   standalone: true,
-  imports: [FormsModule, NavIconComponent, DataTableComponent, SearchSelectComponent, MoneyInputDirective],
+  imports: [DateInputDirective, FormsModule, NavIconComponent, DataTableComponent, SearchSelectComponent, MoneyInputDirective],
   template: `
     <div class="page-header">
       <div>
@@ -64,7 +65,7 @@ const blankRow = (): Row => ({ accountCode: '642', description: '', amount: null
           </div>
           <div class="field">
             <label for="hm-date">Ngày hạch toán <span class="required-mark">*</span></label>
-            <input id="hm-date" type="date" [max]="today" [ngModel]="date()" (ngModelChange)="date.set($event)" />
+            <input id="hm-date" appDate [max]="today" [ngModel]="date()" (ngModelChange)="date.set($event)" />
           </div>
           <div class="field">
             <label for="hm-series">Ký hiệu hoá đơn</label>
@@ -76,7 +77,7 @@ const blankRow = (): Row => ({ accountCode: '642', description: '', amount: null
           </div>
           <div class="field">
             <label for="hm-idate">Ngày hoá đơn</label>
-            <input id="hm-idate" type="date" [max]="today" [ngModel]="invoiceDate()" (ngModelChange)="invoiceDate.set($event)" />
+            <input id="hm-idate" appDate [max]="today" [ngModel]="invoiceDate()" (ngModelChange)="invoiceDate.set($event)" />
           </div>
           <div class="field span-3">
             <label for="hm-desc">Diễn giải</label>

@@ -201,6 +201,7 @@ already taken and that its silhouette does not read like a neighbour's (four til
 Kho only).
 
 ## Forms
+- **Dates are dd/mm/yyyy, in Vietnamese, everywhere.** Never `<input type="date">` / `type="month"`: the browser draws those in its own language (mm/dd/yyyy, "Jan Feb", "This month"). A date field is `<input appDate [(ngModel)]>` (shared/date-input: typing digits inserts the "/", clicking opens a Vietnamese calendar, Monday first, Hôm nay / Xoá; the value stays `YYYY-MM-DD`; `[min]`/`[max]` grey out days). A month is `<app-month-picker>` (Tháng 1–12 + năm, value `YYYY-MM`); a date range is `<app-period-filter>`.
 - Labels above inputs, sentence case, 13 px / 500.
 - Required fields: `<span class="required-mark">*</span>` after the label text,
   coloured `--color-danger`.

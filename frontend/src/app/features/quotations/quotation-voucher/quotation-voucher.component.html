@@ -52,7 +52,7 @@
         <div class="field">
           <label for="bg-date">Ngày báo giá @if (editable()) { <span class="required-mark">*</span> }</label>
           @if (editable()) {
-            <input id="bg-date" type="date" [ngModel]="quoteDate()" (ngModelChange)="setQuoteDate($event)" />
+            <input id="bg-date" appDate [ngModel]="quoteDate()" (ngModelChange)="setQuoteDate($event)" />
           } @else {
             <p class="field-value num">{{ day(quoteDate()) }}</p>
           }
@@ -86,7 +86,7 @@
         <div class="field">
           <label for="bg-valid">Hiệu lực đến</label>
           @if (editable()) {
-            <input id="bg-valid" type="date" [min]="quoteDate()" [ngModel]="validUntil()" (ngModelChange)="validUntil.set($event)"
+            <input id="bg-valid" appDate [min]="quoteDate()" [ngModel]="validUntil()" (ngModelChange)="validUntil.set($event)"
               [attr.aria-invalid]="validUntil() && validUntil() < quoteDate() ? 'true' : null" />
           } @else {
             <p class="field-value num" [class.text-danger]="view() === 'HET_HAN'">{{ validUntil() ? day(validUntil()) : 'Không hạn' }}</p>

@@ -11,7 +11,7 @@
     <div class="rg-meta">
       <label class="field">
         <span>Ngày khách nhận <span class="required-mark">*</span></span>
-        <input type="date" [ngModel]="date()" (ngModelChange)="date.set($event)" />
+        <input appDate [ngModel]="date()" (ngModelChange)="date.set($event)" />
       </label>
       <label class="field rg-note">
         <span>Ghi chú</span>

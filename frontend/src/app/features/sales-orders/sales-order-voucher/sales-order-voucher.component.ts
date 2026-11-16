@@ -47,6 +47,7 @@ import { AuditHistoryComponent } from '../../../shared/audit/audit-history.compo
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 import { PickableWarehousesPipe } from '../../../shared/pickable-warehouses.pipe';
 import { SearchOption, SearchSelectComponent } from '../../../shared/search-select/search-select.component';
+import { DateInputDirective } from '../../../shared/date-input/date-input.directive';
 
 type Mode = 'create' | 'edit' | 'view';
 type Tab = 'hang' | 'gia-von' | 'lsx' | 'pxk' | 'tra-hang' | 'cong-no' | 'nhat-ky';
@@ -94,7 +95,7 @@ const emptyLine = (): DraftLine => ({
 @Component({
   selector: 'app-sales-order-voucher',
   standalone: true,
-  imports: [EmailComposeComponent, SearchSelectComponent, PickableWarehousesPipe, FrozenColsDirective, 
+  imports: [DateInputDirective, EmailComposeComponent, SearchSelectComponent, PickableWarehousesPipe, FrozenColsDirective, 
     NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
     PaginationComponent, FilterMultiSelectComponent, DeliverDialogComponent, ReturnDialogComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent,
     InvoicePreviewComponent,

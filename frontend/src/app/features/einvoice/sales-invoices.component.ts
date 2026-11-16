@@ -12,6 +12,7 @@ import { PeriodFilterComponent, PeriodValue } from '../../shared/period-filter/p
 import { formatDay, presetRange } from '../../shared/period';
 import { EXPORT_COLUMNS, EXPORT_NOTES, ImportColumnMap, detectColumns, exportRows, importRows } from './einvoice-file';
 import { EInvoiceService } from './einvoice.service';
+import { DateInputDirective } from '../../shared/date-input/date-input.directive';
 
 const SERIES_KEY = 'einvoice.series';
 const STATUS_LABEL: Record<string, string> = { PENDING: 'Đang chờ', ISSUED: 'Đã ghi nhận', FAILED: 'Lỗi', REPLACED: 'Đã thay thế', VOID: 'Đã gỡ' };
@@ -30,7 +31,7 @@ function savedSeries(): string {
 @Component({
   selector: 'app-sales-invoices',
   standalone: true,
-  imports: [FormsModule, NavIconComponent, DataTableComponent, PeriodFilterComponent],
+  imports: [DateInputDirective, FormsModule, NavIconComponent, DataTableComponent, PeriodFilterComponent],
   template: `
     <div class="page-header">
       <div>
@@ -91,7 +92,7 @@ function savedSeries(): string {
             </div>
             <div class="field">
               <label for="hd-date">Ngày hoá đơn <span class="required-mark">*</span></label>
-              <input id="hd-date" type="date" [ngModel]="r.date" (ngModelChange)="patchRec({ date: $event })" />
+              <input id="hd-date" appDate [ngModel]="r.date" (ngModelChange)="patchRec({ date: $event })" />
               <span class="hint">Không trước ngày giao {{ formatDay(r.item.date) }}.</span>
             </div>
           </div>

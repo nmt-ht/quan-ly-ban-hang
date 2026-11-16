@@ -9,6 +9,7 @@ import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { formatVnd } from '../../shared/format.util';
 import { MoneyInputDirective } from '../../shared/money-input.directive';
 import { isoDay } from '../../shared/period';
+import { DateInputDirective } from '../../shared/date-input/date-input.directive';
 
 interface LineRow { accountCode: string; debit: number | null; credit: number | null; description: string }
 
@@ -16,7 +17,7 @@ interface LineRow { accountCode: string; debit: number | null; credit: number | 
 @Component({
   selector: 'app-accounting-manual-entry',
   standalone: true,
-  imports: [FormsModule, RouterLink, NavIconComponent, MoneyInputDirective],
+  imports: [DateInputDirective, FormsModule, RouterLink, NavIconComponent, MoneyInputDirective],
   template: `
     <p class="subtitle"><a class="crumb" routerLink="/ke-toan/so-nhat-ky">Sổ nhật ký chung</a> / Nhập bút toán</p>
     <div class="page-header">
@@ -32,7 +33,7 @@ interface LineRow { accountCode: string; debit: number | null; credit: number | 
       <div class="form-grid-3">
         <div class="field">
           <label for="bt-date">Ngày hạch toán <span class="required-mark">*</span></label>
-          <input id="bt-date" type="date" [max]="today" [(ngModel)]="date" />
+          <input id="bt-date" appDate [max]="today" [(ngModel)]="date" />
         </div>
         <div class="field span-2">
           <label for="bt-desc">Diễn giải</label>
