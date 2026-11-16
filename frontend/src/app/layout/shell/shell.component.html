@@ -37,8 +37,8 @@
               <a
                 class="nav-link"
                 [routerLink]="link.path"
-                routerLinkActive="active"
-                ariaCurrentWhenActive="page"
+                [class.active]="activePath() === link.path"
+                [attr.aria-current]="activePath() === link.path ? 'page' : null"
                 [title]="collapsed() ? link.label : ''"
                 (click)="closeMenu()"
               >

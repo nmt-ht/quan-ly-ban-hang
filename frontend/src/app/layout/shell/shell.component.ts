@@ -1,9 +1,9 @@
 import { Component, HostListener, computed, inject, signal } from '@angular/core';
 import {
-  NavigationCancel, NavigationEnd, NavigationError, NavigationStart, Router, RouterLink, RouterLinkActive, RouterOutlet,
+  NavigationCancel, NavigationEnd, NavigationError, NavigationStart, Router, RouterLink, RouterOutlet,
 } from '@angular/router';
 import { filter } from 'rxjs';
-import { ModuleKey, NAV_GROUPS, NavGroup, moduleOf } from '../nav-items';
+import { ModuleKey, NAV_GROUPS, NavGroup, menuEntryOf, moduleOf } from '../nav-items';
 import { NavIconComponent } from '../nav-icon/nav-icon.component';
 import { AccountMenuComponent } from '../account-menu/account-menu.component';
 import { AlertsBellComponent } from '../alerts-bell/alerts-bell.component';
@@ -28,7 +28,7 @@ function loadClosed(): string[] {
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, NavIconComponent, AccountMenuComponent, AlertsBellComponent, CommandPaletteComponent],
+  imports: [RouterLink, RouterOutlet, NavIconComponent, AccountMenuComponent, AlertsBellComponent, CommandPaletteComponent],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss',
 })
@@ -52,6 +52,8 @@ export class ShellComponent {
   readonly closedGroups = signal<string[]>(loadClosed());
   /** Phân hệ of the page on screen: its hue colours the page area (tokens.css › [data-module]). */
   readonly module = signal<ModuleKey | null>(moduleOf(this.router.url));
+  /** The one menu link the page belongs to (longest matching path): "Tổng quan kế toán" (/ke-toan) must not light up on /ke-toan/so-chi-tiet. */
+  readonly activePath = signal<string | null>(menuEntryOf(this.router.url)?.link.path ?? null);
   /** Thanh tải trên topbar khi chuyển trang (tải mã trang, guard). Chỉ hiện nếu quá 120 ms để khỏi nháy. */
   readonly navigating = signal(false);
   private navTimer: ReturnType<typeof setTimeout> | undefined;
@@ -69,6 +71,7 @@ export class ShellComponent {
     // Landing on a page inside a folded group (link, search, back button) unfolds it.
     this.router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd)).subscribe((e) => {
       this.module.set(moduleOf(e.urlAfterRedirects));
+      this.activePath.set(menuEntryOf(e.urlAfterRedirects)?.link.path ?? null);
       const g = this.navGroups().find((x) => x.label && x.links.some((l) => e.urlAfterRedirects === l.path || e.urlAfterRedirects.startsWith(l.path + '/') || e.urlAfterRedirects.startsWith(l.path + '?')));
       if (g?.label && this.closedGroups().includes(g.label)) this.setClosed(this.closedGroups().filter((x) => x !== g.label));
     });
