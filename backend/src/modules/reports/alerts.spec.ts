@@ -29,6 +29,14 @@ describe('alerts (thông báo)', () => {
     expect(late.map((a) => a.key)).toEqual(['ap']);
   });
 
+  it('hoá đơn: đợt giao quá hạn chưa có hoá đơn là theo dõi, trỏ tới màn Hoá đơn bán ra; không có thì im lặng', () => {
+    expect(alerts({ ...none, uninvoiced: null })).toEqual([]);
+    expect(alerts({ ...none, uninvoiced: { count: 0, oldest: '2026-11-01' } })).toEqual([]);
+    const [a] = alerts({ ...none, uninvoiced: { count: 4, oldest: '2026-11-01' } });
+    expect(a).toMatchObject({ key: 'invoice', level: 'warn', area: 'sell', to: '/hoa-don-ban', title: '4 đợt giao chưa có hoá đơn quá 3 ngày', sig: 'invoice:4:2026-11-01' });
+    expect(a.detail).toContain('01/11/2026');
+  });
+
   it('a ngừng dùng quỹ below zero is not news', () => {
     expect(alerts({ ...none, cashAccounts: [{ name: 'Cũ', balance: -1, isActive: false }] })).toEqual([]);
   });

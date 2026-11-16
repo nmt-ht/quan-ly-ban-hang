@@ -7,11 +7,30 @@ export const EINVOICE_PROVIDERS = ['NONE', 'FAKE', 'MISA'] as const;
 export type EInvoiceProviderName = (typeof EINVOICE_PROVIDERS)[number];
 export const EINVOICE_KINDS = ['ORIGINAL', 'ADJUST', 'REPLACE'] as const;
 export type EInvoiceKind = (typeof EINVOICE_KINDS)[number];
-export const EINVOICE_STATUSES = ['PENDING', 'ISSUED', 'FAILED', 'REPLACED'] as const;
+export const EINVOICE_STATUSES = ['PENDING', 'ISSUED', 'FAILED', 'REPLACED', 'VOID'] as const;
 export type EInvoiceStatus = (typeof EINVOICE_STATUSES)[number];
 
-/** Not FAILED: a hoá đơn that exists (or may exist) at the provider. At most one per đợt / đơn / phiếu trả hàng. */
-export const isLive = (status: string): boolean => status !== 'FAILED';
+/** `provider` of a hoá đơn issued outside the app (on the cổng of the nhà cung cấp) whose số was only recorded here. */
+export const EXTERNAL_PROVIDER = 'EXTERNAL';
+
+/** Not FAILED and not VOID (gỡ ghi nhận): a hoá đơn that exists (or may exist). At most one per đợt / đơn / phiếu trả hàng. */
+export const isLive = (status: string): boolean => status !== 'FAILED' && status !== 'VOID';
+
+/** Số hoá đơn typed or read from a file: 1–8 digits; leading zeros do not make a different số. */
+export const INVOICE_NUMBER = /^\d{1,8}$/;
+export const numberKey = (n: string): string => n.replace(/^0+(?=\d)/, '');
+
+/**
+ * The reference that ties a line of the file sent to the nhà cung cấp back to what it was made from: the đơn's code for
+ * a hoá đơn of the whole đơn, `code#n` for its n-th đợt giao (1 = first). It travels in a column of the Excel and comes back.
+ */
+export const invoiceRef = (orderCode: string, deliveryIndex: number | null): string => (deliveryIndex === null ? orderCode : `${orderCode}#${deliveryIndex}`);
+export function parseInvoiceRef(ref: string): { orderCode: string; deliveryIndex: number | null } | null {
+  const m = /^\s*([^#\s]+?)\s*(?:#\s*(\d{1,3}))?\s*$/.exec(ref);
+  if (!m) return null;
+  const index = m[2] ? Number(m[2]) : null;
+  return index === 0 ? null : { orderCode: m[1].toUpperCase(), deliveryIndex: index };
+}
 
 /**
  * Ký hiệu hoá đơn (TT 78/2021, Điều 4): 6 ký tự — C (có mã của CQT) hoặc K (không mã); 2 số năm lập; một chữ loại
@@ -101,9 +120,10 @@ export function partnerKey(orderCode: string, part: { deliveryId?: string | null
 /** The status moves an hoá đơn may make. ISSUED is final except being replaced; FAILED may be retried (a new row). */
 const MOVES: Record<EInvoiceStatus, readonly EInvoiceStatus[]> = {
   PENDING: ['PENDING', 'ISSUED', 'FAILED'],
-  ISSUED: ['REPLACED'],
+  ISSUED: ['REPLACED', 'VOID'],
   FAILED: [],
   REPLACED: [],
+  VOID: [],
 };
 export const canMove = (from: string, to: EInvoiceStatus): boolean => (MOVES[from as EInvoiceStatus] ?? []).includes(to);
 

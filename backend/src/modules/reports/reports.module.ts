@@ -20,10 +20,10 @@ import { ReportDataService } from './report-data.service.js';
 import { GROUP_PERMISSION, ReportDef } from './report.types.js';
 import { costBook, inRange, isoDay, revenueLines, unitCosts } from './report.rules.js';
 import { dashboard } from './dashboard.js';
-import { alerts } from './alerts.js';
+import { INVOICE_LATE_DAYS, INVOICE_LOOKBACK_DAYS, alerts } from './alerts.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { SalesService } from '../sales/sales.service.js';
-import { quotationVisibleTo } from '../sales/order-access.js';
+import { orderVisibleTo, quotationVisibleTo } from '../sales/order-access.js';
 import { CashAccountsService } from '../cash/cash-catalog.module.js';
 import { fromDay } from '../../common/text.js';
 import { seesPurchasePrices } from '../../common/purchase-prices.js';
@@ -103,15 +103,35 @@ export class AlertsService {
   async list(user: AuthUser) {
     const can = (p: string) => user.permissions.includes(p);
     const today = isoDay();
-    const [lateOrders, debt, cashAccounts, belowMin, draftPurchases, openQuotes] = await Promise.all([
+    const [lateOrders, debt, cashAccounts, belowMin, draftPurchases, openQuotes, uninvoiced] = await Promise.all([
       can('order.view') ? this.sales.lateOrderCount(user, today) : null,
       can('debt.view') ? Promise.all([this.receivables.rows(today), this.payables.rows(today)]).then(([receivables, payables]) => ({ receivables, payables })) : null,
       can('voucher.view') ? this.cashAccounts.findAll() : null,
       can('stock.view') ? this.belowMin() : null,
       can('purchase.approve') ? this.prisma.purchaseOrder.count({ where: { status: 'NHAP' } }) : null,
       can('quote.view') ? this.openQuotes(user) : null,
+      can('einvoice.view') ? this.uninvoiced(user, today) : null,
     ]);
-    return alerts({ today, lateOrders, debt, cashAccounts, belowMin, draftPurchases, openQuotes });
+    return alerts({ today, lateOrders, debt, cashAccounts, belowMin, draftPurchases, openQuotes, uninvoiced });
+  }
+
+  /**
+   * Đợt giao đã giao quá INVOICE_LATE_DAYS ngày (trong INVOICE_LOOKBACK_DAYS ngày qua) mà chưa có hoá đơn. Chỉ báo khi công ty đã dùng hoá đơn
+   * (chọn nhà cung cấp hoặc đã có hoá đơn ghi nhận); công ty chưa dùng thì không đợt giao nào "thiếu" hoá đơn.
+   */
+  private async uninvoiced(user: AuthUser, today: string) {
+    const [settings, issued] = await Promise.all([this.prisma.eInvoiceSettings.findUnique({ where: { id: 1 } }), this.prisma.eInvoice.count({ where: { status: 'ISSUED' } })]);
+    if ((settings?.provider ?? 'NONE') === 'NONE' && !issued) return null;
+    const day = (offset: number) => fromDay(isoDay(new Date(Date.parse(`${today}T00:00:00Z`) + offset * 86_400_000)))!;
+    const r = await this.prisma.salesOrderDelivery.aggregate({
+      where: {
+        date: { gte: day(-INVOICE_LOOKBACK_DAYS), lte: day(-INVOICE_LATE_DAYS) },
+        order: { status: { not: 'HUY' }, ...orderVisibleTo(user) }, lines: { some: {} },
+        einvoices: { none: { kind: 'ORIGINAL', status: { notIn: ['FAILED', 'VOID'] } } },
+      },
+      _count: { _all: true }, _min: { date: true },
+    });
+    return { count: r._count._all, oldest: r._min.date ? r._min.date.toISOString().slice(0, 10) : today };
   }
 
   /** Mặt hàng đang dùng (not dịch vụ) whose tồn across every kho is under its tồn tối thiểu — Tổng quan's count. */

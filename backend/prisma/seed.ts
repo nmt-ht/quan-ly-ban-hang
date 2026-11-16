@@ -247,6 +247,11 @@ const CASH_CATEGORIES = [
   // Chuyển tiền nội bộ (CashTransfer): hai phiếu qua TK 113 tiền đang chuyển; tên khớp NOI_BO_CATEGORIES trong cash-transfers.ts.
   { code: 'CHI_NOIBO', name: 'Chuyển tiền nội bộ', kind: 'CHI', partnerType: 'KHAC', isDefault: false, sortOrder: 6, defaultAccountCode: '113' },
   { code: 'THU_NOIBO', name: 'Nhận tiền chuyển nội bộ', kind: 'THU', partnerType: 'KHAC', isDefault: false, sortOrder: 7, defaultAccountCode: '113' },
+  // Kiểm kê quỹ: phiếu xử lý chênh lệch (CashCountsService.resolve); tên khớp COUNT_CATEGORY_NAMES.
+  { code: 'CHI_THIEU_QUY_CHO_XL', name: 'Thiếu quỹ chờ xử lý', kind: 'CHI', partnerType: 'KHAC', isDefault: false, sortOrder: 8, defaultAccountCode: '1381' },
+  { code: 'CHI_THIEU_QUY', name: 'Thiếu quỹ tính vào chi phí khác', kind: 'CHI', partnerType: 'KHAC', isDefault: false, sortOrder: 9, defaultAccountCode: '811' },
+  { code: 'THU_THUA_QUY_CHO_XL', name: 'Thừa quỹ chờ giải quyết', kind: 'THU', partnerType: 'KHAC', isDefault: false, sortOrder: 10, defaultAccountCode: '3381' },
+  { code: 'THU_THUA_QUY', name: 'Thừa quỹ tính vào thu nhập khác', kind: 'THU', partnerType: 'KHAC', isDefault: false, sortOrder: 11, defaultAccountCode: '711' },
 ] as const;
 
 // Hệ thống tài khoản TT133 (bộ rút gọn cho nghiệp vụ hiện có). [code, name, parentCode, kind, normalSide, isDetail]
@@ -256,6 +261,8 @@ const CHART = [
   ['113', 'Tiền đang chuyển', null, 'TAI_SAN', 'NO', true],
   ['131', 'Phải thu của khách hàng', null, 'TAI_SAN', 'NO', true],
   ['133', 'Thuế GTGT được khấu trừ', null, 'TAI_SAN', 'NO', true],
+  ['138', 'Phải thu khác', null, 'TAI_SAN', 'NO', false],
+  ['1381', 'Tài sản thiếu chờ xử lý', '138', 'TAI_SAN', 'NO', true],
   ['141', 'Tạm ứng', null, 'TAI_SAN', 'NO', true],
   ['152', 'Nguyên liệu, vật liệu', null, 'TAI_SAN', 'NO', true],
   ['153', 'Công cụ, dụng cụ', null, 'TAI_SAN', 'NO', true],
@@ -270,6 +277,7 @@ const CHART = [
   ['3331', 'Thuế GTGT phải nộp', '333', 'NO_PHAI_TRA', 'CO', true],
   ['3335', 'Thuế thu nhập cá nhân', '333', 'NO_PHAI_TRA', 'CO', true],
   ['338', 'Phải trả, phải nộp khác', null, 'NO_PHAI_TRA', 'CO', false],
+  ['3381', 'Tài sản thừa chờ giải quyết', '338', 'NO_PHAI_TRA', 'CO', true],
   ['3382', 'Kinh phí công đoàn', '338', 'NO_PHAI_TRA', 'CO', true],
   ['3383', 'Bảo hiểm xã hội', '338', 'NO_PHAI_TRA', 'CO', true],
   ['3384', 'Bảo hiểm y tế', '338', 'NO_PHAI_TRA', 'CO', true],

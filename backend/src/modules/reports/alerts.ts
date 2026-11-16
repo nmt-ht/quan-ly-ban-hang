@@ -33,6 +33,8 @@ export interface AlertInput {
   draftPurchases: number | null;
   /** Báo giá đang mở (status MOI) with a hạn hiệu lực. */
   openQuotes: { validUntil: string }[] | null;
+  /** Đợt giao đã giao quá INVOICE_LATE_DAYS ngày mà chưa có hoá đơn (null = người dùng không xem hoá đơn, hoặc công ty chưa dùng hoá đơn). */
+  uninvoiced?: { count: number; oldest: string } | null;
 }
 
 const DAY = 86_400_000;
@@ -41,6 +43,8 @@ const shift = (day: string, days: number) => new Date(Date.parse(`${day}T00:00:0
 export const QUOTE_SOON_DAYS = 3; // báo giá hết hạn trong 3 ngày tới
 export const QUOTE_LAPSED_DAYS = 14; // đã hết hạn trong 14 ngày qua (older ones are history, not news)
 export const PAYABLE_DUE_DAYS = 7;
+export const INVOICE_LATE_DAYS = 3; // hoá đơn lập khi chuyển giao hàng hoá; quá 3 ngày chưa có là sót
+export const INVOICE_LOOKBACK_DAYS = 60; // đợt giao cũ hơn thế là lịch sử, không báo
 
 export function alerts(i: AlertInput): Alert[] {
   const out: Alert[] = [];
@@ -125,6 +129,14 @@ export function alerts(i: AlertInput): Alert[] {
         cta: 'Xem báo giá', sig: `quote-soon:${soon}`,
       });
     }
+  }
+
+  if (i.uninvoiced?.count) {
+    out.push({
+      key: 'invoice', level: 'warn', area: 'sell', title: `${i.uninvoiced.count} đợt giao chưa có hoá đơn quá ${INVOICE_LATE_DAYS} ngày`,
+      detail: `Cũ nhất giao ngày ${i.uninvoiced.oldest.split('-').reverse().join('/')} — lập hoá đơn trên cổng nhà cung cấp rồi ghi nhận số hoá đơn.`,
+      to: '/hoa-don-ban', cta: 'Xem hoá đơn', sig: `invoice:${i.uninvoiced.count}:${i.uninvoiced.oldest}`,
+    });
   }
 
   return [...out.filter((a) => a.level === 'bad'), ...out.filter((a) => a.level === 'warn')];

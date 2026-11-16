@@ -1052,6 +1052,8 @@ model CashVoucher {
   transferOut   CashTransfer?      @relation("TransferOut")
   transferIn    CashTransfer?      @relation("TransferIn")
   statementLine BankStatementLine?
+  // Kiểm kê quỹ: phiếu xử lý chênh lệch thừa / thiếu quỹ của một biên bản (CashCount.resolutionVoucher).
+  countResolution CashCount? @relation("CashCountResolution")
 
   @@index([salesOrderId])
   @@index([salesOrderDeliveryId])
@@ -1104,6 +1106,10 @@ model CashCount {
   isCancelled   Boolean     @default(false)
   cancelReason  String?
   cancelledAt   DateTime?
+  // Xử lý chênh lệch: CHO_XU_LY (Nợ 1381 / Có 3381) hoặc TINH_CHI_PHI / TINH_THU_NHAP (811 / 711) bằng một phiếu thu hoặc chi.
+  resolution          String?
+  resolutionVoucherId String?      @unique
+  resolutionVoucher   CashVoucher? @relation("CashCountResolution", fields: [resolutionVoucherId], references: [id], onDelete: Restrict)
   createdById   String
   createdBy     User        @relation("CashCountCreatedBy", fields: [createdById], references: [id])
   createdAt     DateTime    @default(now())

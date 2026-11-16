@@ -4,7 +4,7 @@
 import { BadRequestException } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 
-const LIVE = { status: { not: 'FAILED' } } as const;
+const LIVE: { status: { notIn: string[] } } = { status: { notIn: ['FAILED', 'VOID'] } };
 
 const label = (r: { templateCode: string; series: string; number: string | null; status: string }) =>
   r.number ? `${r.templateCode}${r.series} số ${r.number}` : `${r.templateCode}${r.series} (đang chờ phát hành)`;
@@ -24,7 +24,7 @@ export async function releaseDeliveries(tx: Prisma.TransactionClient, orderId: s
       `Đơn ${orderCode} đã xuất hoá đơn điện tử ${label(live)} cho hàng đã giao — không bỏ chốt giao được. Lập hoá đơn điều chỉnh / thay thế, hoặc ghi phiếu trả hàng.`,
     );
   }
-  await tx.eInvoice.deleteMany({ where: { deliveryId: { in: deliveryIds }, status: 'FAILED' } });
+  await tx.eInvoice.deleteMany({ where: { deliveryId: { in: deliveryIds }, status: { in: ['FAILED', 'VOID'] } } });
 }
 
 /** Before a phiếu trả hàng is huỷ: refused while its hoá đơn điều chỉnh is sent (a huỷ would need another điều chỉnh). */

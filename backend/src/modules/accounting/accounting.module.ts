@@ -205,6 +205,7 @@ export class AccountingService {
       { label: 'Tiền (111, 112, 113)', amount: closing('111') + closing('112') + closing('113') },
       { label: 'Phải thu của khách hàng (131)', amount: closing('131') },
       { label: 'Tạm ứng (141)', amount: closing('141') },
+      { label: 'Tài sản thiếu chờ xử lý (1381)', amount: closing('1381') },
       { label: 'Thuế GTGT được khấu trừ (133)', amount: closing('133') },
       { label: 'Hàng tồn kho (152,153,154,155,156)', amount: ['152', '153', '154', '155', '156'].reduce((s, c) => s + closing(c), 0) },
       { label: 'Tài sản cố định (211 − 214)', amount: closing('211') - closing('214') },
@@ -214,7 +215,7 @@ export class AccountingService {
       { label: 'Phải trả người bán (331)', amount: closing('331') },
       { label: 'Thuế và các khoản phải nộp NN (3331, 3335)', amount: closing('3331') + closing('3335') },
       { label: 'Phải trả người lao động (334)', amount: closing('334') },
-      { label: 'Phải trả, phải nộp khác (3382, 3383, 3384, 3385)', amount: ['3382', '3383', '3384', '3385'].reduce((s, c) => s + closing(c), 0) },
+      { label: 'Phải trả, phải nộp khác (3381, 3382, 3383, 3384, 3385)', amount: ['3381', '3382', '3383', '3384', '3385'].reduce((s, c) => s + closing(c), 0) },
       { label: 'Vốn đầu tư của chủ sở hữu (411)', amount: closing('411') },
       { label: 'Lợi nhuận sau thuế chưa phân phối (421)', amount: closing('421') + is.profitAfterTax },
     ];

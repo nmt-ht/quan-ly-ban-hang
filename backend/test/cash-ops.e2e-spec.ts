@@ -158,6 +158,72 @@ describe('Chuyển tiền nội bộ, kiểm kê quỹ, đối chiếu sao kê, 
     await acc.post(`/api/cash-counts/${c.id}/cancel`, {}).expect(400);
   });
 
+  it('kiểm kê quỹ: xử lý chênh lệch bằng phiếu chi / thu, sổ cái đúng, huỷ phiếu hoặc biên bản đưa quỹ về như cũ', async () => {
+    // Quỹ TM đang có 7.100.000 trên sổ (7.000.000 + thu khác 100.000 ở trên); các lần đếm dưới đây tự huỷ, không đổi số dư các test sau.
+    expect(await balance(tm)).toBe(7_100_000);
+    const count = async (n500: number, n100 = 0) => (await acc.post('/api/cash-counts', {
+      accountId: tm, date: today, denominations: [{ value: 500_000, count: n500 }, { value: 100_000, count: n100 }],
+    }).expect(201)).body;
+    const ledger = async (voucherCode: string) => {
+      const v = await prisma.cashVoucher.findFirstOrThrow({ where: { code: voucherCode } });
+      const lines = await prisma.journalLine.findMany({ where: { entry: { refType: 'CashVoucher', refId: v.id } } });
+      const net = (code: string) => lines.filter((l) => l.accountCode === code).reduce((s, l) => s + l.debit.toNumber() - l.credit.toNumber(), 0);
+      return { v, net };
+    };
+
+    // Phiếu xử lý chênh lệch chỉ lập từ biên bản kiểm kê, không lập tay.
+    await acc.post('/api/cash-vouchers', voucher({ kind: 'CHI', category: 'Thiếu quỹ chờ xử lý', accountId: tm, amount: 1000 })).expect(400);
+    // Thiếu 100.000 (đếm 7.000.000): chờ xử lý → Nợ 1381 / Có 111.
+    const short = await count(14);
+    expect(short.difference).toBe(-100_000);
+    await sale.post(`/api/cash-counts/${short.id}/resolve`, { option: 'CHO_XU_LY' }).expect(403);
+    await acc.post(`/api/cash-counts/${short.id}/resolve`, { option: 'LUNG_TUNG' }).expect(400);
+    await acc.post(`/api/cash-counts/${short.id}/resolve`, { option: 'CHO_XU_LY', date: vnDay(new Date(Date.now() - 86_400_000)) }).expect(400); // trước ngày kiểm kê
+    const r1 = (await acc.post(`/api/cash-counts/${short.id}/resolve`, { option: 'CHO_XU_LY' }).expect(200)).body;
+    expect(r1).toMatchObject({ resolution: 'CHO_XU_LY', resolutionVoucherCode: expect.stringMatching(/^PC\d{7}$/) });
+    expect(await balance(tm)).toBe(7_000_000);
+    const l1 = await ledger(r1.resolutionVoucherCode);
+    expect(l1.v).toMatchObject({ category: 'Thiếu quỹ chờ xử lý' });
+    expect([l1.net('1381'), l1.net('111')]).toEqual([100_000, -100_000]);
+    // Bảng cân đối có dòng 1381.
+    const bs = (await acc.get(`/api/accounting/balance-sheet?period=${year}`).expect(200)).body;
+    expect(bs.assets.find((a: { label: string }) => a.label.includes('1381')).amount).toBe(100_000);
+    // Xử lý lần hai bị từ chối; phiếu xử lý không huỷ lẻ được.
+    await acc.post(`/api/cash-counts/${short.id}/resolve`, { option: 'TINH_VAO_KET_QUA' }).expect(400);
+    const direct = await prisma.cashVoucher.findFirstOrThrow({ where: { code: r1.resolutionVoucherCode } });
+    expect((await acc.post(`/api/cash-vouchers/${direct.id}/cancel`, {}).expect(400)).body.message).toContain('kiểm kê');
+    // Huỷ xử lý: quỹ về 7.100.000, biên bản chưa xử lý; chọn cách khác: tính vào chi phí khác (Nợ 811).
+    const back = (await acc.post(`/api/cash-counts/${short.id}/unresolve`, { reason: 'E2E chọn lại' }).expect(200)).body;
+    expect(back).toMatchObject({ resolution: null, resolutionVoucherCode: null });
+    expect(await balance(tm)).toBe(7_100_000);
+    await acc.post(`/api/cash-counts/${short.id}/unresolve`, {}).expect(400);
+    const r2 = (await acc.post(`/api/cash-counts/${short.id}/resolve`, { option: 'TINH_VAO_KET_QUA' }).expect(200)).body;
+    const l2 = await ledger(r2.resolutionVoucherCode);
+    expect(l2.v.category).toBe('Thiếu quỹ tính vào chi phí khác');
+    expect([l2.net('811'), l2.net('111')]).toEqual([100_000, -100_000]);
+    // Huỷ biên bản: phiếu xử lý huỷ theo, quỹ về 7.100.000.
+    expect((await acc.post(`/api/cash-counts/${short.id}/cancel`, {}).expect(200)).body).toMatchObject({ isCancelled: true, resolution: null });
+    expect(await balance(tm)).toBe(7_100_000);
+    expect((await prisma.cashVoucher.findFirstOrThrow({ where: { code: r2.resolutionVoucherCode } })).isCancelled).toBe(true);
+
+    // Thừa 100.000 (đếm 7.200.000): chờ giải quyết → phiếu thu, Nợ 111 / Có 3381.
+    const over = await count(14, 2);
+    expect(over.difference).toBe(100_000);
+    const r3 = (await acc.post(`/api/cash-counts/${over.id}/resolve`, { option: 'CHO_XU_LY' }).expect(200)).body;
+    expect(r3.resolutionVoucherCode).toMatch(/^PT\d{7}$/);
+    expect(await balance(tm)).toBe(7_200_000);
+    const l3 = await ledger(r3.resolutionVoucherCode);
+    expect([l3.net('111'), l3.net('3381')]).toEqual([100_000, -100_000]);
+    await acc.post(`/api/cash-counts/${over.id}/cancel`, {}).expect(200);
+    expect(await balance(tm)).toBe(7_100_000);
+
+    // Khớp số dư sổ: không có gì để xử lý.
+    const exact = await count(14, 1);
+    expect(exact.difference).toBe(0);
+    await acc.post(`/api/cash-counts/${exact.id}/resolve`, { option: 'CHO_XU_LY' }).expect(400);
+    await acc.post(`/api/cash-counts/${exact.id}/cancel`, {}).expect(200);
+  });
+
   it('đối chiếu sao kê: nhập, bỏ dòng trùng, tự khớp, khớp tay, bỏ khớp, huỷ phiếu làm dòng chưa khớp', async () => {
     // Quỹ NH 1 đang có 3.000.000 (phiếu thu từ chuyển tiền). Thêm thu khác 1.200.000 và chi khác 500.000.
     const thu = (await acc.post('/api/cash-vouchers', voucher({ kind: 'THU', category: 'Thu khác', accountId: nh, amount: 1_200_000 })).expect(201)).body;

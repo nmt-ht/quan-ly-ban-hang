@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { invoiceData } from '../sales/invoice.rules.js';
-import { buyerIssue, buyerOf, canMove, isLive, partnerKey, seriesIssue, toProviderInvoice, vatCode } from './einvoice.rules.js';
+import {
+  INVOICE_NUMBER, buyerIssue, buyerOf, canMove, invoiceRef, isLive, numberKey, parseInvoiceRef, partnerKey, seriesIssue, toProviderInvoice, vatCode,
+} from './einvoice.rules.js';
 
 describe('hoá đơn điện tử: quy tắc', () => {
   it('ký hiệu: đúng dạng, đúng năm của ngày lập', () => {
@@ -45,6 +47,23 @@ describe('hoá đơn điện tử: quy tắc', () => {
     expect(isLive('FAILED')).toBe(false);
     expect(isLive('ISSUED')).toBe(true);
     expect(isLive('PENDING')).toBe(true);
+  });
+
+  it('hoá đơn ghi nhận từ ngoài: gỡ ghi nhận không còn sống; số bỏ số 0 đầu; mã tham chiếu đi và về', () => {
+    expect(canMove('ISSUED', 'VOID')).toBe(true);
+    expect(canMove('VOID', 'ISSUED')).toBe(false);
+    expect(isLive('VOID')).toBe(false);
+    expect(INVOICE_NUMBER.test('0000101')).toBe(true);
+    expect(INVOICE_NUMBER.test('123456789')).toBe(false);
+    expect(INVOICE_NUMBER.test('12a')).toBe(false);
+    expect(numberKey('0000101')).toBe('101');
+    expect(numberKey('000')).toBe('0');
+    expect(invoiceRef('DH0000012', null)).toBe('DH0000012');
+    expect(invoiceRef('DH0000012', 2)).toBe('DH0000012#2');
+    expect(parseInvoiceRef(' dh0000012 # 2 ')).toEqual({ orderCode: 'DH0000012', deliveryIndex: 2 });
+    expect(parseInvoiceRef('DH0000012')).toEqual({ orderCode: 'DH0000012', deliveryIndex: null });
+    expect(parseInvoiceRef('DH0000012#0')).toBeNull();
+    expect(parseInvoiceRef('')).toBeNull();
   });
 
   it('thuế suất: chỉ 0, 5, 8, 10', () => {

@@ -17,6 +17,7 @@ import { assertOpenPeriod, documentDay } from '../../common/period-lock.js';
 import { CASH_INCLUDE, cashToApi } from './cash-voucher.mapper.js';
 import { overdraw } from './cash-balance.js';
 import { TRANSFER_CATEGORY_NAMES } from './transfer-categories.js';
+import { COUNT_CATEGORY_NAMES } from './cash-count.rules.js';
 import { AuditService } from '../../audit/audit.service.js';
 import { vnd } from '../../audit/audit.diff.js';
 import { listParam, parsePageQuery, windowStart } from '../../common/paging.js';
@@ -111,6 +112,9 @@ export class CashVouchersService {
     if (TRANSFER_CATEGORY_NAMES.has(dto.category)) {
       throw new BadRequestException('Chuyển tiền nội bộ lập ở màn hình Chuyển tiền nội bộ (Thu, chi tiền), không lập bằng phiếu thu chi thường.');
     }
+    if (COUNT_CATEGORY_NAMES.has(dto.category)) {
+      throw new BadRequestException('Chênh lệch kiểm kê quỹ xử lý ở màn hình Kiểm kê quỹ (nút Xử lý chênh lệch), không lập bằng phiếu thu chi thường.');
+    }
     return this.prisma.$transaction((tx) => this.createIn(tx, dto, user));
   }
 
@@ -188,6 +192,8 @@ export class CashVouchersService {
   async cancel(id: string, reason: string | undefined, user: AuthUser) {
     const transfer = await this.prisma.cashTransfer.findFirst({ where: { OR: [{ outVoucherId: id }, { inVoucherId: id }] }, select: { code: true } });
     if (transfer) throw new BadRequestException(`Phiếu này thuộc chuyển tiền nội bộ ${transfer.code} — huỷ ở màn hình Chuyển tiền nội bộ.`);
+    const count = await this.prisma.cashCount.findFirst({ where: { resolutionVoucherId: id }, select: { code: true } });
+    if (count) throw new BadRequestException(`Phiếu này xử lý chênh lệch của biên bản kiểm kê ${count.code} — huỷ ở màn hình Kiểm kê quỹ.`);
     return cashToApi(await this.prisma.$transaction((tx) => this.cancelIn(tx, id, reason, user)));
   }
 
