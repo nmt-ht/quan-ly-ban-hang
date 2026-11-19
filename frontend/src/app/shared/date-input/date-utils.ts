@@ -20,13 +20,37 @@ export function dmyToIso(text: string): string | null {
 }
 
 /**
- * Gõ số thì tự chèn "/" sau ngày và tháng: "1611" → "16/11/", "16112026" → "16/11/2026"; chỉ giữ chữ số. `grew` = người dùng đang gõ thêm
- * (false khi xoá lùi, để dấu "/" không chặn việc xoá).
+ * Gõ số thì tự chèn "/" sau ngày và tháng: "1611" → "16/11/", "16112026" → "16/11/2026"; chỉ giữ chữ số. Gõ dấu ngăn ngay sau
+ * ngày / tháng một chữ số thì thêm số 0: "1/2/2026" → "01/02/2026". Dán ngày dạng "2026-11-16" thì đổi thành "16/11/2026".
+ * `grew` = người dùng đang gõ thêm (false khi xoá lùi, để dấu "/" không chặn việc xoá).
  */
 export function maskDmy(raw: string, grew = true): string {
-  const digits = raw.replace(/\D/g, '').slice(0, 8);
+  const iso = /^\s*(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\s*$/.exec(raw);
+  if (iso) return `${pad(Number(iso[3]))}/${pad(Number(iso[2]))}/${iso[1]}`;
+  const parts = raw.split(/\D+/);
+  let digits = '';
+  parts.forEach((p, i) => {
+    const followedBySeparator = grew && i < parts.length - 1;
+    digits += followedBySeparator && p.length === 1 && (digits.length === 0 || digits.length === 2) ? '0' + p : p;
+  });
+  digits = digits.slice(0, 8);
   const out = [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 8)].filter((p) => p.length).join('/');
   return grew && (digits.length === 2 || digits.length === 4) ? out + '/' : out;
+}
+
+/** Cộng / trừ số ngày vào "YYYY-MM-DD". */
+export function addDays(iso: string, n: number): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d + n));
+  return `${pad(t.getUTCFullYear(), 4)}-${pad(t.getUTCMonth() + 1)}-${pad(t.getUTCDate())}`;
+}
+
+/** Cộng / trừ số tháng vào "YYYY-MM-DD"; ngày vượt quá tháng mới thì lấy ngày cuối tháng (31/01 + 1 tháng → 28 hoặc 29/02). */
+export function addMonths(iso: string, n: number): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const t = y * 12 + m - 1 + n;
+  const ny = Math.floor(t / 12), nm = (t % 12) + 1;
+  return `${pad(ny, 4)}-${pad(nm)}-${pad(Math.min(d, daysInMonth(ny, nm)))}`;
 }
 
 export interface CalendarCell {

@@ -1,6 +1,8 @@
 // "Chọn kỳ" presets shared by list pages. Dates are local calendar days as 'YYYY-MM-DD'
 // strings so they compare directly with the ISO dates stored on records.
 
+import { isoToDmy } from './date-input/date-utils';
+
 export type PeriodPreset =
   | 'today' | 'yesterday' | 'last7' | 'last30'
   | 'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth'
@@ -88,8 +90,7 @@ export function inRange(date: string, range: DateRange): boolean {
 }
 
 export function formatDay(iso: string): string {
-  const [y, m, d] = iso.slice(0, 10).split('-');
-  return `${d}/${m}/${y}`;
+  return isoToDmy(iso);
 }
 
 export function rangeLabel(range: DateRange): string {
