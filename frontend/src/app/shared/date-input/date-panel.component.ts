@@ -13,11 +13,13 @@ import { WEEKDAYS, addDays, addMonths, monthGrid } from './date-utils';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [NavIconComponent],
+  // Bấm vào lịch không lấy mất con trỏ khỏi ô nhập (ô nhập rời con trỏ là lịch đóng).
+  host: { '(mousedown)': '$event.preventDefault()' },
   template: `
     <div class="head">
-      <button type="button" class="nav" tabindex="-1" aria-label="Tháng trước" (mousedown)="$event.preventDefault()" (click)="shift(-1)"><app-nav-icon name="chevron-left" /></button>
+      <button type="button" class="nav" tabindex="-1" aria-label="Tháng trước" (click)="moveMonths(-1)"><app-nav-icon name="chevron-left" /></button>
       <span class="title" aria-live="polite">Tháng {{ month() }} năm {{ year() }}</span>
-      <button type="button" class="nav" tabindex="-1" aria-label="Tháng sau" (mousedown)="$event.preventDefault()" (click)="shift(1)"><app-nav-icon name="chevron-right" /></button>
+      <button type="button" class="nav" tabindex="-1" aria-label="Tháng sau" (click)="moveMonths(1)"><app-nav-icon name="chevron-right" /></button>
     </div>
     <div class="grid" role="grid" aria-label="Chọn ngày">
       @for (w of weekdays; track w) { <span class="wd" role="columnheader">{{ w }}</span> }
@@ -26,13 +28,13 @@ import { WEEKDAYS, addDays, addMonths, monthGrid } from './date-utils';
           type="button" class="day" role="gridcell" tabindex="-1" [id]="cellId(c.iso)"
           [class.out]="!c.inMonth" [class.today]="c.iso === today" [class.sel]="c.iso === selected()" [class.active]="c.iso === active()"
           [attr.aria-selected]="c.iso === selected()" [attr.aria-current]="c.iso === today ? 'date' : null" [disabled]="blocked(c.iso)"
-          (mousedown)="$event.preventDefault()" (click)="pick.emit(c.iso)"
+          (click)="pick.emit(c.iso)"
         >{{ c.day }}</button>
       }
     </div>
     <div class="foot">
-      <button type="button" class="link-btn" tabindex="-1" [disabled]="blocked(today)" (mousedown)="$event.preventDefault()" (click)="pick.emit(today)">Hôm nay</button>
-      <button type="button" class="link-btn" tabindex="-1" (mousedown)="$event.preventDefault()" (click)="pick.emit('')">Xoá</button>
+      <button type="button" class="link-btn" tabindex="-1" [disabled]="blocked(today)" (click)="pick.emit(today)">Hôm nay</button>
+      <button type="button" class="link-btn" tabindex="-1" (click)="pick.emit('')">Xoá</button>
     </div>
   `,
   styles: [`
@@ -77,15 +79,15 @@ export class DatePanelComponent {
   /** Tiền tố id của các ô ngày (để ô nhập trỏ tới bằng aria-activedescendant). */
   readonly idPrefix = input('date-panel');
   readonly pick = output<string>();
+  /** Ngày đang trỏ đổi (để ô nhập cập nhật aria-activedescendant). */
+  readonly activeChange = output<string>();
 
   readonly today = isoDay(new Date());
   readonly weekdays = WEEKDAYS;
-  /** Ngày đang trỏ bằng bàn phím. */
+  /** Ngày đang trỏ (bàn phím, nút tháng trước / sau); lịch hiện tháng của ngày này. */
   readonly active = signal(this.today);
-  /** Tháng đang xem, tính bằng số tháng từ năm 0 (năm × 12 + tháng − 1). */
-  private readonly view = signal(monthIndex(this.today));
-  readonly year = computed(() => Math.floor(this.view() / 12));
-  readonly month = computed(() => (this.view() % 12) + 1);
+  readonly year = computed(() => Number(this.active().slice(0, 4)));
+  readonly month = computed(() => Number(this.active().slice(5, 7)));
   readonly cells = computed(() => monthGrid(this.year(), this.month()));
 
   cellId(iso: string): string { return `${this.idPrefix()}-${iso}`; }
@@ -93,12 +95,10 @@ export class DatePanelComponent {
   /** Trỏ tới ngày `iso` và hiện tháng của nó. */
   focusDay(iso: string): void {
     this.active.set(iso);
-    this.view.set(monthIndex(iso));
+    this.activeChange.emit(iso);
   }
 
-  shift(n: number): void { this.view.update((v) => v + n); }
-
-  /** Phím mũi tên / PageUp / PageDown: dời ngày đang trỏ. */
+  /** Phím mũi tên / PageUp / PageDown, nút tháng trước / sau: dời ngày đang trỏ (tháng hiện theo ngày đó). */
   moveDays(n: number): void { this.focusDay(addDays(this.active(), n)); }
   moveMonths(n: number): void { this.focusDay(addMonths(this.active(), n)); }
 
@@ -106,5 +106,3 @@ export class DatePanelComponent {
     return (!!this.min() && iso < this.min()) || (!!this.max() && iso > this.max());
   }
 }
-
-const monthIndex = (iso: string): number => Number(iso.slice(0, 4)) * 12 + Number(iso.slice(5, 7)) - 1;

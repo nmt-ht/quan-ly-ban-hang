@@ -5,10 +5,20 @@ import { dmyToIso, isoToDmy, maskDmy } from './date-utils';
 
 let nextId = 0;
 
+/** Phím dời ngày đang trỏ trên lịch. `grid`: chỉ khi đã dùng phím trên lịch (← / → còn dùng để di con trỏ khi sửa chữ). */
+const MOVES: Record<string, { days?: number; months?: number; grid?: boolean }> = {
+  ArrowLeft: { days: -1, grid: true },
+  ArrowRight: { days: 1, grid: true },
+  ArrowUp: { days: -7 },
+  ArrowDown: { days: 7 },
+  PageUp: { months: -1 },
+  PageDown: { months: 1 },
+};
+
 /**
  * Ô nhập ngày dd/mm/yyyy (tiếng Việt) thay cho <input type="date"> của trình duyệt, vốn hiện theo ngôn ngữ của trình duyệt
- * (tháng/ngày/năm, lịch tiếng Anh). Gõ số là tự chèn "/", hoặc bấm vào ô (hay phím ↓) để chọn trên lịch; khi lịch mở, phím mũi tên /
- * PageUp / PageDown dời ngày, Enter chọn, Esc đóng. Giá trị của form luôn là "YYYY-MM-DD" (rỗng khi xoá trắng ô), như input date;
+ * (tháng/ngày/năm, lịch tiếng Anh). Gõ số là tự chèn "/", hoặc bấm vào ô (hay phím ↓) để chọn trên lịch; khi lịch mở, ↑ / ↓ dời một
+ * tuần, PageUp / PageDown một tháng, sau đó ← / → dời một ngày (trước đó ← / → vẫn di con trỏ trong chữ để sửa), Enter chọn, Esc đóng. Giá trị của form luôn là "YYYY-MM-DD" (rỗng khi xoá trắng ô), như input date;
  * ngày gõ dở không đổi giá trị, rời ô thì ô quay về ngày hợp lệ gần nhất. `min` / `max` (YYYY-MM-DD) chỉ làm mờ ngày không chọn được
  * trên lịch; kiểm tra khoảng ngày vẫn do từng màn hình làm như trước.
  * Dùng: <input appDate [(ngModel)]="..." [max]="today" />
@@ -37,6 +47,8 @@ export class DateInputDirective implements ControlValueAccessor, OnChanges, OnDe
   private iso = '';
   private panel?: ComponentRef<DatePanelComponent>;
   private lastLength = 0;
+  /** Đang dùng phím trên lịch (đã bấm ↑ / ↓ / PageUp / PageDown); gõ chữ thì thôi. */
+  private gridKeys = false;
   private offListeners?: () => void;
 
   ngOnChanges(): void { this.syncPanel(); }
@@ -45,7 +57,7 @@ export class DateInputDirective implements ControlValueAccessor, OnChanges, OnDe
     this.iso = typeof v === 'string' ? v.slice(0, 10) : '';
     this.show(this.iso);
     this.syncPanel();
-    if (this.iso && this.panel) { this.panel.instance.focusDay(this.iso); this.markActive(); }
+    if (this.iso) this.panel?.instance.focusDay(this.iso);
   }
 
   registerOnChange(fn: (v: string) => void): void { this.onChange = fn; }
@@ -58,13 +70,14 @@ export class DateInputDirective implements ControlValueAccessor, OnChanges, OnDe
     const masked = maskDmy(input.value, input.value.length >= this.lastLength);
     if (masked !== input.value) input.value = masked;
     this.lastLength = masked.length;
+    this.gridKeys = false;
     // Chỉ đổi giá trị khi đã gõ đủ một ngày có thật, hoặc xoá trắng ô; ngày gõ dở giữ nguyên giá trị cũ.
     const next = masked ? dmyToIso(masked) : '';
     if (next === null || next === this.iso) return;
     this.iso = next;
     this.onChange(next);
     this.syncPanel();
-    if (next && this.panel) { this.panel.instance.focusDay(next); this.markActive(); }
+    if (next) this.panel?.instance.focusDay(next);
   }
 
   @HostListener('click')
@@ -79,26 +92,23 @@ export class DateInputDirective implements ControlValueAccessor, OnChanges, OnDe
     // Trong hộp thoại (<dialog> mở bằng showModal) phải gắn vào chính hộp thoại, nếu không lịch nằm dưới lớp phủ của nó.
     (this.el.nativeElement.closest('dialog') ?? document.body).appendChild(host);
     ref.instance.pick.subscribe((iso) => this.choose(iso));
+    // Ô nhập trỏ tới ô ngày đang chọn bằng bàn phím, để trình đọc màn hình đọc ngày đó.
+    ref.instance.activeChange.subscribe((iso) => this.el.nativeElement.setAttribute('aria-activedescendant', ref.instance.cellId(iso)));
     ref.setInput('idPrefix', this.panelId);
     this.panel = ref;
+    this.gridKeys = false;
     this.syncPanel();
     ref.instance.focusDay(this.iso || ref.instance.today);
     // Vẽ lịch ngay để đo đúng chiều cao trước khi đặt vị trí (lật lên trên khi bên dưới không đủ chỗ).
     ref.changeDetectorRef.detectChanges();
     this.place();
     this.setExpanded(true);
-    this.markActive();
 
-    const outside = (e: Event) => {
-      const t = e.target as Node;
-      if (!host.contains(t) && t !== this.el.nativeElement) this.close();
-    };
+    // Lịch đóng khi ô nhập rời con trỏ (bấm ra ngoài, Tab, đổi cửa sổ…); bấm trong lịch không lấy con trỏ nên không đóng.
     // Cuộn trang hay đổi cỡ cửa sổ (kể cả khi bàn phím điện thoại bật lên) thì lịch đi theo ô nhập, không đóng.
-    document.addEventListener('mousedown', outside, true);
     window.addEventListener('resize', this.place);
     window.addEventListener('scroll', this.place, true);
     this.offListeners = () => {
-      document.removeEventListener('mousedown', outside, true);
       window.removeEventListener('resize', this.place);
       window.removeEventListener('scroll', this.place, true);
     };
@@ -108,22 +118,16 @@ export class DateInputDirective implements ControlValueAccessor, OnChanges, OnDe
   onKeydown(e: KeyboardEvent): void {
     const panel = this.panel?.instance;
     if (!panel) {
-      if (e.key === 'ArrowDown') { e.preventDefault(); this.open(); }
+      if (e.key === 'ArrowDown') { e.preventDefault(); this.open(); this.gridKeys = true; }
       else if (e.key === 'Enter') this.revertIfPartial(); // giá trị gửi đi khớp với chữ trong ô
       return;
     }
-    const moves: Record<string, () => void> = {
-      ArrowLeft: () => panel.moveDays(-1),
-      ArrowRight: () => panel.moveDays(1),
-      ArrowUp: () => panel.moveDays(-7),
-      ArrowDown: () => panel.moveDays(7),
-      PageUp: () => panel.moveMonths(-1),
-      PageDown: () => panel.moveMonths(1),
-    };
-    if (moves[e.key]) {
+    const move = MOVES[e.key];
+    if (move && (!move.grid || this.gridKeys)) {
       e.preventDefault();
-      moves[e.key]();
-      this.markActive();
+      this.gridKeys = true;
+      if (move.months) panel.moveMonths(move.months);
+      else panel.moveDays(move.days ?? 0);
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (!panel.blocked(panel.active())) this.choose(panel.active());
@@ -132,14 +136,13 @@ export class DateInputDirective implements ControlValueAccessor, OnChanges, OnDe
       e.preventDefault();
       e.stopPropagation();
       this.close();
-    } else if (e.key === 'Tab') {
-      this.close();
     }
   }
 
   @HostListener('blur')
   onBlur(): void {
     this.onTouched();
+    this.close();
     this.revertIfPartial();
   }
 
@@ -169,7 +172,8 @@ export class DateInputDirective implements ControlValueAccessor, OnChanges, OnDe
     this.panel.setInput('max', this.max ?? '');
   }
 
-  /** Dưới ô nhập; không đủ chỗ thì ở trên. Ô nhập bị cuộn khuất hẳn thì đóng lịch. */  private readonly place = (): void => {
+  /** Dưới ô nhập; không đủ chỗ thì ở trên. Ô nhập bị cuộn khuất hẳn thì đóng lịch. */
+  private readonly place = (): void => {
     if (!this.panel) return;
     const host = this.panel.location.nativeElement as HTMLElement;
     const r = this.el.nativeElement.getBoundingClientRect();
@@ -181,12 +185,6 @@ export class DateInputDirective implements ControlValueAccessor, OnChanges, OnDe
     host.style.top = `${Math.max(8, Math.min(top, window.innerHeight - h - 8))}px`;
     host.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - host.offsetWidth - 8))}px`;
   };
-
-  /** Ô nhập trỏ tới ô ngày đang chọn bằng bàn phím, để trình đọc màn hình đọc ngày đó. */
-  private markActive(): void {
-    const panel = this.panel?.instance;
-    if (panel) this.el.nativeElement.setAttribute('aria-activedescendant', panel.cellId(panel.active()));
-  }
 
   private setExpanded(open: boolean): void {
     const input = this.el.nativeElement;

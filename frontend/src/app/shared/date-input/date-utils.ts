@@ -45,10 +45,13 @@ export function addDays(iso: string, n: number): string {
   return `${pad(t.getUTCFullYear(), 4)}-${pad(t.getUTCMonth() + 1)}-${pad(t.getUTCDate())}`;
 }
 
+/** Số thứ tự tháng của "YYYY-MM…" (năm × 12 + tháng − 1), để cộng trừ tháng. */
+const monthIndex = (iso: string): number => Number(iso.slice(0, 4)) * 12 + Number(iso.slice(5, 7)) - 1;
+
 /** Cộng / trừ số tháng vào "YYYY-MM-DD"; ngày vượt quá tháng mới thì lấy ngày cuối tháng (31/01 + 1 tháng → 28 hoặc 29/02). */
 export function addMonths(iso: string, n: number): string {
-  const [y, m, d] = iso.split('-').map(Number);
-  const t = y * 12 + m - 1 + n;
+  const d = Number(iso.slice(8, 10));
+  const t = monthIndex(iso) + n;
   const ny = Math.floor(t / 12), nm = (t % 12) + 1;
   return `${pad(ny, 4)}-${pad(nm)}-${pad(Math.min(d, daysInMonth(ny, nm)))}`;
 }
