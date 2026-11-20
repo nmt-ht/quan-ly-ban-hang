@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Module, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Module, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { Type } from 'class-transformer';
 import { ArrayMinSize, IsArray, IsInt, IsNumber, IsString, Matches, Min, ValidateNested } from 'class-validator';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard.js';
@@ -9,6 +9,8 @@ import { OptionalDay, OptionalText } from '../../common/dto.js';
 import { InventoryModule } from '../inventory/inventory.module.js';
 import { SalesModule } from '../sales/sales.module.js';
 import { TripsService } from './trips.service.js';
+import { DeliveryTripPageQuery } from './trip-page.js';
+import { listParam, parsePageQuery } from '../../common/paging.js';
 
 export class TripHeaderDto {
   @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'Ngày phải có dạng YYYY-MM-DD' }) date!: string;
@@ -58,9 +60,16 @@ export class ReasonDto {
 export class TripsController {
   constructor(private readonly trips: TripsService) {}
 
+  // `?recentDays=90` (Pha 1.1): chuyến chưa xong + 90 ngày gần nhất; `?ids` / `?codes` to read older ones a screen opens.
   @Get()
-  findAll() {
-    return this.trips.trips();
+  findAll(@Query('recentDays') recentDays?: string, @Query('ids') ids?: string, @Query('codes') codes?: string) {
+    const days = Number(recentDays);
+    return this.trips.trips(Number.isInteger(days) && days > 0 ? days : undefined, { ids: listParam(ids), codes: listParam(codes) });
+  }
+
+  @Get('page')
+  async page(@Query() raw: Record<string, unknown>) {
+    return this.trips.page(await parsePageQuery(DeliveryTripPageQuery, raw, ['status', 'drivers']));
   }
 
   @Get(':id')

@@ -17,6 +17,7 @@ import {
   foreignCurrency, linesNeedingLsx, orderTotals, priceFor, receivedValueOf, round4, saleTypeIssue,
 } from './sales-order.rules.js';
 import { SalesOrderPageQuery, orderWhere, pageOf } from './sales-order-page.js';
+import { ProductionOrderPageQuery, productionPageOf } from './production-order-page.js';
 import { lockOrderFor, orderVisibleTo } from './order-access.js';
 import { assertOpenPeriod, documentDay } from '../../common/period-lock.js';
 import { activeWhere, forCustomer, giftsFor, lineDiscountFor, orderDiscountFor, toRule } from '../pricing/promotion.rules.js';
@@ -332,9 +333,30 @@ export class SalesService {
     return orderToApi(o);
   }
 
-  async productionOrders() {
-    const rows = await this.prisma.productionOrder.findMany({ include: LSX_INCLUDE, orderBy: [{ createdAt: 'desc' }, { code: 'desc' }] });
+  /**
+   * Lệnh sản xuất the app keeps in memory. With `recentDays` (Pha 1.1, what the app loads at sign-in): lệnh còn mở
+   * (Nháp / Đang sản xuất) plus those made within the window. `pick`: just these by id or mã, for screens showing older ones.
+   */
+  async productionOrders(recentDays?: number, pick?: { ids?: string[]; codes?: string[]; sourceOrderId?: string }) {
+    const since = recentDays ? fromDay(vnDay(new Date(Date.now() - recentDays * 86_400_000)))! : null;
+    const where: Prisma.ProductionOrderWhereInput = pick?.sourceOrderId
+      ? { sourceOrderId: pick.sourceOrderId }
+      : pick?.ids?.length || pick?.codes?.length
+      ? { OR: [...(pick.ids?.length ? [{ id: { in: pick.ids } }] : []), ...(pick.codes?.length ? [{ code: { in: pick.codes } }] : [])] }
+      : since ? { OR: [{ status: { in: ['NHAP', 'DANG_SAN_XUAT'] } }, { createdAt: { gte: since } }] } : {};
+    const rows = await this.prisma.productionOrder.findMany({ where, include: LSX_INCLUDE, orderBy: [{ createdAt: 'desc' }, { code: 'desc' }] });
     return rows.map(lsxToApi);
+  }
+
+  /** Danh sách lệnh sản xuất theo trang (Pha 1.1), see production-order-page.ts. */
+  async productionPage(q: ProductionOrderPageQuery) {
+    const [rows, products, waitingOrders] = await Promise.all([
+      this.prisma.productionOrder.findMany({ include: LSX_INCLUDE }),
+      this.prisma.product.findMany({ select: { id: true, code: true, name: true, baseUnit: true } }),
+      this.prisma.salesOrder.count({ where: { status: 'CHO_SAN_XUAT' } }),
+    ]);
+    const page = productionPageOf(rows.map(lsxToApi), q, { products: new Map(products.map((p) => [p.id, p])) }, vnDay());
+    return { ...page, waitingOrders };
   }
 
   private async lsx(id: string, db: Tx | PrismaService = this.prisma) {

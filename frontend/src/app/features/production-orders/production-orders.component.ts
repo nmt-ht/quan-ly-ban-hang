@@ -9,13 +9,11 @@ import { DivideItem, ListTabsComponent, syncSliceToUrl } from '../../shared/list
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
 import { PeriodFilterComponent, PeriodValue, NO_PERIOD } from '../../shared/period-filter/period-filter.component';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
-import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
-import { ColumnSort, sortByColumn } from '../../shared/column-sort';
-import { foldVi } from '../../shared/format.util';
-import { PERIOD_PRESETS, formatDay, inRange, isoDay, rangeLabel } from '../../shared/period';
+import { ColumnSort } from '../../shared/column-sort';
+import { PERIOD_PRESETS, formatDay, isoDay, rangeLabel } from '../../shared/period';
 import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { PRODUCTION_ORDER_STATUS_LABEL, productionOrderStatusClass } from '../../shared/status-labels';
-import { SalesOrderService } from '../sales-orders/sales-order.service';
+import { ProductionOrderPage, ProductionOrderPageQuery, SalesOrderService } from '../sales-orders/sales-order.service';
 import { canStart, isLate } from './production-order.rules';
 import { errorText } from '../../core/api/api.service';
 import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
@@ -25,11 +23,21 @@ const STATUSES = Object.keys(PRODUCTION_ORDER_STATUS_LABEL) as ProductionOrderSt
 /** ?tt= in the address: the status in lower-case words (nhap, dang-san-xuat…). */
 const statusParam = (s: ProductionOrderStatus) => s.toLowerCase().replace(/_/g, '-');
 
+/** Column key → the server's ProductionOrderPageQuery.sort value. */
+const SORT_KEY: Partial<Record<keyof ProductionOrder | 'customer' | 'needed' | 'product', string>> = {
+  code: 'code', createdDate: 'createdDate', productId: 'product', quantity: 'quantity',
+  sourceOrderId: 'sourceOrder', customer: 'customer', needed: 'needed', startDate: 'startDate', completeDate: 'completeDate', status: 'status',
+};
+
+const EMPTY_PAGE: ProductionOrderPage = { rows: [], total: 0, page: 1, pageSize: 20, statusCounts: {}, productCounts: {}, late: 0, waitingOrders: 0 };
+
 interface ActiveChip {
   label: string;
   clear: () => void;
 }
 
+// Lệnh sản xuất (Pha 1.1): mọi lệnh, lấy theo trang từ máy chủ — tìm kiếm, lọc, sắp xếp, số đếm tab và tổng tính trên
+// toàn bộ, không chỉ trang đang xem.
 @Component({
   selector: 'app-production-orders',
   standalone: true,
@@ -42,25 +50,16 @@ interface ActiveChip {
 export class ProductionOrdersComponent {
   readonly data = inject(DataStore);
   private readonly orders = inject(SalesOrderService);
-  // Đơn cũ hơn 90 ngày không nạp sẵn (Pha 1.1): đọc các đơn màn hình này cần.
-  private readonly loadOrders = effect(() => {
-    const ids = this.data.productionOrders().map((x) => x.sourceOrderId);
-    untracked(() => void this.orders.ensureMany(ids));
-  });
 
   readonly today = isoDay(new Date());
   readonly search = signal('');
+  private readonly searchQuery = signal('');
+  private searchTimer: ReturnType<typeof setTimeout> | undefined;
   private readonly query = inject(ActivatedRoute).snapshot.queryParamMap;
-  /**
-   * Divided by Trạng thái (tabs, lifecycle order, ?tt=). Thành phẩm is NOT a rail: it grows to hundreds of items, so it is
-   * a searchable multi-select with counts in the filter bar (?tp=id,id), and the table keeps the full width.
-   */
   readonly statusTab = signal<StatusTab>(STATUSES.find((s) => statusParam(s) === this.query.get('tt')) ?? 'all');
   readonly productIds = signal<string[]>((this.query.get('tp') ?? '').split(',').filter(Boolean));
   readonly period = signal<PeriodValue>(NO_PERIOD);
   readonly lateOnly = signal(false);
-  readonly columnFilters = signal<ColumnFilters>({});
-  // Clicking a column header sorts; again reverses; a third click goes back to the default order.
   readonly headerSort = signal<ColumnSort | null>(null);
   readonly page = signal(1);
   readonly pageSize = signal(20);
@@ -68,74 +67,58 @@ export class ProductionOrdersComponent {
   readonly notice = signal('');
   /** A save the server refused (or that could not reach it). */
   readonly failure = signal('');
+  readonly loading = signal(false);
   readonly canStart = canStart;
 
+  private readonly result = signal<ProductionOrderPage>(EMPTY_PAGE);
+  private requestSeq = 0;
+
+  readonly rows = computed(() => this.result().rows);
+  readonly total = computed(() => this.result().total);
+  readonly totals = computed(() => ({ late: this.result().late, waitingOrders: this.result().waitingOrders }));
+
   private readonly productById = computed(() => new Map(this.data.products().map((p) => [p.id, p])));
+  // Đơn bán của các lệnh trên trang: đọc để cho bấm vào mã đơn (lệnh cũ không nạp sẵn đơn gốc — Pha 1.1).
+  private readonly ensureOrders = effect(() => {
+    const ids = this.rows().map((x) => x.sourceOrderId);
+    untracked(() => void this.orders.ensureMany(ids));
+  });
   private readonly orderById = computed(() => new Map(this.data.salesOrders().map((o) => [o.id, o])));
-  private readonly customerName = computed(() => new Map(this.data.customers().map((c) => [c.id, c.name])));
 
   late(x: ProductionOrder): boolean {
-    return isLate(x, this.orderById().get(x.sourceOrderId) ?? x.sourceOrder, this.today);
+    return isLate(x, x.sourceOrder, this.today);
   }
 
-  // Every filter except Trạng thái and Thành phẩm — the tab and rail counts are taken from it.
-  private readonly matchedBase = computed(() => {
-    const q = foldVi(this.search().trim());
-    return this.data.productionOrders().filter((x) => {
-      if (q && !this.searchText(x).includes(q)) return false;
-      if (!inRange(x.createdDate, this.period().range)) return false;
-      if (this.lateOnly() && !this.late(x)) return false;
-      return true;
-    });
-  });
-
-  private ofProduct(x: ProductionOrder): boolean {
-    const ids = this.productIds();
-    return !ids.length || ids.includes(x.productId);
-  }
-
-  private ofTab(x: ProductionOrder): boolean {
-    return this.statusTab() === 'all' || x.status === this.statusTab();
-  }
+  private readonly filters = computed<ProductionOrderPageQuery>(() => ({
+    q: this.searchQuery().trim() || undefined,
+    status: this.statusTab() === 'all' ? [] : [this.statusTab()],
+    productIds: this.productIds(),
+    from: this.period().range.from ?? undefined,
+    to: this.period().range.to ?? undefined,
+    late: this.lateOnly() || undefined,
+    sort: this.headerSort() ? SORT_KEY[this.headerSort()!.key as keyof typeof SORT_KEY] : undefined,
+    dir: this.headerSort()?.dir,
+  }));
 
   readonly statusTabs = computed<DivideItem<StatusTab>[]>(() => {
-    const rows = this.matchedBase().filter((x) => this.ofProduct(x));
+    const counts = this.result().statusCounts;
+    const all = STATUSES.reduce((sum, s) => sum + (counts[s] ?? 0), 0);
     return [
-      { value: 'all', label: 'Tất cả', count: rows.length },
-      ...STATUSES.map((s) => ({ value: s, label: PRODUCTION_ORDER_STATUS_LABEL[s], count: rows.filter((x) => x.status === s).length })),
+      { value: 'all' as StatusTab, label: 'Tất cả', count: all },
+      ...STATUSES.map((s) => ({ value: s as StatusTab, label: PRODUCTION_ORDER_STATUS_LABEL[s], count: counts[s] ?? 0 })),
     ];
   });
 
-  /** Thành phẩm filter: every product that has ever had a lệnh, "mã · tên" (searchable), with its count under the open tab. */
+  /** Thành phẩm filter: products with a matching lệnh (plus any already selected), "mã · tên", searchable. */
   readonly productOptions = computed<FilterOption[]>(() => {
-    const rows = this.matchedBase().filter((x) => this.ofTab(x));
-    const ids = new Set(this.data.productionOrders().map((x) => x.productId));
+    const counts = this.result().productCounts;
+    const ids = new Set([...Object.keys(counts), ...this.productIds()]);
     return [...ids]
       .map((id) => {
         const p = this.productById().get(id);
-        return { value: id, label: p ? `${p.code} · ${p.name}` : id, count: rows.filter((x) => x.productId === id).length };
+        return { value: id, label: p ? `${p.code} · ${p.name}` : id, count: counts[id] ?? 0 };
       })
       .sort((a, b) => a.label.localeCompare(b.label, 'vi', { numeric: true }));
-  });
-
-  readonly rows = computed(() => {
-    const rows = this.matchedBase()
-      .filter((x) => this.ofProduct(x) && this.ofTab(x))
-      .sort((a, b) => a.code.localeCompare(b.code, 'vi', { numeric: true })); // default: Mã tăng dần
-    return sortByColumn(applyColumnFilters(rows, this.columns, this.columnFilters()), this.columns, this.headerSort());
-  });
-
-  readonly paged = computed(() => {
-    const start = (this.page() - 1) * this.pageSize();
-    return this.rows().slice(start, start + this.pageSize());
-  });
-
-  readonly totals = computed(() => {
-    const all = this.data.productionOrders();
-    return {
-      late: all.filter((x) => this.late(x)).length,
-      waitingOrders: this.data.salesOrders().filter((o) => o.status === 'CHO_SAN_XUAT').length,
-    };
   });
 
   readonly chips = computed<ActiveChip[]>(() => {
@@ -146,14 +129,10 @@ export class ProductionOrdersComponent {
       chips.push({ label: `Kỳ: ${label}`, clear: () => this.period.set(NO_PERIOD) });
     }
     for (const id of this.productIds()) {
-      const p = this.productById().get(id);
-      chips.push({ label: p ? `${p.code} · ${p.name}` : id, clear: () => this.productIds.update((v) => v.filter((x) => x !== id)) });
+      const prod = this.productById().get(id);
+      chips.push({ label: prod ? `${prod.code} · ${prod.name}` : id, clear: () => this.productIds.update((v) => v.filter((x) => x !== id)) });
     }
     if (this.lateOnly()) chips.push({ label: 'Trễ hạn giao', clear: () => this.lateOnly.set(false) });
-    for (const col of this.columns) {
-      const v = (this.columnFilters()[col.key] ?? '').trim();
-      if (v) chips.push({ label: `${col.label}: ${v}`, clear: () => this.columnFilters.update((f) => ({ ...f, [col.key]: '' })) });
-    }
     return chips;
   });
 
@@ -173,16 +152,16 @@ export class ProductionOrdersComponent {
     { key: 'code', label: 'Mã lệnh', copy: true, link: (r) => ['/san-xuat', r.id] },
     { key: 'createdDate', label: 'Ngày lập', format: (r) => formatDay(r.createdDate), mono: true },
     { key: 'productId', sortByText: true, label: 'Thành phẩm', format: (r) => this.productText(r) },
-    { key: 'quantity', label: 'Số lượng', align: 'right', format: (r) => this.qtyText(r), filterValue: (r) => r.quantity },
+    { key: 'quantity', label: 'Số lượng', align: 'right', format: (r) => this.qtyText(r) },
     {
-      key: 'sourceOrderId', sortByText: true, label: 'Đơn bán', format: (r) => this.orderById().get(r.sourceOrderId)?.code ?? r.sourceOrder?.code ?? '—',
+      key: 'sourceOrderId', sortByText: true, label: 'Đơn bán', format: (r) => r.sourceOrder?.code ?? '—',
       // Plain text for someone who may not open the đơn (it was not loaded for them).
       link: (r) => (this.orderById().has(r.sourceOrderId) ? ['/don-hang', r.sourceOrderId] : null),
     },
-    { key: 'customer', label: 'Khách hàng', format: (r) => this.customerName().get(this.orderById().get(r.sourceOrderId)?.customerId ?? '') ?? r.sourceOrder?.customerName ?? '—' },
+    { key: 'customer', label: 'Khách hàng', format: (r) => r.sourceOrder?.customerName ?? '—' },
     {
-      key: 'needed', sortValue: (r) => this.orderById().get(r.sourceOrderId)?.neededByDate ?? r.sourceOrder?.neededByDate ?? undefined, label: 'Cần giao', mono: true,
-      format: (r) => { const d = this.orderById().get(r.sourceOrderId)?.neededByDate ?? r.sourceOrder?.neededByDate; return d ? formatDay(d) + (this.late(r) ? ' · trễ' : '') : '—'; },
+      key: 'needed', label: 'Cần giao', mono: true,
+      format: (r) => (r.sourceOrder?.neededByDate ? formatDay(r.sourceOrder.neededByDate) + (this.late(r) ? ' · trễ' : '') : '—'),
       tone: (r) => (this.late(r) ? -1 : 0),
     },
     { key: 'startDate', label: 'Bắt đầu', format: (r) => (r.startDate ? formatDay(r.startDate) : '—'), mono: true },
@@ -191,15 +170,43 @@ export class ProductionOrdersComponent {
   ];
 
   constructor() {
+    // Về trang 1 khi bộ lọc đổi.
     effect(() => {
-      this.rows();
+      this.filters();
       untracked(() => this.page.set(1));
+    });
+    // Hỏi máy chủ mỗi khi bộ lọc, trang, hay danh sách lệnh trong bộ nhớ đổi (một thao tác ở nơi khác).
+    effect(() => {
+      const query = { ...this.filters(), page: this.page(), pageSize: this.pageSize() };
+      this.data.productionOrders();
+      untracked(() => void this.load(query));
     });
     syncSliceToUrl(() => {
       const s = this.statusTab();
       const p = this.productIds();
       return { tt: s === 'all' ? null : statusParam(s), tp: p.length ? p.join(',') : null };
     });
+  }
+
+  setSearch(text: string): void {
+    this.search.set(text);
+    clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => this.searchQuery.set(text), 300);
+  }
+
+  private async load(query: ProductionOrderPageQuery): Promise<void> {
+    const seq = ++this.requestSeq;
+    this.loading.set(true);
+    try {
+      const res = await this.orders.productionPage(query);
+      if (seq !== this.requestSeq) return; // a newer request answered first
+      this.result.set(res);
+      this.failure.set('');
+    } catch (e) {
+      if (seq === this.requestSeq) this.failure.set(errorText(e));
+    } finally {
+      if (seq === this.requestSeq) this.loading.set(false);
+    }
   }
 
   async start(x: ProductionOrder): Promise<void> {
@@ -216,21 +223,21 @@ export class ProductionOrdersComponent {
 
   clearAll(): void {
     this.search.set('');
+    this.searchQuery.set('');
     this.productIds.set([]);
     this.period.set(NO_PERIOD);
     this.lateOnly.set(false);
-    this.columnFilters.set({});
   }
 
+  /** Every matching lệnh (not only this page), in the list's order. */
   async exportExcel(): Promise<void> {
     this.exporting.set(true);
     try {
-      const rows = this.rows().map((x) => {
+      const rows = (await this.orders.productionPage({ ...this.filters(), page: 1, pageSize: 5000 })).rows.map((x) => {
         const p = this.productById().get(x.productId);
-        const o = this.orderById().get(x.sourceOrderId);
         return [
           x.code, formatDay(x.createdDate), p?.code ?? '', p?.name ?? '', p?.baseUnit ?? '', x.quantity, x.producedQuantity ?? '',
-          o?.code ?? '', this.customerName().get(o?.customerId ?? '') ?? '', o?.neededByDate ? formatDay(o.neededByDate) : '',
+          x.sourceOrder?.code ?? '', x.sourceOrder?.customerName ?? '', x.sourceOrder?.neededByDate ? formatDay(x.sourceOrder.neededByDate) : '',
           x.startDate ? formatDay(x.startDate) : '', x.completeDate ? formatDay(x.completeDate) : '', PRODUCTION_ORDER_STATUS_LABEL[x.status], x.cancelReason ?? '',
         ];
       });
@@ -244,13 +251,10 @@ export class ProductionOrdersComponent {
         ],
         rows,
       }]);
+    } catch (e) {
+      this.failure.set(errorText(e));
     } finally {
       this.exporting.set(false);
     }
-  }
-
-  private searchText(x: ProductionOrder): string {
-    const o = this.orderById().get(x.sourceOrderId);
-    return foldVi([x.code, this.productText(x), o?.code ?? '', this.customerName().get(o?.customerId ?? '') ?? ''].join(' '));
   }
 }

@@ -1,7 +1,7 @@
 <div class="page-header">
   <div>
     <h1>Chuyến giao hàng</h1>
-    <p class="subtitle">{{ trips().length }} chuyến</p>
+    <p class="subtitle">{{ total() }} chuyến</p>
   </div>
   <div class="toolbar">
     <button type="button" class="btn" [disabled]="exporting()" (click)="exportExcel()">
@@ -19,7 +19,7 @@
     placeholder="Tìm mã chuyến, tài xế, biển số, mã đơn…"
     aria-label="Tìm chuyến giao hàng"
     [value]="search()"
-    (input)="search.set($any($event.target).value)"
+    (input)="setSearch($any($event.target).value)"
   />
   <app-filter-multi-select label="Trạng thái" [options]="statusOptions()" [(selected)]="statuses" />
   <app-period-filter [(value)]="period" />
@@ -32,6 +32,13 @@
     <option value="hired">Xe thuê ngoài</option>
   </select>
 </div>
+
+@if (error()) {
+  <div class="notice is-error" role="alert">
+    <span>{{ error() }}</span>
+    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="error.set('')"><app-nav-icon name="x" /></button>
+  </div>
+}
 
 @if (chips().length) {
   <div class="filter-chips" aria-label="Bộ lọc đang áp dụng">
@@ -47,7 +54,7 @@
   </div>
 }
 
-@if (trips().length) {
+@if (total()) {
   <dl class="list-totals">
     <div><dt>Giá trị hàng đi giao</dt><dd class="num">{{ money(totals().value) }}</dd></div>
     <div><dt>Khách thực nhận</dt><dd class="num">{{ money(totals().received) }}</dd></div>
@@ -60,22 +67,18 @@
 
 <app-data-table
   [columns]="columns"
-  [rows]="pagedTrips()"
+  [rows]="trips()"
   [actions]="rowActions"
-  [filterable]="true"
-  [filters]="columnFilters()"
-  (filtersChange)="columnFilters.set($event)"
   [sortableColumns]="true"
   [sortBy]="headerSort()?.key ?? null"
   [sortDir]="headerSort()?.dir ?? 'asc'"
   (sortChange)="headerSort.set($event)"
-  [optionRows]="data.deliveryTrips()"
   [emptyAction]="chips().length || search() ? null : createCta"
   [emptyTitle]="chips().length || search() ? 'Không có chuyến phù hợp' : 'Chưa có chuyến giao hàng nào'"
   [emptyHint]="chips().length || search() ? 'Thử bỏ bớt bộ lọc hoặc mở rộng khoảng ngày.' : 'Tạo chuyến, xếp các đơn Chờ giao hàng lên rồi xuất kho một lượt.'"
 />
 
-<app-pagination [total]="trips().length" unit="chuyến" [(page)]="page" [(pageSize)]="pageSize" />
+<app-pagination [total]="total()" unit="chuyến" [(page)]="page" [(pageSize)]="pageSize" />
 
 <ng-template #createCta>
   <button type="button" class="btn btn-primary" (click)="openCreate()"><app-nav-icon name="plus" />Tạo chuyến</button>

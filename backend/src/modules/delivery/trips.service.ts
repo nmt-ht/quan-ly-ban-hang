@@ -11,6 +11,7 @@ import { AuditService } from '../../audit/audit.service.js';
 import { documentDay } from '../../common/period-lock.js';
 import { diff, vnd } from '../../audit/audit.diff.js';
 import { releaseDeliveries } from '../einvoice/einvoice-guards.js';
+import { DeliveryTripPageQuery, tripPageOf } from './trip-page.js';
 
 const STATUS_AFTER: Record<string, string> = { HOAN_THANH: 'nhận đủ', GIAO_MOT_PHAN: 'nhận một phần', TRA_TOAN_BO: 'không nhận gì' };
 
@@ -90,7 +91,7 @@ function tripToApi(t: TripRow, orders: Map<string, OrderWithLines>) {
     date: toDay(date)!,
     createdBy: createdBy?.email ?? null,
     orderIds: links.map((x) => x.orderId),
-    costs: { fuel: fuelCost, toll: tollCost, other: otherCost, note: costNote },
+    costs: { fuel: fuelCost.toNumber(), toll: tollCost.toNumber(), other: otherCost.toNumber(), note: costNote },
     loads: loads.map(({ received: _r, ...l }) => l),
     confirmations,
     confirmedCount: confirmations.length,
@@ -114,10 +115,30 @@ export class TripsService {
     return this.audit.log(tx, { action, entityType: 'DeliveryTrip', entityId: t.id, entityCode: t.code, summary, related, changes });
   }
 
-  async trips() {
-    const rows = await this.prisma.deliveryTrip.findMany({ include: TRIP_INCLUDE, orderBy: [{ date: 'desc' }, { code: 'desc' }] });
+  /**
+   * Chuyến giao the app keeps in memory. With `recentDays` (Pha 1.1, what the app loads at sign-in): chuyến chưa xong
+   * (chưa Hoàn tất / Huỷ) plus those dated within the window. `pick`: just these by id or mã, for screens showing older ones.
+   */
+  async trips(recentDays?: number, pick?: { ids?: string[]; codes?: string[] }) {
+    const since = recentDays ? fromDay(vnDay(new Date(Date.now() - recentDays * 86_400_000)))! : null;
+    const where: Prisma.DeliveryTripWhereInput = pick?.ids?.length || pick?.codes?.length
+      ? { OR: [...(pick.ids?.length ? [{ id: { in: pick.ids } }] : []), ...(pick.codes?.length ? [{ code: { in: pick.codes } }] : [])] }
+      : since ? { OR: [{ status: { notIn: ['HOAN_TAT', 'HUY'] } }, { date: { gte: since } }] } : {};
+    const rows = await this.prisma.deliveryTrip.findMany({ where, include: TRIP_INCLUDE, orderBy: [{ date: 'desc' }, { code: 'desc' }] });
     const orders = await this.ordersOf(this.prisma, rows.flatMap((t) => t.orders.map((x) => x.orderId)));
     return rows.map((t) => tripToApi(t, orders));
+  }
+
+  /** Danh sách chuyến giao theo trang (Pha 1.1), see trip-page.ts. */
+  async page(q: DeliveryTripPageQuery) {
+    const rows = await this.prisma.deliveryTrip.findMany({ include: TRIP_INCLUDE, orderBy: [{ date: 'desc' }, { code: 'desc' }] });
+    const orderIds = [...new Set(rows.flatMap((t) => t.orders.map((x) => x.orderId)))];
+    const [orderMap, lookup] = await Promise.all([
+      this.ordersOf(this.prisma, orderIds),
+      this.prisma.salesOrder.findMany({ where: { id: { in: orderIds } }, select: { id: true, code: true, customer: { select: { name: true, companyName: true } } } }),
+    ]);
+    const orders = new Map(lookup.map((o) => [o.id, { code: o.code, customer: `${o.customer?.name ?? ''} ${o.customer?.companyName ?? ''}` }]));
+    return tripPageOf(rows.map((t) => tripToApi(t, orderMap)), q, { orders });
   }
 
   async trip(id: string, db: Tx | PrismaService = this.prisma) {

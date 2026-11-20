@@ -141,6 +141,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
     if (!o) return;
     untracked(() => {
       void this.warehouseVouchers.ensureOf(o.id, o.code);
+      void this.orders.ensureLsxOf(o.id);
       if (this.auth.can('voucher.view') || this.auth.can('debt.view')) void this.cashVouchers.ensureFor(o.code);
     });
   });

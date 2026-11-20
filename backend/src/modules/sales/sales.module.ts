@@ -15,6 +15,14 @@ import { SalesReturnsController, SalesReturnsService } from './returns.js';
 import { QuotationsController, QuotationsService } from './quotations.js';
 import { DebtRemindersController, DebtRemindersService } from './reminders.js';
 import { SalesOrderPageQuery, normaliseListQuery } from './sales-order-page.js';
+import { ProductionOrderPageQuery } from './production-order-page.js';
+import { listParam, parsePageQuery } from '../../common/paging.js';
+
+/** `?recentDays=90` → 90, or undefined for "load everything". */
+const windowDays = (recentDays?: string): number | undefined => {
+  const days = Number(recentDays);
+  return Number.isInteger(days) && days > 0 ? days : undefined;
+};
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const DAY_MESSAGE = { message: 'Ngày phải có dạng YYYY-MM-DD' };
@@ -174,9 +182,17 @@ export class SalesController {
     return this.sales.deliver(id, dto, user);
   }
 
+  // `?recentDays=90` (Pha 1.1): lệnh còn mở + 90 ngày gần nhất; `?ids` / `?codes` to read older ones a screen opens.
   @Get('production-orders')
-  productionOrders() {
-    return this.sales.productionOrders();
+  productionOrders(
+    @Query('recentDays') recentDays?: string, @Query('ids') ids?: string, @Query('codes') codes?: string, @Query('sourceOrderId') sourceOrderId?: string,
+  ) {
+    return this.sales.productionOrders(windowDays(recentDays), { ids: listParam(ids), codes: listParam(codes), sourceOrderId: sourceOrderId || undefined });
+  }
+
+  @Get('production-orders/page')
+  async productionPage(@Query() raw: Record<string, unknown>) {
+    return this.sales.productionPage(await parsePageQuery(ProductionOrderPageQuery, raw, ['status', 'productIds']));
   }
 
   @RequirePermissions('production.create')

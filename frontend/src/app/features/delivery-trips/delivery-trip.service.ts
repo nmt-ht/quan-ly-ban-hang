@@ -3,9 +3,36 @@ import { DataStore } from '../../core/services/data-store.service';
 import { CashVoucher, DeliveryTrip, SalesOrder, TripCosts, TripLoad, WarehouseVoucher } from '../../core/models/domain.models';
 import { ApiService, upsertById } from '../../core/api/api.service';
 import { CatalogLoader } from '../../core/api/catalog-loader.service';
+import { onDemand, pageQuery } from '../../core/api/on-demand';
 import { CashVoucherService } from '../cash-vouchers/cash-voucher.service';
 import { SalesOrderService } from '../sales-orders/sales-order.service';
 import { canArrange, canCancel, canComplete, canConfirm, canReturn, canShip, isConfirmed, unitValues } from './delivery-trip.rules';
+
+/** Bộ lọc của danh sách chuyến giao theo trang (Pha 1.1) — the server's DeliveryTripPageQuery. */
+export interface DeliveryTripPageQuery {
+  page?: number;
+  pageSize?: number;
+  q?: string;
+  status?: string[];
+  drivers?: string[];
+  /** id xe công ty, "hired" hoặc "all". */
+  vehicle?: string;
+  from?: string;
+  to?: string;
+  sort?: string;
+  dir?: 'asc' | 'desc';
+}
+
+export interface DeliveryTripPage {
+  rows: DeliveryTrip[];
+  total: number;
+  page: number;
+  pageSize: number;
+  statusCounts: Partial<Record<string, number>>;
+  /** Số chuyến theo từng tài xế (trên toàn bộ, để lọc). */
+  driverCounts: Record<string, number>;
+  totals: { value: number; received: number; cost: number; pending: number };
+}
 
 export interface TripHeader {
   date: string;
@@ -55,6 +82,18 @@ export class DeliveryTripService {
     const t = this.apply(await this.api.post<TripResult>(path, body));
     await this.loader.loadInventory();
     return this.vouchersOf(t).filter((v) => !before.has(v.id));
+  }
+
+  private readonly older = onDemand(this.api, this.data.deliveryTrips, '/delivery-trips');
+
+  /** One page of the list, filtered, sorted and totalled on the server (Pha 1.1). */
+  page(q: DeliveryTripPageQuery): Promise<DeliveryTripPage> {
+    return this.api.get<DeliveryTripPage>(`/delivery-trips/page${pageQuery(q)}`);
+  }
+
+  /** Chuyến older than the window, by id or mã (for screens showing an older one). */
+  ensureMany(ids: string[], codes: string[] = []): Promise<void> {
+    return this.older.byIds(ids, codes);
   }
 
   find(id: string): DeliveryTrip {

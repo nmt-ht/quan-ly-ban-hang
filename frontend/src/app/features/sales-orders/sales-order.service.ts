@@ -4,7 +4,8 @@ import { AuthService } from '../../core/services/auth.service';
 import { CashVoucher, ProductionOrder, SaleType, SalesOrder, SalesOrderLine, SalesReturn, SalesReturnDraft, WarehouseVoucher } from '../../core/models/domain.models';
 import { ApiService, upsertById } from '../../core/api/api.service';
 import { CatalogLoader } from '../../core/api/catalog-loader.service';
-import { pageQuery } from '../../core/api/on-demand';
+import { onDemand, pageQuery } from '../../core/api/on-demand';
+import { RECENT_DAYS } from '../../core/api/catalog-loader.service';
 import { CashVoucherService } from '../cash-vouchers/cash-voucher.service';
 import { canCancel, canClose, canDeliver, canEdit } from './sales-order.rules';
 
@@ -62,6 +63,34 @@ export interface SalesOrderPage {
   totals: { value: number; received: number; pending: number; late: number };
 }
 
+/** Bộ lọc của danh sách lệnh sản xuất theo trang (Pha 1.1) — the server's ProductionOrderPageQuery. */
+export interface ProductionOrderPageQuery {
+  page?: number;
+  pageSize?: number;
+  q?: string;
+  status?: string[];
+  productIds?: string[];
+  from?: string;
+  to?: string;
+  late?: boolean;
+  sort?: string;
+  dir?: 'asc' | 'desc';
+}
+
+export interface ProductionOrderPage {
+  rows: ProductionOrder[];
+  total: number;
+  page: number;
+  pageSize: number;
+  statusCounts: Partial<Record<string, number>>;
+  /** Số lệnh theo từng thành phẩm (khớp các lọc khác trừ thành phẩm). */
+  productCounts: Record<string, number>;
+  /** Tổng lệnh trễ hạn trên toàn bộ lịch sử. */
+  late: number;
+  /** Số đơn bán đang chờ sản xuất. */
+  waitingOrders: number;
+}
+
 export interface CustomerOrderStats {
   orderCount: number;
   receivedOrders: number;
@@ -115,11 +144,28 @@ export class SalesOrderService {
     return this.data.productionOrders().filter((x) => x.sourceOrderId === orderId);
   }
 
+  private readonly olderLsx = onDemand(this.api, this.data.productionOrders, '/production-orders');
+
   // ---------- Pha 1.1: đơn không nạp sẵn ----------
 
   /** One page of the list, filtered, sorted and totalled on the server. */
   page(q: SalesOrderPageQuery): Promise<SalesOrderPage> {
     return this.api.get<SalesOrderPage>(`/sales-orders/page${pageQuery(q)}`);
+  }
+
+  /** One page of the lệnh sản xuất list, filtered, sorted and counted on the server. */
+  productionPage(q: ProductionOrderPageQuery): Promise<ProductionOrderPage> {
+    return this.api.get<ProductionOrderPage>(`/production-orders/page${pageQuery(q)}`);
+  }
+
+  /** Lệnh sản xuất older than the window, by id or mã (for screens showing an older one). */
+  ensureManyLsx(ids: string[], codes: string[] = []): Promise<void> {
+    return this.olderLsx.byIds(ids, codes);
+  }
+
+  /** Every lệnh of one đơn bán (an older closed order's lệnh are not loaded at sign-in). */
+  ensureLsxOf(orderId: string): Promise<void> {
+    return this.olderLsx.where({ sourceOrderId: orderId });
   }
 
   /**
@@ -175,14 +221,14 @@ export class SalesOrderService {
     if (!canEdit(o, this.lsxOf(id))) throw new Error('Đơn đã sản xuất hoặc đã giao, không sửa được.');
     // updatedAt: the server refuses the save if someone else changed the order since it was loaded.
     const saved = this.keepOrder(await this.api.put<SalesOrder>(`/sales-orders/${id}`, { ...d, updatedAt: o.updatedAt }));
-    this.data.productionOrders.set(await this.api.get<ProductionOrder[]>('/production-orders')); // draft lệnh follow the lines
+    this.data.productionOrders.set(await this.api.get<ProductionOrder[]>(`/production-orders?recentDays=${RECENT_DAYS}`)); // draft lệnh follow the lines
     return saved;
   }
 
   async cancel(id: string, reason: string): Promise<void> {
     if (!canCancel(this.find(id))) return;
     this.keepOrder(await this.api.post<SalesOrder>(`/sales-orders/${id}/cancel`, { reason }));
-    this.data.productionOrders.set(await this.api.get<ProductionOrder[]>('/production-orders')); // its open lệnh are cancelled too
+    this.data.productionOrders.set(await this.api.get<ProductionOrder[]>(`/production-orders?recentDays=${RECENT_DAYS}`)); // its open lệnh are cancelled too
   }
 
   /** Kết thúc đơn: khách không lấy phần còn lại — đơn giữ trạng thái Giao một phần, không giao thêm. */

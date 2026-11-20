@@ -8,17 +8,18 @@ import { FilterMultiSelectComponent, FilterOption } from '../../shared/filter-mu
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
 import { PeriodFilterComponent, PeriodValue, NO_PERIOD } from '../../shared/period-filter/period-filter.component';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
-import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
-import { ColumnSort, sortByColumn } from '../../shared/column-sort';
-import { foldVi, formatVnd } from '../../shared/format.util';
-import { PERIOD_PRESETS, formatDay, inRange, rangeLabel } from '../../shared/period';
+import { ColumnSort } from '../../shared/column-sort';
+import { formatVnd } from '../../shared/format.util';
+import { PERIOD_PRESETS, formatDay, rangeLabel } from '../../shared/period';
 import { DELIVERY_TRIP_STATUS_LABEL, deliveryTripStatusClass } from '../../shared/status-labels';
 import { tagClass } from '../../shared/tag-class';
 import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { costTotal } from './delivery-trip.rules';
+import { DeliveryTripPage, DeliveryTripPageQuery, DeliveryTripService } from './delivery-trip.service';
 import { TripHeaderDialogComponent } from './trip-header-dialog/trip-header-dialog.component';
 import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 import { SalesOrderService } from '../sales-orders/sales-order.service';
+import { errorText } from '../../core/api/api.service';
 
 interface ActiveChip {
   label: string;
@@ -27,6 +28,16 @@ interface ActiveChip {
 
 const HIRED = 'hired';
 
+/** Column key → the server's DeliveryTripPageQuery.sort value. */
+const SORT_KEY: Record<string, string> = {
+  code: 'code', date: 'date', driverName: 'driverName', plateNumber: 'plateNumber', status: 'status',
+  orderIds: 'orderIds', totalValue: 'totalValue', receivedValue: 'receivedValue', cost: 'cost',
+};
+
+const EMPTY_PAGE: DeliveryTripPage = { rows: [], total: 0, page: 1, pageSize: 20, statusCounts: {}, driverCounts: {}, totals: { value: 0, received: 0, cost: 0, pending: 0 } };
+
+// Chuyến giao hàng (Pha 1.1): mọi chuyến, lấy theo trang từ máy chủ — tìm kiếm, lọc, sắp xếp, số đếm và tổng tính trên
+// toàn bộ, không chỉ trang đang xem.
 @Component({
   selector: 'app-delivery-trips',
   standalone: true,
@@ -38,83 +49,55 @@ const HIRED = 'hired';
 })
 export class DeliveryTripsComponent {
   readonly data = inject(DataStore);
+  private readonly tripsSvc = inject(DeliveryTripService);
   private readonly salesOrders = inject(SalesOrderService);
-  // Đơn cũ hơn 90 ngày không nạp sẵn (Pha 1.1): đọc các đơn màn hình này cần.
-  private readonly loadOrders = effect(() => {
-    const ids = this.data.deliveryTrips().flatMap((t) => t.orderIds);
-    untracked(() => void this.salesOrders.ensureMany(ids));
-  });
   private readonly router = inject(Router);
   private readonly headerDialog = viewChild.required<TripHeaderDialogComponent>('headerDialog');
 
   readonly search = signal('');
+  private readonly searchQuery = signal('');
+  private searchTimer: ReturnType<typeof setTimeout> | undefined;
   readonly statuses = signal<string[]>([]);
   readonly period = signal<PeriodValue>(NO_PERIOD);
   readonly drivers = signal<string[]>([]);
   readonly vehicle = signal('all');
-  readonly columnFilters = signal<ColumnFilters>({});
-  // Clicking a column header sorts; again reverses; a third click goes back to the default order.
   readonly headerSort = signal<ColumnSort | null>(null);
   readonly page = signal(1);
   readonly pageSize = signal(20);
   readonly exporting = signal(false);
+  readonly loading = signal(false);
+  readonly error = signal('');
 
-  private readonly orderById = computed(() => new Map(this.data.salesOrders().map((o) => [o.id, o])));
-  private readonly customerById = computed(() => new Map(this.data.customers().map((c) => [c.id, c])));
+  private readonly result = signal<DeliveryTripPage>(EMPTY_PAGE);
+  private requestSeq = 0;
+
+  readonly trips = computed(() => this.result().rows);
+  readonly total = computed(() => this.result().total);
+  readonly totals = computed(() => this.result().totals);
+
+  private readonly filters = computed<DeliveryTripPageQuery>(() => ({
+    q: this.searchQuery().trim() || undefined,
+    status: this.statuses(),
+    drivers: this.drivers(),
+    vehicle: this.vehicle() === 'all' ? undefined : this.vehicle(),
+    from: this.period().range.from ?? undefined,
+    to: this.period().range.to ?? undefined,
+    sort: this.headerSort() ? SORT_KEY[this.headerSort()!.key] : undefined,
+    dir: this.headerSort()?.dir,
+  }));
 
   readonly driverOptions = computed<FilterOption[]>(() => {
-    const counts = new Map<string, number>();
-    for (const t of this.data.deliveryTrips()) {
-      const d = t.driverName || '(Chưa có tài xế)';
-      counts.set(d, (counts.get(d) ?? 0) + 1);
-    }
-    return [...counts].sort((a, b) => a[0].localeCompare(b[0], 'vi')).map(([value, count]) => ({ value, label: value, count }));
-  });
-
-  private readonly matchedExceptStatus = computed(() => {
-    const q = foldVi(this.search().trim());
-    const range = this.period().range;
-    const drivers = this.drivers();
-    const veh = this.vehicle();
-    return this.data.deliveryTrips().filter((t) => {
-      if (q && !this.searchText(t).includes(q)) return false;
-      if (!inRange(t.date, range)) return false;
-      if (drivers.length && !drivers.includes(t.driverName || '(Chưa có tài xế)')) return false;
-      if (veh === HIRED && t.vehicleId) return false;
-      if (veh !== 'all' && veh !== HIRED && t.vehicleId !== veh) return false;
-      return true;
-    });
+    const counts = this.result().driverCounts;
+    return Object.entries(counts)
+      .sort((a, b) => a[0].localeCompare(b[0], 'vi'))
+      .map(([value, count]) => ({ value, label: value, count }));
   });
 
   readonly statusOptions = computed<FilterOption[]>(() => {
-    const counts = new Map<string, number>();
-    for (const t of this.matchedExceptStatus()) counts.set(t.status, (counts.get(t.status) ?? 0) + 1);
+    const counts = this.result().statusCounts;
     return (Object.keys(DELIVERY_TRIP_STATUS_LABEL) as DeliveryTripStatus[]).map((s) => ({
-      value: s, label: DELIVERY_TRIP_STATUS_LABEL[s], count: counts.get(s) ?? 0, dotClass: tagClass('delivery-trip', s),
+      value: s, label: DELIVERY_TRIP_STATUS_LABEL[s], count: counts[s] ?? 0, dotClass: tagClass('delivery-trip', s),
     }));
-  });
-
-  readonly trips = computed(() => {
-    const st = this.statuses();
-    const rows = this.matchedExceptStatus()
-      .filter((t) => !st.length || st.includes(t.status))
-      .sort((a, b) => a.code.localeCompare(b.code, 'vi', { numeric: true })); // default: Mã tăng dần
-    return sortByColumn(applyColumnFilters(rows, this.columns, this.columnFilters()), this.columns, this.headerSort());
-  });
-
-  readonly pagedTrips = computed(() => {
-    const start = (this.page() - 1) * this.pageSize();
-    return this.trips().slice(start, start + this.pageSize());
-  });
-
-  readonly totals = computed(() => {
-    const rows = this.trips().filter((t) => t.status !== 'HUY');
-    return {
-      value: rows.reduce((s, t) => s + t.totalValue, 0),
-      received: rows.reduce((s, t) => s + t.receivedValue, 0),
-      cost: rows.reduce((s, t) => s + costTotal(t.costs), 0),
-      pending: rows.filter((t) => t.status === 'DA_XUAT_KHO').reduce((s, t) => s + (t.orderIds.length - t.confirmedCount), 0),
-    };
   });
 
   readonly chips = computed<ActiveChip[]>(() => {
@@ -132,10 +115,6 @@ export class DeliveryTripsComponent {
       const label = this.vehicle() === HIRED ? 'Xe thuê ngoài' : this.data.vehicles().find((v) => v.id === this.vehicle())?.plateNumber ?? '';
       chips.push({ label: `Xe: ${label}`, clear: () => this.vehicle.set('all') });
     }
-    for (const col of this.columns) {
-      const v = (this.columnFilters()[col.key] ?? '').trim();
-      if (v) chips.push({ label: `${col.label}: ${v}`, clear: () => this.columnFilters.update((f) => ({ ...f, [col.key]: '' })) });
-    }
     return chips;
   });
 
@@ -145,17 +124,45 @@ export class DeliveryTripsComponent {
     { key: 'driverName', label: 'Tài xế', format: (r) => r.driverName || '—' },
     { key: 'plateNumber', label: 'Biển số', format: (r) => (r.plateNumber ? r.plateNumber + (r.vehicleId ? '' : ' · thuê') : '—'), mono: true },
     { key: 'status', sortByText: true, label: 'Trạng thái', format: (r) => DELIVERY_TRIP_STATUS_LABEL[r.status], badge: (r) => deliveryTripStatusClass(r.status) },
-    { key: 'orderIds', label: 'Đơn', align: 'right', format: (r) => `${r.confirmedCount}/${r.orderIds.length}`, filterValue: (r) => r.orderIds.length },
-    { key: 'totalValue', label: 'Giá trị', align: 'right', format: (r) => formatVnd(r.totalValue), filterValue: (r) => r.totalValue },
-    { key: 'receivedValue', label: 'Khách nhận', align: 'right', format: (r) => (r.receivedValue ? formatVnd(r.receivedValue) : '—'), filterValue: (r) => r.receivedValue },
-    { key: 'cost', label: 'Chi phí', align: 'right', format: (r) => (costTotal(r.costs) ? formatVnd(costTotal(r.costs)) : '—'), filterValue: (r) => costTotal(r.costs) },
+    { key: 'orderIds', label: 'Đơn', align: 'right', format: (r) => `${r.confirmedCount}/${r.orderIds.length}` },
+    { key: 'totalValue', label: 'Giá trị', align: 'right', format: (r) => formatVnd(r.totalValue) },
+    { key: 'receivedValue', label: 'Khách nhận', align: 'right', format: (r) => (r.receivedValue ? formatVnd(r.receivedValue) : '—') },
+    { key: 'cost', label: 'Chi phí', align: 'right', format: (r) => (costTotal(r.costs) ? formatVnd(costTotal(r.costs)) : '—') },
   ];
 
   constructor() {
+    // Về trang 1 khi bộ lọc đổi.
     effect(() => {
-      this.trips();
+      this.filters();
       untracked(() => this.page.set(1));
     });
+    // Hỏi máy chủ mỗi khi bộ lọc, trang, hay danh sách chuyến trong bộ nhớ đổi (một thao tác ở nơi khác).
+    effect(() => {
+      const query = { ...this.filters(), page: this.page(), pageSize: this.pageSize() };
+      this.data.deliveryTrips();
+      untracked(() => void this.load(query));
+    });
+  }
+
+  setSearch(text: string): void {
+    this.search.set(text);
+    clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => this.searchQuery.set(text), 300);
+  }
+
+  private async load(query: DeliveryTripPageQuery): Promise<void> {
+    const seq = ++this.requestSeq;
+    this.loading.set(true);
+    try {
+      const res = await this.tripsSvc.page(query);
+      if (seq !== this.requestSeq) return; // a newer request answered first
+      this.result.set(res);
+      this.error.set('');
+    } catch (e) {
+      if (seq === this.requestSeq) this.error.set(errorText(e));
+    } finally {
+      if (seq === this.requestSeq) this.loading.set(false);
+    }
   }
 
   money(n: number): string {
@@ -173,16 +180,22 @@ export class DeliveryTripsComponent {
   }
 
   clearAll(): void {
+    this.search.set('');
+    this.searchQuery.set('');
     this.statuses.set([]);
     this.period.set(NO_PERIOD);
     this.drivers.set([]);
     this.vehicle.set('all');
-    this.columnFilters.set({});
   }
 
+  /** Every matching chuyến (not only this page), in the list's order. */
   async exportExcel(): Promise<void> {
     this.exporting.set(true);
     try {
+      const rows = (await this.tripsSvc.page({ ...this.filters(), page: 1, pageSize: 5000 })).rows;
+      // Mã đơn trên chuyến: đọc các đơn chưa nạp để cột "Mã đơn" không chỉ còn id.
+      await this.salesOrders.ensureMany([...new Set(rows.flatMap((t) => t.orderIds))]);
+      const orderById = new Map(this.data.salesOrders().map((o) => [o.id, o]));
       await downloadWorkbook(exportFileName('Chuyến giao hàng'), [{
         name: 'Chuyến giao hàng',
         columns: [
@@ -202,24 +215,17 @@ export class DeliveryTripsComponent {
           { header: 'Chi phí khác', width: 12, numFmt: '#,##0' },
           { header: 'Mã đơn', width: 40 },
         ],
-        rows: this.trips().map((t) => [
+        rows: rows.map((t) => [
           t.code, formatDay(t.date), t.driverName ?? '', t.driverPhone ?? '', t.plateNumber ?? '', t.vehicleId ? 'Xe công ty' : 'Thuê ngoài',
           DELIVERY_TRIP_STATUS_LABEL[t.status], t.orderIds.length, t.confirmedCount, t.totalValue, t.receivedValue,
           t.costs?.fuel ?? 0, t.costs?.toll ?? 0, t.costs?.other ?? 0,
-          t.orderIds.map((id) => this.orderById().get(id)?.code ?? id).join(', '),
+          t.orderIds.map((id) => orderById.get(id)?.code ?? id).join(', '),
         ]),
       }]);
+    } catch (e) {
+      this.error.set(errorText(e));
     } finally {
       this.exporting.set(false);
     }
-  }
-
-  private searchText(t: DeliveryTrip): string {
-    const orders = t.orderIds.map((id) => {
-      const o = this.orderById().get(id);
-      const c = o ? this.customerById().get(o.customerId) : undefined;
-      return `${o?.code ?? ''} ${c?.name ?? ''} ${c?.companyName ?? ''}`;
-    });
-    return foldVi([t.code, t.driverName ?? '', t.driverPhone ?? '', t.plateNumber ?? '', t.note ?? '', ...orders].join(' '));
   }
 }

@@ -94,14 +94,16 @@ export class CatalogLoader {
       const [orders, lsx] = await Promise.all([
         // Còn mở + 90 ngày gần nhất; đơn cũ hơn đọc theo trang hoặc theo id khi mở (Pha 1.1).
         can('order.view') ? this.api.get<SalesOrder[]>(`/sales-orders?recentDays=${RECENT_DAYS}`) : Promise.resolve([]),
-        this.api.get<ProductionOrder[]>('/production-orders'),
+        // Lệnh còn mở + 90 ngày gần nhất; lệnh cũ hơn đọc theo trang hoặc theo id khi mở (Pha 1.1).
+        this.api.get<ProductionOrder[]>(`/production-orders?recentDays=${RECENT_DAYS}`),
       ]);
       this.step(3);
       this.data.salesOrders.set(orders);
       this.data.productionOrders.set(lsx);
       this.data.quotations.set(can('quote.view') ? await this.api.get<Quotation[]>('/quotations') : []);
       this.step(4);
-      this.data.deliveryTrips.set(await this.api.get<DeliveryTrip[]>('/delivery-trips'));
+      // Chuyến chưa xong + 90 ngày gần nhất; chuyến cũ hơn đọc theo id khi mở (Pha 1.1).
+      this.data.deliveryTrips.set(await this.api.get<DeliveryTrip[]>(`/delivery-trips?recentDays=${RECENT_DAYS}`));
       this.step(5);
       // Công nợ, the dashboard and the cash-flow report read them too (same rule as the server).
       const canRead = ['voucher.view', 'debt.view', 'report.cashflow', 'report.dashboard'].some((c) => can(c));

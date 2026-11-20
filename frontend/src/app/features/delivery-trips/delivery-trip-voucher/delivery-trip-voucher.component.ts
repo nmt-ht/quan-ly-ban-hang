@@ -73,12 +73,16 @@ export class DeliveryTripVoucherComponent {
   private readonly route = inject(ActivatedRoute);
   readonly data = inject(DataStore);
   private readonly salesOrders = inject(SalesOrderService);
-  // Đơn cũ hơn 90 ngày không nạp sẵn (Pha 1.1): đọc các đơn màn hình này cần.
+  private readonly svc = inject(DeliveryTripService);
+  // Chuyến cũ hơn 90 ngày không nạp sẵn (Pha 1.1): đọc khi mở thẳng màn hình này, rồi đọc các đơn trên chuyến.
+  private readonly loadTrip = effect(() => {
+    const id = this.id();
+    if (id) untracked(() => void this.svc.ensureMany([id]));
+  });
   private readonly loadOrders = effect(() => {
     const ids = this.data.deliveryTrips().find((t) => t.id === this.id())?.orderIds ?? [];
     if (ids.length) untracked(() => void this.salesOrders.ensureMany(ids));
   });
-  private readonly svc = inject(DeliveryTripService);
   private readonly warehouseVouchers = inject(WarehouseVoucherService);
   private readonly headerDialog = viewChild.required<TripHeaderDialogComponent>('headerDialog');
   private readonly addDialog = viewChild.required<ElementRef<HTMLDialogElement>>('addDialog');
