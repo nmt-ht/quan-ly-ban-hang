@@ -307,19 +307,22 @@
   font-size: var(--text-sm);
   color: var(--color-ink-2);
   text-decoration: none;
-  white-space: nowrap;
   transition: background-color var(--dur-short) var(--ease-out);
 }
 
 // Menu icons are quiet (muted); only the page you are on takes the accent.
 .nav-link-icon {
+  flex-shrink: 0;
   color: var(--color-muted);
   transition: color var(--dur-short) var(--ease-out);
 }
 
+// A long screen name wraps onto a second line rather than being cut off.
 .nav-link-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
+  min-width: 0;
+  padding: 3px 0;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 @media (hover: hover) {
