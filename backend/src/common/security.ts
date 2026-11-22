@@ -10,6 +10,15 @@ export function inlineScriptHashes(html: string): string[] {
   return hashes;
 }
 
+/** Where photos are read from once they live in Cloudflare R2 (R2_PUBLIC_URL), as a CSP source; none when storage is off. */
+export function storageOrigins(publicUrl = process.env.R2_PUBLIC_URL): string[] {
+  try {
+    return publicUrl ? [new URL(publicUrl).origin] : [];
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Security headers for the API and the Angular app it serves. The only inline script is the one the
  * Angular build adds to switch critical CSS on (index.html), so it is allowed by hash, computed from the
@@ -24,7 +33,7 @@ export function helmetOptions(indexHtml?: string): HelmetOptions {
         'default-src': ["'self'"],
         'script-src': ["'self'", ...(indexHtml ? inlineScriptHashes(indexHtml) : [])],
         'style-src': ["'self'", "'unsafe-inline'"], // Angular component styles are inline
-        'img-src': ["'self'", 'data:', 'blob:'],
+        'img-src': ["'self'", 'data:', 'blob:', ...storageOrigins()],
         'font-src': ["'self'", 'data:'],
         'connect-src': ["'self'"],
         'worker-src': ["'self'", 'blob:'],

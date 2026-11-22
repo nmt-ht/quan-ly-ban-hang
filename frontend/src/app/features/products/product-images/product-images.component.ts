@@ -1,11 +1,13 @@
-import { ChangeDetectionStrategy, Component, ElementRef, model, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, inject, model, signal, viewChild } from '@angular/core';
+import { errorText } from '../../../core/api/api.service';
 import { ProductImage } from '../../../core/models/domain.models';
+import { ImageUploadService } from '../../../core/services/image-upload.service';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 
 const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_BYTES = 10 * 1024 * 1024;
 const MAX_PER_BATCH = 10;
-const MAX_EDGE = 1600; // stored images are downscaled; the mock keeps them in memory
+const MAX_EDGE = 1600; // stored images are downscaled before they are kept
 
 async function downscale(file: File): Promise<ProductImage> {
   const bitmap = await createImageBitmap(file);
@@ -36,6 +38,7 @@ export class ProductImagesComponent {
   readonly dragging = signal(false);
   readonly busy = signal(false);
   readonly errors = signal<string[]>([]);
+  private readonly uploads = inject(ImageUploadService);
   private readonly fileInput = viewChild.required<ElementRef<HTMLInputElement>>('fileInput');
 
   pick(): void {
@@ -88,9 +91,14 @@ export class ProductImagesComponent {
     const added: ProductImage[] = [];
     for (const f of ok) {
       try {
-        added.push(await downscale(f));
-      } catch {
-        errors.push(`${f.name}: không đọc được ảnh (file hỏng?).`);
+        const img = await downscale(f).catch(() => null);
+        if (!img) {
+          errors.push(`${f.name}: không đọc được ảnh (file hỏng?).`);
+          continue;
+        }
+        added.push({ ...img, url: await this.uploads.store(img.url) });
+      } catch (e) {
+        errors.push(`${f.name}: không lưu được ảnh — ${errorText(e)}`);
       }
     }
     this.busy.set(false);

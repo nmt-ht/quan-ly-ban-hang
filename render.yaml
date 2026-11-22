@@ -58,3 +58,14 @@ services:
         sync: false
       - key: SENTRY_FRONTEND_DSN
         sync: false
+      # Optional product photos on Cloudflare R2 (leave empty to keep photos in the database as data: URLs). See README.
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        sync: false
+      - key: R2_PUBLIC_URL
+        sync: false

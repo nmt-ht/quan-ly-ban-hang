@@ -167,6 +167,7 @@ Một web service trên Render build giao diện Angular rồi phục vụ nó t
 | `SEED_DEMO` | không | `true` để nạp dữ liệu demo lần đầu; `false` cho DB dùng thật |
 | `DEMO_USER_PASSWORD` | khi `SEED_DEMO=true` | Mật khẩu các tài khoản demo (≥ 8 ký tự) |
 | `SENTRY_DSN`, `SENTRY_FRONTEND_DSN` | không | Báo lỗi máy chủ / trình duyệt; bỏ trống là tắt |
+| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL` | không | Ảnh hàng hoá trên Cloudflare R2; thiếu một biến là tắt (ảnh vẫn lưu trong DB). Xem mục Ảnh hàng hoá trên R2 |
 | `LOGIN_LIMIT_IP`, `LOGIN_LIMIT_ACCOUNT` | không | Giới hạn số lần thử đăng nhập |
 
 Gói miễn phí của Render ngủ sau 15 phút không có truy cập; lần truy cập đầu tiên sau đó chờ khoảng một phút.
@@ -349,6 +350,15 @@ Migration `20261027100000_pay_now_link_delivery_lines`, `20261028100000_min_sale
 Phân trang phía máy chủ (Pha 1.1, đợt 1 — đơn hàng bán): lúc đăng nhập app chỉ nạp đơn còn mở + 90 ngày gần nhất (`GET /api/sales-orders?recentDays=90`). Danh sách Đơn hàng bán gọi `GET /api/sales-orders/page` (`src/modules/sales/sales-order-page.ts`): kỳ, thẻ, khách, người bán, người lập lọc trong DB; tìm không dấu, khoảng giá trị, trễ hẹn, trạng thái, sắp xếp, cắt trang và tổng tính trên máy chủ bằng `orderToApi` nên khớp màn hình đơn. Đơn cũ mở theo id (`SalesOrderService.ensure`) hoặc theo lô `?ids=` / `?codes=` (chuyến, lệnh SX, báo giá, phiếu thu). Thống kê khách hàng (`/api/sales-orders/customer-stats`) và số đơn gắn thẻ (`/api/tags/usage`) tính trên toàn bộ lịch sử. Còn tính trên phần đã nạp: hoạt động người dùng, tìm nhanh Ctrl K, nút đơn trước/sau, giá nhập gần nhất khi lập đơn nhập / phiếu nhập.
 
 Đợt 2 — phiếu kho, phiếu thu chi, đơn nhập, cùng cách: lúc đăng nhập nạp 90 ngày gần nhất (`?recentDays=90`; đơn nhập còn mở thì nạp bất kể ngày). Danh sách gọi `GET /api/warehouse-vouchers/page`, `/api/cash-vouchers/page`, `/api/purchase-orders/page` (`warehouse-voucher-page.ts`, `cash-voucher-page.ts`, `purchase-order-page.ts`; phần dùng chung ở `src/common/paging.ts`): số phiếu theo loại / kho, thẻ tổng thu chi của kỳ, số đơn theo trạng thái đều tính trên máy chủ; giá nhập vẫn bị bỏ trước khi lọc với chức vụ không được xem. Phiếu / đơn cũ đọc khi cần qua `core/api/on-demand.ts`: theo id (`?ids=`), phiếu kho của một đơn / lệnh / chuyến (`?relatedId=&relatedCode=`), phiếu thu nhắc tới một đơn (`?ref=`). Tính trên toàn bộ lịch sử: số đơn nhập theo NCC (`/purchase-orders/supplier-stats`), số phiếu và số dòng chứng từ theo kho (`/warehouse-vouchers/usage`), số phiếu theo tài khoản tiền / loại thu chi (`/cash-vouchers/usage`), thẻ kho của hàng hoá, tab phiếu kho của kho, đơn nhập và thanh toán của NCC. Bộ lọc theo cột trên ba danh sách này đã bỏ (như đơn hàng bán).
+
+</details>
+
+<details>
+<summary><b>Ảnh hàng hoá trên Cloudflare R2</b></summary>
+
+Ảnh hàng hoá (Pha 1.2): có đủ 5 biến `R2_*` thì form hàng hoá thu nhỏ ảnh như cũ rồi gửi `POST /api/uploads/images` (`backend/src/storage/`, cần `product.create` hoặc `product.update`); máy chủ kiểm tra file (PNG / JPEG / WebP theo byte đầu, tối đa 8 MB), lưu vào bucket tại `<mã doanh nghiệp>/products/<uuid>.<đuôi>` và trả địa chỉ https để hàng hoá giữ. `GET /api/uploads/status` cho form biết kho ảnh bật hay chưa; chưa bật thì ảnh vẫn là data: URL trong DB như trước, nên bản chưa cấu hình không đổi gì. CSP `img-src` tự thêm nguồn của `R2_PUBLIC_URL`. Logo công ty **không** chuyển: in, PDF và favicon vẽ nó lên canvas, ảnh khác nguồn sẽ bị chặn trừ khi cấu hình CORS.
+
+Lập một lần: Cloudflare › R2 › tạo bucket → bật địa chỉ công khai (tên miền riêng, hoặc r2.dev để thử) → tạo API token "Object Read & Write" chỉ cho bucket đó → điền 5 biến trên Render. Chuyển ảnh cũ: `npm run storage:migrate-images` (chỉ đếm) rồi `npm run storage:migrate-images -- --apply`; chạy mỗi doanh nghiệp một lần với `DATABASE_URL` và `TENANT_CODE` của nó, lặp lại an toàn. Chưa làm: xoá file trên R2 khi gỡ ảnh khỏi hàng hoá (file mồ côi, nhỏ; dọn tay hoặc đặt lifecycle rule).
 
 </details>
 
