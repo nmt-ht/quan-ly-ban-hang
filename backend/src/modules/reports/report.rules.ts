@@ -160,6 +160,20 @@ export function revenueLines(orders: Order[]): RevenueLine[] {
         });
       }
     }
+    // Giảm giá hàng bán: a negative line per dòng on the phiếu's date, no quantity (the goods stay with the customer).
+    for (const a of o.allowances ?? []) {
+      if (a.isCancelled) continue;
+      for (const al of a.lines) {
+        const l = o.lines.find((x) => x.id === al.orderLineId);
+        if (!l) continue;
+        const net = -al.taxable;
+        const vat = -al.vat;
+        out.push({
+          orderId: o.id, orderCode: o.code, date: a.date.slice(0, 10), customerId: o.customerId, salesRep: o.salesRep, productId: l.productId,
+          baseQty: 0, gross: net, discount: 0, net, vat, total: net + vat, returnCode: a.code,
+        });
+      }
+    }
   }
   return out;
 }

@@ -10,7 +10,7 @@ const SOURCES: [prefix: string, table: string][] = [
   ['KH', 'Customer'], ['NCC', 'Supplier'], ['VT', 'Product'], ['SP', 'Product'], ['DV', 'Product'],
   ['DN', 'PurchaseOrder'], ['DH', 'SalesOrder'], ['LSX', 'ProductionOrder'], ['XE', 'Vehicle'], ['CH', 'DeliveryTrip'],
   ['PNK', 'WarehouseVoucher'], ['PXK', 'WarehouseVoucher'], ['PCK', 'WarehouseVoucher'], ['PKK', 'WarehouseVoucher'],
-  ['PT', 'CashVoucher'], ['PC', 'CashVoucher'], ['KHO', 'Warehouse'], ['TH', 'SalesReturn'], ['BG', 'Quotation'], ['KM', 'Promotion'],
+  ['PT', 'CashVoucher'], ['PC', 'CashVoucher'], ['KHO', 'Warehouse'], ['TH', 'SalesReturn'], ['GG', 'SalesAllowance'], ['BG', 'Quotation'], ['KM', 'Promotion'],
   ['TLM', 'PurchaseReturn'], ['BT', 'JournalEntry'], ['TS', 'FixedAsset'], ['CC', 'PrepaidItem'], ['NV', 'Employee'],
   ['HM', 'PurchaseBill'], ['CT', 'CashTransfer'], ['KQ', 'CashCount'],
 ];

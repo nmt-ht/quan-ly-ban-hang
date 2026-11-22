@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { DataStore } from '../../core/services/data-store.service';
 import { AuthService } from '../../core/services/auth.service';
-import { CashVoucher, ProductionOrder, SaleType, SalesOrder, SalesOrderLine, SalesReturn, SalesReturnDraft, WarehouseVoucher } from '../../core/models/domain.models';
+import { CashVoucher, ProductionOrder, SaleType, SalesOrder, SalesAllowance, SalesAllowanceDraft, SalesOrderLine, SalesReturn, SalesReturnDraft, WarehouseVoucher } from '../../core/models/domain.models';
 import { ApiService, upsertById } from '../../core/api/api.service';
 import { CatalogLoader } from '../../core/api/catalog-loader.service';
 import { onDemand, pageQuery } from '../../core/api/on-demand';
@@ -321,6 +321,25 @@ export class SalesOrderService {
     const r = await this.api.post<SalesReturn>(`/sales-orders/${orderId}/returns/${returnId}/cancel`, { reason: reason || undefined });
     await this.reloadOrder(orderId);
     await this.loader.loadInventory();
+    return r;
+  }
+
+  /** Giảm giá hàng bán: how much (chưa thuế) each dòng can still be lowered by. */
+  allowanceLimits(orderId: string): Promise<{ orderLineId: string; max: number }[]> {
+    return this.api.post<{ orderLineId: string; max: number }[]>(`/sales-orders/${orderId}/allowances/limits`);
+  }
+
+  /** Giảm giá hàng bán: the server lowers công nợ, doanh thu and 3331 on the phiếu's date; no stock moves. */
+  async createAllowance(orderId: string, d: SalesAllowanceDraft): Promise<SalesAllowance> {
+    const r = await this.api.post<SalesAllowance>(`/sales-orders/${orderId}/allowances`, d);
+    await this.reloadOrder(orderId);
+    return r;
+  }
+
+  /** Huỷ phiếu giảm giá: the value counts against công nợ and doanh thu again. */
+  async cancelAllowance(orderId: string, allowanceId: string, reason: string): Promise<SalesAllowance> {
+    const r = await this.api.post<SalesAllowance>(`/sales-orders/${orderId}/allowances/${allowanceId}/cancel`, { reason: reason || undefined });
+    await this.reloadOrder(orderId);
     return r;
   }
 

@@ -110,7 +110,7 @@ export const PERMISSION_MODULES: PermissionModule[] = [
     { code: 'order.update_price', label: 'Sửa đơn giá trên đơn' },
     { code: 'order.discount', label: 'Chiết khấu ngoài khuyến mại' },
     { code: 'order.below_min_price', label: 'Bán dưới giá tối thiểu' },
-    { code: 'order.return', label: 'Nhận hàng trả lại' },
+    { code: 'order.return', label: 'Nhận hàng trả lại, giảm giá hàng bán' },
   ]},
   { key: 'quote', label: 'Báo giá', permissions: [
     { code: 'quote.view', label: 'Xem báo giá' },

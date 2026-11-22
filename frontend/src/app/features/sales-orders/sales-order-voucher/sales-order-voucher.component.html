@@ -286,9 +286,9 @@
         <button type="button" role="tab" [attr.aria-selected]="tab() === 'pxk'" (click)="tab.set('pxk')">
           Phiếu xuất kho @if (exportVouchers().length) { <span class="tab-count num">{{ exportVouchers().length }}</span> }
         </button>
-        @if (returns().length) {
+        @if (returns().length || allowances().length) {
           <button type="button" role="tab" [attr.aria-selected]="tab() === 'tra-hang'" (click)="tab.set('tra-hang')">
-            Trả hàng <span class="tab-count num">{{ activeReturns() }}</span>
+            Trả hàng, giảm giá <span class="tab-count num">{{ activeReturns() + activeAllowances() }}</span>
           </button>
         }
         @if (order()!.receivedValue > 0) {
@@ -690,6 +690,7 @@
 
       @case ('tra-hang') {
         <section class="card voucher-grid-card">
+          @if (returns().length) {
           <div class="voucher-grid-scroll">
             <table class="voucher-grid" appFrozenCols="1">
               <thead>
@@ -731,6 +732,51 @@
             </table>
           </div>
           <p class="grid-hint">Hàng trả nhập lại kho bằng phiếu "Nhập trả về"; giá trị trả (gồm thuế, sau chiết khấu) giảm công nợ phải thu và doanh thu vào ngày trả. Tiền khách đã trả thừa thì hoàn bằng phiếu chi.</p>
+          }
+          @if (allowances().length) {
+          <h3 class="so-allow-title">Giảm giá hàng bán</h3>
+          <div class="voucher-grid-scroll">
+            <table class="voucher-grid" appFrozenCols="1">
+              <thead>
+                <tr>
+                  <th scope="col">Số phiếu</th>
+                  <th scope="col">Ngày giảm</th>
+                  <th scope="col">Hàng được giảm</th>
+                  <th scope="col">Lý do</th>
+                  <th scope="col" class="c-num">Chưa thuế</th>
+                  <th scope="col" class="c-num">Giảm công nợ</th>
+                  <th scope="col">Trạng thái</th>
+                  <th scope="col"><span class="visually-hidden">Thao tác</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (a of allowances(); track a.id) {
+                  <tr [class.so-ret-void]="a.isCancelled">
+                    <td class="num">{{ a.code }}</td>
+                    <td class="num">{{ day(a.date) }}</td>
+                    <td class="wrap">{{ allowanceItems(a) }}</td>
+                    <td class="wrap">{{ a.reason }}@if (a.note) { <span class="subtitle"> · {{ a.note }}</span> }</td>
+                    <td class="c-num num">{{ money(a.taxable) }}</td>
+                    <td class="c-num num">{{ money(a.amount) }}</td>
+                    <td>
+                      @if (a.isCancelled) {
+                        <span class="badge badge-muted" [title]="a.cancelReason || ''">Đã huỷ</span>
+                      } @else {
+                        <span class="badge badge-success">Đã giảm</span>
+                      }
+                    </td>
+                    <td class="c-act lsx-actions">
+                      @if (!a.isCancelled && canReturn()) {
+                        <button type="button" class="btn btn-sm btn-danger-ghost" (click)="askCancelAllowance(a)">Huỷ phiếu</button>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <p class="grid-hint">Giảm giá hàng bán không có hàng đi hay về: phần giảm chưa thuế trừ vào doanh thu (TK 5213), thuế GTGT đầu ra giảm theo, công nợ phải thu giảm gồm thuế. Hoá đơn đã phát hành thì lập thêm hoá đơn điều chỉnh giảm.</p>
+          }
         </section>
       }
 
@@ -742,7 +788,10 @@
               @if (order()!.returnedValue) {
                 <div><dt>Hàng trả lại</dt><dd class="num">−{{ money(order()!.returnedValue!) }}</dd></div>
               }
-              <div><dt>Đã thu (đối trừ)</dt><dd class="num">{{ money(e.settled - (order()!.returnedValue ?? 0)) }}</dd></div>
+              @if (order()!.allowedValue) {
+                <div><dt>Giảm giá hàng bán</dt><dd class="num">−{{ money(order()!.allowedValue!) }}</dd></div>
+              }
+              <div><dt>Đã thu (đối trừ)</dt><dd class="num">{{ money(e.settled - (order()!.returnedValue ?? 0) - (order()!.allowedValue ?? 0)) }}</dd></div>
               <div><dt>Hạn thanh toán</dt><dd class="num">{{ e.dueDate ? day(e.dueDate) : '—' }}</dd></div>
               <div class="grand"><dt>Còn phải thu</dt><dd class="num" [class.text-danger]="(e.overdueDays ?? 0) > 0 && e.remaining > 0">{{ money(e.remaining) }}</dd></div>
             </dl>
@@ -818,6 +867,7 @@
           }
           @if (canReturn()) {
             <button type="button" class="btn" (click)="openReturn()"><app-nav-icon name="download" />Nhận hàng trả lại</button>
+            <button type="button" class="btn" (click)="openAllowance()"><app-nav-icon name="percent" />Giảm giá hàng bán</button>
           }
           @if (lsxNeeded()) {
             <button type="button" class="btn btn-primary" (click)="createLsx()">Lập lệnh sản xuất</button>
@@ -862,10 +912,22 @@
     </div>
   }
 
+  @if (confirmCancelAllowance(); as a) {
+    <div class="confirm-strip" role="alertdialog" aria-labelledby="cancel-allowance-title">
+      <p id="cancel-allowance-title"><strong>Huỷ phiếu giảm giá {{ a.code }}?</strong> Công nợ phải thu và doanh thu tăng lại {{ money(a.amount) }}.</p>
+      <input type="text" placeholder="Lý do huỷ (không bắt buộc)" aria-label="Lý do huỷ phiếu giảm giá" [ngModel]="cancelAllowanceReason()" (ngModelChange)="cancelAllowanceReason.set($event)" />
+      <div class="toolbar">
+        <button type="button" class="btn" (click)="confirmCancelAllowance.set(null)">Không huỷ</button>
+        <button type="button" class="btn btn-danger" (click)="doCancelAllowance()">Huỷ phiếu giảm giá</button>
+      </div>
+    </div>
+  }
+
   @if (order(); as o) {
     <app-deliver-dialog #deliverDialog [order]="o" (delivered)="onDelivered($event)" />
     @if (canReturn()) {
       <app-return-dialog #returnDialog [order]="o" (returned)="onReturned($event)" />
+      <app-allowance-dialog #allowanceDialog [order]="o" (allowed)="onAllowed($event)" />
     }
     <app-invoice-preview #invoicePreview [order]="o" (printing)="printingInvoice.set($event)" />
 

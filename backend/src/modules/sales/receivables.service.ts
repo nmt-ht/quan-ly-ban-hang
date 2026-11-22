@@ -23,7 +23,7 @@ export class ReceivablesService {
       db.customer.findMany({ where: onlyCustomerId ? { id: onlyCustomerId } : {}, orderBy: { name: 'asc' } }),
       db.salesOrder.findMany({
         where: { status: { not: 'HUY' }, ...who },
-        include: { lines: true, returns: { where: { isCancelled: false } }, deliveries: { orderBy: [{ date: 'asc' }, { createdAt: 'asc' }] } },
+        include: { lines: true, returns: { where: { isCancelled: false } }, allowances: { where: { isCancelled: false } }, deliveries: { orderBy: [{ date: 'asc' }, { createdAt: 'asc' }] } },
       }),
       db.cashVoucher.findMany({ where: { isCancelled: false, partnerType: 'KHACH_HANG', ...who }, include: { allocations: true } }),
     ]);
@@ -52,6 +52,15 @@ export class ReceivablesService {
           payments.push({
             id: r.id, code: r.code, date: toDay(r.date)!, amount: r.amount.toNumber(), typeLabel: 'Trả hàng',
             description: `Khách trả hàng đơn ${o.code}: ${r.reason}`, allocations: [{ ref: o.code, amount: r.amount.toNumber() }],
+          });
+        }
+      }
+      // Giảm giá hàng bán the same way: it lowers what the đơn owes, no goods back.
+      for (const o of orders.filter((x) => x.customerId === c.id)) {
+        for (const a of o.allowances) {
+          payments.push({
+            id: a.id, code: a.code, date: toDay(a.date)!, amount: a.amount.toNumber(), typeLabel: 'Giảm giá hàng bán',
+            description: `Giảm giá hàng bán đơn ${o.code}: ${a.reason}`, allocations: [{ ref: o.code, amount: a.amount.toNumber() }],
           });
         }
       }

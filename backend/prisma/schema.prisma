@@ -776,6 +776,7 @@ model SalesOrder {
   deliveryTripOrders DeliveryTripOrder[]
   warehouseVouchers  WarehouseVoucher[]
   returns            SalesReturn[]
+  allowances         SalesAllowance[]
   quotation          Quotation?
   deliveries         SalesOrderDelivery[]
   payNowReceipts     CashVoucher[]
@@ -1724,4 +1725,39 @@ model CitAssessment {
   reversedById     String?
 
   @@index([year])
+}
+
+// Giảm giá hàng bán (as MISA, TK 5213): the seller lowers the price of goods the customer already RECEIVED, no goods move. One
+// phiếu GG… per giảm giá: `taxable` (chưa thuế) leaves doanh thu, `amount` = taxable + VAT lowers the order's công nợ and 3331
+// on the phiếu's own date. Huỷ phiếu reverses the bút toán; the phiếu stays, marked huỷ.
+model SalesAllowance {
+  id            String     @id @default(uuid())
+  code          String     @unique
+  orderId       String
+  order         SalesOrder @relation(fields: [orderId], references: [id])
+  date          DateTime   @db.Date
+  reason        String
+  note          String?
+  taxable       Decimal // giảm chưa thuế (Nợ 5213)
+  amount        Decimal // giảm đã gồm thuế (Có 131)
+  isCancelled   Boolean    @default(false)
+  cancelReason  String?
+  cancelledAt   DateTime?
+  createdById   String
+  createdByName String
+  createdAt     DateTime   @default(now())
+
+  lines SalesAllowanceLine[]
+
+  @@index([orderId])
+}
+
+model SalesAllowanceLine {
+  id          String         @id @default(uuid())
+  allowanceId String
+  allowance   SalesAllowance @relation(fields: [allowanceId], references: [id], onDelete: Cascade)
+  orderLineId String
+  taxable     Decimal // giảm chưa thuế của dòng
+  vat         Decimal // thuế GTGT của phần giảm
+  sortOrder   Int            @default(0)
 }

@@ -11,6 +11,7 @@ import { overdraw } from '../cash/cash-balance.js';
 import { AuditService } from '../../audit/audit.service.js';
 import { ReceivablesService } from './receivables.service.js';
 import { RETURN_INCLUDE, returnToApi } from './returns.js';
+import { ALLOWANCE_INCLUDE, allowanceToApi } from './allowances.js';
 import { diff, vnd } from '../../audit/audit.diff.js';
 import {
   ListPrice, LsxState, PriceSource, SALE_TYPE_LABEL, belowMinPrice, STATUS_LABEL, SaleLine, canCancel, canClose, canDeliver, canEdit, deriveStatus, lineDiscount, lineRemaining,
@@ -105,6 +106,7 @@ const ORDER_INCLUDE = {
   salesRep: { select: { email: true } },
   deliveryTripOrders: { select: { tripId: true, trip: { select: { date: true } } } },
   returns: { include: RETURN_INCLUDE, orderBy: { createdAt: 'asc' } },
+  allowances: { include: ALLOWANCE_INCLUDE, orderBy: { createdAt: 'asc' } },
   quotation: { select: { id: true, code: true } },
   deliveries: { include: { lines: true }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] },
 } as const satisfies Prisma.SalesOrderInclude;
@@ -145,7 +147,7 @@ const saleLine = (l: LineRow): SaleLine => ({
 
 /** The frontend's SalesOrder: day-only dates, e-mails for people, tagIds, totals derived from the lines. */
 export function orderToApi(o: OrderRow) {
-  const { lines, tags, createdBy, createdById: _c, salesRep, salesRepId: _r, deliveryTripOrders, returns, quotation, deliveries, orderDate, neededByDate, dueDate, deliveredDate, closedDate, exchangeRate, ...rest } = o;
+  const { lines, tags, createdBy, createdById: _c, salesRep, salesRepId: _r, deliveryTripOrders, returns, allowances, quotation, deliveries, orderDate, neededByDate, dueDate, deliveredDate, closedDate, exchangeRate, ...rest } = o;
   const nums = lines.map(saleLine);
   const discount = o.discountAmount.toNumber();
   const t = orderTotals(nums, discount);
@@ -162,6 +164,9 @@ export function orderToApi(o: OrderRow) {
     // Trả hàng (Pha 1.5): every phiếu TH…, and the value of the ones not huỷ — công nợ = receivedValue − returnedValue.
     returns: returns.map(returnToApi),
     returnedValue: returns.filter((r) => !r.isCancelled).reduce((s, r) => s + r.amount.toNumber(), 0),
+    // Giảm giá hàng bán: every phiếu GG…, and the value (VAT included) of the ones not huỷ — công nợ = receivedValue − returnedValue − allowedValue.
+    allowances: allowances.map(allowanceToApi),
+    allowedValue: allowances.filter((a) => !a.isCancelled).reduce((s, a) => s + a.amount.toNumber(), 0),
     quotationId: quotation?.id ?? null,
     quotationCode: quotation?.code ?? null,
     // Đợt khách nhận hàng, in the order they were recorded (hoá đơn GTGT theo đợt); lines empty for đợt recorded before.

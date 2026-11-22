@@ -364,6 +364,9 @@ export interface SalesOrder {
   returns?: SalesReturn[];
   /** Giá trị các phiếu trả chưa huỷ — công nợ của đơn = receivedValue − returnedValue. */
   returnedValue?: number;
+  allowances?: SalesAllowance[];
+  /** Giá trị các phiếu giảm giá chưa huỷ (gồm thuế) — công nợ của đơn = receivedValue − returnedValue − allowedValue. */
+  allowedValue?: number;
   /** Khuyến mãi theo tổng đơn đã áp vào Chiết khấu cả đơn (Pha 1.6). */
   promotionId?: string | null;
   /** Báo giá đơn được lập từ (Pha 1.4). */
@@ -433,6 +436,30 @@ export interface SalesReturn {
   createdBy: string;
   createdAt?: string;
   lines: { id: string; orderLineId: string; quantity: number; amount: number }[];
+}
+
+/** Giảm giá hàng bán (phiếu GG…): giảm giá cho hàng khách đã nhận, không có hàng đi về. */
+export interface SalesAllowance {
+  id: string;
+  code: string; // GG0000001
+  orderId: string;
+  date: string;
+  reason: string;
+  note?: string;
+  taxable: number; // giảm chưa thuế
+  amount: number; // giảm gồm thuế: giảm công nợ
+  isCancelled: boolean;
+  cancelReason?: string;
+  createdBy: string;
+  createdAt?: string;
+  lines: { id: string; orderLineId: string; taxable: number; vat: number }[];
+}
+
+export interface SalesAllowanceDraft {
+  date: string;
+  reason: string;
+  note?: string;
+  lines: { orderLineId: string; taxable: number }[];
 }
 
 export interface SalesReturnDraft {

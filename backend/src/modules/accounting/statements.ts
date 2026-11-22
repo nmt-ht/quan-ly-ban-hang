@@ -81,7 +81,7 @@ export class StatementsService {
     const revenue = (code: string) => { const m = by.get(code); return m ? m.c - m.d : 0; };
     const expense = (code: string) => { const m = by.get(code); return m ? m.d - m.c : 0; };
     return {
-      revenue: revenue('511'), deductions: 0, cogs: expense('632'), financeIncome: revenue('515'), financeExpense: expense('635'),
+      revenue: revenue('511'), deductions: expense('5211') + expense('5212') + expense('5213'), cogs: expense('632'), financeIncome: revenue('515'), financeExpense: expense('635'),
       management: expense('641') + expense('642'), otherIncome: revenue('711'), otherExpense: expense('811'), incomeTax: expense('821'),
     };
   }

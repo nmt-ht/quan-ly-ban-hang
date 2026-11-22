@@ -208,7 +208,7 @@ export class VatService {
     // Lọc theo chứng từ gốc (refType), không theo `source`: bút toán đảo khi huỷ mang source REVERSAL nhưng cùng refType với bút toán gốc,
     // nên chỉ lọc theo refType mới trừ đúng phần đã huỷ.
     const salesLines = await this.prisma.journalLine.aggregate({
-      where: { accountCode: '3331', entry: { date: { gte: r.gte, lt: r.lt }, refType: { in: ['SalesOrderDelivery', 'SalesReturn'] } } }, _sum: { debit: true, credit: true },
+      where: { accountCode: '3331', entry: { date: { gte: r.gte, lt: r.lt }, refType: { in: ['SalesOrderDelivery', 'SalesReturn', 'SalesAllowance'] } } }, _sum: { debit: true, credit: true },
     });
     const ledgerOutput = num(salesLines._sum.credit) - num(salesLines._sum.debit);
     const purchaseLines = await this.prisma.journalLine.aggregate({

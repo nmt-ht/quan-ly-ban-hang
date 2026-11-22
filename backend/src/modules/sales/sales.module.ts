@@ -12,6 +12,7 @@ import { AccountingModule } from '../accounting/accounting.module.js';
 import { SalesService } from './sales.service.js';
 import { ReceivablesService } from './receivables.service.js';
 import { SalesReturnsController, SalesReturnsService } from './returns.js';
+import { SalesAllowancesController, SalesAllowancesService } from './allowances.js';
 import { QuotationsController, QuotationsService } from './quotations.js';
 import { DebtRemindersController, DebtRemindersService } from './reminders.js';
 import { SalesOrderPageQuery, normaliseListQuery } from './sales-order-page.js';
@@ -239,8 +240,8 @@ export class ReceivablesController {
 
 @Module({
   imports: [InventoryModule, AccountingModule],
-  controllers: [SalesController, SalesReturnsController, QuotationsController, ReceivablesController, DebtRemindersController],
-  providers: [SalesService, SalesReturnsService, QuotationsService, ReceivablesService, DebtRemindersService],
+  controllers: [SalesController, SalesReturnsController, SalesAllowancesController, QuotationsController, ReceivablesController, DebtRemindersController],
+  providers: [SalesService, SalesReturnsService, SalesAllowancesService, QuotationsService, ReceivablesService, DebtRemindersService],
   exports: [SalesService, ReceivablesService],
 })
 export class SalesModule {}

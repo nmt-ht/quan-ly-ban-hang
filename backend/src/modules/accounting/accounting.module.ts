@@ -181,8 +181,11 @@ export class AccountingService {
   async incomeStatement(period: string) {
     const { revenue, expense } = await this.periodMaps(period);
     const doanhThu = revenue('511');
+    // Các khoản giảm trừ doanh thu (521: chiết khấu thương mại, hàng bán bị trả lại, giảm giá hàng bán).
+    const giamTru = expense('5211') + expense('5212') + expense('5213');
+    const doanhThuThuan = doanhThu - giamTru;
     const giaVon = expense('632');
-    const loiNhuanGop = doanhThu - giaVon;
+    const loiNhuanGop = doanhThuThuan - giaVon;
     const dtTaiChinh = revenue('515');
     const cpTaiChinh = expense('635');
     const cpQuanLy = expense('642') + expense('641'); // TT133 gộp chi phí bán hàng và quản lý vào một chỉ tiêu
@@ -195,7 +198,8 @@ export class AccountingService {
     const lnSauThue = lnTruocThue - thueTNDN;
     const items = [
       { label: '1. Doanh thu bán hàng và cung cấp dịch vụ', amount: doanhThu },
-      { label: '2. Doanh thu thuần', amount: doanhThu, strong: true },
+      { label: '- Các khoản giảm trừ doanh thu', amount: giamTru },
+      { label: '2. Doanh thu thuần', amount: doanhThuThuan, strong: true },
       { label: '3. Giá vốn hàng bán', amount: giaVon },
       { label: '4. Lợi nhuận gộp', amount: loiNhuanGop, strong: true },
       { label: '5. Doanh thu hoạt động tài chính', amount: dtTaiChinh },

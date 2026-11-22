@@ -151,7 +151,7 @@ export function isBalanced(lines: StatementLine[]): boolean {
 /** Phát sinh trong kỳ theo chiều tự nhiên: doanh thu (Có − Nợ), chi phí (Nợ − Có). */
 export interface IncomeInput {
   revenue: number; // 511
-  deductions: number; // các khoản giảm trừ doanh thu (521) — chưa có trong hệ thống tài khoản
+  deductions: number; // các khoản giảm trừ doanh thu (5211, 5212, 5213)
   cogs: number; // 632
   financeIncome: number; // 515
   financeExpense: number; // 635

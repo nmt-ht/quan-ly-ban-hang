@@ -69,7 +69,9 @@ export function dashboard({ data, cost, debt, showProfit, showPurchases, showSto
       const got = o.lines.flatMap((l, i) => ((l.receivedQuantity ?? 0) && l.quantity ? [{ i, qty: l.receivedQuantity ?? 0 }] : []));
       const back = (o.returns ?? []).filter((r) => !r.isCancelled).map((r) => entry(o, r.date, -r.amount,
         r.lines.flatMap((rl) => { const i = o.lines.findIndex((l) => l.id === rl.orderLineId); return i < 0 ? [] : [{ i, qty: rl.quantity }]; }), true));
-      return [entry(o, o.deliveredDate!, o.receivedValue, got, false), ...back];
+      // Giảm giá hàng bán: doanh thu goes down on the phiếu's date; no goods move, so no cost.
+      const allowed = (o.allowances ?? []).filter((a) => !a.isCancelled).map((a) => entry(o, a.date, -a.amount, [], true));
+      return [entry(o, o.deliveredDate!, o.receivedValue, got, false), ...back, ...allowed];
     });
   const current = sales.filter((s) => inRange(s.date, range));
   const previous = sales.filter((s) => inRange(s.date, previousRange));

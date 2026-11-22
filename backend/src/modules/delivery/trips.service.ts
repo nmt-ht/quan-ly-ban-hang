@@ -316,6 +316,8 @@ export class TripsService {
       // Hàng khách đã trả lại phải còn nằm trong số đã nhận — bỏ chốt sau đó sẽ làm số trả lớn hơn số nhận.
       const returned = await tx.salesReturn.findFirst({ where: { orderId, isCancelled: false }, select: { code: true } });
       if (returned) throw new BadRequestException(`Đơn đã có phiếu trả hàng ${returned.code} — huỷ phiếu trả trước khi bỏ chốt giao.`);
+      const allowed = await tx.salesAllowance.findFirst({ where: { orderId, isCancelled: false }, select: { code: true } });
+      if (allowed) throw new BadRequestException(`Đơn đã có phiếu giảm giá ${allowed.code} — huỷ phiếu giảm giá trước khi bỏ chốt giao.`);
       const o = await this.sales.locked(tx, orderId);
       const removed = (await tx.salesOrderDelivery.findMany({ where: { orderId, tripId: id }, select: { id: true } })).map((d) => d.id);
       // A hoá đơn điện tử already sent for what the khách received keeps it received.

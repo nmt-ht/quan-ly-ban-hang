@@ -10,7 +10,7 @@ import { DataStore } from '../../../core/services/data-store.service';
 import { DebtService } from '../../../core/services/debt.service';
 import { CostService } from '../../../core/services/cost.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { Product, Quotation, SaleType, SalesOrder, SalesOrderLine, SalesReturn } from '../../../core/models/domain.models';
+import { Product, Quotation, SaleType, SalesAllowance, SalesOrder, SalesOrderLine, SalesReturn } from '../../../core/models/domain.models';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { CopyButtonComponent } from '../../../shared/copy-button/copy-button.component';
 import { MoneyInputDirective } from '../../../shared/money-input.directive';
@@ -41,6 +41,7 @@ import { activePromotions, applyLinePromotions, orderDiscountFor } from '../prom
 import { HasUnsavedChanges, isSaveShortcut, warnBeforeUnload } from '../../../core/guards/unsaved-changes.guard';
 import { DeliverDialogComponent } from '../deliver-dialog/deliver-dialog.component';
 import { ReturnDialogComponent } from '../return-dialog/return-dialog.component';
+import { AllowanceDialogComponent } from '../allowance-dialog/allowance-dialog.component';
 import { ApiService, errorText } from '../../../core/api/api.service';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
@@ -97,7 +98,7 @@ const emptyLine = (): DraftLine => ({
   standalone: true,
   imports: [DateInputDirective, EmailComposeComponent, SearchSelectComponent, PickableWarehousesPipe, FrozenColsDirective, 
     NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
-    PaginationComponent, FilterMultiSelectComponent, DeliverDialogComponent, ReturnDialogComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent,
+    PaginationComponent, FilterMultiSelectComponent, DeliverDialogComponent, ReturnDialogComponent, AllowanceDialogComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent,
     InvoicePreviewComponent,
   ],
   templateUrl: './sales-order-voucher.component.html',
@@ -119,6 +120,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   private readonly cashVouchers = inject(CashVoucherService);
   private readonly deliverDialog = viewChild<DeliverDialogComponent>('deliverDialog');
   private readonly returnDialog = viewChild<ReturnDialogComponent>('returnDialog');
+  private readonly allowanceDialog = viewChild<AllowanceDialogComponent>('allowanceDialog');
 
   readonly id = toSignal(this.route.paramMap.pipe(map((p) => p.get('id'))), { initialValue: this.route.snapshot.paramMap.get('id') });
   private readonly editRoute = this.route.snapshot.url.at(-1)?.path === 'sua';
@@ -223,6 +225,8 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   /** Phiếu trả đang chờ xác nhận huỷ. */
   readonly confirmCancelReturn = signal<SalesReturn | null>(null);
   readonly cancelReturnReason = signal('');
+  readonly confirmCancelAllowance = signal<SalesAllowance | null>(null);
+  readonly cancelAllowanceReason = signal('');
 
   readonly vatRates = VAT_RATES;
   readonly statusLabel = SALES_ORDER_STATUS_LABEL;
@@ -274,6 +278,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
         this.confirmCancel.set(false);
         this.confirmClose.set(false);
         this.confirmCancelReturn.set(null);
+        this.confirmCancelAllowance.set(null);
         if (id) this.notice.set((history.state as { notice?: string } | null)?.notice ?? '');
         else this.notice.set(quote ? `Đơn điền sẵn từ báo giá ${quote.code} — chọn kho xuất, ngày cần giao rồi lưu. Lưu xong báo giá chuyển sang Đã lập đơn.` : '');
         this.baseline = this.snapshot();
@@ -929,6 +934,39 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
     this.confirmCancelReturn.set(null);
     if (!ok) return;
     this.notice.set(`Đã huỷ phiếu trả ${r.code}${r.voucherCode ? ` — phiếu ${r.voucherCode} đã huỷ, hàng ra khỏi kho` : ''}; công nợ phải thu tăng lại ${this.money(r.amount)}.`);
+  }
+
+  // ---------- giảm giá hàng bán ----------
+  readonly allowances = computed(() => [...(this.order()?.allowances ?? [])].sort((a, b) => b.code.localeCompare(a.code)));
+  readonly activeAllowances = computed(() => this.allowances().filter((a) => !a.isCancelled).length);
+
+  openAllowance(): void {
+    void this.allowanceDialog()?.open();
+  }
+
+  onAllowed(message: string): void {
+    this.notice.set(message);
+    this.tab.set('tra-hang');
+  }
+
+  /** "SP001 · SP002" — the lines of one phiếu giảm giá, by mã hàng. */
+  allowanceItems(a: SalesAllowance): string {
+    const lines = new Map((this.order()?.lines ?? []).map((l) => [l.id, l]));
+    return a.lines.map((x) => this.product(lines.get(x.orderLineId)?.productId ?? '')?.code ?? '?').join(' · ');
+  }
+
+  askCancelAllowance(a: SalesAllowance): void {
+    this.cancelAllowanceReason.set('');
+    this.confirmCancelAllowance.set(a);
+  }
+
+  async doCancelAllowance(): Promise<void> {
+    const a = this.confirmCancelAllowance();
+    if (!a) return;
+    const ok = await this.attempt(() => this.orders.cancelAllowance(this.id()!, a.id, this.cancelAllowanceReason().trim()).then(() => true));
+    this.confirmCancelAllowance.set(null);
+    if (!ok) return;
+    this.notice.set('Đã huỷ phiếu giảm giá ' + a.code + '; công nợ phải thu và doanh thu tăng lại ' + this.money(a.amount) + '.');
   }
 
   // Phiếu xuất kho của đơn: new ones carry salesOrderId; demo ones mention the order / its trip.
