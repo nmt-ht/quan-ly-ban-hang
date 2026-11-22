@@ -88,6 +88,7 @@ export const routes: Routes = [
       { path: 'thu-chi/:id', loadComponent: () => import('./features/cash-vouchers/cash-voucher-view/cash-voucher-view.component').then((m) => m.CashVoucherViewComponent) },
       { path: 'cong-no/tuoi-no', loadComponent: () => import('./features/debt-aging/debt-aging.component').then((m) => m.DebtAgingComponent) },
 
+      { path: 'so-do/:key', title: 'Sơ đồ phân hệ', loadComponent: () => import('./features/feature-map/feature-map.component').then((m) => m.FeatureMapComponent) },
       { path: 'ke-toan', loadComponent: () => import('./features/accounting/accounting.component').then((m) => m.AccountingComponent) },
       { path: 'ke-toan/so-nhat-ky', loadComponent: () => import('./features/accounting/journal.component').then((m) => m.AccountingJournalComponent) },
       { path: 'ke-toan/but-toan', loadComponent: () => import('./features/accounting/manual-entry.component').then((m) => m.AccountingManualEntryComponent) },

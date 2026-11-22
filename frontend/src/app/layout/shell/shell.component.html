@@ -20,31 +20,56 @@
     <nav class="nav" aria-label="Điều hướng chính">
       @for (group of navGroups(); track group.label; let i = $index) {
         @if (group.label && !collapsed()) {
-          <button
-            type="button"
-            class="nav-group-toggle"
-            [attr.aria-expanded]="isOpen(group)"
-            [attr.aria-controls]="'nav-group-' + i"
-            (click)="toggleGroup(group)"
-          >
-            <app-nav-icon class="nav-group-chevron" name="chevron-down" />
-            <span class="nav-group-name">{{ group.label }}</span>
-          </button>
+          @if (group.hub) {
+            <!-- A main feature: the name opens its sơ đồ, the chevron folds the group. -->
+            <div class="nav-group-row">
+              <button
+                type="button"
+                class="nav-group-fold"
+                [attr.aria-expanded]="isOpen(group)"
+                [attr.aria-controls]="'nav-group-' + i"
+                [attr.aria-label]="(isOpen(group) ? 'Thu gọn ' : 'Mở ') + group.label"
+                (click)="toggleGroup(group)"
+              >
+                <app-nav-icon class="nav-group-chevron" name="chevron-down" />
+              </button>
+              <a class="nav-group-link" [routerLink]="group.hub" [class.active]="hubPath() === group.hub" [attr.aria-current]="hubPath() === group.hub ? 'page' : null" [title]="'Xem sơ đồ ' + group.label" (click)="closeMenu()">{{ group.label }}</a>
+            </div>
+          } @else {
+            <button
+              type="button"
+              class="nav-group-toggle"
+              [attr.aria-expanded]="isOpen(group)"
+              [attr.aria-controls]="'nav-group-' + i"
+              (click)="toggleGroup(group)"
+            >
+              <app-nav-icon class="nav-group-chevron" name="chevron-down" />
+              <span class="nav-group-name">{{ group.label }}</span>
+            </button>
+          }
         }
         <div class="nav-items" [id]="'nav-group-' + i" [class.is-closed]="!isOpen(group)" [attr.inert]="isOpen(group) ? null : ''">
           <div class="nav-items-inner">
-            @for (link of group.links; track link.path) {
-              <a
-                class="nav-link"
-                [routerLink]="link.path"
-                [class.active]="activePath() === link.path"
-                [attr.aria-current]="activePath() === link.path ? 'page' : null"
-                [title]="collapsed() ? link.label : ''"
-                (click)="closeMenu()"
-              >
-                <app-nav-icon class="nav-link-icon" [name]="link.icon" />
-                <span class="nav-link-label">{{ link.label }}</span>
-              </a>
+            @for (block of group.blocks; track block.key) {
+              <!-- Level 2: a quiet heading, always open (only the main feature above it folds); its links hang from a guide line. -->
+              @if (block.label && !collapsed()) {
+                <p class="nav-sub-label">{{ block.label }}</p>
+              }
+              <div class="nav-block" [class.has-heading]="!!block.label && !collapsed()">
+                @for (link of block.links; track link.path) {
+                  <a
+                    class="nav-link"
+                    [routerLink]="link.path"
+                    [class.active]="activePath() === link.path"
+                    [attr.aria-current]="activePath() === link.path ? 'page' : null"
+                    [title]="collapsed() ? link.label : ''"
+                    (click)="closeMenu()"
+                  >
+                    <app-nav-icon class="nav-link-icon" [name]="link.icon" />
+                    <span class="nav-link-label">{{ link.label }}</span>
+                  </a>
+                }
+              </div>
             }
           </div>
         </div>

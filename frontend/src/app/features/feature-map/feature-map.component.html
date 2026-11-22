@@ -1,0 +1,99 @@
+@if (def(); as d) {
+  <div class="page-header">
+    <div>
+      <h1>Sơ đồ {{ d.title.toLowerCase() }}</h1>
+      <p class="subtitle">{{ d.lead }}</p>
+    </div>
+  </div>
+
+  <nav class="fm-tabs" aria-label="Các phân hệ chính">
+    @for (m of maps; track m.key) {
+      <a class="fm-tab" [routerLink]="['/so-do', m.key]" [class.is-active]="m.key === d.key" [attr.aria-current]="m.key === d.key ? 'page' : null">{{ m.title }}</a>
+    }
+  </nav>
+
+  <!-- Màn rộng: sơ đồ. -->
+  @if (layout(); as l) {
+    <section class="card fm-desktop" aria-label="Sơ đồ">
+      <div class="fm-scroll">
+        <svg class="fm-svg" [style.width.px]="l.width" [style.min-width.px]="l.width < 980 ? l.width : 980" [attr.viewBox]="'0 0 ' + l.width + ' ' + l.height" role="group" [attr.aria-label]="'Sơ đồ ' + d.title">
+          <defs>
+            <marker id="fm-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 1 L 9 5 L 0 9 z" class="fm-arrowhead" />
+            </marker>
+          </defs>
+          @for (s of l.stageX; track s.label) {
+            <text class="fm-stage" [attr.x]="s.x" y="22">{{ s.label }}</text>
+          }
+          @for (e of l.edges; track $index) {
+            <path class="fm-edge" [attr.d]="e.d" marker-end="url(#fm-arrow)" />
+          }
+          @for (e of l.edges; track $index) {
+            @if (e.label) {
+              <!-- A chip, not loose text: it sits on the line, readable over whatever crosses it. -->
+              <g class="fm-chip">
+                <rect [attr.x]="e.lx - e.lw / 2" [attr.y]="e.ly - 11" [attr.width]="e.lw" height="22" rx="11" />
+                <text [attr.x]="e.lx" [attr.y]="e.ly + 4.5" text-anchor="middle">{{ e.label }}</text>
+              </g>
+            }
+          }
+          @for (nd of l.nodes; track nd.id) {
+            <foreignObject [attr.x]="nd.x" [attr.y]="nd.y" [attr.width]="l.nodeW" [attr.height]="nodeH">
+              @if (can(nd.path)) {
+                <a class="fm-node" [class.is-ext]="nd.own === false" [routerLink]="nd.path" [title]="nd.hint">
+                  <app-nav-icon class="fm-node-icon" [name]="nd.icon" />
+                  <span class="fm-node-text"><span class="fm-node-label">{{ nd.label }}</span><span class="fm-node-hint">{{ nd.hint }}</span></span>
+                </a>
+              } @else {
+                <span class="fm-node is-off" [class.is-ext]="nd.own === false" title="Chức vụ của bạn chưa được mở màn này">
+                  <app-nav-icon class="fm-node-icon" [name]="nd.icon" />
+                  <span class="fm-node-text"><span class="fm-node-label">{{ nd.label }}</span><span class="fm-node-hint">{{ nd.hint }}</span></span>
+                </span>
+              }
+            </foreignObject>
+          }
+        </svg>
+      </div>
+      <p class="fm-legend">
+        <span class="fm-key"><span class="fm-swatch"></span>Màn của phân hệ này</span>
+        <span class="fm-key"><span class="fm-swatch is-ext"></span>Màn của phân hệ khác, nơi dữ liệu đi qua</span>
+      </p>
+    </section>
+  }
+
+  <!-- Điện thoại: các bước theo thứ tự. -->
+  <ol class="fm-steps">
+    @for (s of steps(); track s.name; let i = $index) {
+      <li class="fm-step">
+        <h2 class="fm-step-name"><span class="fm-step-no num">{{ i + 1 }}</span>{{ s.name }}</h2>
+        <ul class="fm-step-list">
+          @for (nd of s.nodes; track nd.id) {
+            <li>
+              @if (can(nd.path)) {
+                <a class="fm-card" [class.is-ext]="nd.own === false" [routerLink]="nd.path">
+                  <app-nav-icon class="fm-node-icon" [name]="nd.icon" />
+                  <span class="fm-node-text">
+                    <span class="fm-node-label">{{ nd.label }}</span>
+                    <span class="fm-node-hint">{{ nd.hint }}</span>
+                    @if (nd.from.length) { <span class="fm-rel">Nhận từ {{ nd.from.join(', ') }}</span> }
+                    @if (nd.to.length) { <span class="fm-rel">Đi sang {{ nd.to.join(', ') }}</span> }
+                  </span>
+                </a>
+              } @else {
+                <span class="fm-card is-off" [class.is-ext]="nd.own === false">
+                  <app-nav-icon class="fm-node-icon" [name]="nd.icon" />
+                  <span class="fm-node-text"><span class="fm-node-label">{{ nd.label }}</span><span class="fm-node-hint">Chức vụ của bạn chưa được mở màn này</span></span>
+                </span>
+              }
+            </li>
+          }
+        </ul>
+      </li>
+    }
+  </ol>
+} @else {
+  <div class="card empty-state">
+    <h3>Không có sơ đồ này</h3>
+    <p>Chọn một phân hệ ở menu bên trái.</p>
+  </div>
+}
