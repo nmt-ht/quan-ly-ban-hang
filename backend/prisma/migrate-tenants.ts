@@ -5,7 +5,7 @@
 import 'dotenv/config';
 import pg from 'pg';
 import { describeUrl, unseal } from '../src/platform/secret-box.js';
-import { errorTail, latestMigration, migrateDeploy } from '../src/platform/tenant-commands.js';
+import { errorTail, latestMigration, migrateDeploy, runScript } from '../src/platform/tenant-commands.js';
 
 async function main() {
   if (!process.env.PLATFORM_DATABASE_URL) return;
@@ -22,6 +22,9 @@ async function main() {
       if (url === process.env.DATABASE_URL) continue; // already migrated by the step before
       const r = await migrateDeploy(url);
       if (r.ok) {
+        // Quyền thêm sau khi doanh nghiệp được tạo (vd. hợp đồng) phải tới được CEO của doanh nghiệp đó.
+        const perms = await runScript('prisma/sync-permissions.ts', { DATABASE_URL: url });
+        if (!perms.ok) console.error(`Doanh nghiệp ${row.code}: đồng bộ quyền lỗi\n${errorTail(perms.output)}`);
         await pool.query('UPDATE platform_tenant SET migrated_at = now(), schema_version = $2, last_error = NULL, updated_at = now() WHERE code = $1', [row.code, version]);
         console.log(`Doanh nghiệp ${row.code} (${describeUrl(url)}): cấu trúc dữ liệu đã cập nhật.`);
       } else {

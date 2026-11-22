@@ -1,5 +1,6 @@
 // Runs after `prisma migrate deploy` on every start (Render + Neon):
 // - database without any user → seed the permission catalog, roles, base lookups and the admin account;
+// - database with users → only bring the permission catalog up to date and give the CEO every code (sync-permissions.ts);
 // - SEED_DEMO=true → load the demo data too (prisma/seed-demo.ts skips itself once KH0000001 exists),
 //   so a restart never touches real data and a missed demo load is caught up on the next start.
 //
@@ -22,6 +23,7 @@ async function main() {
 
   if (users > 0) {
     console.log(`Database đã có ${users} người dùng — bỏ qua seed danh mục và admin.`);
+    run('prisma/sync-permissions.ts'); // quyền thêm sau khi seed (vd. hợp đồng) phải tới được CEO
   } else {
     const admin = process.env.SEED_ADMIN_PASSWORD ?? '';
     if (admin.length < 10 || admin === 'ChangeMe123!') {
