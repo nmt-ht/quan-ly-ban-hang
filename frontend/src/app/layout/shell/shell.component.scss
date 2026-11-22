@@ -193,9 +193,9 @@
   transition: background-color var(--dur-short) var(--ease-out);
 }
 
-// Every icon wears its phân hệ's hue (the group's data-module), so the menu reads as colour-coded areas.
+// Menu icons are quiet (muted); only the page you are on takes the accent.
 .nav-link-icon {
-  color: var(--color-accent);
+  color: var(--color-muted);
   transition: color var(--dur-short) var(--ease-out);
 }
 
@@ -206,7 +206,7 @@
 
 @media (hover: hover) {
   .nav-link:hover .nav-link-icon {
-    color: var(--color-accent-hover);
+    color: var(--color-ink);
   }
 }
 
@@ -311,11 +311,11 @@
   padding: 0 var(--space-md);
   border-bottom: var(--rule-hair) solid var(--color-rule);
   background: var(--color-surface);
-  // The page's phân hệ along the top edge (moss on Tổng quan / Báo cáo).
+  // The brand accent along the top edge.
   box-shadow: inset 0 3px 0 var(--color-accent);
 }
 
-// Đang chuyển trang: một vệt màu phân hệ chạy dọc mép dưới topbar.
+// Đang chuyển trang: một vệt màu nhấn chạy dọc mép dưới topbar.
 .nav-progress {
   position: absolute;
   left: 0;

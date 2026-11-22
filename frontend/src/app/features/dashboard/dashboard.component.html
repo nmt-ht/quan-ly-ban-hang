@@ -149,7 +149,7 @@
   </section>
 </div>
 
-<!-- 2. Từng mảng: một thẻ cho mỗi phân hệ, trong màu của phân hệ đó (data-module). Trên cùng là con số của kỳ, so với kỳ
+<!-- 2. Từng mảng: một thẻ cho mỗi phân hệ, cùng một màu nhấn. Trên cùng là con số của kỳ, so với kỳ
      trước và đường 12 tháng; dưới là trạng thái Ổn / Cần theo dõi / Có vấn đề (lấy từ "Cần xử lý") và các dòng chi tiết. -->
 @let sp = sparks();
 @let a = attention();
@@ -159,7 +159,7 @@
   <p class="subtitle">Con số theo kỳ đang xem; đường nhỏ dưới mỗi con số là 12 tháng gần nhất.</p>
 </header>
 <div class="db-mods" [class.has-debt]="!!debts()">
-  <section class="card db-mod db-mod-sell" data-module="sell" [attr.data-level]="areaLevel('sell')" aria-labelledby="db-a-sell">
+  <section class="card db-mod db-mod-sell" [attr.data-level]="areaLevel('sell')" aria-labelledby="db-a-sell">
     <header class="db-mod-head">
       <h3 id="db-a-sell">Bán hàng &amp; giao hàng</h3>
       <span class="db-chip">{{ levelName[areaLevel('sell')] }}</span>
@@ -185,7 +185,7 @@
     <a class="db-more" allowedLink routerLink="/don-hang">Xem chứng từ bán hàng</a>
   </section>
 
-  <section class="card db-mod db-mod-stock" data-module="stock" [attr.data-level]="areaLevel('stock')" aria-labelledby="db-a-stock">
+  <section class="card db-mod db-mod-stock" [attr.data-level]="areaLevel('stock')" aria-labelledby="db-a-stock">
     <header class="db-mod-head">
       <h3 id="db-a-stock">Kho &amp; mua hàng</h3>
       <span class="db-chip">{{ levelName[areaLevel('stock')] }}</span>
@@ -265,7 +265,7 @@
     <a class="db-more" allowedLink routerLink="/bao-cao" [queryParams]="{ name: showProfit() ? 'loi-nhuan' : 'chiet-khau' }">{{ showProfit() ? 'Xem báo cáo lãi gộp' : 'Xem báo cáo chiết khấu' }}</a>
   </section>
 
-  <section class="card db-mod db-mod-cash" data-module="cash" [attr.data-level]="areaLevel('cash')" aria-labelledby="db-a-cash">
+  <section class="card db-mod db-mod-cash" [attr.data-level]="areaLevel('cash')" aria-labelledby="db-a-cash">
     <header class="db-mod-head">
       <h3 id="db-a-cash">Dòng tiền</h3>
       <span class="db-chip">{{ levelName[areaLevel('cash')] }}</span>
@@ -304,7 +304,7 @@
   </section>
 
   @if (debts(); as dt) {
-  <section class="card db-mod db-mod-debt" data-module="purchase" [attr.data-level]="areaLevel('debt')" aria-labelledby="db-a-debt">
+  <section class="card db-mod db-mod-debt" [attr.data-level]="areaLevel('debt')" aria-labelledby="db-a-debt">
     <header class="db-mod-head">
       <h3 id="db-a-debt">Công nợ</h3>
       <span class="db-chip">{{ levelName[areaLevel('debt')] }}</span>

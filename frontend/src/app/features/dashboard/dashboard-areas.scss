@@ -133,8 +133,7 @@
 }
 
 // ---------- phân hệ panels ----------
-// One panel per phân hệ, each in its own hue (data-module remaps the accent): a 3 px rule in the hue on top, the
-// period's figure on the hue's tint, then the status chip's detail rows. Panels in a row share one height and pin
+// One panel per phân hệ, all in the one accent: the period's figure, then the status chip's detail rows. Panels in a row share one height and pin
 // "Xem …" to the foot.  < 720 px one column · 720–1359 px two (Công nợ full width) · ≥ 1360 px 3 + 2.
 
 .db-mods {
@@ -183,7 +182,6 @@
   flex-direction: column;
   gap: var(--space-xs);
   min-width: 0;
-  border-top: 3px solid var(--color-accent);
 }
 
 .db-mod-head {
@@ -194,7 +192,7 @@
 
   h3 {
     margin: 0;
-    color: var(--color-accent);
+    color: var(--color-ink);
     font-size: var(--text-md);
   }
 }

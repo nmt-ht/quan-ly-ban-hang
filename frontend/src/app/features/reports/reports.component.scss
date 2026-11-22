@@ -314,7 +314,7 @@
   }
 }
 
-// Phân hệ icon tile: the hue on its tint (the group / card carries data-module, so this reads the accent).
+// Phân hệ icon tile: neutral, the accent is kept for actions.
 .rc-tile {
   --icon-size: 20px;
   display: inline-grid;
@@ -323,8 +323,8 @@
   width: 2.5rem;
   height: 2.5rem;
   border-radius: var(--radius-control);
-  background: var(--color-accent-tint);
-  color: var(--color-accent);
+  background: var(--color-paper-2);
+  color: var(--color-ink-2);
 
   &.is-small {
     --icon-size: 16px;

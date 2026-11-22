@@ -93,7 +93,7 @@
         <h2 class="rc-section-head" id="rc-featured-head">Hay dùng</h2>
         <ul class="rc-cards">
           @for (f of featured; track f.def.slug) {
-            <li [attr.data-module]="f.group.module ?? null">
+            <li>
               <a class="rc-card" routerLink="/bao-cao" [queryParams]="{ name: f.def.slug }" [title]="f.def.summary">
                 <span class="rc-tile"><app-nav-icon [name]="f.icon" /></span>
                 <span class="rc-card-text">
@@ -116,7 +116,7 @@
 
   <div class="rc-index" [class.is-searching]="!!query()">
     @for (s of sections(); track s.group.key) {
-      <section class="rc-group" [attr.data-module]="s.group.module ?? null" [attr.aria-labelledby]="'rc-' + s.group.key">
+      <section class="rc-group" [attr.aria-labelledby]="'rc-' + s.group.key">
         <h3 class="rc-group-head" [id]="'rc-' + s.group.key" [title]="s.group.description">
           <span class="rc-tile is-small"><app-nav-icon [name]="s.group.icon" /></span>
           <span class="rc-group-name">{{ s.group.label }}</span>

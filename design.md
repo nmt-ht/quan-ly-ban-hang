@@ -4,8 +4,8 @@ A locked design system for the Ninh Trang ERP frontend (`frontend/`). Every page
 redesign reads this file before emitting code. Do not regenerate per page —
 extend or amend this file when the system needs to grow.
 
-Codename: **Sổ cái** (ledger) — ledger paper, moss ink, dense. Since 25/10/2026 (Hallmark redesign, restyle):
-**one hue per phân hệ** on that paper — fresh and friendly, moss stays the brand.
+Codename: **Sổ cái** (ledger) — ledger paper, moss ink, dense. Since 22/11/2026 (Hallmark redesign): **one accent on every
+page** — moss. (From 25/10 to 22/11/2026 each phân hệ wore its own hue; that was taken out, see "One accent" below.)
 
 ## Audience · use · tone
 - **Audience** — office, sales, warehouse and accounting staff at Ninh Trang who
@@ -63,40 +63,25 @@ Axes: light / geometric-sans / chromatic-moss.
   a tint (active menu item, selected tab / segment, pressed toggle, palette row) takes `Highlight` / `HighlightText`;
   small swatches whose colour is the meaning (aging dots, Màu hiển thị swatches) opt out with `forced-color-adjust`.
   A new tint-only state must be added to that list.
-- **Module hues stay clear of status hues.** A status colour must never be mistaken for the page's own accent:
-  every module accent sits ≥ 0.09 OKLab ΔE from every status colour, light and dark (measured on the text colours;
-  ≥ 0.10 is "clearly different"). Before the retune the brand moss and success green were 0.037 apart (0.030
-  dark) — the same colour — and Kho's orange sat 0.05–0.06 from both warning and danger, so on Tồn kho a
-  low-stock tile looked like any other tile. The retune kept every module in its family and moved what was cheapest:
-  danger → crimson (hue 16), warning → golden amber (84, darker), success → truer green (144), info 239; moss darker
-  and a touch greener (40%, 158), bán hàng → indigo-blue (272), dòng tiền teal → 185; dark mode spreads them by
-  lightness too (moss 68 %, success 80 %). Lowest pairs now: bán hàng / info and dòng tiền / info 0.093. The whole
-  wheel is full — the only free family left is berry / magenta (330–350°); a new module goes there or reuses slate.
+- **The accent is never mistaken for a status.** Moss (hue 158) and success green (144) are close in hue, so they are told
+  apart by what they do, not by hue alone: the accent fills actions, selected states and focus; success only ever appears
+  as a text + tint pair next to a word or an icon ("Đã thu", ✓), never as a button or a selected row. Danger is crimson
+  (16), warning golden amber (84–88), info blue (239); dark mode spreads them by lightness (moss 68 %, success 80 %).
 - **Browser chrome follows the theme.** ThemeService writes `--color-paper` (as hex) into `<meta name="theme-color">`;
   index.html carries the light paper for first paint.
 
-### Phân hệ colours (module hues)
-Each menu group is a phân hệ with its own hue; the page area and each sidebar group carry `data-module`
-(`layout/nav-items.ts` › `moduleOf(url)`, longest matching menu path), and `[data-module]` in tokens.css maps that
-module onto `--color-accent`, `--color-accent-hover`, `--color-accent-tint` and `--color-focus`. So everything that
-already reads the accent — primary buttons, links, selected tabs, focus rings, tints, the active menu item — takes
-the module's hue with no per-page CSS.
+### One accent (since 22/11/2026)
+Every page, in every phân hệ, uses the same moss accent (`--color-accent`, `-hover`, `-tint`, `--color-focus`; light
+oklch(40% 0.09 158), dark oklch(68% 0.11 158)). There is no per-module remapping: the `data-module` attribute,
+`moduleOf()`, the `--mod-*` tokens and `ModuleKey` are gone, and a new menu group or report group names nothing but its label.
 
-| Phân hệ | Menu group | `data-module` | Light accent | Dark accent |
-|---|---|---|---|---|
-| Tổng quan, Báo cáo, đăng nhập | (ungrouped) | none — the brand | moss oklch(40% 0.09 158) | oklch(68% 0.11 158) |
-| Bán hàng (khách, báo giá, chính sách giá, chương trình khuyến mại, chứng từ bán hàng, chuyến, xe, phải thu, nhắc nợ) | Bán hàng | `sell` | indigo-blue oklch(46% 0.16 272) | oklch(72% 0.13 272) |
-| Kho (vật tư hàng hoá, tồn kho, nhập, xuất kho, lệnh SX) | Kho | `stock` | orange oklch(52% 0.142 48) | oklch(72% 0.14 55) |
-| Mua hàng (NCC, đơn mua hàng, phải trả) | Mua hàng | `purchase` | violet oklch(48% 0.16 300) | oklch(76% 0.12 300) |
-| Quỹ & ngân hàng (thu, chi tiền, phân tích tuổi nợ) | Quỹ & ngân hàng | `cash` | teal oklch(46% 0.081 185) | oklch(74% 0.11 185) |
-| Danh mục (kho, nhóm VTHH, thẻ) + Hệ thống (doanh nghiệp, người dùng, vai trò, màu, nhật ký) | Danh mục · Hệ thống | `settings` | slate oklch(44% 0.04 255) | oklch(78% 0.04 255) |
-
-Every module passes ≥ 5:1 for white text on its fill, its text on the surface and its text on its tint, in both
-modes. Where the hue shows: menu icons (always, in their group's hue), the active menu item, a 3 px rule along the
-top of the topbar, a 3 rem rule under the page title, primary actions, selected tabs, links, focus, and the figure
-tiles of `dl.list-totals` (accent tint; a warning / danger tile keeps its status tint). Status colours never change
-with the module, and charts keep `--chart-*`. A new menu group names its `module`; a new module = one palette block
-(light + dark) and one `[data-module]` rule in tokens.css, contrast checked.
+Where the accent shows (≤ 5 % of a viewport): primary buttons, links, the selected menu item (tint + 3 px bar), selected
+tabs / segments, focus rings, the 3 px edge along the top of the topbar and the progress streak under it. Where it does
+**not**: menu icons (muted, ink on hover), figure tiles of `dl.list-totals` (neutral paper, status tint only for a
+problem), icon tiles in Báo cáo and Thông báo (neutral paper), the Tổng quan area panels (no coloured rule or heading).
+Charts keep to the one hue: series differ by lightness, never by a second colour (`--chart-1` moss, `--chart-2` neutral
+grey, `--chart-3` ink line; dark mode mirrors them). Status colours (danger / success / warning / info) keep their
+meaning everywhere. User-chosen tag colours (Màu hiển thị) are data, not theme, and stay as picked.
 
 ## Typography
 - Display: Be Vietnam Pro 600, tracking -0.01em, roman only (no italic headings)
@@ -176,13 +161,13 @@ is renamed too. A new screen takes its MISA name first; when MISA has none (Chuy
 đánh dấu, Nhắc nợ, Màu hiển thị) keep a plain Vietnamese noun phrase in the same style.
 
 ## Navigation
-N3 side-rail (232 px, collapsible to 64 px). Active item = its phân hệ's tint + 3 px
-bar in its hue. Folding a group is instant (a height is never animated). Under 768 px the rail becomes an off-canvas drawer opened by the
+N3 side-rail (232 px, collapsible to 64 px). Active item = the accent tint + 3 px
+bar. Folding a group is instant (a height is never animated). Under 768 px the rail becomes an off-canvas drawer opened by the
 "Menu" button (Esc / scrim closes).
 
 Icons: one hand-drawn set in `frontend/src/app/layout/nav-icon/` — 24 px grid,
-1.75 stroke, round caps/joins, `currentColor`, rendered at 18 px. In the menu every
-icon wears its group's phân hệ hue (hover: the darker step). Collapsed rail shows icon only; the label
+1.75 stroke, round caps/joins, `currentColor`, rendered at 18 px. In the menu icons are
+muted (hover: ink; the active item's icon takes the accent). Collapsed rail shows icon only; the label
 stays as the accessible name + `title`. Add new icons to that component — never
 mix in a second icon library or emoji.
 
@@ -316,8 +301,8 @@ Kho only).
   warning fill, danger once one of them is Nghiêm trọng, always a number (9+). Panel (25 rem, `--shadow-pop`):
   header = "Thông báo" · "Cập nhật HH:mm" · reload icon (disabled while reading). Body is **grouped by level**: a group
   head says the word once with its dot and count ("● Nghiêm trọng 3", danger / warning text) — no chip on every row.
-  Row = **the icon of the screen it opens, in that phân hệ's tint** (`menuEntryOf(url)` in nav-items.ts, so it matches
-  the left menu: tuổi nợ → hourglass in teal, tồn kho → layers in orange) · title (13 px / 600) · why (muted, ≤ 2 lines)
+  Row = **the icon of the screen it opens, on neutral paper** (`menuEntryOf(url)` in nav-items.ts, so it matches
+  the left menu: tuổi nợ → hourglass, tồn kho → layers) · title (13 px / 600) · why (muted, ≤ 2 lines)
   · chevron · ✓ while unread; the action word is read to screen readers only. Unread rows carry an **ink** dot and a
   paper fill (never the page accent: moss / orange would read as ổn / cảnh báo). Footer: one link to Tổng
   quan. States: loading = three still placeholder rows (no shimmer) · error = alert icon + reason + Thử lại · clear =
@@ -447,7 +432,7 @@ Kho only).
 
 ## Totals strip (`dl.list-totals`)
 - The few numbers over a list (or inside a record tab) are small tiles: label on top (12 px muted), the number
-  under it (16 px, 600). Mark a problem number with `.text-warning` / `.text-danger` on its `dd` and the tile turns
+  under it (16 px, 600), on neutral paper (`--color-paper-2`). Mark a problem number with `.text-warning` / `.text-danger` on its `dd` and the tile turns
   tinted with a dot before the label — no per-page CSS. Inside a card the tiles sit on paper. Phones: two per row.
 
 ## Nhật ký on a record page
@@ -491,11 +476,9 @@ Kho only).
   Esc clears; no hit = "Không tìm thấy báo cáo" + a hint ("ton kho") + the Hay dùng reports as pills + Xoá tìm kiếm.
   (2) "Xem gần đây": one quiet line of pill links (last 4 opened in this browser, `nt.reportsRecent`). (3) "Hay dùng"
   (`FEATURED_REPORTS` in the registry: Doanh thu, Lãi gộp, Tồn kho hiện tại, Tuổi nợ, Sổ quỹ): cards with a 40 px icon
-  tile in the group's phân hệ tint, name + group; 2 across on a phone, 3 on a tablet, 5 wide. Both hidden while
+  neutral tile, name + group; 2 across on a phone, 3 on a tablet, 5 wide. Both hidden while
   searching. (4) "Tất cả báo cáo": an even grid of group cards (container queries on the page width: 1 → 2 → 3 → 4
-  columns; cards on one row share its height). A group card carries its phân hệ (`ReportGroup.module`: Bán hàng and
-  Giao hàng = sell, Kho and Sản xuất = stock, Mua hàng = purchase, Công nợ and Dòng tiền = cash, Lợi nhuận = moss):
-  small icon tile + name + count pill over a hairline, then its reports as whole-row links ≥ 48 px tall — report icon
+  columns; cards on one row share its height). A group card: small icon tile + name + count pill over a hairline, then its reports as whole-row links ≥ 48 px tall — report icon
   (`reportIcon`, muted) · name 600 sm over a one-line muted xs summary (ellipsis; full text in `title`, two lines while
   searching) · chevron; hover = paper-2 fill, name/icon/chevron in the accent. Only reports the role may open are
   listed (group permission) and empty groups go. Not-built reports stay listed last, quieter, tagged "Sắp có".

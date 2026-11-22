@@ -74,7 +74,7 @@
             @for (r of g.rows; track r.alert.key) {
               <li class="alert-item" [class.is-unread]="r.unread">
                 <a class="alert-row" [routerLink]="r.alert.to" [queryParams]="r.alert.query" (click)="go($event, r.alert)">
-                  <span class="alert-icon" [attr.data-module]="r.module" aria-hidden="true"><app-nav-icon [name]="r.icon" /></span>
+                  <span class="alert-icon" aria-hidden="true"><app-nav-icon [name]="r.icon" /></span>
                   <span class="alert-text">
                     <strong>@if (r.unread) { <span class="alert-new"><span class="visually-hidden">Chưa đọc: </span></span> }{{ r.alert.title }}</strong>
                     <span class="alert-detail">{{ r.alert.detail }}</span>

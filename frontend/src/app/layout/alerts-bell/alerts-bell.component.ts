@@ -3,13 +3,12 @@ import { Router, RouterLink } from '@angular/router';
 import { Alert, AlertsService } from '../../core/services/alerts.service';
 import { AuthService } from '../../core/services/auth.service';
 import { NavIconComponent, NavIconName } from '../nav-icon/nav-icon.component';
-import { ModuleKey, menuEntryOf } from '../nav-items';
+import { menuEntryOf } from '../nav-items';
 
 interface Row {
   alert: Alert;
   /** The icon and phân hệ of the screen the row opens — the left menu's, so the two read alike. */
   icon: NavIconName;
-  module: ModuleKey | null;
   unread: boolean;
 }
 
@@ -48,7 +47,7 @@ export class AlertsBellComponent {
     const list = this.view() === 'unread' ? this.alerts.unread() : this.alerts.items();
     const rows: Row[] = list.map((alert) => {
       const entry = menuEntryOf(alert.to);
-      return { alert, icon: entry?.link.icon ?? 'alert', module: entry?.module ?? null, unread: !this.alerts.isRead(alert) };
+      return { alert, icon: entry?.link.icon ?? 'alert', unread: !this.alerts.isRead(alert) };
     });
     return [
       { level: 'bad' as const, title: 'Nghiêm trọng', rows: rows.filter((r) => r.alert.level === 'bad') },
