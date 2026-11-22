@@ -9,6 +9,7 @@ import {
 } from '../models/books-vat.models';
 import { ClosingOverview, ClosingPreviewView } from '../models/closing.models';
 import { CitInput, CitOverview, CitPreview } from '../models/cit.models';
+import { FinancialPositionView, IncomeStatementTt133View, JournalBookView } from '../models/statements.models';
 
 export interface EmployeeInput {
   name: string; center: PayrollCenterKey; baseSalary: number; allowance?: number; insuranceSalary?: number | null; dependents?: number; note?: string;
@@ -200,6 +201,20 @@ export class AccountingService {
 
   partnerSummary(code: string, from: string, to: string) {
     return this.api.get<PartnerSummaryView>('/accounting/books/partners?' + new URLSearchParams({ code, from, to }).toString());
+  }
+
+  /** Sổ nhật ký chung S03a-DNN cho khoảng ngày (theo ngày tăng dần, đủ dòng Nợ / Có). */
+  journalBook(from: string, to: string) {
+    return this.api.get<JournalBookView>('/accounting/books/journal?' + new URLSearchParams({ from, to }).toString());
+  }
+
+  // ---------- Báo cáo tài chính theo mẫu TT133 ----------
+  financialPosition(date: string) {
+    return this.api.get<FinancialPositionView>('/accounting/statements/financial-position?date=' + date);
+  }
+
+  incomeStatementTt133(from: string, to: string) {
+    return this.api.get<IncomeStatementTt133View>('/accounting/statements/income-statement?' + new URLSearchParams({ from, to }).toString());
   }
 
   // ---------- Thuế GTGT ----------

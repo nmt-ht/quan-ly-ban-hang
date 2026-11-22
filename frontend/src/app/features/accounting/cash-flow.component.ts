@@ -7,6 +7,9 @@ import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { formatVnd } from '../../shared/format.util';
 import { formatDay } from '../../shared/period';
+import { PrintService } from '../../shared/print/print.service';
+import { StatementPrintComponent, StatementPrintLine } from '../../shared/print/tt133/statement-print.component';
+import { cashFlowLines, yearBefore } from '../../shared/print/tt133/tt133-books';
 import { CashOpsService } from '../cash-ops/cash-ops.service';
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -25,14 +28,16 @@ const TAIL = ['50', '60', '61', '70'];
 @Component({
   selector: 'app-accounting-cash-flow',
   standalone: true,
-  imports: [FormsModule, NavIconComponent],
+  imports: [FormsModule, NavIconComponent, StatementPrintComponent],
   template: `
+   <div class="screen-only">
     <div class="page-header">
       <div>
         <h1>Báo cáo lưu chuyển tiền tệ</h1>
         <p class="subtitle">Phương pháp trực tiếp (B03-DNN). Phân loại theo tài khoản đối ứng của bút toán tiền — cách xếp từng tài khoản vào chỉ tiêu nên được kế toán trưởng xác nhận.</p>
       </div>
       <div class="toolbar">
+        <button type="button" class="btn" [disabled]="!data() || printBusy()" (click)="printReport()"><app-nav-icon name="printer" />In báo cáo B03-DNN</button>
         <button type="button" class="btn" [disabled]="!data()" (click)="exportExcel()"><app-nav-icon name="download" />Xuất Excel</button>
       </div>
     </div>
@@ -98,11 +103,19 @@ const TAIL = ['50', '60', '61', '70'];
     } @else if (!failure()) {
       <div class="empty-state"><h3>Đang tính số liệu…</h3></div>
     }
+   </div>
+
+   @if (doc(); as lines) {
+     <app-statement-print
+       formNo="B03-DNN" title="BÁO CÁO LƯU CHUYỂN TIỀN TỆ" [sub]="docSub()" sub2="(Theo phương pháp trực tiếp) · Đơn vị tính: đồng"
+       [heads]="['Kỳ này', 'Kỳ trước']" [lines]="lines" />
+   }
   `,
   styles: [`.year-input { width: 5.5rem; }`],
 })
 export class AccountingCashFlowComponent {
   private readonly svc = inject(CashOpsService);
+  private readonly printer = inject(PrintService);
   readonly money = formatVnd;
   readonly formatDay = formatDay;
   readonly sections = SECTIONS;
@@ -122,6 +135,10 @@ export class AccountingCashFlowComponent {
 
   readonly data = signal<CashFlowView | null>(null);
   readonly failure = signal('');
+  /** Báo cáo B03-DNN đang dựng để in (chỉ có trong lúc in). */
+  readonly doc = signal<StatementPrintLine[] | null>(null);
+  readonly docSub = signal('');
+  readonly printBusy = signal(false);
 
   constructor() { this.load(); }
 
@@ -144,6 +161,24 @@ export class AccountingCashFlowComponent {
     const { from, to } = this.range();
     try { this.data.set(await this.svc.cashFlow(from, to)); }
     catch (e) { this.data.set(null); this.failure.set(errorText(e)); }
+  }
+
+  async printReport() {
+    const d = this.data();
+    if (!d) return;
+    this.printBusy.set(true);
+    this.failure.set('');
+    try {
+      // Cột kỳ trước: cùng khoảng ngày năm trước (trước ngày bắt đầu ghi sổ thì toàn số 0).
+      const prior = await this.svc.cashFlow(yearBefore(d.from), yearBefore(d.to)).catch(() => null);
+      const lines = cashFlowLines(d, prior);
+      this.docSub.set(`Từ ngày ${formatDay(d.from)} đến ngày ${formatDay(d.to)}`);
+      await this.printer.print('tt133-b03', 'A4', () => this.doc.set(lines), () => this.doc.set(null));
+    } catch (e) {
+      this.failure.set(errorText(e));
+    } finally {
+      this.printBusy.set(false);
+    }
   }
 
   async exportExcel() {

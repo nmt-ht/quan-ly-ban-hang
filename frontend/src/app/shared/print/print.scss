@@ -161,6 +161,58 @@
   font-size: 10pt;
 }
 
+// Mẫu số của biểu mẫu kế toán theo Thông tư 133 (sổ, báo cáo tài chính), thay cho "Số:".
+.pd-formno {
+  display: block;
+  max-width: 62mm;
+  margin-left: auto;
+  text-align: center;
+  line-height: 1.35;
+}
+
+.pd-formno strong {
+  display: block;
+  font-size: 10pt;
+}
+
+.pd-formno small {
+  display: block;
+  margin-top: 0.8mm;
+  font-size: 7.5pt;
+  color: var(--pr-ink-2);
+}
+
+// Sổ kế toán: số liệu căn phải, dòng cộng / số dư tô nền, tiêu đề cột hai tầng.
+.pd-table.pd-book td.num-cell {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-table.pd-book .open td,
+.pd-table.pd-book .sum td {
+  background: var(--pr-fill);
+  font-weight: 700;
+}
+
+// Báo cáo tài chính: chỉ tiêu thụt theo cấp, mã số và số liệu thẳng cột.
+.pd-table.pd-statement td.label-l1 {
+  padding-left: 5mm;
+}
+
+.pd-table.pd-statement td.label-l2 {
+  padding-left: 10mm;
+}
+
+.pd-table.pd-statement tr.bold td {
+  font-weight: 700;
+}
+
+.pd-table.pd-statement td.code-cell {
+  width: 14mm;
+  text-align: center;
+}
+
 .pd-stamp {
   display: inline-block;
   margin-top: 2mm;

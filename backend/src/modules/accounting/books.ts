@@ -90,6 +90,27 @@ export class BooksService {
     };
   }
 
+  /** Sổ nhật ký chung (S03a-DNN) cho khoảng ngày: bút toán theo ngày tăng dần, mỗi bút toán kèm các dòng Nợ / Có. */
+  async journalBook(q: { from?: string; to?: string }) {
+    if (!q.from || !q.to || !DAY.test(q.from) || !DAY.test(q.to)) throw new BadRequestException('Chọn khoảng ngày (từ ngày – đến ngày).');
+    if (q.from > q.to) throw new BadRequestException('Từ ngày phải trước đến ngày.');
+    const entries = await this.prisma.journalEntry.findMany({
+      where: { date: { gte: fromDay(q.from)!, lt: nextDay(q.to) } },
+      orderBy: [{ date: 'asc' }, { code: 'asc' }],
+      take: MAX_BOOK_ROWS + 1,
+      include: { lines: { orderBy: [{ debit: 'desc' }, { id: 'asc' }] } },
+    });
+    const truncated = entries.length > MAX_BOOK_ROWS;
+    const used = truncated ? entries.slice(0, MAX_BOOK_ROWS) : entries;
+    return {
+      from: q.from, to: q.to, truncated,
+      rows: used.map((e) => ({
+        id: e.id, code: e.code, date: toDay(e.date)!, description: e.description,
+        lines: e.lines.map((l) => ({ accountCode: l.accountCode, debit: num(l.debit), credit: num(l.credit) })),
+      })),
+    };
+  }
+
   /** Tổng hợp công nợ 131 / 331 theo đối tượng: số dư đầu kỳ, phát sinh Nợ/Có, số dư cuối kỳ. */
   async partnerSummary(q: { code?: string; from?: string; to?: string }) {
     const r = range(q.from, q.to);
@@ -151,6 +172,12 @@ export class BooksController {
   @Get('account')
   account(@Query('code') code?: string, @Query('from') from?: string, @Query('to') to?: string, @Query('partnerId') partnerId?: string) {
     return this.svc.accountBook({ code: code?.trim(), from: from?.trim(), to: to?.trim(), partnerId: partnerId?.trim() || undefined });
+  }
+
+  @RequirePermissions('accounting.view')
+  @Get('journal')
+  journal(@Query('from') from?: string, @Query('to') to?: string) {
+    return this.svc.journalBook({ from: from?.trim(), to: to?.trim() });
   }
 
   @RequirePermissions('accounting.view')

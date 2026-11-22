@@ -30,6 +30,12 @@ export interface PrintSigner {
       <header class="pd-head">
         <app-company-letterhead class="pd-brand" />
         <div class="pd-ref">
+          @if (formNo()) {
+            <div class="pd-formno">
+              <strong>Mẫu số {{ formNo() }}</strong>
+              <small>(Ban hành theo Thông tư số 133/2016/TT-BTC ngày 26/8/2016 của Bộ Tài chính)</small>
+            </div>
+          }
           @if (no()) {
             <div>Số: <strong class="num">{{ no() }}</strong></div>
           }
@@ -79,6 +85,8 @@ export class PrintDocumentComponent {
 
   readonly title = input.required<string>();
   readonly no = input<string | undefined>();
+  /** Mẫu số theo Thông tư 133 của sổ / báo cáo kế toán (S03a-DNN, B01b-DNN…): in thay cho "Số:". */
+  readonly formNo = input<string | undefined>();
   /** ISO day: printed as "Ngày dd tháng mm năm yyyy" under the title. */
   readonly date = input<string | undefined>();
   /** Extra line under the title (period, "Tính đến ngày …"). */

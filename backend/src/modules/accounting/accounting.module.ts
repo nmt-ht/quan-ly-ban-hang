@@ -24,6 +24,7 @@ import { VatController, VatService } from './vat.js';
 import { CashFlowController, CashFlowService } from './cash-flow.js';
 import { PeriodClosingController, PeriodClosingService } from './period-closing.js';
 import { CorporateTaxController, CorporateTaxService } from './corporate-tax.js';
+import { StatementsController, StatementsService } from './statements.js';
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const num = (d: Prisma.Decimal | null | undefined) => (d ? d.toNumber() : 0);
@@ -381,8 +382,8 @@ export class AccountingController {
 }
 
 @Module({
-  controllers: [AccountingController, PeriodClosingController, CorporateTaxController, FixedAssetsController, PrepaidItemsController, ProductionCostsController, EmployeesController, PayrollController, BooksController, VatController, CashFlowController],
-  providers: [AccountingService, PeriodClosingService, CorporateTaxService, LedgerService, FixedAssetsService, PrepaidItemsService, ProductionAccountingService, ProductionCostsService, PayrollService, BooksService, VatService, CashFlowService],
+  controllers: [AccountingController, PeriodClosingController, CorporateTaxController, StatementsController, FixedAssetsController, PrepaidItemsController, ProductionCostsController, EmployeesController, PayrollController, BooksController, VatController, CashFlowController],
+  providers: [AccountingService, PeriodClosingService, CorporateTaxService, StatementsService, LedgerService, FixedAssetsService, PrepaidItemsService, ProductionAccountingService, ProductionCostsService, PayrollService, BooksService, VatService, CashFlowService],
   exports: [LedgerService, ProductionAccountingService],
 })
 export class AccountingModule {}

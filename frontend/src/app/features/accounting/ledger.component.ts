@@ -6,6 +6,10 @@ import { map } from 'rxjs';
 import { AccountingService } from '../../core/services/accounting.service';
 import { errorText } from '../../core/api/api.service';
 import { LedgerView } from '../../core/models/domain.models';
+import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
+import { PrintService } from '../../shared/print/print.service';
+import { BookPrintComponent } from '../../shared/print/tt133/book-print.component';
+import { BookSpec, ledgerBookSpec } from '../../shared/print/tt133/tt133-books';
 import { formatVnd } from '../../shared/format.util';
 import { formatDay } from '../../shared/period';
 
@@ -13,13 +17,17 @@ import { formatDay } from '../../shared/period';
 @Component({
   selector: 'app-accounting-ledger',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, NavIconComponent, BookPrintComponent],
   template: `
+   <div class="screen-only">
     <p class="subtitle"><a class="crumb" routerLink="/ke-toan/can-doi-phat-sinh">Bảng cân đối số phát sinh</a> / Sổ cái</p>
     <div class="page-header">
       <div>
         <h1>Sổ cái @if (data(); as d) { TK {{ d.account.code }} — {{ d.account.name }} }</h1>
-        <p class="subtitle">Từng bút toán của tài khoản trong năm, kèm số dư luỹ kế.</p>
+        <p class="subtitle">Từng bút toán của tài khoản trong năm, kèm số dư luỹ kế. Bản in theo mẫu S03b-DNN.</p>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn" [disabled]="!data() || printBusy()" (click)="printBook()"><app-nav-icon name="printer" />In sổ S03b-DNN</button>
       </div>
     </div>
 
@@ -56,13 +64,21 @@ import { formatDay } from '../../shared/period';
         </table>
       </div>
     }
+   </div>
+
+   @if (doc(); as b) {
+     <app-book-print [formNo]="b.formNo" [title]="b.title" [sub]="b.sub" [sub2]="b.sub2" [columns]="b.columns" [rows]="b.rows" />
+   }
   `,
 })
 export class AccountingLedgerComponent {
   private readonly svc = inject(AccountingService);
+  private readonly printer = inject(PrintService);
   private readonly code = toSignal(inject(ActivatedRoute).paramMap.pipe(map((p) => p.get('code') ?? '')), { initialValue: '' });
   readonly data = signal<LedgerView | null>(null);
   readonly failure = signal('');
+  readonly doc = signal<BookSpec | null>(null);
+  readonly printBusy = signal(false);
   readonly money = formatVnd;
   readonly formatDay = formatDay;
   readonly period = signal(new Date().getFullYear());
@@ -77,6 +93,23 @@ export class AccountingLedgerComponent {
 
   side(d: LedgerView): string {
     return d.account.normalSide === 'NO' ? 'Nợ' : 'Có';
+  }
+
+  /** Sổ Cái S03b-DNN của cả năm đang xem: lấy từ sổ chi tiết tài khoản để có cột tài khoản đối ứng. */
+  async printBook() {
+    this.failure.set('');
+    this.printBusy.set(true);
+    try {
+      const y = this.period();
+      const book = await this.svc.accountBook(this.code(), `${y}-01-01`, `${y}-12-31`);
+      if (book.truncated && !confirm('Sổ có hơn 5.000 dòng, bản in chỉ gồm 5.000 dòng đầu. Vẫn in?')) return;
+      const spec = ledgerBookSpec(book);
+      await this.printer.print('tt133-s03b', 'A4', () => this.doc.set(spec), () => this.doc.set(null));
+    } catch (e) {
+      this.failure.set(errorText(e));
+    } finally {
+      this.printBusy.set(false);
+    }
   }
 
   async load() {

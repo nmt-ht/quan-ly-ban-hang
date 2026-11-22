@@ -11,6 +11,9 @@ import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { formatVnd } from '../../shared/format.util';
 import { PeriodFilterComponent, PeriodValue } from '../../shared/period-filter/period-filter.component';
 import { formatDay, presetRange } from '../../shared/period';
+import { PrintService } from '../../shared/print/print.service';
+import { BookPrintComponent } from '../../shared/print/tt133/book-print.component';
+import { BookSpec, accountBookSpec } from '../../shared/print/tt133/tt133-books';
 import { SearchOption, SearchSelectComponent } from '../../shared/search-select/search-select.component';
 
 const PRESETS = [
@@ -27,14 +30,16 @@ const PRESETS = [
 @Component({
   selector: 'app-accounting-account-book',
   standalone: true,
-  imports: [FormsModule, NavIconComponent, PeriodFilterComponent, SearchSelectComponent],
+  imports: [FormsModule, NavIconComponent, PeriodFilterComponent, SearchSelectComponent, BookPrintComponent],
   template: `
+   <div class="screen-only">
     <div class="page-header">
       <div>
         <h1>{{ title() }}</h1>
         <p class="subtitle">Số dư đầu kỳ, từng bút toán, số dư luỹ kế. Đọc từ sổ cái nên chỉ có chứng từ phát sinh từ ngày bắt đầu ghi sổ.</p>
       </div>
       <div class="toolbar">
+        <button type="button" class="btn" [disabled]="!data()" (click)="printBook()"><app-nav-icon name="printer" />In sổ {{ formNo() }}</button>
         <button type="button" class="btn" [disabled]="!data()" (click)="exportExcel()"><app-nav-icon name="download" />Xuất Excel</button>
       </div>
     </div>
@@ -108,11 +113,17 @@ const PRESETS = [
         </table>
       </div>
     }
+   </div>
+
+   @if (doc(); as b) {
+     <app-book-print [formNo]="b.formNo" [title]="b.title" [sub]="b.sub" [sub2]="b.sub2" [columns]="b.columns" [rows]="b.rows" />
+   }
   `,
 })
 export class AccountingAccountBookComponent {
   private readonly svc = inject(AccountingService);
   private readonly store = inject(DataStore);
+  private readonly printer = inject(PrintService);
   readonly presets = PRESETS;
   readonly accounts = signal<Account[]>([]);
   readonly data = signal<AccountBookView | null>(null);
@@ -131,6 +142,10 @@ export class AccountingAccountBookComponent {
     return [...list].sort((a, b) => a.code.localeCompare(b.code, 'vi', { numeric: true })).map((p) => ({ value: p.id, code: p.code, label: p.name }));
   });
   /** Cột "Đối tượng" khi xem công nợ nhưng chưa chọn một đối tượng. */
+  /** Sổ đang in (chỉ có trong lúc in). */
+  readonly doc = signal<BookSpec | null>(null);
+  /** Mẫu sổ theo tài khoản đang xem: 111 → S04a, 112 → S05, công nợ một đối tượng → S12, còn lại → S19. */
+  readonly formNo = computed(() => { const d = this.data(); return d ? accountBookSpec(d).formNo : 'TT133'; });
   readonly showPartner = computed(() => !!this.partnerKind() && !this.partnerId());
   readonly title = computed(() => {
     const p = PRESETS.find((x) => x.code === this.code());
@@ -178,6 +193,15 @@ export class AccountingAccountBookComponent {
   balanceText(netNo: number): string {
     if (netNo === 0) return '0';
     return `${formatVnd(Math.abs(netNo))} ${netNo > 0 ? 'Nợ' : 'Có'}`;
+  }
+
+  async printBook() {
+    const d = this.data();
+    if (!d) return;
+    if (d.truncated && !confirm('Sổ có hơn 5.000 dòng, bản in chỉ gồm 5.000 dòng đầu. Thu hẹp khoảng ngày để in đủ. Vẫn in?')) return;
+    const partner = this.partnerOptions().find((o) => o.value === this.partnerId())?.label;
+    const spec = accountBookSpec(d, partner);
+    await this.printer.print('tt133-' + spec.formNo.toLowerCase(), 'A4', () => this.doc.set(spec), () => this.doc.set(null));
   }
 
   async exportExcel() {
