@@ -958,11 +958,11 @@
     >
       <dl pdMeta class="pd-meta">
         <div class="wide"><dt>Khách hàng</dt><dd>{{ printCustomer(o)?.name ?? '—' }}{{ printCustomer(o)?.code ? ' (' + printCustomer(o)!.code + ')' : '' }}</dd></div>
-        <div><dt>Người nhận</dt><dd>{{ o.recipientName || '—' }}</dd></div>
-        <div><dt>Điện thoại</dt><dd>{{ o.recipientPhone || '—' }}</dd></div>
-        <div class="wide"><dt>Địa chỉ giao</dt><dd>{{ o.deliveryAddress || '—' }}</dd></div>
-        <div><dt>Ngày cần giao</dt><dd>{{ o.neededByDate ? day(o.neededByDate) : '—' }}</dd></div>
-        <div><dt>Nguồn đơn</dt><dd>{{ o.source || '—' }}</dd></div>
+        <div [class.pd-empty]="!o.recipientName"><dt>Người nhận</dt><dd>{{ o.recipientName || '—' }}</dd></div>
+        <div [class.pd-empty]="!o.recipientPhone"><dt>Điện thoại</dt><dd>{{ o.recipientPhone || '—' }}</dd></div>
+        <div class="wide" [class.pd-empty]="!o.deliveryAddress"><dt>Địa chỉ giao</dt><dd>{{ o.deliveryAddress || '—' }}</dd></div>
+        <div [class.pd-empty]="!o.neededByDate"><dt>Ngày cần giao</dt><dd>{{ o.neededByDate ? day(o.neededByDate) : '—' }}</dd></div>
+        <div [class.pd-empty]="!o.source"><dt>Nguồn đơn</dt><dd>{{ o.source || '—' }}</dd></div>
         @if (o.description) {
           <div class="wide"><dt>Diễn giải</dt><dd>{{ o.description }}</dd></div>
         }

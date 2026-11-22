@@ -34,4 +34,34 @@ describe('VietQR', () => {
   it('nội dung chuyển khoản không dấu, bỏ ký tự lạ', () => {
     expect(transferNote('Đơn DH0000110 — trả tiền!')).toBe('DON DH0000110 TRA TIEN');
   });
+
+  /** Walks the EMV TLV tags the way a bank app does: every length must land exactly on the next tag, and on the end. */
+  function tlvTags(text: string): Record<string, string> {
+    const out: Record<string, string> = {};
+    let i = 0;
+    while (i < text.length) {
+      const len = Number(text.slice(i + 2, i + 4));
+      expect(Number.isInteger(len)).toBe(true);
+      out[text.slice(i, i + 2)] = text.slice(i + 4, i + 4 + len);
+      i += 4 + len;
+    }
+    expect(i).toBe(text.length);
+    return out;
+  }
+
+  it('đọc lại như app ngân hàng: các trường lồng nhau đúng độ dài, BIN và số tài khoản nằm trong trường 38', () => {
+    const p = vietQrPayload({ bin: '970407', accountNumber: '19036789012345', amount: 123_120, note: 'KH0000002 Trần Quốc Bảo' });
+    const t = tlvTags(p);
+    expect(t['00']).toBe('01');
+    expect(t['01']).toBe('12');
+    expect(t['53']).toBe('704');
+    expect(t['54']).toBe('123120');
+    expect(t['58']).toBe('VN');
+    const merchant = tlvTags(t['38']);
+    expect(merchant['00']).toBe('A000000727');
+    expect(merchant['02']).toBe('QRIBFTTA');
+    expect(tlvTags(merchant['01'])).toEqual({ '00': '970407', '01': '19036789012345' });
+    expect(tlvTags(t['62'])['08']).toBe('KH0000002 TRAN QUOC BAO');
+    expect(t['63']).toBe(crc16(p.slice(0, -4)));
+  });
 });

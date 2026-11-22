@@ -605,7 +605,12 @@
   }
 
   .pd-meta dt {
-    flex-basis: 19mm;
+    flex-basis: 24mm;
+  }
+
+  // A line with nothing to say (no người nhận, no địa chỉ…) costs paper on a roll: left out, not printed as "—".
+  .pd-meta > .pd-empty {
+    display: none;
   }
 
   .pd-form > div {

@@ -439,7 +439,7 @@
         <div class="wide"><dt>Kính gửi</dt><dd>{{ customer()?.companyName || customer()?.name || '—' }}{{ customer()?.code ? ' (' + customer()!.code + ')' : '' }}</dd></div>
         <div><dt>Người nhận</dt><dd>{{ q.recipientName || customer()?.name || '—' }}</dd></div>
         <div><dt>Điện thoại</dt><dd>{{ q.recipientPhone || customer()?.phone || '—' }}</dd></div>
-        <div class="wide"><dt>Địa chỉ giao</dt><dd>{{ q.deliveryAddress || '—' }}</dd></div>
+        <div class="wide" [class.pd-empty]="!q.deliveryAddress"><dt>Địa chỉ giao</dt><dd>{{ q.deliveryAddress || '—' }}</dd></div>
         <div><dt>Hiệu lực đến</dt><dd>{{ q.validUntil ? day(q.validUntil) : 'Không hạn' }}</dd></div>
         @if (q.description) {
           <div class="wide"><dt>Ghi chú</dt><dd>{{ q.description }}</dd></div>
