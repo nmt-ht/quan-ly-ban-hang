@@ -22,6 +22,8 @@ import { EmployeesController, PayrollController, PayrollService } from './payrol
 import { BooksController, BooksService } from './books.js';
 import { VatController, VatService } from './vat.js';
 import { CashFlowController, CashFlowService } from './cash-flow.js';
+import { PeriodClosingController, PeriodClosingService } from './period-closing.js';
+import { CorporateTaxController, CorporateTaxService } from './corporate-tax.js';
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const num = (d: Prisma.Decimal | null | undefined) => (d ? d.toNumber() : 0);
@@ -139,27 +141,39 @@ export class AccountingService {
     return { period, rows: data, totals: tot };
   }
 
-  /** Gộp số liệu kỳ: phát sinh Nợ/Có và số dư đầu kỳ theo từng TK. */
+  /**
+   * Gộp số liệu kỳ: phát sinh Nợ/Có và số dư đầu kỳ theo từng TK. `revenue` / `expense` bỏ qua bút toán kết chuyển (source
+   * CLOSING) nên báo cáo kết quả kinh doanh vẫn đủ số liệu sau khi kết chuyển; `closing` và `unclosedProfit` tính cả bút toán
+   * kết chuyển: lãi lỗ đã kết chuyển nằm ở 421, phần chưa kết chuyển còn ở các TK doanh thu, chi phí.
+   */
   private async periodMaps(period: string) {
     const { start, end } = periodRange(period);
-    const [accounts, movements, openings] = await Promise.all([
+    const inYear = { date: { gte: start, lt: end } };
+    const [accounts, movements, operating, openings] = await Promise.all([
       this.prisma.account.findMany({ where: { isDetail: true } }),
-      this.prisma.journalLine.groupBy({ by: ['accountCode'], where: { entry: { date: { gte: start, lt: end } } }, _sum: { debit: true, credit: true } }),
+      this.prisma.journalLine.groupBy({ by: ['accountCode'], where: { entry: inYear }, _sum: { debit: true, credit: true } }),
+      this.prisma.journalLine.groupBy({ by: ['accountCode'], where: { entry: { ...inYear, source: { not: 'CLOSING' } } }, _sum: { debit: true, credit: true } }),
       this.prisma.openingBalance.findMany({ where: { period } }),
     ]);
-    const mv = new Map(movements.map((m) => [m.accountCode, { d: num(m._sum.debit), c: num(m._sum.credit) }]));
+    const all = new Map(movements.map((m) => [m.accountCode, { d: num(m._sum.debit), c: num(m._sum.credit) }]));
+    const mv = new Map(operating.map((m) => [m.accountCode, { d: num(m._sum.debit), c: num(m._sum.credit) }]));
     const ob = new Map(openings.map((o) => [o.accountCode, { d: num(o.debit), c: num(o.credit) }]));
     const sideOf = new Map(accounts.map((a) => [a.code, a.normalSide]));
     // Net phát sinh theo chiều doanh thu (Có−Nợ) / chi phí (Nợ−Có)
     const revenue = (code: string) => { const m = mv.get(code) ?? { d: 0, c: 0 }; return m.c - m.d; };
     const expense = (code: string) => { const m = mv.get(code) ?? { d: 0, c: 0 }; return m.d - m.c; };
+    // Lãi lỗ còn nằm ở các TK doanh thu, chi phí (chưa kết chuyển sang 421)
+    const unclosedProfit = accounts.reduce((s, a) => {
+      const m = all.get(a.code) ?? { d: 0, c: 0 };
+      return a.kind === 'DOANH_THU' ? s + m.c - m.d : a.kind === 'CHI_PHI' ? s - (m.d - m.c) : s;
+    }, 0);
     // Số dư cuối kỳ theo chiều số dư thường của TK
     const closing = (code: string) => {
       const side = sideOf.get(code); if (!side) return 0;
-      const o = ob.get(code) ?? { d: 0, c: 0 }; const m = mv.get(code) ?? { d: 0, c: 0 };
+      const o = ob.get(code) ?? { d: 0, c: 0 }; const m = all.get(code) ?? { d: 0, c: 0 };
       return (side === 'NO' ? o.d - o.c : o.c - o.d) + (side === 'NO' ? m.d - m.c : m.c - m.d);
     };
-    return { revenue, expense, closing };
+    return { revenue, expense, closing, unclosedProfit };
   }
 
   /** Báo cáo Kết quả hoạt động kinh doanh (B02-DNN, TT133). */
@@ -199,8 +213,7 @@ export class AccountingService {
 
   /** Bảng cân đối kế toán (B01-DNN, TT133) — rút gọn theo các TK đang dùng. */
   async balanceSheet(period: string) {
-    const { closing } = await this.periodMaps(period);
-    const is = await this.incomeStatement(period);
+    const { closing, unclosedProfit } = await this.periodMaps(period);
     const assets = [
       { label: 'Tiền (111, 112, 113)', amount: closing('111') + closing('112') + closing('113') },
       { label: 'Phải thu của khách hàng (131)', amount: closing('131') },
@@ -213,49 +226,15 @@ export class AccountingService {
     ];
     const resources = [
       { label: 'Phải trả người bán (331)', amount: closing('331') },
-      { label: 'Thuế và các khoản phải nộp NN (3331, 3335)', amount: closing('3331') + closing('3335') },
+      { label: 'Thuế và các khoản phải nộp NN (3331, 3334, 3335)', amount: closing('3331') + closing('3334') + closing('3335') },
       { label: 'Phải trả người lao động (334)', amount: closing('334') },
       { label: 'Phải trả, phải nộp khác (3381, 3382, 3383, 3384, 3385)', amount: ['3381', '3382', '3383', '3384', '3385'].reduce((s, c) => s + closing(c), 0) },
       { label: 'Vốn đầu tư của chủ sở hữu (411)', amount: closing('411') },
-      { label: 'Lợi nhuận sau thuế chưa phân phối (421)', amount: closing('421') + is.profitAfterTax },
+      { label: 'Lợi nhuận sau thuế chưa phân phối (421)', amount: closing('421') + unclosedProfit },
     ];
     const totalAssets = assets.reduce((s, a) => s + a.amount, 0);
     const totalResources = resources.reduce((s, r) => s + r.amount, 0);
     return { period, assets, resources, totalAssets, totalResources, balanced: Math.round(totalAssets - totalResources) === 0 };
-  }
-
-  /** Kết chuyển cuối kỳ: 511/515/711 → 911 → 632/635/642/811/821 → 421 (lãi/lỗ). */
-  async closePeriod(period: string, user: AuthUser) {
-    const date = `${period}-12-31`;
-    await this.prisma.$transaction(async (tx) => {
-      if (await tx.journalEntry.findFirst({ where: { source: 'CLOSING', refId: period } })) {
-        throw new BadRequestException(`Kỳ ${period} đã kết chuyển rồi.`);
-      }
-      const { revenue, expense } = await this.periodMaps(period);
-      const revAccts = ['511', '515', '711'];
-      const expAccts = ['632', '635', '641', '642', '811', '821'];
-      const revLines = revAccts.map((c) => ({ accountCode: c, debit: Math.max(0, revenue(c)) })).filter((l) => l.debit > 0);
-      const totalRev = revLines.reduce((s, l) => s + l.debit, 0);
-      if (totalRev > 0) {
-        await this.ledger.postEntry(tx, { date, source: 'CLOSING', refType: 'ClosePeriod', refId: period, createdById: user.id,
-          description: `Kết chuyển doanh thu kỳ ${period}`, lines: [...revLines, { accountCode: '911', credit: totalRev }] });
-      }
-      const expLines = expAccts.map((c) => ({ accountCode: c, credit: Math.max(0, expense(c)) })).filter((l) => l.credit > 0);
-      const totalExp = expLines.reduce((s, l) => s + l.credit, 0);
-      if (totalExp > 0) {
-        await this.ledger.postEntry(tx, { date, source: 'CLOSING', refType: 'ClosePeriod', refId: period, createdById: user.id,
-          description: `Kết chuyển chi phí kỳ ${period}`, lines: [{ accountCode: '911', debit: totalExp }, ...expLines] });
-      }
-      const profit = totalRev - totalExp;
-      if (profit !== 0) {
-        await this.ledger.postEntry(tx, { date, source: 'CLOSING', refType: 'ClosePeriod', refId: period, createdById: user.id,
-          description: `Kết chuyển lãi/lỗ kỳ ${period}`,
-          lines: profit > 0 ? [{ accountCode: '911', debit: profit }, { accountCode: '421', credit: profit }]
-            : [{ accountCode: '421', debit: -profit }, { accountCode: '911', credit: -profit }] });
-      }
-      await this.audit.log(tx, { action: 'accounting.close_period', entityType: 'JournalEntry', entityId: period, summary: `Kết chuyển cuối kỳ ${period}: lãi/lỗ ${profit}` });
-    });
-    return { ok: true, period };
   }
 
   async openingBalances(period: string) {
@@ -272,6 +251,10 @@ export class AccountingService {
 
   async saveOpeningBalances(dto: OpeningBalancesDto, _user: AuthUser) {
     await this.prisma.$transaction(async (tx) => {
+      const carriedFrom = Number(dto.period) - 1;
+      if (await tx.fiscalYearClose.findUnique({ where: { year: carriedFrom } })) {
+        throw new BadRequestException(`Số dư đầu năm ${dto.period} lấy từ cuối năm ${carriedFrom} đã đóng sổ. Mở lại năm ${carriedFrom} nếu cần sửa.`);
+      }
       for (const r of dto.rows) {
         await tx.openingBalance.upsert({
           where: { accountCode_period: { accountCode: r.accountCode, period: dto.period } },
@@ -304,6 +287,8 @@ export class AccountingService {
       const entry = await tx.journalEntry.findUnique({ where: { id }, include: { lines: true } });
       if (!entry) throw new NotFoundException('Không tìm thấy bút toán.');
       if (entry.isReversal) throw new NotFoundException('Không thể đảo một bút toán đảo.');
+      if (entry.source === 'CIT') throw new BadRequestException('Bút toán thuế TNDN không đảo riêng lẻ được: dùng Huỷ ở Kế toán › Thuế TNDN.');
+      if (entry.source === 'CLOSING') throw new BadRequestException('Bút toán kết chuyển không đảo riêng lẻ được: dùng Huỷ kết chuyển ở Kế toán › Kết chuyển cuối kỳ.');
       const day = toDay(entry.date)!;
       await this.ledger.postEntry(tx, {
         date: day, source: 'REVERSAL', refType: entry.refType ?? 'JournalEntry', refId: entry.refId ?? entry.id,
@@ -369,13 +354,6 @@ export class AccountingController {
     return this.svc.balanceSheet(period?.trim() || String(new Date().getFullYear()));
   }
 
-  @RequirePermissions('accounting.manual')
-  @Post('close-period')
-  @HttpCode(HttpStatus.OK)
-  closePeriod(@Body() body: { period?: string }, @CurrentUser() user: AuthUser) {
-    return this.svc.closePeriod((body?.period || String(new Date().getFullYear())).trim(), user);
-  }
-
   @RequirePermissions('accounting.view')
   @Get('opening-balances')
   openingBalances(@Query('period') period?: string) {
@@ -403,8 +381,8 @@ export class AccountingController {
 }
 
 @Module({
-  controllers: [AccountingController, FixedAssetsController, PrepaidItemsController, ProductionCostsController, EmployeesController, PayrollController, BooksController, VatController, CashFlowController],
-  providers: [AccountingService, LedgerService, FixedAssetsService, PrepaidItemsService, ProductionAccountingService, ProductionCostsService, PayrollService, BooksService, VatService, CashFlowService],
+  controllers: [AccountingController, PeriodClosingController, CorporateTaxController, FixedAssetsController, PrepaidItemsController, ProductionCostsController, EmployeesController, PayrollController, BooksController, VatController, CashFlowController],
+  providers: [AccountingService, PeriodClosingService, CorporateTaxService, LedgerService, FixedAssetsService, PrepaidItemsService, ProductionAccountingService, ProductionCostsService, PayrollService, BooksService, VatService, CashFlowService],
   exports: [LedgerService, ProductionAccountingService],
 })
 export class AccountingModule {}

@@ -89,6 +89,8 @@ export const routes: Routes = [
       { path: 'ke-toan/can-doi-phat-sinh', loadComponent: () => import('./features/accounting/trial-balance.component').then((m) => m.AccountingTrialBalanceComponent) },
       { path: 'ke-toan/tai-khoan', loadComponent: () => import('./features/accounting/chart.component').then((m) => m.AccountingChartComponent) },
       { path: 'ke-toan/so-du-dau-ky', loadComponent: () => import('./features/accounting/opening.component').then((m) => m.AccountingOpeningComponent) },
+      { path: 'ke-toan/thue-tndn', loadComponent: () => import('./features/accounting/corporate-tax.component').then((m) => m.AccountingCorporateTaxComponent) },
+      { path: 'ke-toan/ket-chuyen', loadComponent: () => import('./features/accounting/closing.component').then((m) => m.AccountingClosingComponent) },
       { path: 'ke-toan/ket-qua-kinh-doanh', loadComponent: () => import('./features/accounting/income-statement.component').then((m) => m.AccountingIncomeStatementComponent) },
       { path: 'ke-toan/can-doi-ke-toan', loadComponent: () => import('./features/accounting/balance-sheet.component').then((m) => m.AccountingBalanceSheetComponent) },
       { path: 'ke-toan/tai-san', loadComponent: () => import('./features/accounting/fixed-assets.component').then((m) => m.AccountingFixedAssetsComponent) },

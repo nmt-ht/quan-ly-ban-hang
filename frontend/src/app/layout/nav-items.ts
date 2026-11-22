@@ -58,6 +58,7 @@ export const NAV_GROUPS: NavGroup[] = [
     { label: 'Sổ chi tiết tài khoản', path: '/ke-toan/so-chi-tiet', icon: 'table' },
     { label: 'Tổng hợp công nợ', path: '/ke-toan/tong-hop-cong-no', icon: 'ledger-in' },
     { label: 'Thuế GTGT', path: '/ke-toan/thue-gtgt', icon: 'percent' },
+    { label: 'Thuế TNDN', path: '/ke-toan/thue-tndn', icon: 'percent' },
     { label: 'Bảng cân đối phát sinh', path: '/ke-toan/can-doi-phat-sinh', icon: 'report' },
     { label: 'Kết quả kinh doanh', path: '/ke-toan/ket-qua-kinh-doanh', icon: 'trending-up' },
     { label: 'Bảng cân đối kế toán', path: '/ke-toan/can-doi-ke-toan', icon: 'table' },
@@ -69,6 +70,7 @@ export const NAV_GROUPS: NavGroup[] = [
     { label: 'Bảng lương', path: '/ke-toan/luong', icon: 'money-out' },
     { label: 'Hệ thống tài khoản', path: '/ke-toan/tai-khoan', icon: 'folder' },
     { label: 'Số dư đầu kỳ', path: '/ke-toan/so-du-dau-ky', icon: 'calendar' },
+    { label: 'Kết chuyển cuối kỳ', path: '/ke-toan/ket-chuyen', icon: 'lock' },
   ]},
   { label: 'Danh mục', module: 'settings', links: [
     { label: 'Kho', path: '/thiet-lap/kho', icon: 'warehouse' },

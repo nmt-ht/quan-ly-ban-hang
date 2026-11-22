@@ -7,6 +7,8 @@ import {
 import {
   AccountBookView, PartnerSummaryView, VatInputsView, VatOutputsView, VatSummaryView,
 } from '../models/books-vat.models';
+import { ClosingOverview, ClosingPreviewView } from '../models/closing.models';
+import { CitInput, CitOverview, CitPreview } from '../models/cit.models';
 
 export interface EmployeeInput {
   name: string; center: PayrollCenterKey; baseSalary: number; allowance?: number; insuranceSalary?: number | null; dependents?: number; note?: string;
@@ -75,8 +77,46 @@ export class AccountingService {
     return this.api.get<BalanceSheetView>('/accounting/balance-sheet' + (period ? '?period=' + period : ''));
   }
 
-  closePeriod(period: string) {
-    return this.api.post<{ ok: boolean; period: string }>('/accounting/close-period', { period });
+  closingOverview(year: number) {
+    return this.api.get<ClosingOverview>('/accounting/closing?year=' + year);
+  }
+
+  closingPreview(date: string) {
+    return this.api.get<ClosingPreviewView>('/accounting/closing/preview?date=' + date);
+  }
+
+  closePeriod(date: string) {
+    return this.api.post<{ id: string; date: string; profit: number }>('/accounting/closing', { date });
+  }
+
+  reverseClosing(id: string) {
+    return this.api.post<{ ok: boolean }>('/accounting/closing/' + id + '/reverse');
+  }
+
+  closeYear(year: number) {
+    return this.api.post<{ year: number; profit: number; carriedAccounts: number }>('/accounting/closing/year/' + year + '/close');
+  }
+
+  reopenYear(year: number) {
+    return this.api.post<{ ok: boolean }>('/accounting/closing/year/' + year + '/reopen');
+  }
+
+  citOverview(year: number) {
+    return this.api.get<CitOverview>('/accounting/cit?year=' + year);
+  }
+
+  citPreview(q: { year: number; period: string; rate?: number | null; addbacks?: number | null; deductions?: number | null; lossUsed?: number | null }) {
+    const p = new URLSearchParams({ year: String(q.year), period: q.period });
+    for (const k of ['rate', 'addbacks', 'deductions', 'lossUsed'] as const) if (q[k] !== null && q[k] !== undefined) p.set(k, String(q[k]));
+    return this.api.get<CitPreview>('/accounting/cit/preview?' + p.toString());
+  }
+
+  citCreate(dto: CitInput) {
+    return this.api.post<{ id: string; taxBooked: number; taxCumulative: number }>('/accounting/cit', dto);
+  }
+
+  citReverse(id: string) {
+    return this.api.post<{ ok: boolean }>('/accounting/cit/' + id + '/reverse');
   }
 
   fixedAssets() {

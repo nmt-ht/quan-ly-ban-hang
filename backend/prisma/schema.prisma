@@ -1047,13 +1047,13 @@ model CashVoucher {
   salesOrderDeliveryId String?
   salesOrderDelivery   SalesOrderDelivery? @relation(fields: [salesOrderDeliveryId], references: [id])
 
-  allocations   CashAllocation[]
+  allocations     CashAllocation[]
   // Chuyển tiền nội bộ: hai phiếu (chi ở quỹ đi, thu ở quỹ đến) thuộc một CashTransfer; đối chiếu sao kê khớp một dòng sao kê.
-  transferOut   CashTransfer?      @relation("TransferOut")
-  transferIn    CashTransfer?      @relation("TransferIn")
-  statementLine BankStatementLine?
+  transferOut     CashTransfer?      @relation("TransferOut")
+  transferIn      CashTransfer?      @relation("TransferIn")
+  statementLine   BankStatementLine?
   // Kiểm kê quỹ: phiếu xử lý chênh lệch thừa / thiếu quỹ của một biên bản (CashCount.resolutionVoucher).
-  countResolution CashCount? @relation("CashCountResolution")
+  countResolution CashCount?         @relation("CashCountResolution")
 
   @@index([salesOrderId])
   @@index([salesOrderDeliveryId])
@@ -1092,27 +1092,27 @@ model CashTransfer {
  * Biên bản kiểm kê quỹ tiền mặt KQ…: số dư sổ sách tại ngày kiểm kê (chốt lúc lưu), số đếm thực tế (theo mệnh giá) và chênh lệch.
  */
 model CashCount {
-  id            String      @id @default(uuid())
-  code          String      @unique
-  date          DateTime    @db.Date
-  accountId     String
-  account       CashAccount @relation(fields: [accountId], references: [id])
-  bookAmount    Decimal
-  countedAmount Decimal
-  difference    Decimal // thực tế − sổ sách: dương = thừa quỹ, âm = thiếu quỹ
-  denominations Json? // [{ value, count }]
-  countedBy     String? // người kiểm kê
-  note          String?
-  isCancelled   Boolean     @default(false)
-  cancelReason  String?
-  cancelledAt   DateTime?
+  id                  String       @id @default(uuid())
+  code                String       @unique
+  date                DateTime     @db.Date
+  accountId           String
+  account             CashAccount  @relation(fields: [accountId], references: [id])
+  bookAmount          Decimal
+  countedAmount       Decimal
+  difference          Decimal // thực tế − sổ sách: dương = thừa quỹ, âm = thiếu quỹ
+  denominations       Json? // [{ value, count }]
+  countedBy           String? // người kiểm kê
+  note                String?
+  isCancelled         Boolean      @default(false)
+  cancelReason        String?
+  cancelledAt         DateTime?
   // Xử lý chênh lệch: CHO_XU_LY (Nợ 1381 / Có 3381) hoặc TINH_CHI_PHI / TINH_THU_NHAP (811 / 711) bằng một phiếu thu hoặc chi.
   resolution          String?
   resolutionVoucherId String?      @unique
   resolutionVoucher   CashVoucher? @relation("CashCountResolution", fields: [resolutionVoucherId], references: [id], onDelete: Restrict)
-  createdById   String
-  createdBy     User        @relation("CashCountCreatedBy", fields: [createdById], references: [id])
-  createdAt     DateTime    @default(now())
+  createdById         String
+  createdBy           User         @relation("CashCountCreatedBy", fields: [createdById], references: [id])
+  createdAt           DateTime     @default(now())
 
   @@index([accountId, date])
 }
@@ -1175,6 +1175,7 @@ enum JournalSource {
   PRODUCTION
   PAYROLL
   CLOSING
+  CIT
   MANUAL
   REVERSAL
 }
@@ -1669,4 +1670,58 @@ model EInvoice {
   @@index([orderId])
   @@index([status, nextPollAt])
   @@index([issueDate])
+}
+
+// Kết chuyển lãi lỗ (as MISA): doanh thu, chi phí từ đầu năm đến hết `date` được kết chuyển sang 911 rồi 421. Các bút toán
+// (source CLOSING, refType "PeriodClosing", refId = id) nằm ở sổ cái; hàng này là danh sách để xem và huỷ kết chuyển.
+model PeriodClosing {
+  id            String    @id @default(uuid())
+  date          DateTime  @db.Date
+  year          Int
+  profit        Decimal // lãi (+) hoặc lỗ (−) của đợt kết chuyển này
+  createdById   String
+  createdByName String
+  createdAt     DateTime  @default(now())
+  reversedAt    DateTime?
+  reversedById  String?
+
+  @@index([year])
+}
+
+// Đóng sổ năm: đã kết chuyển đến 31/12, số dư cuối năm đã chuyển sang số dư đầu kỳ năm sau và khoá sổ đến 31/12.
+// `previousLockDate` là ngày khoá sổ trước đó, để mở lại năm thì trả về.
+model FiscalYearClose {
+  year             Int       @id
+  profit           Decimal
+  previousLockDate DateTime? @db.Date
+  closedById       String
+  closedByName     String
+  closedAt         DateTime  @default(now())
+}
+
+// Thuế TNDN (as MISA, TT133): mỗi lần tính là một quý tạm nộp (Q1–Q4) hoặc quyết toán năm (Y), tính LUỸ KẾ từ đầu năm rồi trừ số đã
+// ghi các lần trước. Ghi nhận: Nợ 821 / Có 3334 (âm thì ngược lại) bằng taxBooked; bút toán source CIT, refType CitAssessment.
+model CitAssessment {
+  id               String    @id @default(uuid())
+  year             Int
+  period           String // Q1 | Q2 | Q3 | Q4 | Y
+  periodEnd        DateTime  @db.Date
+  rate             Decimal // thuế suất, đơn vị %
+  revenue          Decimal // doanh thu luỹ kế (511, 515, 711), để đối chiếu thuế suất
+  accountingProfit Decimal // lợi nhuận kế toán trước thuế luỹ kế (chưa kể 821, bỏ bút toán kết chuyển)
+  addbacks         Decimal // điều chỉnh tăng: chi phí không được trừ
+  deductions       Decimal // điều chỉnh giảm: thu nhập miễn thuế…
+  lossUsed         Decimal // lỗ các năm trước chuyển sang (chỉ quyết toán năm)
+  taxableIncome    Decimal // thu nhập tính thuế
+  taxCumulative    Decimal // thuế TNDN luỹ kế đến hết kỳ
+  taxPrior         Decimal // đã ghi các kỳ trước trong năm
+  taxBooked        Decimal // ghi kỳ này (có thể âm khi điều chỉnh giảm)
+  note             String?
+  createdById      String
+  createdByName    String
+  createdAt        DateTime  @default(now())
+  reversedAt       DateTime?
+  reversedById     String?
+
+  @@index([year])
 }

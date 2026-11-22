@@ -244,6 +244,7 @@ const CASH_CATEGORIES = [
   { code: 'CHI_KHAC', name: 'Chi khác', kind: 'CHI', partnerType: 'KHAC', isDefault: false, sortOrder: 3, defaultAccountCode: '642' },
   { code: 'CHI_LUONG', name: 'Chi lương nhân viên', kind: 'CHI', partnerType: 'KHAC', isDefault: false, sortOrder: 4, defaultAccountCode: '334' },
   { code: 'CHI_THUE', name: 'Nộp thuế GTGT', kind: 'CHI', partnerType: 'KHAC', isDefault: false, sortOrder: 5, defaultAccountCode: '3331' },
+  { code: 'CHI_THUE_TNDN', name: 'Nộp thuế TNDN', kind: 'CHI', partnerType: 'KHAC', isDefault: false, sortOrder: 20, defaultAccountCode: '3334' },
   // Chuyển tiền nội bộ (CashTransfer): hai phiếu qua TK 113 tiền đang chuyển; tên khớp NOI_BO_CATEGORIES trong cash-transfers.ts.
   { code: 'CHI_NOIBO', name: 'Chuyển tiền nội bộ', kind: 'CHI', partnerType: 'KHAC', isDefault: false, sortOrder: 6, defaultAccountCode: '113' },
   { code: 'THU_NOIBO', name: 'Nhận tiền chuyển nội bộ', kind: 'THU', partnerType: 'KHAC', isDefault: false, sortOrder: 7, defaultAccountCode: '113' },
@@ -275,6 +276,7 @@ const CHART = [
   ['331', 'Phải trả cho người bán', null, 'NO_PHAI_TRA', 'CO', true],
   ['333', 'Thuế và các khoản phải nộp Nhà nước', null, 'NO_PHAI_TRA', 'CO', false],
   ['3331', 'Thuế GTGT phải nộp', '333', 'NO_PHAI_TRA', 'CO', true],
+  ['3334', 'Thuế thu nhập doanh nghiệp', '333', 'NO_PHAI_TRA', 'CO', true],
   ['3335', 'Thuế thu nhập cá nhân', '333', 'NO_PHAI_TRA', 'CO', true],
   ['338', 'Phải trả, phải nộp khác', null, 'NO_PHAI_TRA', 'CO', false],
   ['3381', 'Tài sản thừa chờ giải quyết', '338', 'NO_PHAI_TRA', 'CO', true],

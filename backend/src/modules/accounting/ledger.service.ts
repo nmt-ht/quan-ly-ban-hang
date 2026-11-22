@@ -137,7 +137,7 @@ export class LedgerService {
     tx: Prisma.TransactionClient,
     refType: string,
     refId: string,
-    opts: { date: string; createdById: string; description?: string },
+    opts: { date: string; createdById: string; description?: string; source?: JournalSource },
   ): Promise<number> {
     const entries = await tx.journalEntry.findMany({ where: { refType, refId, isReversal: false }, include: { lines: true } });
     let n = 0;
@@ -145,7 +145,7 @@ export class LedgerService {
       if (e.lines.length === 0) continue;
       await this.postEntry(tx, {
         date: opts.date,
-        source: 'REVERSAL',
+        source: opts.source ?? 'REVERSAL',
         refType,
         refId,
         createdById: opts.createdById,

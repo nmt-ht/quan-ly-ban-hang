@@ -22,11 +22,13 @@ const GROUPS = [
     { label: 'Kết quả hoạt động kinh doanh', to: '/ke-toan/ket-qua-kinh-doanh' },
     { label: 'Lưu chuyển tiền tệ', to: '/ke-toan/luu-chuyen-tien-te' },
     { label: 'Thuế GTGT', to: '/ke-toan/thue-gtgt' },
+    { label: 'Thuế TNDN', to: '/ke-toan/thue-tndn' },
   ] },
   { title: 'Thiết lập sổ', links: [
     { label: 'Hệ thống tài khoản', to: '/ke-toan/tai-khoan' },
     { label: 'Số dư đầu kỳ', to: '/ke-toan/so-du-dau-ky' },
     { label: 'Nhập bút toán', to: '/ke-toan/but-toan' },
+    { label: 'Kết chuyển cuối kỳ', to: '/ke-toan/ket-chuyen' },
   ] },
 ];
 

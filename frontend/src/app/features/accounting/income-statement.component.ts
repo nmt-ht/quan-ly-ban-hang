@@ -1,5 +1,6 @@
 /* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 import { Component, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { AccountingService } from '../../core/services/accounting.service';
 import { AuthService } from '../../core/services/auth.service';
 import { errorText } from '../../core/api/api.service';
@@ -10,6 +11,7 @@ import { formatVnd } from '../../shared/format.util';
 @Component({
   selector: 'app-accounting-income-statement',
   standalone: true,
+  imports: [RouterLink],
   template: `
     <div class="page-header">
       <div>
@@ -18,7 +20,7 @@ import { formatVnd } from '../../shared/format.util';
       </div>
       @if (canClose && data()) {
         <div class="toolbar">
-          <button type="button" class="btn" [disabled]="closing()" (click)="close()">Kết chuyển cuối kỳ {{ period() }}</button>
+          <a class="btn" routerLink="/ke-toan/ket-chuyen">Kết chuyển cuối kỳ</a>
         </div>
       }
     </div>
@@ -26,7 +28,6 @@ import { formatVnd } from '../../shared/format.util';
     <div class="filters-bar">
       <input type="number" class="year-input" aria-label="Năm" min="2000" max="2100" [value]="period()" (change)="period.set(+$any($event.target).value); load()" />
     </div>
-    @if (notice()) { <div class="notice" role="status"><span>{{ notice() }}</span></div> }
     @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
 
     @if (data(); as d) {
@@ -54,9 +55,7 @@ export class AccountingIncomeStatementComponent {
   private readonly svc = inject(AccountingService);
   readonly canClose = inject(AuthService).can('accounting.manual');
   readonly data = signal<IncomeStatementView | null>(null);
-  readonly notice = signal('');
   readonly failure = signal('');
-  readonly closing = signal(false);
   readonly money = formatVnd;
   readonly period = signal(new Date().getFullYear());
 
@@ -66,13 +65,4 @@ export class AccountingIncomeStatementComponent {
     this.failure.set('');
     try { this.data.set(await this.svc.incomeStatement(String(this.period()))); }
     catch (e) { this.data.set(null); this.failure.set(errorText(e)); }
-  }
-
-  async close() {
-    if (!confirm(`Kết chuyển cuối kỳ ${this.period()}? Thao tác này tạo bút toán kết chuyển 511/632/642 → 911 → 421.`)) return;
-    this.failure.set(''); this.notice.set(''); this.closing.set(true);
-    try { await this.svc.closePeriod(String(this.period())); this.notice.set('Đã kết chuyển cuối kỳ.'); await this.load(); }
-    catch (e) { this.failure.set(errorText(e)); }
-    finally { this.closing.set(false); }
-  }
-}
+  }}
