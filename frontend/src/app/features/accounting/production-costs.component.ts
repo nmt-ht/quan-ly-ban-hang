@@ -38,7 +38,7 @@ function blankForm(): ProductionCostInput {
         </div>
       }
     </div>
-        
+
     @if (showForm() && canAdd) {
       <section class="card section-block" aria-labelledby="gt-form">
         <h2 id="gt-form" class="form-section-title">Nhập chi phí cho lệnh sản xuất</h2>
@@ -137,7 +137,7 @@ export class AccountingProductionCostsComponent {
   }
 
   async save() {
-    this.toast.clear(); this.toast.clear(); this.saving.set(true);
+    this.toast.clear(); this.saving.set(true);
     try {
       await this.svc.addProductionCost({ ...this.form, amount: Number(this.form.amount), description: this.form.description || undefined });
       this.toast.success('Đã nhập chi phí.'); this.showForm.set(false); this.form = blankForm();

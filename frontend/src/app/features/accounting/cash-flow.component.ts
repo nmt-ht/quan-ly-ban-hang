@@ -56,7 +56,7 @@ const TAIL = ['50', '60', '61', '70'];
       <input type="number" aria-label="Năm" class="year-input" min="2000" max="2100" [value]="year()" (change)="year.set(+$any($event.target).value); load()" />
     </div>
     <p class="rp-range">Số liệu từ <span class="num">{{ formatDay(range().from) }}</span> đến <span class="num">{{ formatDay(range().to) }}</span></p>
-    
+
     @if (data(); as d) {
       @if (d.check.difference !== 0) {
         <div class="notice is-error" role="alert">Tiền cuối kỳ theo báo cáo lệch {{ money(d.check.difference) }} so với số dư tiền trên sổ cái ({{ money(d.check.ledgerClosing) }}). Kiểm tra bút toán tiền.</div>

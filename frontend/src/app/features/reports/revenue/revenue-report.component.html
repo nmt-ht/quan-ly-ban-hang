@@ -20,7 +20,6 @@
 </div>
 <p class="rp-range">Số liệu từ <span class="num">{{ day(range().from) }}</span> đến <span class="num">{{ day(range().to) }}</span> · {{ periodLabel() }}@if (hasPrevious()) { · so với <span class="num">{{ day(prevRange().from) }} – {{ day(prevRange().to) }}</span> }</p>
 
-
 @if (!lines().length) {
   <div class="empty-state">
     @if (loading()) {

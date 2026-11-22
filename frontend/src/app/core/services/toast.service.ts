@@ -1,6 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 
 export type ToastKind = 'success' | 'info' | 'error';
+export type PauseReason = 'pointer' | 'focus';
 
 export interface Toast {
   id: number;
@@ -27,7 +28,9 @@ const DUPLICATE_MS = 1500;
 export class ToastService {
   readonly toasts = signal<Toast[]>([]);
   private nextId = 1;
-  private readonly timers = new Map<number, { handle: ReturnType<typeof setTimeout>; left: number; startedAt: number }>();
+  private readonly timers = new Map<number, { handle: ReturnType<typeof setTimeout> | null; left: number; startedAt: number }>();
+  /** Why each paused toast is held (the pointer, the keyboard focus): its clock runs again only when none is left. */
+  private readonly holds = new Map<number, Set<PauseReason>>();
   private readonly recent = new Map<string, number>();
 
   /** A page opened by navigation that carries a message (`router.navigate(…, { state: { notice } })`): shows it once. */
@@ -48,6 +51,7 @@ export class ToastService {
     const key = `${kind}|${t}`;
     const now = Date.now();
     if (now - (this.recent.get(key) ?? 0) < DUPLICATE_MS) return;
+    for (const [k, at] of this.recent) if (now - at >= DUPLICATE_MS) this.recent.delete(k);
     this.recent.set(key, now);
     const toast: Toast = { id: this.nextId++, kind, text: t, duration: TOAST_MS[kind], paused: false };
     this.toasts.update((list) => {
@@ -63,37 +67,50 @@ export class ToastService {
     this.toasts.update((list) => list.filter((x) => x.id !== id));
   }
 
+  /** A new action starts: the old messages go, and the same words may be said again at once (a retry that fails the same way). */
   clear(): void {
     for (const t of this.toasts()) this.drop(t.id);
     this.toasts.set([]);
+    this.recent.clear();
   }
 
-  /** The pointer or focus is on a toast: stop its clock, keeping what is left. */
-  pause(id: number): void {
+  /** The pointer or focus is on a toast: stop its clock, keeping what is left. Pointer and focus hold it separately. */
+  pause(id: number, reason: PauseReason = 'pointer'): void {
     const timer = this.timers.get(id);
     if (!timer) return;
+    const held = this.holds.get(id) ?? new Set<PauseReason>();
+    const wasRunning = held.size === 0;
+    held.add(reason);
+    this.holds.set(id, held);
+    if (!wasRunning || timer.handle === null) return;
     clearTimeout(timer.handle);
+    timer.handle = null;
     timer.left = Math.max(1000, timer.left - (Date.now() - timer.startedAt));
     this.setPaused(id, true);
   }
 
-  /** It left: start the clock again, with at least a second to read the rest. */
-  resume(id: number): void {
+  /** It left: once neither pointer nor focus holds it, start the clock again, with at least a second to read the rest. */
+  resume(id: number, reason: PauseReason = 'pointer'): void {
     const timer = this.timers.get(id);
-    if (!timer) return;
+    const held = this.holds.get(id);
+    if (!timer || !held?.delete(reason) || held.size > 0) return;
+    this.holds.delete(id);
     this.setPaused(id, false);
     this.arm(id, timer.left);
   }
 
   private arm(id: number, ms: number): void {
+    const old = this.timers.get(id)?.handle;
+    if (old) clearTimeout(old);
     const handle = setTimeout(() => this.dismiss(id), ms);
     this.timers.set(id, { handle, left: ms, startedAt: Date.now() });
   }
 
   private drop(id: number): void {
     const timer = this.timers.get(id);
-    if (timer) clearTimeout(timer.handle);
+    if (timer?.handle) clearTimeout(timer.handle);
     this.timers.delete(id);
+    this.holds.delete(id);
   }
 
   private setPaused(id: number, paused: boolean): void {

@@ -25,7 +25,6 @@ import { AuditHistoryComponent } from '../../../shared/audit/audit-history.compo
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 import { ToastService } from '../../../core/services/toast.service';
 
-
 // Xuất vật tư happens before nhập thành phẩm on the same day.
 const STEP: Record<string, number> = { XUAT: 0, NHAP: 1, CHUYEN: 2, KIEM_KE: 3 };
 

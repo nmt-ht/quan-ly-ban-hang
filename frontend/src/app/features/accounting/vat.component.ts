@@ -59,7 +59,6 @@ const KIND_LABEL: Record<string, string> = { ORIGINAL: 'Gốc', ADJUST: 'Điều
       <button type="button" role="tab" [attr.aria-selected]="tab() === 'mua-vao'" (click)="tab.set('mua-vao')">Bảng kê mua vào @if (inputs()) { <span class="tab-count num">{{ inputs()!.rows.length }}</span> }</button>
     </div>
 
-        
     @if (tab() === 'tong-hop') {
       @if (summary(); as s) {
         <dl class="list-totals">

@@ -192,7 +192,6 @@ export class InventoryComponent {
     return [{ value: 'all', label: 'Tất cả kho', count: count('all') }, ...this.data.warehouses().map((w) => ({ value: w.id, label: w.name, count: count(w.id) }))];
   });
 
-
   private readonly baseRows = computed(() => this.allRows().filter((r) => this.matchesSearch(r) && this.ofTab(r)));
 
   readonly hiddenZero = computed(() => this.baseRows().filter((r) => r.state === 'ZERO').length);

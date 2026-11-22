@@ -27,7 +27,7 @@ interface LineRow { accountCode: string; debit: number | null; credit: number | 
         <p class="subtitle">Tổng Nợ phải bằng tổng Có. Mỗi dòng chỉ ghi Nợ hoặc Có.</p>
       </div>
     </div>
-    
+
     <section class="card section-block" aria-labelledby="bt-head">
       <h2 id="bt-head" class="form-section-title">Thông tin chung</h2>
       <div class="form-grid-3">

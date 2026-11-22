@@ -119,7 +119,7 @@ export class DeliveryTripVoucherComponent {
       this.id();
       untracked(() => {
         const t = this.trip();
-        this.toast.success((history.state as { notice?: string } | null)?.notice ?? '');
+        this.toast.fromNavigation();
         this.tab.set('don');
         this.loadCosts();
         void t;
@@ -335,7 +335,6 @@ export class DeliveryTripVoucherComponent {
     if (!(await this.attempt(() => this.done(this.svc.unconfirm(this.trip()!.id, r.order.id))))) return;
     this.toast.success(`Đã bỏ chốt ${r.order.code} — đơn về Đang giao, công nợ ghi lúc chốt đã gỡ.`);
   }
-
 
   // ---------- xếp đơn (dialog) ----------
   readonly addSearch = signal('');

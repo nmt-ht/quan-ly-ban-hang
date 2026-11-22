@@ -36,7 +36,7 @@ function blank(): EmployeeInput & { insuranceSalary: number | null } {
       </div>
       }
     </div>
-        
+
     @if (showForm()) {
       <section class="card section-block" aria-labelledby="nv-form">
         <h2 id="nv-form" class="form-section-title">{{ editingId() ? 'Sửa nhân viên' : 'Thêm nhân viên' }}</h2>
@@ -134,7 +134,7 @@ export class AccountingEmployeesComponent {
   }
 
   async save() {
-    this.toast.clear(); this.toast.clear(); this.saving.set(true);
+    this.toast.clear(); this.saving.set(true);
     const dto: EmployeeInput = {
       name: this.form.name, center: this.form.center, baseSalary: Number(this.form.baseSalary) || 0,
       allowance: Number(this.form.allowance) || 0, dependents: Number(this.form.dependents) || 0,

@@ -226,7 +226,6 @@
     </footer>
   </div>
 
-
   @if (voucher(); as v) {
     <app-print-document [title]="text().print" [no]="v.code" [date]="v.date" [status]="v.isCancelled ? 'ĐÃ HUỶ' : undefined" [signers]="printSigners()">
       <dl pdMeta class="pd-meta">

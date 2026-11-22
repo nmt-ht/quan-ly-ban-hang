@@ -31,7 +31,7 @@ import { ToastService } from '../../core/services/toast.service';
       <label class="filter-label" for="pl-period">Kỳ lương</label>
       <app-month-picker inputId="pl-period" ariaLabel="Kỳ lương" [(value)]="period" (valueChange)="load()" />
     </div>
-        
+
     @if (sheet(); as sh) {
       <section class="section-bare">
         <h3>Kỳ {{ sh.period }} — {{ sh.existing ? 'đã chốt' : 'xem trước (chưa chốt)' }}</h3>
@@ -198,7 +198,7 @@ export class AccountingPayrollComponent {
   async run() {
     const sh = this.sheet();
     if (!sh) return;
-    this.toast.clear(); this.toast.clear(); this.busy.set(true);
+    this.toast.clear(); this.busy.set(true);
     try {
       await this.svc.payrollRun(this.period, sh.rows.map((r) => ({ employeeId: r.employeeId, amount: Number(r.adjustment) || 0 })));
       this.toast.success(`Đã chốt bảng lương kỳ ${this.period}.`);
@@ -210,7 +210,7 @@ export class AccountingPayrollComponent {
   async cancel() {
     const ok = await this.confirmer.ask({ title: `Huỷ bảng lương kỳ ${this.period}?`, message: 'Các bút toán đã ghi sẽ được đảo lại. Sau đó có thể tính lại.', confirmLabel: 'Huỷ bảng lương', cancelLabel: 'Không huỷ', tone: 'danger' });
     if (!ok) return;
-    this.toast.clear(); this.toast.clear(); this.busy.set(true);
+    this.toast.clear(); this.busy.set(true);
     try {
       await this.svc.payrollCancel(this.period);
       this.toast.success(`Đã huỷ bảng lương kỳ ${this.period}. Có thể tính lại.`);
@@ -238,7 +238,7 @@ export class AccountingPayrollComponent {
   async saveSettings() {
     const s = this.settings();
     if (!s) return;
-    this.toast.clear(); this.toast.clear(); this.busy.set(true);
+    this.toast.clear(); this.busy.set(true);
     try {
       const brackets = s.brackets.map((b) => ({ upTo: b.upTo ? Number(b.upTo) : undefined, rate: Number(b.rate) || 0 }));
       this.settings.set(await this.svc.savePayrollSettings({ ...s, brackets }));

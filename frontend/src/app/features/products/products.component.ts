@@ -51,7 +51,6 @@ const TYPES: ProductType[] = ['VAT_TU', 'THANH_PHAM', 'DICH_VU'];
 /** ?tc= in the address (readable, shareable): the tab of each Tính chất. */
 const TYPE_PARAM: Record<ProductType, string> = { VAT_TU: 'vat-tu', THANH_PHAM: 'thanh-pham', DICH_VU: 'dich-vu' };
 
-
 @Component({
   selector: 'app-products',
   standalone: true,

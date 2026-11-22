@@ -123,7 +123,7 @@ export class WarehouseVoucherFormComponent {
         this.lines.set([emptyLine()]);
         this.attempted.set(false);
         this.error.set('');
-        this.toast.success((history.state as { notice?: string } | null)?.notice ?? '');
+        this.toast.fromNavigation();
       });
     });
   }

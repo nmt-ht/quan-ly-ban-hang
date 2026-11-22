@@ -54,7 +54,6 @@ const blankRow = (): Row => ({ accountCode: '642', description: '', amount: null
       }
     </div>
 
-        
     @if (creating()) {
       <section class="card section-block" aria-labelledby="hm-new">
         <h2 id="hm-new" class="form-section-title">Hoá đơn mua mới</h2>

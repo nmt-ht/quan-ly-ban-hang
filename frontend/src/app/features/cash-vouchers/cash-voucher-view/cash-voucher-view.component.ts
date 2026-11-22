@@ -85,7 +85,7 @@ export class CashVoucherViewComponent {
     effect(() => {
       this.id();
       untracked(() => {
-        this.toast.success((history.state as { notice?: string } | null)?.notice ?? '');
+        this.toast.fromNavigation();
       });
     });
   }

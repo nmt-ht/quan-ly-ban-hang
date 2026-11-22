@@ -24,7 +24,6 @@
       }
     </header>
 
-        
     <!-- Header: fields + totals panel -->
     <section class="card voucher-head">
       <div class="head-fields">
@@ -453,8 +452,6 @@
       </div>
     </footer>
   </div>
-
-
 
   @if (order(); as o) {
     <app-receive-goods-dialog #receiveDialog [order]="o" (received)="onReceived($event)" />

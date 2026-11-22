@@ -139,7 +139,7 @@ export class ReceivablesComponent {
     // Notice from the page we came back from (e.g. a saved phiếu thu); reset when list ↔ sổ chi tiết.
     effect(() => {
       this.partnerId();
-      untracked(() => this.toast.success((history.state as { notice?: string } | null)?.notice ?? ''));
+      untracked(() => this.toast.fromNavigation());
     });
     effect(() => {
       this.rows();

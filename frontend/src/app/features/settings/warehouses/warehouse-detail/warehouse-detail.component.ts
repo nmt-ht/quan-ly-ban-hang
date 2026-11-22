@@ -60,7 +60,6 @@ export class WarehouseDetailComponent {
   readonly kindClass = (v: WarehouseVoucher) => 'badge ' + tagClass('warehouse-voucher', kindOf(v));
   readonly limit = LIMIT;
 
-
   private readonly id = toSignal(this.route.paramMap.pipe(map((p) => p.get('id') ?? '')), { initialValue: '' });
   readonly warehouse = computed(() => this.data.warehouses().find((w) => w.id === this.id()) ?? null);
   readonly usage = computed(() => this.svc.usageOf(this.id()));

@@ -36,7 +36,7 @@ import { ToastService } from '../../core/services/toast.service';
         </div>
       }
     </div>
-        
+
     @if (creating()) {
       <section class="card section-block" aria-labelledby="ct-new">
         <h2 id="ct-new" class="form-section-title">Chuyển tiền mới</h2>

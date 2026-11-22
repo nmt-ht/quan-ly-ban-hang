@@ -36,7 +36,7 @@ import { ToastService } from '../../core/services/toast.service';
       <input type="number" class="year-input" aria-label="Năm" min="2000" max="2100" [value]="period()" (change)="setYear(+$any($event.target).value)" />
       <label class="inline-field">Báo cáo tại ngày <input appDate [ngModel]="asOf()" (ngModelChange)="asOf.set($event)" /></label>
     </div>
-    
+
     @if (data(); as d) {
       @if (!d.balanced) { <div class="notice is-error" role="alert">Chưa cân: Tổng tài sản {{ money(d.totalAssets) }} ≠ Tổng nguồn vốn {{ money(d.totalResources) }}.</div> }
       <dl class="list-totals">

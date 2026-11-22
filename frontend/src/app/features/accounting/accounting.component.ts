@@ -46,7 +46,6 @@ const GROUPS = [
       </div>
     </div>
 
-        
     <section class="card section-block" aria-labelledby="kt-state">
       <h2 id="kt-state" class="form-section-title">Trạng thái ghi sổ</h2>
       @if (loaded()) {

@@ -63,7 +63,7 @@ const PRESETS = [
       <app-period-filter [value]="period()" (valueChange)="onPeriod($event)" />
     </div>
 
-        @if (data()?.note; as n) { <div class="notice" role="status">{{ n }}</div> }
+    @if (data()?.note; as n) { <div class="notice" role="status">{{ n }}</div> }
     @if (data()?.truncated) { <div class="notice is-error" role="alert">Sổ có hơn 5.000 dòng — chỉ hiển thị 5.000 dòng đầu. Thu hẹp khoảng ngày để xem đủ.</div> }
 
     @if (data(); as d) {

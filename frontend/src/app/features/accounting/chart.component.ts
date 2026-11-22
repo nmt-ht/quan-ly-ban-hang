@@ -23,7 +23,7 @@ const KIND: Record<string, string> = {
         <p class="subtitle">{{ accounts().length }} tài khoản theo Thông tư 133. Bấm "Sổ cái" để xem phát sinh của tài khoản.</p>
       </div>
     </div>
-    
+
     <div class="filters-bar">
       <input type="search" class="filter-search" placeholder="Tìm số hiệu, tên tài khoản…" aria-label="Tìm tài khoản" [value]="search()" (input)="search.set($any($event.target).value)" />
       <select aria-label="Loại tài khoản" [value]="kindFilter()" (change)="kindFilter.set($any($event.target).value)">

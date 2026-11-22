@@ -35,7 +35,7 @@ import { ToastService } from '../../core/services/toast.service';
         }
       </div>
     </div>
-        @if (truncated()) { <div class="notice" role="status">Kỳ có hơn 500 bút toán, màn hình chỉ hiện 500 bút toán mới nhất. Bản in lấy đủ kỳ (tối đa 5.000 bút toán).</div> }
+    @if (truncated()) { <div class="notice" role="status">Kỳ có hơn 500 bút toán, màn hình chỉ hiện 500 bút toán mới nhất. Bản in lấy đủ kỳ (tối đa 5.000 bút toán).</div> }
 
     <div class="filters-bar">
       <input type="search" class="filter-search" placeholder="Tìm số CT, diễn giải, tài khoản, số tiền…" aria-label="Tìm bút toán" [value]="search()" (input)="search.set($any($event.target).value)" />

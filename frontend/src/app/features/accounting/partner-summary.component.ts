@@ -33,7 +33,7 @@ import { ToastService } from '../../core/services/toast.service';
       </div>
       <app-period-filter [value]="period()" (valueChange)="onPeriod($event)" />
     </div>
-    
+
     @if (data(); as d) {
       <dl class="list-totals">
         <div><dt>{{ code() === '131' ? 'Khách hàng' : 'Nhà cung cấp' }} có số liệu</dt><dd class="num">{{ d.rows.length }}</dd></div>

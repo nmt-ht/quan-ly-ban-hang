@@ -185,7 +185,7 @@ export class QuotationVoucherComponent implements HasUnsavedChanges {
         this.attempted.set(false);
         this.tab.set('hang');
         this.page.set(1);
-        if (id) this.toast.success((history.state as { notice?: string } | null)?.notice ?? '');
+        if (id) this.toast.fromNavigation();
         this.baseline = this.snapshot();
       });
     });

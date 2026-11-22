@@ -61,6 +61,31 @@ describe('Thông báo tự ẩn (ToastService)', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  it('xoá hết rồi báo lại đúng câu cũ (bấm Lưu lại, lỗi y như trước) vẫn hiện', () => {
+    toast.error('Mã đã tồn tại.');
+    toast.clear();
+    toast.error('Mã đã tồn tại.');
+    expect(toast.toasts()).toHaveLength(1);
+  });
+
+  it('vừa rê chuột vừa có tiêu điểm: rời tiêu điểm mà chuột còn trên đó thì vẫn chưa ẩn', () => {
+    toast.success('Đã lưu.');
+    const id = toast.toasts()[0].id;
+    vi.advanceTimersByTime(3000);
+    toast.pause(id, 'pointer');
+    vi.advanceTimersByTime(1000);
+    toast.pause(id, 'focus');
+    toast.resume(id, 'focus');
+    vi.advanceTimersByTime(60000);
+    expect(toast.toasts()).toHaveLength(1);
+    toast.resume(id, 'pointer');
+    vi.advanceTimersByTime(1900);
+    expect(toast.toasts()).toHaveLength(1); // còn đúng 2 giây, không bị trừ hai lần
+    vi.advanceTimersByTime(200);
+    expect(toast.toasts()).toHaveLength(0);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it('chỉ giữ 4 thông báo cùng lúc, cái cũ nhất nhường chỗ', () => {
     for (let i = 1; i <= 6; i++) toast.success(`Việc ${i}`);
     expect(toast.toasts().map((t) => t.text)).toEqual(['Việc 3', 'Việc 4', 'Việc 5', 'Việc 6']);

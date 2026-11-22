@@ -48,7 +48,7 @@ function savedSeries(): string {
         </div>
       }
     </div>
-        
+
     <div class="detail-tabs" role="tablist">
       <button type="button" role="tab" [attr.aria-selected]="tab() === 'can-lap'" (click)="tab.set('can-lap')">Cần lập hoá đơn @if (outstanding()) { <span class="tab-count num">{{ outstanding()!.items.length }}</span> }</button>
       <button type="button" role="tab" [attr.aria-selected]="tab() === 'da-ghi'" (click)="tab.set('da-ghi'); loadList()">Đã ghi nhận @if (list()) { <span class="tab-count num">{{ list()!.length }}</span> }</button>

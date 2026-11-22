@@ -55,7 +55,7 @@ function parseMoney(v: unknown): number {
         </div>
       }
     </div>
-        
+
     <div class="filters-bar">
       <select aria-label="Tài khoản ngân hàng" [value]="accountId()" (change)="accountId.set($any($event.target).value); load()">
         <option value="">Chọn tài khoản ngân hàng…</option>
@@ -271,8 +271,7 @@ export class BankReconciliationComponent {
     const day = /^\d{4}-\d{2}-\d{2}$/;
     if (day.test(q.get('from') ?? '') && day.test(q.get('to') ?? '')) this.period.set({ preset: 'custom', range: { from: q.get('from')!, to: q.get('to')! } });
     if (first) { this.accountId.set(first.id); this.load(); }
-    const back = (history.state as { notice?: unknown } | null)?.notice;
-    if (typeof back === 'string') this.toast.success(back);
+    this.toast.fromNavigation();
   }
 
   /** Dòng sao kê chưa ghi sổ → màn lập phiếu thu / chi điền sẵn tài khoản, ngày, số tiền, diễn giải; lập xong tự khớp dòng này. */
@@ -358,6 +357,7 @@ export class BankReconciliationComponent {
     const file = input.files?.[0];
     input.value = '';
     if (!file) return;
+    this.failure.set(''); // the same bad file twice must say so twice: the toast follows changes of `failure`
     try {
       const { headers, rows } = await readSheet(file);
       const col = (names: string[]) => names.find((n) => headers.includes(n));

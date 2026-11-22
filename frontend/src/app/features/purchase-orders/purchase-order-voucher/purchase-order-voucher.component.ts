@@ -197,7 +197,7 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
         this.attempted.set(false);
         this.tab.set('hang');
         this.page.set(1);
-        if (id) this.toast.success((history.state as { notice?: string } | null)?.notice ?? '');
+        if (id) this.toast.fromNavigation();
         else if (reorder.length) this.toast.success(`Đã điền ${reorder.length} vật tư dưới tồn tối thiểu theo gợi ý — xem lại số lượng, giá rồi Lập đơn mua hàng.`);
         // A suggested order counts as unsaved work: leaving asks first.
         if (!reorder.length) this.baseline = this.snapshot();

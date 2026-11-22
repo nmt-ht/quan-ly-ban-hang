@@ -34,7 +34,7 @@ const newForm = (): FixedAssetInput => ({ name: '', cost: 0, usageStartDate: iso
         </div>
       }
     </div>
-        
+
     @if (showForm() && canManage) {
       <section class="card section-block" aria-labelledby="ts-form">
         <h2 id="ts-form" class="form-section-title">Thêm tài sản cố định</h2>
@@ -129,7 +129,7 @@ export class AccountingFixedAssetsComponent {
   }
 
   async save() {
-    this.toast.clear(); this.toast.clear(); this.saving.set(true);
+    this.toast.clear(); this.saving.set(true);
     try {
       await this.svc.createAsset({ ...this.form, cost: Number(this.form.cost), usefulLifeMonths: Number(this.form.usefulLifeMonths) });
       this.toast.success('Đã thêm tài sản.'); this.showForm.set(false);
@@ -140,7 +140,7 @@ export class AccountingFixedAssetsComponent {
   }
 
   async depreciate() {
-    this.toast.clear(); this.toast.clear(); this.depreciating.set(true);
+    this.toast.clear(); this.depreciating.set(true);
     try {
       const r = await this.svc.depreciate(this.period);
       this.toast.success(r.total > 0 ? `Đã trích khấu hao ${r.count} tài sản: ${formatVnd(r.total)}.` : 'Không có tài sản nào để trích (đã trích kỳ này hoặc hết khấu hao).');

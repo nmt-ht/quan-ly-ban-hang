@@ -31,7 +31,7 @@ import { ToastService } from '../../core/services/toast.service';
     <div class="filters-bar">
       <input type="number" class="year-input" aria-label="Năm" min="2000" max="2100" [value]="period()" (change)="period.set(+$any($event.target).value); load()" />
     </div>
-        
+
     <dl class="list-totals">
       <div><dt>Tổng Nợ</dt><dd class="num">{{ money(totalDebit()) }}</dd></div>
       <div><dt>Tổng Có</dt><dd class="num">{{ money(totalCredit()) }}</dd></div>

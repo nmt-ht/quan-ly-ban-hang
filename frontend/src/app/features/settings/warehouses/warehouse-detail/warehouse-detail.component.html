@@ -29,7 +29,6 @@
     </div>
   </div>
 
-    
   <div class="detail-tabs" role="tablist" aria-label="Thông tin kho" (keydown)="onTabKey($event)">
     @for (t of tabs(); track t.id) {
       <button type="button" role="tab" [id]="'tab-' + t.id" [attr.aria-selected]="tab() === t.id" [attr.aria-controls]="'panel-' + t.id"
@@ -166,7 +165,6 @@
       }
     }
   </div>
-
 
   <app-warehouse-form-dialog (saved)="onSaved()" />
 } @else {

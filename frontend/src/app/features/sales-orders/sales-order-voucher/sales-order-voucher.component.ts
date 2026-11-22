@@ -296,7 +296,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
         this.attempted.set(false);
         this.tab.set('hang');
         this.page.set(1);
-        if (id) this.toast.success((history.state as { notice?: string } | null)?.notice ?? '');
+        if (id) this.toast.fromNavigation();
         else this.toast.success(quote ? `Đơn điền sẵn từ báo giá ${quote.code} — chọn kho xuất, ngày cần giao rồi lưu. Lưu xong báo giá chuyển sang Đã lập đơn.` : '');
         this.baseline = this.snapshot();
       });

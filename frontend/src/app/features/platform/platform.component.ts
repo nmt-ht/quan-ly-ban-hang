@@ -195,7 +195,6 @@ export class PlatformComponent implements OnInit, OnDestroy {
     return `${(bytes / 1024 ** 3).toLocaleString('vi-VN', { maximumFractionDigits: 2 })} GB`;
   }
 
-
   openCreate(): void {
     this.form = blankForm();
     this.formError.set('');

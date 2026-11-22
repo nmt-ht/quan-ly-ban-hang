@@ -37,7 +37,7 @@ const NOTES = [500_000, 200_000, 100_000, 50_000, 20_000, 10_000, 5_000, 2_000, 
         </div>
       }
     </div>
-        
+
     @if (creating()) {
       <section class="card section-block" aria-labelledby="kk-new">
         <h2 id="kk-new" class="form-section-title">Biên bản kiểm kê mới</h2>

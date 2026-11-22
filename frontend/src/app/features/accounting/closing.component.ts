@@ -29,7 +29,7 @@ import { ToastService } from '../../core/services/toast.service';
     <div class="filters-bar">
       <input type="number" class="year-input" aria-label="Năm" min="2000" max="2100" [value]="year()" (change)="setYear(+$any($event.target).value)" />
     </div>
-        
+
     @if (ov(); as o) {
       @if (!o.ledgerStartDate) {
         <div class="notice is-error" role="alert"><span>Sổ kế toán chưa bật. Đặt ngày bắt đầu ghi sổ ở <a routerLink="/ke-toan">Kế toán</a> trước.</span></div>

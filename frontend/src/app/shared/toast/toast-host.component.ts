@@ -15,10 +15,10 @@ import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
           class="toast"
           [class.is-error]="t.kind === 'error'"
           [attr.role]="t.kind === 'error' ? 'alert' : 'status'"
-          (mouseenter)="toasts.pause(t.id)"
-          (mouseleave)="toasts.resume(t.id)"
-          (focusin)="toasts.pause(t.id)"
-          (focusout)="toasts.resume(t.id)"
+          (mouseenter)="toasts.pause(t.id, 'pointer')"
+          (mouseleave)="toasts.resume(t.id, 'pointer')"
+          (focusin)="toasts.pause(t.id, 'focus')"
+          (focusout)="toasts.resume(t.id, 'focus')"
         >
           <span class="toast-text">{{ t.text }}</span>
           <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="toasts.dismiss(t.id)"><app-nav-icon name="x" /></button>

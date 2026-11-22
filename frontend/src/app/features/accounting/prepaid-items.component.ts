@@ -36,7 +36,7 @@ function blankForm(): PrepaidItemInput {
         </div>
       }
     </div>
-        
+
     @if (showForm() && canManage) {
       <section class="card section-block" aria-labelledby="cc-form">
         <h2 id="cc-form" class="form-section-title">Thêm công cụ dụng cụ</h2>
@@ -139,7 +139,7 @@ export class AccountingPrepaidItemsComponent {
   }
 
   async save() {
-    this.toast.clear(); this.toast.clear(); this.saving.set(true);
+    this.toast.clear(); this.saving.set(true);
     try {
       await this.svc.createPrepaid({ ...this.form, cost: Number(this.form.cost), allocationMonths: Number(this.form.allocationMonths) });
       this.toast.success('Đã thêm công cụ dụng cụ.'); this.showForm.set(false); this.form = blankForm();
@@ -149,7 +149,7 @@ export class AccountingPrepaidItemsComponent {
   }
 
   async allocate() {
-    this.toast.clear(); this.toast.clear(); this.allocating.set(true);
+    this.toast.clear(); this.allocating.set(true);
     try {
       const r = await this.svc.allocatePrepaid(this.period);
       this.toast.success(r.total > 0 ? `Đã phân bổ ${r.count} khoản: ${formatVnd(r.total)}.` : 'Không có khoản nào để phân bổ (đã phân bổ kỳ này, chưa tới ngày bắt đầu, hoặc đã hết).');

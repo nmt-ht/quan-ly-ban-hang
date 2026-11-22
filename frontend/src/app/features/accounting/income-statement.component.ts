@@ -48,7 +48,7 @@ const PERIODS: { value: PrintPeriod; label: string; from: string; to: string }[]
     <div class="filters-bar">
       <input type="number" class="year-input" aria-label="Năm" min="2000" max="2100" [value]="period()" (change)="period.set(+$any($event.target).value); load()" />
     </div>
-    
+
     @if (data(); as d) {
       <dl class="list-totals">
         <div><dt>Lợi nhuận sau thuế</dt><dd class="num" [class.amt-neg]="d.profitAfterTax < 0">{{ money(d.profitAfterTax) }}</dd></div>
