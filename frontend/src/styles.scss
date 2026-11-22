@@ -2600,6 +2600,65 @@ input[type='radio'] {
 // state that lives only in a tint — the active menu item, a selected tab or segment, a pressed toggle, the
 // highlighted palette row — would vanish. Here those states take the system Highlight pair instead; borders,
 // focus outlines and printed labels already survive on their own.
+// ---------- loading: the one spinner ----------
+// A ring turning on the ledger ground: the track is a hairline, the arc is the accent. Used by the full-page veil
+// (.page-loading, while a page opens), the Màn đang tải and the boot splash. Only transform animates; under reduced motion
+// it does not turn, it breathes (opacity) so there is still a sign of life.
+.nt-spinner {
+  --spinner-size: 2.75rem;
+  display: inline-block;
+  flex: none;
+  width: var(--spinner-size);
+  height: var(--spinner-size);
+  border: 3px solid var(--color-rule);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: nt-spin 0.8s linear infinite;
+}
+
+@keyframes nt-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes nt-breathe {
+  50% { opacity: 0.35; }
+}
+
+@keyframes nt-veil-in {
+  from { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nt-spinner {
+    border-color: var(--color-accent);
+    animation: nt-breathe 1.6s ease-in-out infinite;
+  }
+}
+
+// Full-page veil while a page opens: covers the whole window (menu included), blocks clicks on a half-drawn page.
+.page-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  background: color-mix(in oklch, var(--color-paper) 88%, transparent);
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  cursor: progress;
+  animation: nt-veil-in var(--dur-short) var(--ease-out);
+}
+
+@media (forced-colors: active) {
+  .nt-spinner {
+    border-color: GrayText;
+    border-top-color: Highlight;
+  }
+}
+
 @media (forced-colors: active) {
   .nav-link.active,
   .cp-opt.is-active,

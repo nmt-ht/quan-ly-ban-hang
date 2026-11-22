@@ -369,16 +369,18 @@ Kho only).
 - **Lọc theo cột** (data-table `filterable`): the filter row is hidden until "Lọc cột" in the actions header cell
   opens it; it stays open while a column filter is set. Tables without an actions column keep the row.
 
-## Loading (khởi động và tải danh mục)
+## Loading (khởi động, tải danh mục, mở trang)
+- **One spinner everywhere** (`.nt-spinner` in styles.scss): a 44 px ring, 3 px hairline track (`--color-rule`) and a moss arc turning at 0.8 s linear, `transform` only. Reduced motion: it stops turning and breathes (opacity 1 → 0.35, 1.6 s). Forced colours: GrayText track, Highlight arc. A bar is never used for loading.
+- **Full-page veil while a page opens** (`.page-loading`, shell): from the start of a navigation, and while the GET calls the new page makes as it opens (the first 700 ms after it opens; `PageLoadingService` + `pageLoadingInterceptor`) are still out, the whole window is covered by the paper colour at 88 % with the spinner and "Đang tải trang…" centred. It appears only after 150 ms (quick pages never flash), stays at least 350 ms once shown, blocks clicks on a half-drawn page, and gives up after 20 s. Reads that start later — a refresh, a filter, a poll, a button — are not the page loading and never raise it; they keep their own in-page state.
 - Two screens, one look — ledger paper (page ground with faint 32 px ruled lines), a centred surface card: brand mark
-  (logo, else the monogram on an ink tile) → company name (20 px, 600) → one muted line → 4 px progress bar (moss) →
+  (logo, else the monogram on an ink tile) → company name (20 px, 600) → one muted line → the spinner →
   muted step line.
 - **Boot splash** (`src/index.html`, inside `<app-root>`): shown from the first byte until Angular replaces it;
   colours are tokens.css values written out (the stylesheet may not be applied yet); an inline script applies the
-  remembered theme (`nt.theme`) and brand (`nt.brand`: name, monogram, icon). Indeterminate bar; static under reduced
+  remembered theme (`nt.theme`) and brand (`nt.brand`: name, monogram, icon). Spinner; breathes under reduced
   motion. CSP allows it by hash (backend `common/security.ts` hashes every inline script of the built index.html).
-- **Màn đang tải** (`layout/loading-screen`, shown by the root while `CatalogLoader.status()` is loading): determinate
-  bar from `CatalogLoader.progress` with the step named ("Đang tải: Đơn hàng bán và lệnh sản xuất · 3/7"); after 8 s a
+- **Màn đang tải** (`layout/loading-screen`, shown by the root while `CatalogLoader.status()` is loading): spinner with
+  `CatalogLoader.progress` as the step named ("Đang tải: Đơn hàng bán và lệnh sản xuất · 3/7"); after 8 s a
   warning-tint note says the connection is slow. A new load step = one entry in `LOAD_STEPS` + one `step(i)` call.
 
 ## Dashboard (Tổng quan)

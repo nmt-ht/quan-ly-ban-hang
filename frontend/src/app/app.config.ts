@@ -3,6 +3,7 @@ import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/
 import { provideRouter, TitleStrategy } from '@angular/router';
 import { routes } from './app.routes';
 import { authInterceptor } from './core/api/auth.interceptor';
+import { pageLoadingInterceptor } from './core/api/page-loading.interceptor';
 import { AuthService } from './core/services/auth.service';
 import { MonitoringErrorHandler, MonitoringService } from './core/services/monitoring.service';
 import { DisplayColorsService } from './core/services/display-colors.service';
@@ -14,7 +15,7 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     { provide: ErrorHandler, useClass: MonitoringErrorHandler },
     provideRouter(routes),
-    provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
+    provideHttpClient(withFetch(), withInterceptors([authInterceptor, pageLoadingInterceptor])),
     { provide: TitleStrategy, useClass: PageTitleStrategy },
     // Writes the user's tag colours (Thiết lập → Màu hiển thị) before any page renders.
     provideAppInitializer(() => {

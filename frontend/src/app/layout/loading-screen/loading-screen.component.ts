@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { CatalogLoader } from '../../core/api/catalog-loader.service';
 import { BrandService } from '../../core/services/brand.service';
 
@@ -22,9 +22,7 @@ const SLOW_MS = 8000;
         <p class="ls-name">{{ brand.name() }}</p>
         <p class="ls-lead">Đang chuẩn bị dữ liệu làm việc…</p>
 
-        <div class="ls-bar" role="progressbar" aria-label="Tiến độ tải dữ liệu" aria-valuemin="0" [attr.aria-valuemax]="p().total" [attr.aria-valuenow]="p().done">
-          <span [style.width.%]="pct()"></span>
-        </div>
+        <span class="nt-spinner" aria-hidden="true"></span>
         <p class="ls-step">
           <span>Đang tải: {{ p().step }}</span>
           <span class="ls-count">{{ p().done }}/{{ p().total }}</span>
@@ -42,8 +40,6 @@ export class LoadingScreenComponent {
   private readonly catalog = inject(CatalogLoader);
 
   readonly p = this.catalog.progress;
-  /** A sliver from the start so the bar never looks stuck at zero while the first request is out. */
-  readonly pct = computed(() => Math.max(4, (this.p().done / this.p().total) * 100));
   readonly slow = signal(false);
 
   constructor() {

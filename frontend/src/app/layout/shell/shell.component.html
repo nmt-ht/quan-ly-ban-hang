@@ -66,10 +66,13 @@
   <button class="scrim" type="button" aria-label="Đóng menu" tabindex="-1" (click)="closeMenu()"></button>
 
   <div class="main">
+    @if (pageLoading.visible()) {
+      <div class="page-loading" role="status" aria-live="polite">
+        <span class="nt-spinner" aria-hidden="true"></span>
+        <span class="page-loading-text">Đang tải trang…</span>
+      </div>
+    }
     <header class="topbar">
-      @if (navigating()) {
-        <div class="nav-progress" role="progressbar" aria-label="Đang tải trang"></div>
-      }
       <button
         class="menu-btn btn"
         type="button"
