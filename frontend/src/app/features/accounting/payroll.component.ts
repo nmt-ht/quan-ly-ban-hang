@@ -1,4 +1,5 @@
 /* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
+import { ConfirmService } from '../../shared/confirm/confirm.service';
 import { Component, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AccountingService } from '../../core/services/accounting.service';
@@ -160,6 +161,7 @@ import { CENTER_LABEL } from './employees.component';
 })
 export class AccountingPayrollComponent {
   private readonly svc = inject(AccountingService);
+  private readonly confirmer = inject(ConfirmService);
   readonly sheet = signal<PayrollSheetView | null>(null);
   readonly runs = signal<PayrollRunSummary[]>([]);
   readonly settings = signal<PayrollParamsView | null>(null);
@@ -214,7 +216,8 @@ export class AccountingPayrollComponent {
   }
 
   async cancel() {
-    if (!confirm(`Huỷ bảng lương kỳ ${this.period}? Các bút toán đã ghi sẽ được đảo lại.`)) return;
+    const ok = await this.confirmer.ask({ title: `Huỷ bảng lương kỳ ${this.period}?`, message: 'Các bút toán đã ghi sẽ được đảo lại. Sau đó có thể tính lại.', confirmLabel: 'Huỷ bảng lương', cancelLabel: 'Không huỷ', tone: 'danger' });
+    if (!ok) return;
     this.failure.set(''); this.notice.set(''); this.busy.set(true);
     try {
       await this.svc.payrollCancel(this.period);

@@ -1,4 +1,5 @@
 /* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
+import { ConfirmService } from '../../shared/confirm/confirm.service';
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -73,6 +74,7 @@ import { formatDay } from '../../shared/period';
 })
 export class AccountingLedgerComponent {
   private readonly svc = inject(AccountingService);
+  private readonly confirmer = inject(ConfirmService);
   private readonly printer = inject(PrintService);
   private readonly code = toSignal(inject(ActivatedRoute).paramMap.pipe(map((p) => p.get('code') ?? '')), { initialValue: '' });
   readonly data = signal<LedgerView | null>(null);
@@ -102,7 +104,7 @@ export class AccountingLedgerComponent {
     try {
       const y = this.period();
       const book = await this.svc.accountBook(this.code(), `${y}-01-01`, `${y}-12-31`);
-      if (book.truncated && !confirm('Sổ có hơn 5.000 dòng, bản in chỉ gồm 5.000 dòng đầu. Vẫn in?')) return;
+      if (book.truncated && !(await this.confirmer.ask({ title: 'Bản in chỉ gồm 5.000 dòng đầu. Vẫn in?', message: 'Sổ có hơn 5.000 dòng.', confirmLabel: 'Vẫn in', cancelLabel: 'Không in' }))) return;
       const spec = ledgerBookSpec(book);
       await this.printer.print('tt133-s03b', 'A4', () => this.doc.set(spec), () => this.doc.set(null));
     } catch (e) {

@@ -1,4 +1,5 @@
 /* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
+import { ConfirmService } from '../../shared/confirm/confirm.service';
 import { Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AccountingService } from '../../core/services/accounting.service';
@@ -45,8 +46,8 @@ import { PrintService } from '../../shared/print/print.service';
           <th scope="col">Ngày</th><th scope="col">Số CT</th><th scope="col">Diễn giải</th>
           <th scope="col">Tài khoản</th><th scope="col" class="r">Nợ</th><th scope="col" class="r">Có</th><th scope="col"><span class="visually-hidden">Thao tác</span></th>
         </tr></thead>
-        <tbody>
-          @for (e of entries(); track e.id) {
+        @for (e of entries(); track e.id) {
+          <tbody class="book-group">
             @for (l of e.lines; track $index; let i = $index) {
               <tr [class.book-entry]="i === 0">
                 @if (i === 0) {
@@ -64,10 +65,10 @@ import { PrintService } from '../../shared/print/print.service';
                 }
               </tr>
             }
-          } @empty {
-            <tr><td class="book-none" colspan="7">Chưa có bút toán nào.</td></tr>
-          }
-        </tbody>
+          </tbody>
+        } @empty {
+          <tbody><tr><td class="book-none" colspan="7">Chưa có bút toán nào.</td></tr></tbody>
+        }
       </table>
     </div>
    </div>
@@ -79,6 +80,7 @@ import { PrintService } from '../../shared/print/print.service';
 })
 export class AccountingJournalComponent {
   private readonly svc = inject(AccountingService);
+  private readonly confirmer = inject(ConfirmService);
   private readonly auth = inject(AuthService);
   private readonly printer = inject(PrintService);
   readonly canManual = this.auth.can('accounting.manual');
@@ -111,7 +113,8 @@ export class AccountingJournalComponent {
   }
 
   async reverse(e: JournalEntryView) {
-    if (!confirm(`Đảo bút toán ${e.code}?`)) return;
+    const ok = await this.confirmer.ask({ title: `Đảo bút toán ${e.code}?`, message: 'Hệ thống ghi một bút toán ngược lại, bút toán gốc vẫn giữ trong sổ.', confirmLabel: 'Đảo bút toán', cancelLabel: 'Không đảo', tone: 'danger' });
+    if (!ok) return;
     try { await this.svc.reverse(e.id); await this.load(); } catch (err) { this.failure.set(errorText(err)); }
   }
 
@@ -122,7 +125,7 @@ export class AccountingJournalComponent {
     this.printBusy.set(true);
     try {
       const book = await this.svc.journalBook(from, to);
-      if (book.truncated && !confirm('Kỳ có hơn 5.000 bút toán, bản in chỉ gồm 5.000 bút toán đầu. Thu hẹp kỳ để in đủ. Vẫn in?')) return;
+      if (book.truncated && !(await this.confirmer.ask({ title: 'Bản in chỉ gồm 5.000 bút toán đầu. Vẫn in?', message: 'Kỳ có hơn 5.000 bút toán. Thu hẹp kỳ để in đủ.', confirmLabel: 'Vẫn in', cancelLabel: 'Thu hẹp kỳ' }))) return;
       const spec = journalBookSpec(book);
       await this.printer.print('tt133-s03a', 'A4', () => this.doc.set(spec), () => this.doc.set(null));
     } catch (e) {

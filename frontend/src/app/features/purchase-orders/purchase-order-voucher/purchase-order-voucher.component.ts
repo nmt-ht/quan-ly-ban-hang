@@ -179,12 +179,14 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
       untracked(() => {
         const o = this.order();
         // "Lập đơn nhập" from a supplier passes ?ncc=<id> to pre-select it.
-        const fromQuery = this.route.snapshot.queryParamMap.get('ncc') ?? '';
+        // Hoặc ?contractId=… từ hợp đồng mua: nhà cung cấp và hợp đồng điền sẵn.
+        const fromContract = !id ? this.data.contracts().find((c) => c.id === this.route.snapshot.queryParamMap.get('contractId') && c.kind === 'MUA' && c.status === 'DANG_THUC_HIEN') : undefined;
+        const fromQuery = this.route.snapshot.queryParamMap.get('ncc') ?? fromContract?.partnerId ?? '';
         const preset = !id && this.data.suppliers().some((s) => s.id === fromQuery && s.isActive) ? fromQuery : '';
         this.supplierId.set(o?.supplierId ?? preset);
         this.date.set(o ? o.date.slice(0, 10) : isoDay(new Date()));
         this.note.set(o?.note ?? '');
-        this.contractId.set(o?.contractId ?? '');
+        this.contractId.set(o?.contractId ?? fromContract?.id ?? '');
         // "Gợi ý lập đơn nhập" (Tồn kho) hands over the lines to buy in history.state — nothing is saved until Lập đơn.
         const reorder = id ? [] : ((history.state as Partial<ReorderDraft> | null)?.reorder ?? []);
         this.baseline = '';

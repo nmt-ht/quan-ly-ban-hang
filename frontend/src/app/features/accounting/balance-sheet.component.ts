@@ -1,4 +1,5 @@
 /* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
+import { ConfirmService } from '../../shared/confirm/confirm.service';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AccountingService } from '../../core/services/accounting.service';
@@ -83,6 +84,7 @@ import { atDayText } from '../../shared/print/tt133/tt133-books';
 })
 export class AccountingBalanceSheetComponent {
   private readonly svc = inject(AccountingService);
+  private readonly confirmer = inject(ConfirmService);
   private readonly printer = inject(PrintService);
   readonly data = signal<BalanceSheetView | null>(null);
   readonly failure = signal('');
@@ -117,7 +119,7 @@ export class AccountingBalanceSheetComponent {
       const v = await this.svc.financialPosition(this.asOf());
       if (!v.balanced || v.unmapped.length) {
         const why = [!v.balanced ? 'tổng tài sản chưa bằng tổng nguồn vốn' : '', v.unmapped.length ? `tài khoản ${v.unmapped.join(', ')} còn số dư nhưng chưa có chỉ tiêu` : ''].filter(Boolean).join('; ');
-        if (!confirm(`Báo cáo chưa khớp: ${why}. Vẫn in?`)) return;
+        if (!(await this.confirmer.ask({ title: 'Báo cáo chưa khớp. Vẫn in?', message: `Lý do: ${why}.`, confirmLabel: 'Vẫn in', cancelLabel: 'Không in', tone: 'danger' }))) return;
       }
       await this.printer.print('tt133-b01b', 'A4', () => this.position.set(v), () => this.position.set(null));
     } catch (e) {

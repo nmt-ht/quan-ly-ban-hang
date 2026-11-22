@@ -50,6 +50,21 @@ describe('alerts (thông báo)', () => {
     ]);
   });
 
+  it('hợp đồng: sắp hết hạn trong 30 ngày và quá hạn chưa thanh lý, tách bán / mua; không có thì im lặng', () => {
+    expect(alerts({ ...none, openContracts: null })).toEqual([]);
+    const openContracts = [
+      { kind: 'BAN' as const, endDate: '2026-11-20' }, { kind: 'BAN' as const, endDate: '2026-12-31' }, { kind: 'BAN' as const, endDate: '2026-11-01' },
+      { kind: 'MUA' as const, endDate: '2026-11-30' }, { kind: 'BAN' as const, endDate: '2026-01-01' },
+    ];
+    const list = alerts({ ...none, openContracts });
+    expect(list.map((a) => [a.key, a.title])).toEqual([
+      ['contract-lapsed-BAN', '1 hợp đồng bán quá hạn chưa thanh lý'],
+      ['contract-soon-BAN', '1 hợp đồng bán sắp hết hạn'],
+      ['contract-soon-MUA', '1 hợp đồng mua sắp hết hạn'],
+    ]);
+    expect(list[2]).toMatchObject({ to: '/hop-dong/mua', query: { expiry: 'soon' }, area: 'purchase' });
+  });
+
   it('the signature follows the size of the problem, so a "đã xem" mark lapses when it grows', () => {
     expect(alerts({ ...none, draftPurchases: 2 })[0].sig).not.toBe(alerts({ ...none, draftPurchases: 3 })[0].sig);
   });

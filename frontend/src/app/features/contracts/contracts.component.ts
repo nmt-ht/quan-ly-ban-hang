@@ -41,6 +41,8 @@ export class ContractsComponent {
 
   readonly search = signal('');
   readonly statuses = signal<string[]>([]);
+  /** ?expiry=soon|expired (từ Thông báo): chỉ hợp đồng đang thực hiện sắp hết hạn / quá hạn. */
+  readonly expiry = signal<'soon' | 'expired' | null>(null);
   readonly headerSort = signal<ColumnSort | null>(null);
   readonly columnFilters = signal<ColumnFilters>({});
   readonly page = signal(1);
@@ -53,7 +55,8 @@ export class ContractsComponent {
 
   private readonly matchedExceptStatus = computed(() => {
     const q = foldVi(this.search().trim());
-    return this.ofKind().filter((c) => !q || this.searchText(c).includes(q));
+    const ex = this.expiry();
+    return this.ofKind().filter((c) => (!q || this.searchText(c).includes(q)) && (!ex || expiryOf(c, this.today) === ex));
   });
 
   readonly statusOptions = computed<FilterOption[]>(() => {
@@ -89,6 +92,8 @@ export class ContractsComponent {
 
   readonly chips = computed<ActiveChip[]>(() => {
     const chips: ActiveChip[] = [];
+    const ex = this.expiry();
+    if (ex) chips.push({ label: EXPIRY_LABEL[ex], clear: () => this.expiry.set(null) });
     for (const s of this.statuses()) {
       chips.push({ label: CONTRACT_STATUS_LABEL[s as ContractStatus], clear: () => this.statuses.update((v) => v.filter((x) => x !== s)) });
     }
@@ -115,13 +120,20 @@ export class ContractsComponent {
   ];
 
   constructor() {
+    const ex = this.route.snapshot.queryParamMap.get('expiry');
+    if (ex === 'soon' || ex === 'expired') this.expiry.set(ex);
     effect(() => {
       this.rows();
       untracked(() => this.page.set(1));
     });
     // Đổi giữa hợp đồng bán và hợp đồng mua: bỏ bộ lọc của loại trước.
+    let first = true;
     effect(() => {
       this.kind();
+      if (first) {
+        first = false;
+        return;
+      }
       untracked(() => this.clearAll(true));
     });
   }
@@ -138,6 +150,7 @@ export class ContractsComponent {
 
   clearAll(withSearch = false): void {
     this.statuses.set([]);
+    this.expiry.set(null);
     this.columnFilters.set({});
     if (withSearch) this.search.set('');
   }

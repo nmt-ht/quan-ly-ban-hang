@@ -2827,7 +2827,12 @@ input[type='radio'] {
 }
 
 @media (hover: hover) {
-  .book-table tbody tr:not(.book-open, .book-head, .book-sum):hover td {
+  .book-table tbody:not(.book-group) tr:not(.book-open, .book-head, .book-sum):hover td {
+    background: var(--color-paper-2);
+  }
+
+  // A bút toán spans several rows (date, số CT, diễn giải, Đảo use rowspan): the whole entry lights up, not one line of it.
+  .book-table tbody.book-group:hover td {
     background: var(--color-paper-2);
   }
 }

@@ -103,7 +103,7 @@ export class AlertsService {
   async list(user: AuthUser) {
     const can = (p: string) => user.permissions.includes(p);
     const today = isoDay();
-    const [lateOrders, debt, cashAccounts, belowMin, draftPurchases, openQuotes, uninvoiced] = await Promise.all([
+    const [lateOrders, debt, cashAccounts, belowMin, draftPurchases, openQuotes, uninvoiced, openContracts] = await Promise.all([
       can('order.view') ? this.sales.lateOrderCount(user, today) : null,
       can('debt.view') ? Promise.all([this.receivables.rows(today), this.payables.rows(today)]).then(([receivables, payables]) => ({ receivables, payables })) : null,
       can('voucher.view') ? this.cashAccounts.findAll() : null,
@@ -111,8 +111,9 @@ export class AlertsService {
       can('purchase.approve') ? this.prisma.purchaseOrder.count({ where: { status: 'NHAP' } }) : null,
       can('quote.view') ? this.openQuotes(user) : null,
       can('einvoice.view') ? this.uninvoiced(user, today) : null,
+      can('contract.view') ? this.openContracts(user) : null,
     ]);
-    return alerts({ today, lateOrders, debt, cashAccounts, belowMin, draftPurchases, openQuotes, uninvoiced });
+    return alerts({ today, lateOrders, debt, cashAccounts, belowMin, draftPurchases, openQuotes, uninvoiced, openContracts });
   }
 
   /**
@@ -142,6 +143,16 @@ export class AlertsService {
     ]);
     const qty = new Map(levels.map((l) => [l.productId, Number(l._sum.quantity ?? 0)]));
     return products.filter((p) => (qty.get(p.id) ?? 0) < Number(p.minStock)).length;
+  }
+
+  /** Hợp đồng đang thực hiện có hạn, chỉ loại người dùng được xem (bán: order.view, mua: purchase.view). */
+  private async openContracts(user: AuthUser) {
+    const kinds = [...(user.permissions.includes('order.view') ? ['BAN' as const] : []), ...(user.permissions.includes('purchase.view') ? ['MUA' as const] : [])];
+    if (!kinds.length) return [];
+    const rows = await this.prisma.contract.findMany({
+      where: { status: 'DANG_THUC_HIEN', kind: { in: kinds }, endDate: { not: null } }, select: { kind: true, endDate: true },
+    });
+    return rows.map((r) => ({ kind: r.kind, endDate: r.endDate!.toISOString().slice(0, 10) }));
   }
 
   /** Báo giá đang mở with a hạn hiệu lực, as the user's báo giá list shows them (same visibility rule). */

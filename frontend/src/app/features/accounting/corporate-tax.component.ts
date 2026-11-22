@@ -1,4 +1,5 @@
 /* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
+import { ConfirmService } from '../../shared/confirm/confirm.service';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -155,6 +156,7 @@ const PERIODS: { value: CitPeriod; label: string }[] = [
 })
 export class AccountingCorporateTaxComponent {
   private readonly svc = inject(AccountingService);
+  private readonly confirmer = inject(ConfirmService);
   private readonly auth = inject(AuthService);
   readonly canCreate = this.auth.can('accounting.manual');
   readonly canReverse = this.auth.can('accounting.reverse');
@@ -239,11 +241,16 @@ export class AccountingCorporateTaxComponent {
     finally { this.busy.set(false); }
   }
 
-  create(): Promise<void> {
+  async create(): Promise<void> {
     const p = this.pv();
-    if (!p) return Promise.resolve();
+    if (!p) return;
     const label = PERIODS.find((x) => x.value === p.period)!.label;
-    if (!confirm(`Ghi nhận thuế TNDN ${label} ${p.year}: thuế luỹ kế ${formatVnd(p.taxCumulative)}, ghi kỳ này ${formatVnd(p.taxBooked)}?`)) return Promise.resolve();
+    const ok = await this.confirmer.ask({
+      title: `Ghi nhận thuế TNDN ${label} ${p.year}?`,
+      message: `Thuế luỹ kế ${formatVnd(p.taxCumulative)}, ghi kỳ này ${formatVnd(p.taxBooked)}.`,
+      confirmLabel: 'Ghi nhận', tone: 'primary',
+    });
+    if (!ok) return;
     return this.run(async () => {
       const r = await this.svc.citCreate({
         year: p.year, period: p.period, rate: p.rate, addbacks: p.addbacks, deductions: p.deductions,
@@ -253,8 +260,9 @@ export class AccountingCorporateTaxComponent {
     });
   }
 
-  reverse(id: string, label: string): Promise<void> {
-    if (!confirm(`Huỷ lần tính thuế TNDN ${label}? Bút toán 821 / 3334 được đảo lại.`)) return Promise.resolve();
+  async reverse(id: string, label: string): Promise<void> {
+    const ok = await this.confirmer.ask({ title: `Huỷ lần tính thuế TNDN ${label}?`, message: 'Bút toán 821 / 3334 được đảo lại.', confirmLabel: 'Huỷ lần tính', cancelLabel: 'Không huỷ', tone: 'danger' });
+    if (!ok) return;
     return this.run(async () => { await this.svc.citReverse(id); return `Đã huỷ ${label}.`; });
   }
 }

@@ -1,4 +1,5 @@
 /* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
+import { ConfirmService } from '../../shared/confirm/confirm.service';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -151,6 +152,7 @@ import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 })
 export class AccountingClosingComponent {
   private readonly svc = inject(AccountingService);
+  private readonly confirmer = inject(ConfirmService);
   private readonly auth = inject(AuthService);
   readonly canClose = this.auth.can('accounting.manual');
   readonly canReverse = this.auth.can('accounting.reverse');
@@ -212,33 +214,45 @@ export class AccountingClosingComponent {
     finally { this.busy.set(false); }
   }
 
-  close(): Promise<void> {
+  async close(): Promise<void> {
     const d = this.date();
     const p = this.preview();
-    if (!confirm(`Kết chuyển lãi lỗ đến hết ngày ${formatDay(d)}${p ? ` (${p.profit >= 0 ? 'lãi' : 'lỗ'} ${formatVnd(Math.abs(p.profit))})` : ''}? Tạo các bút toán 511 / 632 / 642… → 911 → 421. Huỷ lại được nếu chưa đóng sổ năm.`)) return Promise.resolve();
+    const ok = await this.confirmer.ask({
+      title: `Kết chuyển lãi lỗ đến hết ngày ${formatDay(d)}?`,
+      message: `${p ? `Kỳ này ${p.profit >= 0 ? 'lãi' : 'lỗ'} ${formatVnd(Math.abs(p.profit))}. ` : ''}Tạo các bút toán 511 / 632 / 642… → 911 → 421. Huỷ lại được nếu chưa đóng sổ năm.`,
+      confirmLabel: 'Kết chuyển', tone: 'primary',
+    });
+    if (!ok) return;
     return this.run(async () => {
       const r = await this.svc.closePeriod(d);
       return `Đã kết chuyển đến hết ngày ${formatDay(r.date)}: ${r.profit >= 0 ? 'lãi' : 'lỗ'} ${formatVnd(Math.abs(r.profit))}.`;
     });
   }
 
-  reverse(id: string, date: string): Promise<void> {
-    if (!confirm(`Huỷ lần kết chuyển đến hết ngày ${formatDay(date)}? Các bút toán kết chuyển được đảo lại.`)) return Promise.resolve();
+  async reverse(id: string, date: string): Promise<void> {
+    const ok = await this.confirmer.ask({ title: `Huỷ lần kết chuyển đến hết ngày ${formatDay(date)}?`, message: 'Các bút toán kết chuyển được đảo lại.', confirmLabel: 'Huỷ kết chuyển', cancelLabel: 'Không huỷ', tone: 'danger' });
+    if (!ok) return;
     return this.run(async () => { await this.svc.reverseClosing(id); return 'Đã huỷ lần kết chuyển.'; });
   }
 
-  closeYear(): Promise<void> {
+  async closeYear(): Promise<void> {
     const y = this.year();
-    if (!confirm(`Đóng sổ năm ${y}? Hệ thống kết chuyển nốt, chuyển số dư cuối năm sang đầu năm ${y + 1} (thay số dư đầu năm ${y + 1} đã nhập) và khoá sổ đến 31/12/${y}.`)) return Promise.resolve();
+    const ok = await this.confirmer.ask({
+      title: `Đóng sổ năm ${y}?`,
+      message: `Hệ thống kết chuyển nốt, chuyển số dư cuối năm sang đầu năm ${y + 1} (thay số dư đầu năm ${y + 1} đã nhập) và khoá sổ đến 31/12/${y}.`,
+      confirmLabel: 'Đóng sổ', tone: 'danger',
+    });
+    if (!ok) return;
     return this.run(async () => {
       const r = await this.svc.closeYear(y);
       return `Đã đóng sổ năm ${r.year}: ${r.profit >= 0 ? 'lãi' : 'lỗ'} ${formatVnd(Math.abs(r.profit))}, chuyển ${r.carriedAccounts} số dư sang năm ${r.year + 1}.`;
     });
   }
 
-  reopenYear(): Promise<void> {
+  async reopenYear(): Promise<void> {
     const y = this.year();
-    if (!confirm(`Mở lại năm ${y}? Ngày khoá sổ trở về như trước khi đóng.`)) return Promise.resolve();
+    const ok = await this.confirmer.ask({ title: `Mở lại năm ${y}?`, message: 'Ngày khoá sổ trở về như trước khi đóng.', confirmLabel: 'Mở lại', tone: 'primary' });
+    if (!ok) return;
     return this.run(async () => { await this.svc.reopenYear(y); return `Đã mở lại năm ${y}.`; });
   }
 }

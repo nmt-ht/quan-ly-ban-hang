@@ -2,6 +2,7 @@
 // whatever kỳ the dashboard shows. Pure — AlertsService gathers only what the user's permissions allow.
 import type { DebtRow } from '../../common/debt-rows.js';
 import { formatVnd as vnd } from './report.rules.js';
+import { EXPIRING_DAYS } from '../contracts/contracts.rules.js';
 
 export type AlertLevel = 'bad' | 'warn';
 /** The dashboard area a problem belongs to (its area cards take their chip from these). */
@@ -33,6 +34,8 @@ export interface AlertInput {
   draftPurchases: number | null;
   /** Báo giá đang mở (status MOI) with a hạn hiệu lực. */
   openQuotes: { validUntil: string }[] | null;
+  /** Hợp đồng đang thực hiện có ngày hết hiệu lực (null = người dùng không xem hợp đồng). */
+  openContracts?: { kind: 'BAN' | 'MUA'; endDate: string }[] | null;
   /** Đợt giao đã giao quá INVOICE_LATE_DAYS ngày mà chưa có hoá đơn (null = người dùng không xem hoá đơn, hoặc công ty chưa dùng hoá đơn). */
   uninvoiced?: { count: number; oldest: string } | null;
 }
@@ -42,6 +45,7 @@ const shift = (day: string, days: number) => new Date(Date.parse(`${day}T00:00:0
 
 export const QUOTE_SOON_DAYS = 3; // báo giá hết hạn trong 3 ngày tới
 export const QUOTE_LAPSED_DAYS = 14; // đã hết hạn trong 14 ngày qua (older ones are history, not news)
+export const CONTRACT_LAPSED_DAYS = 60; // hợp đồng quá hạn mà chưa thanh lý, trong 60 ngày qua
 export const PAYABLE_DUE_DAYS = 7;
 export const INVOICE_LATE_DAYS = 3; // hoá đơn lập khi chuyển giao hàng hoá; quá 3 ngày chưa có là sót
 export const INVOICE_LOOKBACK_DAYS = 60; // đợt giao cũ hơn thế là lịch sử, không báo
@@ -128,6 +132,32 @@ export function alerts(i: AlertInput): Alert[] {
         detail: `Hết hạn trong ${QUOTE_SOON_DAYS} ngày tới — nhắc khách chốt đơn.`, to: '/bao-gia', query: { status: 'MOI' },
         cta: 'Xem báo giá', sig: `quote-soon:${soon}`,
       });
+    }
+  }
+
+  if (i.openContracts) {
+    const soonEnd = shift(i.today, EXPIRING_DAYS);
+    const lapsedFrom = shift(i.today, -CONTRACT_LAPSED_DAYS);
+    for (const kind of ['BAN', 'MUA'] as const) {
+      const mine = i.openContracts.filter((c) => c.kind === kind);
+      const name = kind === 'BAN' ? 'hợp đồng bán' : 'hợp đồng mua';
+      const path = kind === 'BAN' ? '/hop-dong/ban' : '/hop-dong/mua';
+      const lapsed = mine.filter((c) => c.endDate < i.today && c.endDate >= lapsedFrom).length;
+      const soon = mine.filter((c) => c.endDate >= i.today && c.endDate <= soonEnd).length;
+      if (lapsed) {
+        out.push({
+          key: `contract-lapsed-${kind}`, level: 'warn', area: kind === 'BAN' ? 'sell' : 'purchase', title: `${lapsed} ${name} quá hạn chưa thanh lý`,
+          detail: `Đã hết hiệu lực trong ${CONTRACT_LAPSED_DAYS} ngày qua — thanh lý, hoặc gia hạn bằng cách sửa ngày hết hiệu lực.`, to: path,
+          query: { expiry: 'expired' }, cta: 'Xem hợp đồng', sig: `contract-lapsed-${kind}:${lapsed}`,
+        });
+      }
+      if (soon) {
+        out.push({
+          key: `contract-soon-${kind}`, level: 'warn', area: kind === 'BAN' ? 'sell' : 'purchase', title: `${soon} ${name} sắp hết hạn`,
+          detail: `Hết hiệu lực trong ${EXPIRING_DAYS} ngày tới — thương lượng gia hạn hoặc chuẩn bị thanh lý.`, to: path,
+          query: { expiry: 'soon' }, cta: 'Xem hợp đồng', sig: `contract-soon-${kind}:${soon}`,
+        });
+      }
     }
   }
 

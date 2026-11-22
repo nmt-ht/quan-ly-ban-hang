@@ -264,7 +264,9 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
         const o = this.order();
         const params = this.route.snapshot.queryParamMap;
         const quote = !id ? this.data.quotations().find((x) => x.id === params.get('quoteId') && x.status === 'MOI') ?? null : null;
-        const q = quote?.customerId ?? params.get('customerId') ?? '';
+        // "Lập chứng từ" từ hợp đồng bán (?contractId=…): khách và hợp đồng điền sẵn.
+        const fromContract = !id ? this.data.contracts().find((c) => c.id === params.get('contractId') && c.kind === 'BAN' && c.status === 'DANG_THUC_HIEN') : undefined;
+        const q = quote?.customerId ?? params.get('customerId') ?? fromContract?.partnerId ?? '';
         const preset = !id && this.data.customers().some((c) => c.id === q && (c.isActive || !!quote)) ? q : '';
         this.fromQuote.set(quote);
         this.customerId.set(o?.customerId ?? preset);
@@ -278,7 +280,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
         this.orderDate.set(o ? o.orderDate.slice(0, 10) : isoDay(new Date()));
         this.neededByDate.set(o?.neededByDate?.slice(0, 10) ?? '');
         this.salesRep.set(o?.salesRep ?? (quote?.salesRep || this.defaultRep()));
-        this.contractId.set(o?.contractId ?? '');
+        this.contractId.set(o?.contractId ?? fromContract?.id ?? '');
         this.orderDiscount.set(o?.discountAmount || quote?.discountAmount || null);
         const header = o ?? quote;
         this.orderPromotionId.set(header?.promotionId ?? null);

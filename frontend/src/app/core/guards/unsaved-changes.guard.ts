@@ -1,4 +1,6 @@
+import { inject } from '@angular/core';
 import { CanDeactivateFn } from '@angular/router';
+import { ConfirmService } from '../../shared/confirm/confirm.service';
 
 /** A form component that can tell whether the user has typed something not yet saved. */
 export interface HasUnsavedChanges {
@@ -7,7 +9,8 @@ export interface HasUnsavedChanges {
 
 /** Ask before leaving a form with unsaved edits (menu click, back button, link). */
 export const unsavedChangesGuard: CanDeactivateFn<HasUnsavedChanges> = (component) =>
-  !component.hasUnsavedChanges() || window.confirm('Bạn có thay đổi chưa lưu. Rời trang và bỏ các thay đổi này?');
+  !component.hasUnsavedChanges() ||
+  inject(ConfirmService).ask({ title: 'Rời trang và bỏ thay đổi?', message: 'Bạn có thay đổi chưa lưu. Rời trang thì các thay đổi này mất.', confirmLabel: 'Rời trang', cancelLabel: 'Ở lại', tone: 'danger' });
 
 /** Ctrl+S (or ⌘S on Mac). */
 export function isSaveShortcut(e: KeyboardEvent): boolean {

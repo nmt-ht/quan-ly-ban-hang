@@ -1,3 +1,4 @@
+import { ConfirmService } from '../../shared/confirm/confirm.service';
 import { DatePipe } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -35,6 +36,7 @@ const CODE = /^[a-z][a-z0-9-]{2,29}$/;
 })
 export class PlatformComponent implements OnInit, OnDestroy {
   readonly api = inject(PlatformApiService);
+  private readonly confirmer = inject(ConfirmService);
   readonly statusOf = (s: TenantStatus) => STATUS[s];
 
   /** null while the first call is on its way. */
@@ -171,7 +173,8 @@ export class PlatformComponent implements OnInit, OnDestroy {
 
   /** The file of the doanh nghiệp's whole database (pg_dump), saved by the browser. */
   async exportData(t: PlatformTenant): Promise<void> {
-    if (!confirm(`Xuất toàn bộ dữ liệu của ${t.name}? File chứa dữ liệu thật của doanh nghiệp, hãy giữ ở nơi an toàn. Việc xuất được ghi vào nhật ký nền tảng.`)) return;
+    const ok = await this.confirmer.ask({ title: `Xuất toàn bộ dữ liệu của ${t.name}?`, message: 'File chứa dữ liệu thật của doanh nghiệp, hãy giữ ở nơi an toàn. Việc xuất được ghi vào nhật ký nền tảng.', confirmLabel: 'Xuất dữ liệu', tone: 'primary' });
+    if (!ok) return;
     await this.run(t.code, async () => {
       const { blob, filename } = await this.api.exportDump(t.code);
       const url = URL.createObjectURL(blob);
@@ -242,7 +245,7 @@ export class PlatformComponent implements OnInit, OnDestroy {
 
   async toggle(t: PlatformTenant): Promise<void> {
     const suspend = t.status === 'ACTIVE';
-    if (suspend && !confirm(`Tạm ngưng ${t.name}? Mọi người dùng của doanh nghiệp này sẽ không đăng nhập hay thao tác được nữa, dữ liệu vẫn giữ nguyên.`)) return;
+    if (suspend && !(await this.confirmer.ask({ title: `Tạm ngưng ${t.name}?`, message: 'Mọi người dùng của doanh nghiệp này sẽ không đăng nhập hay thao tác được nữa, dữ liệu vẫn giữ nguyên.', confirmLabel: 'Tạm ngưng', cancelLabel: 'Không', tone: 'danger' }))) return;
     await this.run(t.code, async () => {
       await this.api.action(t.code, suspend ? 'suspend' : 'reopen');
       this.notice.set({ text: suspend ? `Đã tạm ngưng ${t.name}.` : `Đã mở lại ${t.name}.`, error: false });

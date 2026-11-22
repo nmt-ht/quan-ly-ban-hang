@@ -89,6 +89,8 @@ export class ContractPageComponent implements HasUnsavedChanges {
   readonly money = formatVnd;
   readonly day = formatDay;
   readonly canUpdate = computed(() => !!this.contract() && isOpen(this.contract()!) && this.auth.can('contract.update'));
+  /** Lập đơn từ hợp đồng còn đang thực hiện: người dùng phải có quyền tạo đơn bán / đơn mua. */
+  readonly canMakeOrder = computed(() => !!this.contract() && isOpen(this.contract()!) && this.auth.can(this.kind() === 'BAN' ? 'order.create' : 'purchase.create'));
   readonly canClose = computed(() => !!this.contract() && isOpen(this.contract()!) && this.auth.can('contract.close'));
   readonly expiry = computed(() => (this.contract() ? expiryOf(this.contract()!, this.today) : 'none'));
   readonly expiryLabel = EXPIRY_LABEL;

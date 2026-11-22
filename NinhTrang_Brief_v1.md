@@ -43,7 +43,7 @@ Mọi commit dưới đây đã push lên `origin/master` (đỉnh `fedeb1e`).
 - Sao lưu mọi doanh nghiệp (`fedeb1e`): đã commit và push, chưa chạy thật trên GitHub Actions.
 - Giao diện `5f13e6e` chưa xem trên trình duyệt (build và test đạt).
 - Nhiều doanh nghiệp chưa bật trên Render; chưa có trên trang nền tảng: dung lượng từng DB, số người dùng, lần dùng gần nhất. Màn khởi động (`index.html`) vẫn hiện tên công ty nhớ lần cuối, kể cả khi đổi mã doanh nghiệp.
-- Lỗ nghiệp vụ còn lại: Sale vẫn hạ được đơn giá (không có giá sàn); huỷ phiếu thu vẫn có thể làm quỹ âm; NV xưởng không thấy đơn bán gốc trên lệnh SX.
+- ~~Ba lỗ nghiệp vụ (giá sàn, huỷ phiếu thu làm quỹ âm, xưởng xem đơn gốc)~~ — đã đóng ở `33163af` (27/10/2026), có test.
 - 1.1: chuyến giao, lệnh SX chưa phân trang phía máy chủ. 1.2 ảnh sang object storage chưa làm. Pha 2 còn: link theo dõi đơn, POD, hoá đơn điện tử, ticket, gửi tin tự động.
 - In K80 trên máy in thật, quét VietQR bằng app ngân hàng thật: chưa thử.
 
@@ -52,7 +52,7 @@ Mọi commit dưới đây đã push lên `origin/master` (đỉnh `fedeb1e`).
 2. Bật nhiều doanh nghiệp trên Render: tạo sẵn chuỗi kết nối trực tiếp tới DB `platform` trên Neon, đặt 4 biến `PLATFORM_*` (cất `PLATFORM_SECRET` vào nơi an toàn, mất là không đọc được chuỗi kết nối), deploy, đăng ký TOTP, báo người dùng Ninh Trang nhập mã `ninhtrang` ở lần đăng nhập tới. Thêm secret `PLATFORM_DATABASE_URL`, `PLATFORM_SECRET` cho workflow sao lưu.
 3. Theo dõi dung lượng Neon: gói miễn phí dùng chung một hạn mức lưu trữ cho mọi database của project; ảnh đang lưu dạng data URL trong DB nên 1.2 (R2/S3) giờ quan trọng hơn. Cân nhắc nâng gói khi có khách thật; Render free ngủ sau 15 phút cũng nên nâng cho khách trả tiền.
 4. Xem lại giao diện mới trên trình duyệt (desktop + điện thoại), nhất là Tổng quan và menu tài khoản.
-5. Đóng ba lỗ nghiệp vụ còn lại (giá sàn cho Sale theo MISA: không bán dưới giá tối thiểu trừ khi có quyền; chặn huỷ phiếu thu làm quỹ âm; cho xưởng xem đơn gốc chỉ đọc).
+5. ~~Đóng ba lỗ nghiệp vụ còn lại~~ (xong, `33163af`) (giá sàn cho Sale theo MISA: không bán dưới giá tối thiểu trừ khi có quyền; chặn huỷ phiếu thu làm quỹ âm; cho xưởng xem đơn gốc chỉ đọc).
 6. ~~Trang nền tảng: dung lượng DB, số người dùng, lần đăng nhập gần nhất; xuất dữ liệu một doanh nghiệp~~ — xong 22/11/2026 (chưa commit; xuất cần pg_dump trên máy chủ, Render dùng workflow Backup DB với ô only).
 7. Việc treo nhỏ: in K80 thật, quét VietQR thật, phân trang chuyến / lệnh SX khi số lượng lớn.
 

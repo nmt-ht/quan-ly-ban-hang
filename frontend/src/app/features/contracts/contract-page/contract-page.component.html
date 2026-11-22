@@ -202,6 +202,9 @@
             <button type="button" class="btn btn-danger-ghost" (click)="startClosing('cancel')">Huỷ hợp đồng</button>
             <button type="button" class="btn" (click)="startClosing('liquidate')">Thanh lý</button>
           }
+          @if (canMakeOrder()) {
+            <a class="btn" [routerLink]="kind() === 'BAN' ? '/don-hang/them-moi' : '/mua-hang/them'" [queryParams]="{ contractId: c.id }"><app-nav-icon name="plus" />Lập {{ kind() === 'BAN' ? 'chứng từ bán hàng' : 'đơn mua hàng' }}</a>
+          }
           @if (canUpdate()) {
             <a class="btn btn-primary" [routerLink]="['/hop-dong/chi-tiet', c.id, 'sua']"><app-nav-icon name="pencil" />Sửa</a>
           }

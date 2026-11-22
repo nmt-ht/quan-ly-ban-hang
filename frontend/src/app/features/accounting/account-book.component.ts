@@ -1,4 +1,5 @@
 /* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
+import { ConfirmService } from '../../shared/confirm/confirm.service';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AccountingService } from '../../core/services/accounting.service';
@@ -122,6 +123,7 @@ const PRESETS = [
 })
 export class AccountingAccountBookComponent {
   private readonly svc = inject(AccountingService);
+  private readonly confirmer = inject(ConfirmService);
   private readonly store = inject(DataStore);
   private readonly printer = inject(PrintService);
   readonly presets = PRESETS;
@@ -198,7 +200,7 @@ export class AccountingAccountBookComponent {
   async printBook() {
     const d = this.data();
     if (!d) return;
-    if (d.truncated && !confirm('Sổ có hơn 5.000 dòng, bản in chỉ gồm 5.000 dòng đầu. Thu hẹp khoảng ngày để in đủ. Vẫn in?')) return;
+    if (d.truncated && !(await this.confirmer.ask({ title: 'Bản in chỉ gồm 5.000 dòng đầu. Vẫn in?', message: 'Sổ có hơn 5.000 dòng. Thu hẹp khoảng ngày để in đủ.', confirmLabel: 'Vẫn in', cancelLabel: 'Thu hẹp ngày' }))) return;
     const partner = this.partnerOptions().find((o) => o.value === this.partnerId())?.label;
     const spec = accountBookSpec(d, partner);
     await this.printer.print('tt133-' + spec.formNo.toLowerCase(), 'A4', () => this.doc.set(spec), () => this.doc.set(null));
