@@ -8,6 +8,7 @@ import { NO_PERIOD, PeriodFilterComponent, PeriodValue } from '../../../shared/p
 import { downloadWorkbook, exportFileName } from '../../../shared/excel.util';
 import { actionVerb, codeLink, ENTITY_LABEL, entityLink, formatAuditValue, listDelta } from '../../../shared/audit/audit-labels';
 import { SearchOption, SearchSelectComponent } from '../../../shared/search-select/search-select.component';
+import { ToastService } from '../../../core/services/toast.service';
 
 const PAGE = 100;
 const SEARCH_DELAY_MS = 300;
@@ -31,6 +32,7 @@ const ACTIONS: { value: string; label: string }[] = [
   styleUrl: './activity-log.component.scss',
 })
 export class ActivityLogComponent {
+  protected readonly toast = inject(ToastService);
   private readonly svc = inject(AuditLogService);
   readonly data = inject(DataStore);
 
@@ -43,7 +45,6 @@ export class ActivityLogComponent {
   readonly rows = signal<AuditLogEntry[]>([]);
   readonly nextCursor = signal<string | null>(null);
   readonly loading = signal(false);
-  readonly error = signal('');
   readonly exporting = signal(false);
   /** Lines whose changed fields are shown. */
   readonly open = signal<ReadonlySet<string>>(new Set());
@@ -78,14 +79,13 @@ export class ActivityLogComponent {
   private async load(query: AuditQuery, more: boolean): Promise<void> {
     const seq = ++this.seq;
     this.loading.set(true);
-    this.error.set('');
     try {
       const page = await this.svc.list({ ...query, before: more ? this.nextCursor() : null });
       if (seq !== this.seq) return;
       this.rows.set(more ? [...this.rows(), ...page.items] : page.items);
       this.nextCursor.set(page.nextCursor);
     } catch (e) {
-      if (seq === this.seq) this.error.set(errorText(e));
+      if (seq === this.seq) this.toast.error(errorText(e));
     } finally {
       if (seq === this.seq) this.loading.set(false);
     }

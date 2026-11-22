@@ -10,12 +10,6 @@
   </div>
 </div>
 
-@if (colors.error()) {
-  <div class="notice is-error" role="alert">
-    <span>Chưa lưu được màu: {{ colors.error() }}</span>
-    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="colors.error.set('')"><app-nav-icon name="x" /></button>
-  </div>
-}
 
 <p class="form-note dc-note" aria-live="polite">
   @if (colors.canEdit()) {

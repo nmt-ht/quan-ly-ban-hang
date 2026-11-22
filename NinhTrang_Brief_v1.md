@@ -117,3 +117,15 @@ Lưu ý khi viết e2e với supertest: lấy token **trước** khi gọi `api(
 - ~~Thủ kho thấy đơn giá đơn nhập~~ — xong 24/10/2026: `common/purchase-prices.ts` (máy chủ) + `core/auth/purchase-prices.ts` (giao diện) ẩn giá nhập trên đơn nhập, phiếu kho, danh mục hàng NCC với chức vụ không mua/duyệt/định giá/xem công nợ (Thủ kho, Sale, giao hàng, xưởng). Chưa bấm thử bằng tài khoản Thủ kho (có e2e).
 - Lockfile tạo bằng npm 11.17.0 (`packageManager` trong `frontend/package.json`); npm cũ hơn sẽ báo lệch khi `npm ci`.
 - Môi trường cloud không tải được engine Prisma; trên máy bạn dùng `prisma migrate` bình thường.
+
+## Cập nhật 22/11/2026 (sau Brief 25/10)
+
+Từ 25/10 đến 22/11 đã thêm (xem `README.md` cho từng phần):
+- **Kế toán TT133** đầy đủ: sổ cái kép, bút toán tự sinh, sổ sách, B01b / B02 / B03 in theo mẫu, thuế GTGT và TNDN, TSCĐ, CCDC, giá thành, lương, kết chuyển và đóng sổ năm.
+- **Hoá đơn:** trang Hoá đơn bán ra (ghi nhận số hoá đơn lập ngoài), hoá đơn NCC, hoá đơn mua dịch vụ, phân bổ chi phí mua hàng vào giá nhập. Máy chủ có sẵn phát hành, điều chỉnh, thay thế qua nhà cung cấp nhưng **giao diện phát hành và bộ nối MISA meInvoice chưa làm**.
+- **Quỹ:** chuyển tiền nội bộ, kiểm kê quỹ, đối chiếu sao kê. **Bán:** hợp đồng bán / mua, giảm giá hàng bán, đơn xuất khẩu và ngoại tệ. Ảnh hàng hoá lưu được trên Cloudflare R2.
+- **Giao diện:** một màu nhấn cho mọi phân hệ (đổi từ rêu sang xanh ngọc ngày 22/11), menu ba cấp và sơ đồ phân hệ, hộp thoại form dùng chung, danh sách mặc định xếp mới tạo nhất trước, màn lập chứng từ riêng có thanh hành động chuẩn.
+- Phân trang phía máy chủ cho chuyến giao và lệnh sản xuất (xong); trang nền tảng có mức sử dụng và xuất dữ liệu.
+
+Tài liệu mới: mục **Xử lý sự cố trên môi trường chính thức** trong `README.md` (cách nhân viên kỹ thuật tra và sửa lỗi), `docs/so-sanh-MISA-SME.md` và `docs/plan-ban-le.md` (thư mục `docs/` không nằm trên repo). Hồ sơ giới thiệu và báo giá cập nhật lên bản 1.2 (22/11/2026).
+Việc treo: in K80 và VietQR trên thiết bị thật, chạy thử workflow sao lưu, bật nhiều doanh nghiệp trên Render, tài liệu `docs/atlas/` cho các màn hình mới, bán lẻ tại quầy (kế hoạch đã viết, chưa làm).

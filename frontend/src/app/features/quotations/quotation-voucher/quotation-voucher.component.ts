@@ -1,7 +1,7 @@
 import { NextCodeComponent } from '../../../shared/next-code/next-code.component';
 import { NextCodeService } from '../../../shared/next-code/next-code.service';
 import { ConfirmService } from '../../../shared/confirm/confirm.service';
-import { Component, HostListener, computed, effect, inject, signal, untracked , viewChild } from '@angular/core';
+import { Component, HostListener, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { EmailComposeComponent } from '../../../shared/email-compose/email-compose.component';
 import { pdfName } from '../../../shared/print/print-pdf';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -35,6 +35,7 @@ import { SalesOrderService } from '../../sales-orders/sales-order.service';
 import { SearchOption, SearchSelectComponent } from '../../../shared/search-select/search-select.component';
 import { QuickCustomerDialogComponent } from '../../../shared/quick-create/quick-customer-dialog.component';
 import { DateInputDirective } from '../../../shared/date-input/date-input.directive';
+import { ToastService } from '../../../core/services/toast.service';
 
 type Mode = 'create' | 'edit' | 'view';
 type Tab = 'hang' | 'nhat-ky';
@@ -86,6 +87,7 @@ const DEFAULT_VALID_DAYS = 7;
   styleUrls: ['../../../shared/voucher/voucher.scss', '../../sales-orders/sales-order-voucher/sales-order-voucher.component.scss'],
 })
 export class QuotationVoucherComponent implements HasUnsavedChanges {
+  protected readonly toast = inject(ToastService);
   private readonly nextCode = inject(NextCodeService);
   private readonly dialogs = inject(ConfirmService);
   private readonly route = inject(ActivatedRoute);
@@ -134,7 +136,6 @@ export class QuotationVoucherComponent implements HasUnsavedChanges {
   readonly lines = signal<DraftLine[]>([emptyLine()]);
   readonly attempted = signal(false);
   readonly tab = signal<Tab>('hang');
-  readonly notice = signal('');
 
   // ---------- gửi email (as MISA): báo giá + PDF đúng bản in ----------
   private readonly emailDlg = viewChild<EmailComposeComponent>('emailDlg');
@@ -150,7 +151,6 @@ export class QuotationVoucherComponent implements HasUnsavedChanges {
       pdf: { filename: pdfName('Bao gia', q.code) },
     });
   }
-  readonly failure = signal('');
 
   readonly vatRates = VAT_RATES;
   readonly statusLabel = QUOTATION_STATUS_LABEL;
@@ -185,7 +185,7 @@ export class QuotationVoucherComponent implements HasUnsavedChanges {
         this.attempted.set(false);
         this.tab.set('hang');
         this.page.set(1);
-        if (id) this.notice.set((history.state as { notice?: string } | null)?.notice ?? '');
+        if (id) this.toast.success((history.state as { notice?: string } | null)?.notice ?? '');
         this.baseline = this.snapshot();
       });
     });
@@ -533,15 +533,14 @@ export class QuotationVoucherComponent implements HasUnsavedChanges {
       confirmLabel: 'Huỷ báo giá', cancelLabel: 'Không huỷ', tone: 'danger', fields: [{ key: 'reason', label: 'Lý do huỷ', type: 'textarea', placeholder: 'Không bắt buộc', maxLength: 300 }],
       run: (v) => this.quotes.cancel(id, v['reason']),
     });
-    if (done) this.notice.set('Đã huỷ báo giá.');
+    if (done) this.toast.success('Đã huỷ báo giá.');
   }
 
   private async attempt<T>(save: () => Promise<T>): Promise<T | null> {
-    this.failure.set('');
     try {
       return await save();
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
       return null;
     }
   }

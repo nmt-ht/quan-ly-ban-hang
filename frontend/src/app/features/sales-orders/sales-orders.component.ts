@@ -26,10 +26,11 @@ interface ActiveChip {
   clear: () => void;
 }
 
-type SalesSort = 'newest' | 'oldest' | 'value' | 'code';
+type SalesSort = 'created' | 'newest' | 'oldest' | 'value' | 'code';
 
 const SORTS: { value: SalesSort; label: string }[] = [
-  { value: 'newest', label: 'Mới nhất' },
+  { value: 'created', label: 'Mới tạo nhất' },
+  { value: 'newest', label: 'Ngày đặt mới nhất' },
   { value: 'oldest', label: 'Cũ nhất' },
   { value: 'value', label: 'Giá trị cao nhất' },
   { value: 'code', label: 'Mã tăng dần' },
@@ -37,6 +38,7 @@ const SORTS: { value: SalesSort; label: string }[] = [
 
 /** The "Sắp xếp" choices as the server's sort key + direction. */
 const SORT_QUERY: Record<SalesSort, Pick<SalesOrderPageQuery, 'sort' | 'dir'>> = {
+  created: { sort: 'code', dir: 'desc' }, // mã are issued in creation order
   newest: { sort: 'orderDate', dir: 'desc' },
   oldest: { sort: 'orderDate', dir: 'asc' },
   value: { sort: 'totalOrder', dir: 'desc' },
@@ -78,7 +80,7 @@ export class SalesOrdersComponent {
   readonly createdBy = signal<string[]>([]);
   readonly value = signal<NumberRange>({ min: null, max: null });
   readonly lateOnly = signal(false);
-  readonly sort = signal<SalesSort>('code'); // default: Mã tăng dần
+  readonly sort = signal<SalesSort>('created'); // default: mới tạo nhất
   // Clicking a column header overrides the "Sắp xếp" select; picking from the select clears it.
   readonly headerSort = signal<ColumnSort | null>(null);
   readonly page = signal(1);

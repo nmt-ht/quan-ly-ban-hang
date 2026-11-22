@@ -11,7 +11,7 @@ export const VOUCHER_KINDS = ['NHAP', 'TRA_VE', 'XUAT', 'CHUYEN', 'KIEM_KE'] as 
 type Kind = (typeof VOUCHER_KINDS)[number];
 const KIND_LABEL: Record<Kind, string> = { NHAP: 'Nhập kho', TRA_VE: 'Nhập trả về', XUAT: 'Xuất kho', CHUYEN: 'Chuyển kho', KIEM_KE: 'Kiểm kê' };
 
-export const VOUCHER_SORTS = ['code', 'date', 'type', 'warehouse', 'source', 'reason', 'lines', 'qty', 'value', 'createdBy'] as const;
+export const VOUCHER_SORTS = ['code', 'date', 'type', 'warehouse', 'source', 'reason', 'lines', 'qty', 'value', 'createdBy', 'createdAt'] as const;
 
 export class WarehouseVoucherPageQuery {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) page?: number;
@@ -101,6 +101,7 @@ export function voucherPageOf(all: ApiVoucher[], q: WarehouseVoucherPageQuery, l
   const key: Record<(typeof VOUCHER_SORTS)[number], (v: ApiVoucher) => string | number> = {
     code: (v) => v.code, date: (v) => v.date, type: (v) => KIND_LABEL[kindOf(v)], warehouse: warehouseText, source: (v) => sourceText(v, lk),
     reason: (v) => v.reason ?? '', lines: (v) => v.lines.length, qty, value, createdBy: (v) => lk.users.get(v.createdBy) ?? v.createdBy,
+    createdAt: (v) => v.createdAt.toISOString(),
   };
   const sorted = sortRows(rows, key[q.sort ?? 'code'], q.dir ?? (q.sort ? 'asc' : 'desc'));
   return {

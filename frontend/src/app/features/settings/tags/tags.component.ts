@@ -9,6 +9,7 @@ import { foldVi } from '../../../shared/format.util';
 import { DEFAULT_TAG_COLOR, TAG_COLORS, tagStyle } from '../../../shared/tag-colors';
 import { TagService } from './tag.service';
 import { errorText } from '../../../core/api/api.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 // /thiet-lap/the — thẻ đánh dấu dùng chung cho đơn hàng bán và khách hàng.
 @Component({
@@ -23,6 +24,7 @@ import { errorText } from '../../../core/api/api.service';
   ],
 })
 export class TagsComponent {
+  protected readonly toast = inject(ToastService);
   private readonly dialogs = inject(ConfirmService);
   readonly data = inject(DataStore);
   readonly svc = inject(TagService);
@@ -32,7 +34,6 @@ export class TagsComponent {
   readonly style = tagStyle;
   readonly search = signal('');
   readonly showInactive = signal(true);
-  readonly notice = signal('');
   readonly error = signal('');
 
   // dialog draft
@@ -93,7 +94,7 @@ export class TagsComponent {
     }
     this.close();
     this.error.set('');
-    this.notice.set(t ? `Đã lưu thẻ "${draft.name.trim()}".` : `Đã thêm thẻ "${draft.name.trim()}".`);
+    this.toast.success(t ? `Đã lưu thẻ "${draft.name.trim()}".` : `Đã thêm thẻ "${draft.name.trim()}".`);
   }
 
   async toggle(t: Tag): Promise<void> {
@@ -103,7 +104,7 @@ export class TagsComponent {
       this.error.set(errorText(e));
       return;
     }
-    this.notice.set(t.isActive ? `"${t.name}" ngừng dùng — vẫn hiện trên đơn / khách cũ, không chọn được nữa.` : `"${t.name}" dùng lại.`);
+    this.toast.success(t.isActive ? `"${t.name}" ngừng dùng — vẫn hiện trên đơn / khách cũ, không chọn được nữa.` : `"${t.name}" dùng lại.`);
   }
 
   async askDelete(t: Tag): Promise<void> {
@@ -113,7 +114,7 @@ export class TagsComponent {
       run: () => this.svc.remove(t.id),
     });
     if (done) {
-      this.notice.set(`Đã xoá thẻ "${t.name}".`);
+      this.toast.success(`Đã xoá thẻ "${t.name}".`);
       this.error.set('');
     }
   }

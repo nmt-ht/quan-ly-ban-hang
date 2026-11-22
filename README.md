@@ -16,7 +16,7 @@ Phần mềm quản lý bán hàng, kho, sản xuất, giao hàng, công nợ v�
 4. [Quy trình làm việc với mã nguồn](#quy-trình-làm-việc-với-mã-nguồn)
 5. [Triển khai](#triển-khai-render--neon)
 6. [Nhiều doanh nghiệp](#nhiều-doanh-nghiệp)
-7. [Vận hành](#vận-hành)
+7. [Vận hành](#vận-hành) và [Xử lý sự cố trên môi trường chính thức](#xử-lý-sự-cố-trên-môi-trường-chính-thức)
 8. [Quy ước bắt buộc khi sửa mã](#quy-ước-bắt-buộc-khi-sửa-mã)
 9. [Ghi chú kỹ thuật theo phân hệ](#ghi-chú-kỹ-thuật-theo-phân-hệ)
 10. [Kế toán (TT133)](#kế-toán-tt133)
@@ -69,14 +69,16 @@ flowchart LR
 | Hàng hoá | `/hang-hoa` | Vật tư, thành phẩm, dịch vụ; đơn vị quy đổi, giá bán theo loại khách, định mức, nhập Excel |
 | Kho | `/kho/ton-kho`, `/kho/phieu` | Tồn theo kho, gợi ý đơn nhập, phiếu nhập / xuất / chuyển / kiểm kê |
 | Sản xuất | `/san-xuat` | Lệnh sản xuất từ đơn bán: xuất vật tư, nghiệm thu, giá thành |
-| Mua hàng | `/nha-cung-cap`, `/mua-hang`, `/cong-no/nha-cung-cap` | Nhà cung cấp và danh mục hàng của họ, đơn nhập, nhận hàng, trả lại hàng mua, công nợ phải trả |
-| Bán hàng | `/khach-hang`, `/bao-gia`, `/don-hang`, `/bang-gia`, `/khuyen-mai` | Khách hàng (hạn mức công nợ, bảng giá riêng), báo giá, đơn hàng bán, trả hàng, khuyến mãi |
+| Mua hàng | `/nha-cung-cap`, `/mua-hang`, `/hop-dong/mua`, `/cong-no/nha-cung-cap` | Nhà cung cấp và danh mục hàng của họ, đơn nhập, nhận hàng, trả lại hàng mua, hợp đồng mua, công nợ phải trả |
+| Bán hàng | `/khach-hang`, `/bao-gia`, `/hop-dong/ban`, `/don-hang`, `/bang-gia`, `/khuyen-mai` | Khách hàng (hạn mức công nợ, bảng giá riêng), báo giá, hợp đồng bán, đơn hàng bán (trong nước / xuất khẩu, ngoại tệ), trả hàng, giảm giá hàng bán, khuyến mãi |
+| Hoá đơn bán ra | `/hoa-don-ban` | Danh sách đợt giao cần lập hoá đơn, xuất Excel để lập trên cổng nhà cung cấp, ghi nhận số hoá đơn (nhập tay hoặc nhập danh sách từ cổng), gỡ ghi nhận. Phần mềm **không tự phát hành** hoá đơn có giá trị pháp lý |
 | Giao hàng | `/giao-hang`, `/xe` | Chuyến giao hàng, chốt giao, chi phí chuyến, danh mục xe |
 | Công nợ | `/cong-no/khach-hang`, `/cong-no/tuoi-no`, `/cong-no/nhac-no` | Sổ chi tiết công nợ, tuổi nợ, nhắc nợ, thông báo công nợ có VietQR |
 | Thu chi | `/thu-chi`, `/thu-chi/chuyen-tien`, `/thu-chi/kiem-ke-quy`, `/thu-chi/doi-chieu-ngan-hang` | Phiếu thu, phiếu chi, tài khoản tiền (mã VietQR), loại thu chi; chuyển tiền nội bộ, kiểm kê quỹ, đối chiếu sao kê ngân hàng |
 | Mua hàng (bổ sung) | `/hoa-don-mua` | Hoá đơn NCC trên từng lần nhận hàng; hoá đơn mua hàng / dịch vụ không qua kho |
 | Kế toán | `/ke-toan/...` | Sổ cái TT133, sổ sách, thuế GTGT, báo cáo tài chính, lưu chuyển tiền tệ, tài sản cố định, công cụ dụng cụ, giá thành, tiền lương — xem [Kế toán](#kế-toán-tt133) |
-| Thiết lập | `/thiet-lap/...` | Thông tin công ty và khoá sổ, kho, nhóm hàng, thẻ, người dùng, chức vụ và phân quyền, màu hiển thị, nhật ký hoạt động |
+| Sơ đồ phân hệ | `/so-do/:phan-he` | Bấm tên một phân hệ ở menu trái để xem sơ đồ các màn hình của phân hệ đó nối với nhau thế nào (Kho, Mua hàng, Bán hàng, Quỹ và ngân hàng, Kế toán) |
+| Thiết lập | `/thiet-lap/...` | Thông tin doanh nghiệp và khoá sổ, kho, nhóm hàng, thẻ, người dùng, chức vụ và phân quyền, màu hiển thị, email gửi đi, nhật ký truy cập |
 
 Các chức vụ có sẵn: **CEO** (toàn quyền), **Quản lý**, **Kế toán**, **Sale**, **Thủ kho**, **Nhân viên giao hàng**, **Nhân viên xưởng**. Quyền chỉnh được ở Thiết lập › Chức vụ & phân quyền; máy chủ kiểm quyền trên mọi lệnh gọi, giao diện chỉ ẩn những gì không được dùng.
 
@@ -220,6 +222,85 @@ flowchart LR
 - **Kiểm tra sống:** `GET /api/health` trả 200 khi app và DB đều trả lời, 503 khi không. Render dùng làm health check; có thể trỏ UptimeRobot vào đây.
 - **Truy vết:** mỗi phản hồi có `X-Request-Id`; cùng mã đó nằm trong Nhật ký hoạt động và log lỗi.
 - **Bảo mật:** header bảo mật và CSP (helmet), giới hạn thử mật khẩu, máy chủ chặn mọi lệnh gọi khi người dùng còn phải đổi mật khẩu, giá nhập và giá vốn chỉ trả cho chức vụ được xem.
+
+## Xử lý sự cố trên môi trường chính thức
+
+Dành cho nhân viên kỹ thuật. Mục tiêu: từ một câu "hệ thống báo lỗi" đến nguyên nhân và bản sửa, mà **không đoán và không sửa tay trên cơ sở dữ liệu chính thức**.
+
+```mermaid
+flowchart TD
+  A[Người dùng báo lỗi] --> B{Màn hình hiện gì?}
+  B -->|Một câu nói rõ ô hoặc quy tắc| C[Không phải lỗi phần mềm: hướng dẫn người dùng, xem bảng phân loại]
+  B -->|Lỗi hệ thống + mã lỗi + giờ| D[Lấy mã lỗi]
+  D --> E[Tìm mã lỗi trong log Render và Sentry]
+  E --> F[Biết đường dẫn, người dùng, dòng lỗi, phiên bản mã]
+  F --> G[Dựng lại trên máy bằng đúng phiên bản và bản sao dữ liệu]
+  G --> H[Viết test hỏng, sửa, chạy đủ kiểm tra]
+  H --> I[Đẩy lên master: CI xanh rồi Render tự deploy]
+  I --> J{Sau deploy còn lỗi?}
+  J -->|Có| K[Render, Deploys, Rollback về bản trước]
+  J -->|Không| L[Báo lại người dùng, ghi nguyên nhân]
+```
+
+### 1. Lấy thông tin từ người dùng
+
+Khi có lỗi hệ thống, màn hình hiện thanh đỏ ở đáy: **"Lỗi hệ thống"** hoặc **"Không tải được trang"**, kèm **mã lỗi** (có nút sao chép) và **giờ**. Xin người dùng:
+
+- mã lỗi (chuỗi dạng UUID, hoặc `LOI-…` nếu lỗi chưa tới máy chủ);
+- giờ xảy ra, tên màn hình, việc họ đang làm (bấm nút nào), tài khoản của họ, và doanh nghiệp (nếu bật nhiều doanh nghiệp);
+- ảnh chụp màn hình thanh lỗi.
+
+Không có mã lỗi (người dùng chỉ nói "bị lỗi") thì xem **Hệ thống › Nhật ký truy cập** theo tên người dùng và giờ để biết họ vừa làm gì.
+
+### 2. Tìm lỗi
+
+| Việc | Ở đâu | Cách tìm |
+|---|---|---|
+| Lỗi máy chủ (mã UUID) | **Render › ninh-trang-erp › Logs** | Tìm đúng mã lỗi. Dòng log có dạng `[mã lỗi] POST /api/… : thông báo`, bên dưới là stack trace. Cho biết **đường dẫn, phương thức và dòng mã** gây lỗi |
+| Lỗi máy chủ, khi đã bật Sentry | **Sentry** (đặt `SENTRY_DSN`) | Tìm thẻ `request_id` bằng mã lỗi. Bản ghi có **release = 7 ký tự đầu của commit** đang chạy (`RENDER_GIT_COMMIT`), id người dùng và đường dẫn |
+| Lỗi trình duyệt (`LOI-…`) | **Sentry** (đặt `SENTRY_FRONTEND_DSN`) | Tìm mã `LOI-…`; có trình duyệt, màn hình và stack. Chưa có Sentry thì nhờ người dùng mở Console (F12) chụp lại |
+| Người dùng đã làm gì | **Hệ thống › Nhật ký truy cập** | Lọc theo người, giờ, chứng từ. Dòng nhật ký của thao tác ghi cũng mang mã yêu cầu |
+| Máy chủ còn sống không | `GET /api/health` | 200 = app và cơ sở dữ liệu cùng trả lời, 503 = một trong hai không trả lời |
+| Cơ sở dữ liệu | **Neon console** | Trạng thái project, dung lượng (gói miễn phí có giới hạn), kết nối |
+| Phiên bản đang chạy | Số phiên bản ở thanh bên của app và **Render › Events** | Biết commit nào đang chạy, deploy lúc nào, deploy có thất bại không |
+
+Lỗi 4xx (nhập sai, thiếu quyền, kỳ đã khoá sổ…) **không vào log lỗi và Sentry**: máy chủ coi đó là việc của người dùng. Muốn biết thì xem câu chữ trên màn hình người dùng và Nhật ký truy cập.
+
+### 3. Phân loại nhanh
+
+| Thấy gì | Nghĩa là | Việc làm |
+|---|---|---|
+| Một câu tiếng Việt nêu ô hoặc quy tắc (ví dụ "Dòng 2: còn phải giao 3…") | Lỗi nghiệp vụ, phần mềm đang chặn đúng | Hướng dẫn người dùng; không phải lỗi mã |
+| "Dữ liệu bị trùng (…)" | Trùng khoá duy nhất (mã, số hoá đơn, MST…) | Xem trường trong ngoặc; thường do nhập trùng |
+| "Dữ liệu đang được chứng từ khác dùng…" | Xoá hoặc đổi thứ đang được tham chiếu | Đúng quy tắc: chỉ ngừng dùng hoặc huỷ chứng từ, không xoá |
+| Thiếu quyền (403) | Chức vụ chưa được cấp | Cấp ở Thiết lập › Vai trò và quyền hạn nếu hợp lý |
+| Báo kỳ đã khoá sổ | Ngày chứng từ nằm trong kỳ đã khoá | Kế toán trưởng quyết định mở khoá sổ; không tự mở |
+| "Không kết nối được máy chủ" ngay sau khi mở | Gói miễn phí của Render ngủ sau 15 phút | Chờ khoảng một phút rồi thử lại; lâu hơn thì xem Render › Events |
+| 503 ở `/api/health` | App hoặc Neon không trả lời | Xem Render Logs lúc khởi động và Neon console |
+| "Lỗi hệ thống" kèm mã lỗi | Lỗi của phần mềm hoặc hạ tầng | Làm theo các bước bên dưới |
+| Trang quản trị nền tảng báo một doanh nghiệp lỗi cấu trúc dữ liệu | Migration lỗi trên database của doanh nghiệp đó | Đọc lỗi hiện trên trang, sửa rồi bấm cập nhật lại |
+| App không khởi động, log nói thiếu `JWT_SECRET`, `DATABASE_URL`… | Thiếu hoặc sai biến môi trường | Kiểm tra Render › Environment (bảng ở mục Triển khai) |
+
+### 4. Dựng lại và sửa
+
+1. Lấy đúng commit: Sentry cho 7 ký tự đầu (release), hoặc Render › Events. Chạy `git checkout <commit>`.
+2. Dựng dữ liệu giống: nạp bản sao lưu mới nhất (cách khôi phục ở [`tools/backup/README.md`](tools/backup/README.md)) vào một PostgreSQL trên máy. **Không** trỏ máy của bạn vào cơ sở dữ liệu chính thức, và không chạy migration từ máy lên đó: migration tự chạy khi Render khởi động.
+3. Gọi lại đúng yêu cầu (đường dẫn, dữ liệu) cho tới khi tái hiện được. Viết **một test hỏng** cho lỗi này (unit cạnh file quy tắc, hoặc e2e trong `backend/test/`).
+4. Sửa, rồi chạy đủ bộ kiểm tra ở mục [Quy trình làm việc với mã nguồn](#quy-trình-làm-việc-với-mã-nguồn): lint, unit, e2e và build ở backend; unit và `npx ng build` ở frontend.
+5. Đẩy lên `master`. CI xanh thì Render build và deploy. Sau deploy, thử lại đúng thao tác của người dùng, rồi theo dõi Sentry vài giờ.
+6. Bản mới còn lỗi nặng thì **Render › Deploys › Rollback** về bản trước. Lưu ý migration chỉ đi tới: bản trước phải chạy được với cơ sở dữ liệu mới, nên mỗi migration phải **tương thích ngược** (thêm cột có giá trị mặc định; không đổi tên hay xoá cột trong cùng một lần deploy).
+
+### 5. Dữ liệu sai thì sửa thế nào
+
+- Chứng từ sai: **huỷ rồi lập lại**. Phần mềm không xoá chứng từ để giữ lịch sử và số liệu kế toán; đừng `UPDATE` hay `DELETE` thẳng vào bảng.
+- Bắt buộc phải vá dữ liệu bằng script: chạy tay workflow **Backup DB** trước (Actions › Backup DB › Run workflow), thử script trong một transaction trên bản sao, rồi mới chạy trên chính thức; ghi lại nguyên nhân, người làm và thời gian. Số dư quỹ, tồn kho và công nợ đều **tính từ chứng từ**, nên sửa chứng từ gốc là đủ, không cần sửa số dư.
+- Bút toán kế toán bất biến: sai thì đảo (`reverseEntriesFor`), không sửa.
+
+### 6. Nên bật để biết lỗi trước người dùng
+
+- **Sentry** cho máy chủ và trình duyệt (`SENTRY_DSN`, `SENTRY_FRONTEND_DSN`), kèm cảnh báo email khi có lỗi mới.
+- **UptimeRobot** (hoặc tương tự) trỏ vào `/api/health` mỗi 5 phút; dùng gói trả phí của Render để máy chủ không "ngủ".
+- Theo dõi dung lượng Neon (gói miễn phí) và kết quả workflow Backup DB hằng ngày: GitHub gửi thông báo khi workflow thất bại.
 
 ## Quy ước bắt buộc khi sửa mã
 
@@ -405,10 +486,11 @@ Bật bằng **ngày bắt đầu ghi sổ** (Thiết lập › Thông tin doanh
 
 ## Chưa làm
 
-- Hoá đơn điện tử phát hành thật: phần máy chủ cho hoá đơn gốc theo đợt giao đã có (chạy với nhà cung cấp giả lập); còn thiếu hoá đơn điều chỉnh / thay thế, toàn bộ giao diện (cài đặt, phát hành, danh sách), bộ chuyển đổi cho nhà cung cấp (MISA meInvoice…) và tài khoản kết nối.
+- Hoá đơn điện tử phát hành thật: máy chủ đã có hoá đơn gốc theo đợt giao, điều chỉnh và thay thế (chạy với nhà cung cấp giả lập). Giao diện hiện chỉ có **ghi nhận hoá đơn đã lập ngoài** (`/hoa-don-ban`). Còn thiếu giao diện cài đặt và phát hành, bộ chuyển đổi cho nhà cung cấp thật (MISA meInvoice…) và tài khoản kết nối.
+- Bán lẻ tại quầy (màn bán nhanh, hoá đơn gộp theo ngày cho khách không lấy hoá đơn): đã có kế hoạch trong `docs/plan-ban-le.md` (thư mục `docs/` không nằm trên repo), chưa làm. So sánh chức năng với MISA SME: `docs/so-sanh-MISA-SME.md`.
 - Gửi nhắc nợ tự động (SMS brandname, Zalo OA): cần chọn nhà cung cấp và tài khoản API.
 - Kế toán: chiết khấu thương mại tự hạch toán 5211, FIFO và tính lại giá xuất, ngoại tệ, in tờ khai thuế (01/GTGT, TNDN) và Bản thuyết minh B09-DNN, sổ chi tiết vật tư có giá trị.
-- Ảnh hàng hoá và logo công ty đang lưu dạng data URL trong cơ sở dữ liệu; chưa chuyển sang lưu trữ đối tượng (R2 / S3).
+- Ảnh hàng hoá có thể lưu trên Cloudflare R2 (tuỳ chọn, xem mục Ảnh hàng hoá trên R2); khi chưa cấu hình R2, ảnh và logo công ty vẫn lưu dạng data URL trong cơ sở dữ liệu.
 - Link theo dõi đơn cho khách, ảnh xác nhận giao hàng (POD), ticket hỗ trợ.
 - Dữ liệu giả cho Kế toán: `node tools/seed-demo-accounting.mjs` (backend đang chạy, đã seed + seed demo; chỉ chạy với API localhost). Đi qua API như người dùng thật: bật sổ từ 01/01 năm nay, số dư đầu kỳ, mỗi tháng một đơn nhập có hoá đơn, hai đơn bán (một thu tiền ngay, một công nợ thu tháng sau), thu chi, hoá đơn điện / vận chuyển, lương từ tháng 3, khấu hao 2 TSCĐ, phân bổ 2 khoản trả trước, vài bút toán tay. Không kết chuyển, không đóng sổ, không tính thuế TNDN để bạn tự thử. Sổ đã có bút toán thì từ chối trừ khi thêm `--force`; muốn nạp lại sạch thì `prisma migrate reset` rồi seed + seed demo.
 - Dữ liệu demo được sinh bởi `node tools/gen-demo-data.mjs` (ra `backend/prisma/demo-data.json`) và nạp bằng `npm run prisma:seed:demo`; không dùng trên DB thật.

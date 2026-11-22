@@ -11,6 +11,7 @@ import { errorText } from '../../../core/api/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { formatDay } from '../../../shared/period';
 import { DateInputDirective } from '../../../shared/date-input/date-input.directive';
+import { ToastService } from '../../../core/services/toast.service';
 
 const clean = (s: string) => s.trim();
 
@@ -24,13 +25,12 @@ const clean = (s: string) => s.trim();
   styleUrl: './company-info.component.scss',
 })
 export class CompanyInfoComponent {
+  protected readonly toast = inject(ToastService);
   private readonly fb = inject(FormBuilder);
   private readonly svc = inject(CompanyService);
 
   readonly today = new Date();
-  readonly notice = signal('');
   /** A save the server refused (or that could not reach it). */
-  readonly failure = signal('');
   readonly logo = signal<string | undefined>(undefined);
   readonly logoError = signal('');
 
@@ -44,17 +44,16 @@ export class CompanyInfoComponent {
   async setStockPolicy(box: HTMLInputElement): Promise<void> {
     const allow = box.checked;
     this.policyBusy.set(true);
-    this.failure.set('');
     try {
       await this.svc.setStockPolicy(allow);
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
       box.checked = this.allowNegative(); // not saved: the box shows the setting as it still is
       return;
     } finally {
       this.policyBusy.set(false);
     }
-    this.notice.set(allow ? 'Đã cho phép xuất quá số tồn kho.' : 'Từ nay phiếu xuất làm tồn kho âm sẽ bị từ chối (trừ người có quyền "Xuất vượt tồn kho").');
+    this.toast.success(allow ? 'Đã cho phép xuất quá số tồn kho.' : 'Từ nay phiếu xuất làm tồn kho âm sẽ bị từ chối (trừ người có quyền "Xuất vượt tồn kho").');
   }
 
   // ---------- khoá sổ kỳ kế toán ----------
@@ -67,17 +66,16 @@ export class CompanyInfoComponent {
   async saveLock(clear = false): Promise<void> {
     const next = clear ? null : this.lockDraft() || null;
     this.lockBusy.set(true);
-    this.failure.set('');
     try {
       await this.svc.setLockDate(next);
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
       return;
     } finally {
       this.lockBusy.set(false);
     }
     this.lockDraft.set(next ?? '');
-    this.notice.set(next ? `Đã khoá sổ đến ngày ${formatDay(next)}.` : 'Đã bỏ khoá sổ.');
+    this.toast.success(next ? `Đã khoá sổ đến ngày ${formatDay(next)}.` : 'Đã bỏ khoá sổ.');
   }
 
   constructor() {
@@ -150,17 +148,16 @@ export class CompanyInfoComponent {
       return;
     }
     const d = this.draft();
-    this.failure.set('');
     try {
       await this.svc.save(d);
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
       return;
     }
     this.saved.set(d);
     this.logoError.set('');
     this.form.reset({ name: d.name, address: d.address ?? '', taxCode: d.taxCode ?? '', phone: d.phone ?? '', email: d.email ?? '', website: d.website ?? '' });
-    this.notice.set('Đã lưu thông tin doanh nghiệp. Các bản in sẽ dùng thông tin mới.');
+    this.toast.success('Đã lưu thông tin doanh nghiệp. Các bản in sẽ dùng thông tin mới.');
   }
 
   revert(): void {
@@ -168,6 +165,5 @@ export class CompanyInfoComponent {
     this.form.reset({ name: s.name, address: s.address ?? '', taxCode: s.taxCode ?? '', phone: s.phone ?? '', email: s.email ?? '', website: s.website ?? '' });
     this.logo.set(s.logo);
     this.logoError.set('');
-    this.notice.set('');
   }
 }

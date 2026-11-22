@@ -21,6 +21,7 @@ import { SearchOption, SearchSelectComponent } from '../../../shared/search-sele
 import { CONTRACT_STATUS_LABEL, PURCHASE_ORDER_STATUS_LABEL, SALES_ORDER_STATUS_LABEL, contractStatusClass } from '../../../shared/status-labels';
 import { ContractService } from '../contract.service';
 import { CONTRACT_KIND_LABEL, CONTRACT_KIND_PATH, CONTRACT_PARTY_LABEL, EXPIRY_LABEL, expiryOf, isOpen, kindOfPath } from '../contract.rules';
+import { ToastService } from '../../../core/services/toast.service';
 
 type Mode = 'create' | 'edit' | 'view';
 
@@ -33,6 +34,7 @@ type Mode = 'create' | 'edit' | 'view';
   styleUrls: ['../../../shared/voucher/voucher.scss'],
 })
 export class ContractPageComponent implements HasUnsavedChanges {
+  protected readonly toast = inject(ToastService);
   private readonly dialogs = inject(ConfirmService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -74,7 +76,6 @@ export class ContractPageComponent implements HasUnsavedChanges {
   readonly description = signal('');
   readonly owner = signal('');
   readonly attempted = signal(false);
-  readonly failure = signal('');
   readonly saving = signal(false);
   private baseline = '';
 
@@ -185,7 +186,6 @@ export class ContractPageComponent implements HasUnsavedChanges {
       owner: this.owner() || undefined,
     };
     this.saving.set(true);
-    this.failure.set('');
     try {
       const id = this.id();
       const saved = id ? await this.contracts.update(id, draft) : await this.contracts.create(draft);
@@ -193,7 +193,7 @@ export class ContractPageComponent implements HasUnsavedChanges {
       this.full.set(saved);
       await this.router.navigate(['/hop-dong/chi-tiet', saved.id]);
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
     } finally {
       this.saving.set(false);
     }

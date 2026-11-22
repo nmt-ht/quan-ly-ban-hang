@@ -23,22 +23,7 @@
       }
     </header>
 
-    @if (notice()) {
-      <div class="notice" role="status">
-        <span>{{ notice() }}</span>
-        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
-      </div>
-    }
-    @if (failure()) {
-      <div class="notice is-error" role="alert">
-        <span>{{ failure() }}</span>
-        @if (creditBlocked() && canOverrideCredit()) {
-          <button type="button" class="btn btn-secondary" (click)="save(true)">Vẫn lưu đơn (vượt hạn mức)</button>
-        }
-        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="failure.set('')"><app-nav-icon name="x" /></button>
-      </div>
-    }
-
+        
     <!-- Thu tiền: Chưa thu tiền / Thu tiền ngay (như MISA) -->
     <section class="card pay-bar" aria-label="Thu tiền">
       <span class="pay-label">Thu tiền</span>
@@ -354,7 +339,7 @@
                   @let i = pageStart() + k;
                   @let p = product(l.productId);
                   @let c = rowCalc().get(l.key);
-                  <tr>
+                  <tr [class.has-note]="lineStock().has(l.key) || (editable() && !l.isGift && !!fxCode())" [class.has-note-2]="(lineStock().get(l.key)?.short ?? 0) > 0 && !!lineStock().get(l.key)?.others?.length">
                     <td class="c-idx num">{{ i + 1 }}</td>
                     <td class="c-product">
                       <app-product-picker
@@ -404,13 +389,14 @@
                         }
                       </td>
                     }
-                    <td class="c-num">
+                    <td class="c-num so-note-cell">
                       @if (editable() && !l.isGift) {
                         <input type="number" min="0" step="any" class="num-input" [ngModel]="l.quantity"
                           (ngModelChange)="patch(i, { quantity: $event })" [attr.aria-label]="'Số lượng dòng ' + (i + 1)"
                           [attr.aria-invalid]="attempted() && l.productId && !((l.quantity ?? 0) > 0) ? 'true' : null" />
                       } @else { <span class="num">{{ (l.quantity ?? 0).toLocaleString('vi-VN') }}</span> }
                       @if (lineStock().get(l.key); as s) {
+                       <span class="so-notes">
                         <span class="so-stock num" [class.is-short]="s.short > 0"
                           [title]="s.others.length ? 'Tồn ở kho khác — ' + otherStockText(s.others) : 'Không kho nào khác còn hàng'">
                           Tồn {{ s.available.toLocaleString('vi-VN') }}
@@ -419,14 +405,15 @@
                         @if (s.short > 0 && s.others.length) {
                           <span class="so-stock">Kho khác: {{ otherStockText(s.others) }}</span>
                         }
+                       </span>
                       }
                     </td>
-                    <td class="c-num">
+                    <td class="c-num so-note-cell">
                       @if (editable() && !l.isGift && fxCode()) {
                         <input type="number" min="0" step="0.01" class="num-input" [ngModel]="l.unitPriceFx" (ngModelChange)="setPriceFx(i, $event)"
                           [placeholder]="l.unitPriceFx == null ? (fxOf(l.unitPrice) ?? '') : ''"
                           [attr.aria-label]="'Đơn giá ' + fxCode() + ' dòng ' + (i + 1)" />
-                        <span class="so-fx">{{ fxRate() ? '≈ ' + (l.unitPrice ?? 0).toLocaleString('vi-VN', { maximumFractionDigits: 0 }) + ' ₫' : 'Nhập tỷ giá để quy đổi' }}</span>
+                        <span class="so-notes"><span class="so-fx">{{ fxRate() ? '≈ ' + (l.unitPrice ?? 0).toLocaleString('vi-VN', { maximumFractionDigits: 0 }) + ' ₫' : 'Nhập tỷ giá để quy đổi' }}</span></span>
                       } @else if (editable() && !l.isGift) {
                         <input type="text" appMoney [ngModel]="l.unitPrice" (ngModelChange)="setPrice(i, $event)"
                           [class.is-manual]="l.priceManual && l.productId" [title]="l.priceManual ? 'Giá sửa tay' : 'Giá theo chính sách giá'"
@@ -962,4 +949,4 @@
   }
 }
 
-<app-email-compose #emailDlg (sent)="notice.set($event)" />
+<app-email-compose #emailDlg (sent)="toast.success($event)" />

@@ -17,6 +17,7 @@ import { ProductionOrderPage, ProductionOrderPageQuery, SalesOrderService } from
 import { canStart, isLate } from './production-order.rules';
 import { errorText } from '../../core/api/api.service';
 import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
+import { ToastService } from '../../core/services/toast.service';
 
 /** 'open' = Chờ xử lý (Nháp + Đang sản xuất): what the screen opens on; the finished and cancelled ones are a tab away. */
 type StatusTab = 'open' | 'all' | ProductionOrderStatus;
@@ -50,6 +51,7 @@ interface ActiveChip {
   templateUrl: './production-orders.component.html',
 })
 export class ProductionOrdersComponent {
+  protected readonly toast = inject(ToastService);
   readonly data = inject(DataStore);
   private readonly orders = inject(SalesOrderService);
 
@@ -66,9 +68,7 @@ export class ProductionOrdersComponent {
   readonly page = signal(1);
   readonly pageSize = signal(20);
   readonly exporting = signal(false);
-  readonly notice = signal('');
   /** A save the server refused (or that could not reach it). */
-  readonly failure = signal('');
   readonly loading = signal(false);
   readonly canStart = canStart;
 
@@ -98,9 +98,9 @@ export class ProductionOrdersComponent {
     from: this.period().range.from ?? undefined,
     to: this.period().range.to ?? undefined,
     late: this.lateOnly() || undefined,
-    // Opened on Chờ xử lý, the most urgent first: the earliest ngày cần giao (late ones on top, no date last). A click on a header overrides it.
-    sort: this.headerSort() ? SORT_KEY[this.headerSort()!.key as keyof typeof SORT_KEY] : 'needed',
-    dir: this.headerSort() ? this.headerSort()!.dir : 'asc',
+    // Opened with the most recently created first (the "Trễ hẹn" toggle brings the late ones up). A click on a header overrides it.
+    sort: this.headerSort() ? SORT_KEY[this.headerSort()!.key as keyof typeof SORT_KEY] : 'code',
+    dir: this.headerSort() ? this.headerSort()!.dir : 'desc',
   }));
 
   readonly statusTabs = computed<DivideItem<StatusTab>[]>(() => {
@@ -206,24 +206,22 @@ export class ProductionOrdersComponent {
       const res = await this.orders.productionPage(query);
       if (seq !== this.requestSeq) return; // a newer request answered first
       this.result.set(res);
-      this.failure.set('');
     } catch (e) {
-      if (seq === this.requestSeq) this.failure.set(errorText(e));
+      if (seq === this.requestSeq) this.toast.error(errorText(e));
     } finally {
       if (seq === this.requestSeq) this.loading.set(false);
     }
   }
 
   async start(x: ProductionOrder): Promise<void> {
-    this.failure.set('');
     let v;
     try {
       v = await this.orders.startProduction(x.id);
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
       return;
     }
-    this.notice.set(`${x.code} đang sản xuất${v.length ? ` — đã xuất vật tư (${v.map((p) => p.code).join(', ')})` : ' — chưa có định mức nên không xuất vật tư'}.`);
+    this.toast.success(`${x.code} đang sản xuất${v.length ? ` — đã xuất vật tư (${v.map((p) => p.code).join(', ')})` : ' — chưa có định mức nên không xuất vật tư'}.`);
   }
 
   clearAll(): void {
@@ -257,7 +255,7 @@ export class ProductionOrdersComponent {
         rows,
       }]);
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
     } finally {
       this.exporting.set(false);
     }

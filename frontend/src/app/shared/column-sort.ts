@@ -32,3 +32,11 @@ export function sortByColumn<T extends Record<string, any>>(rows: T[], columns: 
     })
     .map((x) => x.row);
 }
+
+/**
+ * Default order of every list: the most recently created first. `createdAt` (ISO) when the record has it, then the mã, numeric-aware and
+ * descending — mã are issued in the order records are created, so it stands in for records without a timestamp (demo data).
+ */
+export function newestFirst<T extends { createdAt?: string | null; code?: string | null }>(a: T, b: T): number {
+  return (b.createdAt ?? '').localeCompare(a.createdAt ?? '') || (b.code ?? '').localeCompare(a.code ?? '', 'vi', { numeric: true });
+}

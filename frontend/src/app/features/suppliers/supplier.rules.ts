@@ -7,7 +7,7 @@ export const SUPPLIER_SORTS: { value: SupplierSort; label: string }[] = [
   { value: 'name-asc', label: 'Tên A → Z' },
   { value: 'name-desc', label: 'Tên Z → A' },
   { value: 'code-asc', label: 'Mã tăng dần' },
-  { value: 'newest', label: 'Mới thêm nhất' },
+  { value: 'newest', label: 'Mới tạo nhất' },
 ];
 
 export const creditLabel = (days: number) => (days > 0 ? `${days} ngày` : 'Trả ngay');

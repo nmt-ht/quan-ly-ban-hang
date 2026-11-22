@@ -26,19 +26,7 @@
     </div>
   </div>
 
-  @if (notice()) {
-    <div class="notice" role="status">
-      <span>{{ notice() }}</span>
-      <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
-    </div>
-  }
-  @if (failure()) {
-    <div class="notice is-error" role="alert">
-      <span>{{ failure() }}</span>
-      <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="failure.set('')"><app-nav-icon name="x" /></button>
-    </div>
-  }
-
+    
   <div class="detail-tabs" role="tablist" aria-label="Thông tin khách hàng" (keydown)="onTabKey($event)">
     @for (t of tabs(); track t.id) {
       <button type="button" role="tab" [id]="'tab-' + t.id" [attr.aria-selected]="tab() === t.id" [attr.aria-controls]="'panel-' + t.id"

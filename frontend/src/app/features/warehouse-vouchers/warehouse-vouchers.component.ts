@@ -20,6 +20,7 @@ import { errorText } from '../../core/api/api.service';
 import { SalesOrderService } from '../sales-orders/sales-order.service';
 import { PurchaseOrderService } from '../purchase-orders/purchase-order.service';
 import { WarehouseVoucherPage, WarehouseVoucherPageQuery, WarehouseVoucherService } from './warehouse-voucher.service';
+import { ToastService } from '../../core/services/toast.service';
 
 type KindTab = 'all' | VoucherKindKey;
 const KINDS: VoucherKindKey[] = ['NHAP', 'TRA_VE', 'XUAT', 'CHUYEN', 'KIEM_KE'];
@@ -51,6 +52,7 @@ interface ActiveChip {
   templateUrl: './warehouse-vouchers.component.html',
 })
 export class WarehouseVouchersComponent {
+  protected readonly toast = inject(ToastService);
   readonly data = inject(DataStore);
   private readonly svc = inject(WarehouseVoucherService);
   private readonly salesOrders = inject(SalesOrderService);
@@ -64,7 +66,6 @@ export class WarehouseVouchersComponent {
     { type: 'KIEM_KE', label: 'Phiếu kiểm kê', slug: KIND_SLUG.KIEM_KE },
   ];
 
-  readonly notice = signal((history.state as { notice?: string } | null)?.notice ?? '');
   readonly search = signal('');
   private readonly query = inject(ActivatedRoute).snapshot.queryParamMap;
   /** Divided by Loại phiếu (tabs) and Kho (rail): ?loai=nhap|tra-ve|xuat|chuyen|kiem-ke · ?kho=<id>. */
@@ -130,8 +131,8 @@ export class WarehouseVouchersComponent {
       q: this.searchQuery().trim() || undefined,
       kind: k === 'all' ? undefined : k, warehouseId: w === 'all' ? undefined : w,
       createdBy: this.createdBy(), from: range.from || undefined, to: range.to || undefined, cancelled: this.showCancelled() || undefined,
-      // default: Mã tăng dần
-      ...(hs ? { sort: COLUMN_SORT[hs.key] ?? 'code', dir: hs.dir } : { sort: 'code', dir: 'asc' as const }),
+      // default: mới tạo nhất trước
+      ...(hs ? { sort: COLUMN_SORT[hs.key] ?? 'code', dir: hs.dir } : { sort: 'createdAt', dir: 'desc' as const }),
     };
   });
 
@@ -184,6 +185,7 @@ export class WarehouseVouchersComponent {
   ];
 
   constructor() {
+    this.toast.fromNavigation();
     // New filters start again from page 1.
     effect(() => {
       this.filters();

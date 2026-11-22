@@ -1,6 +1,6 @@
-/* Hallmark · genre: modern-minimal · shape: app screen · scope: app · design-system: design.md · theme: brand (moss, kept) · redesign: restyle
- * critique: the ledger stays the ground and moss is the only accent on every page — one colour says "you can act here"; status colours keep their meaning, charts keep to that one hue.
- * vibe: "calm, precise — one accent on ledger paper" · paper: oklch(97.6% 0.008 90) · brand: oklch(40% 0.09 158)
+/* Hallmark · genre: modern-minimal · shape: app screen · scope: app · design-system: design.md · theme: brand (xanh ngọc, 22/11/2026) · redesign: colour
+ * critique: the ledger stays the ground and one teal accent on every page — one colour says "you can act here"; status colours keep their meaning, charts keep to that one hue.
+ * vibe: "calm, precise — one accent on ledger paper" · paper: oklch(97.6% 0.008 90) · brand: oklch(44% 0.07 195)
  * display: Be Vietnam Pro 600 · body: Be Vietnam Pro 400 · mono: JetBrains Mono · contrast: accent ≥ 5:1 (fill/ink, text/surface, text/tint, light + dark)
  * built: the project · v2.0.0
  */
@@ -13,8 +13,9 @@
   /* Fixed light / dark anchors: the two modes read these, and so does any spot that must show one mode
      whatever the theme (an uploaded logo's tile, the side-by-side preview in Màu hiển thị). */
   --light-surface:      oklch(99.3% 0.004 90);
-  --dark-surface:       oklch(20% 0.009 150);
-  --dark-muted:         oklch(72% 0.012 110);
+  --dark-surface:       oklch(20% 0.009 195);
+  --dark-muted:         oklch(72% 0.012 195);
+  --light-muted:        oklch(47% 0.014 110);
   --color-surface:      var(--light-surface);    /* cards, sidebar, inputs */
   --color-logo-tile:    var(--light-surface);   /* behind an uploaded logo — stays light in dark mode, logos are drawn for white */
   --color-paper-2:      oklch(95.2% 0.010 90);   /* row hover, quiet fills */
@@ -22,14 +23,14 @@
   --color-paper-3:      oklch(92.4% 0.012 90);   /* pressed, track */
   --color-rule:         oklch(89% 0.010 95);     /* hairline dividers */
   --color-rule-strong:  oklch(62% 0.014 100);    /* input + control boundaries (≥3:1) */
-  --color-muted:        oklch(47% 0.014 110);    /* secondary text (≥4.5:1) */
-  --color-ink:          oklch(22% 0.015 160);
-  --color-ink-2:        oklch(31% 0.014 150);
-  --color-accent:       oklch(40% 0.09 158);     /* moss — the one signal */
-  --color-accent-hover: oklch(34% 0.08 158);
-  --color-accent-tint:  oklch(94.5% 0.03 158);
+  --color-muted:        var(--light-muted);      /* secondary text (≥4.5:1) */
+  --color-ink:          oklch(22% 0.015 195);
+  --color-ink-2:        oklch(31% 0.014 195);
+  --color-accent:       oklch(44% 0.07 195);     /* xanh ngọc (teal) — the one signal */
+  --color-accent-hover: oklch(38% 0.06 195);
+  --color-accent-tint:  oklch(94.5% 0.02 195);
   --color-accent-ink:   oklch(98.5% 0.006 90);
-  --color-focus:        oklch(48% 0.11 158);
+  --color-focus:        oklch(50% 0.08 195);
 
   --color-danger:       oklch(47% 0.188 16);
   --color-danger-tint:  oklch(95.5% 0.022 16);
@@ -56,22 +57,22 @@
   --tag-bg-l: var(--tag-bg-l-light);
   --tag-bg-c: var(--tag-bg-c-light);
 
-  --color-shadow:       oklch(22% 0.015 160 / 0.12);
+  --color-shadow:       oklch(22% 0.015 195 / 0.12);
   --shadow-pop:         0 8px 24px var(--color-shadow); /* the one shadow: floating menus + panels */
 
   /* ---------- charts (validated: dataviz validate_palette, all pairs, light + dark) ---------- */
   /* One hue: the series differ by lightness / neutral, never by another colour. Bars >= 3:1 on the card, the line (ink) >= 3:1 on both bars. */
-  --chart-1:            oklch(50% 0.10 158);     /* doanh thu — moss */
+  --chart-1:            oklch(52% 0.08 195);     /* doanh thu — teal */
   --chart-2:            oklch(66% 0.012 100);    /* nhập hàng — neutral */
-  --chart-3:            oklch(22% 0.015 160);    /* lãi gộp — ink line */
-  /* Tổng quan hero band: deep moss, light ink on it (>= 7:1). */
-  --hero-1:             oklch(28% 0.05 168);
-  --hero-2:             oklch(36% 0.08 158);
-  --hero-ink:           oklch(97.5% 0.008 150);
-  --hero-muted:         oklch(85% 0.03 155);
+  --chart-3:            oklch(22% 0.015 195);    /* lãi gộp — ink line */
+  /* Tổng quan hero band: deep teal, light ink on it (>= 7:1). */
+  --hero-1:             oklch(28% 0.045 195);
+  --hero-2:             oklch(36% 0.055 195);
+  --hero-ink:           oklch(97.5% 0.008 195);
+  --hero-muted:         oklch(88% 0.03 195);
   --hero-rule:          oklch(100% 0 0 / 0.16);
   --hero-wash:          oklch(100% 0 0 / 0.05);  /* the chart panel inside the band */
-  --hero-line:          oklch(87% 0.11 158);
+  --hero-line:          oklch(87% 0.06 195);
 
   /* ---------- type ---------- */
   --font-display: "Be Vietnam Pro", "Segoe UI", sans-serif;
@@ -147,21 +148,21 @@ body[data-density='spacious'] {
 
 body.dark-theme {
   color-scheme: dark;
-  --color-paper:        oklch(16.5% 0.008 150);
+  --color-paper:        oklch(16.5% 0.008 195);
   --color-surface:      var(--dark-surface);
-  --color-paper-2:      oklch(23.5% 0.010 150);
-  --color-row-alt:      oklch(21.8% 0.0095 150);
-  --color-paper-3:      oklch(27% 0.011 150);
-  --color-rule:         oklch(30% 0.010 150);
-  --color-rule-strong:  oklch(52% 0.012 140);
+  --color-paper-2:      oklch(23.5% 0.010 195);
+  --color-row-alt:      oklch(21.8% 0.0095 195);
+  --color-paper-3:      oklch(27% 0.011 195);
+  --color-rule:         oklch(30% 0.010 195);
+  --color-rule-strong:  oklch(52% 0.012 195);
   --color-muted:        var(--dark-muted);
   --color-ink:          oklch(93.5% 0.008 95);
   --color-ink-2:        oklch(86% 0.010 100);
-  --color-accent:       oklch(68% 0.11 158);
-  --color-accent-hover: oklch(74% 0.10 158);
-  --color-accent-tint:  oklch(29% 0.045 158);
-  --color-accent-ink:   oklch(17% 0.012 160);
-  --color-focus:        oklch(74% 0.13 158);
+  --color-accent:       oklch(69% 0.115 195);
+  --color-accent-hover: oklch(74% 0.12 195);
+  --color-accent-tint:  oklch(27.5% 0.04 195);
+  --color-accent-ink:   oklch(17% 0.012 195);
+  --color-focus:        oklch(74% 0.12 195);
 
   --color-danger:       oklch(68% 0.16 16);
   --color-danger-tint:  oklch(25.5% 0.05 16);
@@ -172,11 +173,11 @@ body.dark-theme {
   --color-info:         oklch(78% 0.12 239);
   --color-info-tint:    oklch(28% 0.035 239);
 
-  --chart-1:            oklch(72% 0.11 158);
-  --chart-2:            oklch(55% 0.012 140);
+  --chart-1:            oklch(72% 0.115 195);
+  --chart-2:            oklch(55% 0.012 195);
   --chart-3:            oklch(95% 0.008 95);
-  --hero-1:             oklch(23% 0.04 168);
-  --hero-2:             oklch(30% 0.065 158);
+  --hero-1:             oklch(23% 0.04 195);
+  --hero-2:             oklch(30% 0.045 195);
 
 
   --tag-fg-l: var(--tag-fg-l-dark);
@@ -184,5 +185,5 @@ body.dark-theme {
   --tag-bg-l: var(--tag-bg-l-dark);
   --tag-bg-c: var(--tag-bg-c-dark);
 
-  --color-shadow:       oklch(8% 0.01 150 / 0.5);
+  --color-shadow:       oklch(8% 0.01 195 / 0.5);
 }

@@ -16,6 +16,7 @@ import { productExportSheet } from './product-excel';
 import { ProductImportDialogComponent } from './product-import-dialog/product-import-dialog.component';
 import { DivideItem, ListRailComponent, ListTabsComponent, syncSliceToUrl } from '../../shared/list-divide/list-divide';
 import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
+import { ToastService } from '../../core/services/toast.service';
 
 type ViewMode = 'grid' | 'table';
 const VIEW_KEY = 'nt.products.view';
@@ -61,10 +62,10 @@ const TYPE_PARAM: Record<ProductType, string> = { VAT_TU: 'vat-tu', THANH_PHAM: 
   templateUrl: './products.component.html',
 })
 export class ProductsComponent {
+  protected readonly toast = inject(ToastService);
   readonly view = signal<ViewMode>(readView());
   readonly page = signal(1);
   readonly pageSize = signal(20);
-  readonly notice = signal('');
   readonly exporting = signal(false);
 
   private readonly productImport = viewChild.required<ProductImportDialogComponent>('productImport');
@@ -79,7 +80,7 @@ export class ProductsComponent {
   readonly negativeOnly = signal(false);
   readonly belowMinOnly = signal(false);
   // Every list with a Mã column opens sorted by it, ascending (design.md › List pages).
-  readonly sort = signal<SortKey>('code-asc');
+  readonly sort = signal<SortKey>('created');
   readonly columnFilters = signal<ColumnFilters>({});
   // Clicking a column header overrides the "Sắp xếp" select; picking from the select clears it.
   readonly headerSort = signal<ColumnSort | null>(null);
@@ -316,7 +317,7 @@ export class ProductsComponent {
   }
 
   onImported(summary: string): void {
-    this.notice.set(summary);
+    this.toast.success(summary);
   }
 
   clearAll(): void {

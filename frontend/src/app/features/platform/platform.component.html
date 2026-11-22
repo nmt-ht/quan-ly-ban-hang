@@ -104,13 +104,7 @@
         </div>
       </section>
 
-      @if (notice(); as n) {
-        <p class="notice" [class.is-error]="n.error" [attr.role]="n.error ? 'alert' : 'status'">
-          <span>{{ n.text }}</span>
-          <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set(null)">×</button>
-        </p>
-      }
-
+      
       @if (handover(); as h) {
         <section class="card pf-handover" aria-live="polite">
           <h2>{{ h.title }}</h2>

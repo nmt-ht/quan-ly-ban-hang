@@ -19,6 +19,7 @@ import { ExcelImportDialogComponent } from '../../shared/import/excel-import-dia
 import { ApiService } from '../../core/api/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { supplierImportConfig } from './supplier-import';
+import { ToastService } from '../../core/services/toast.service';
 
 interface ActiveChip {
   label: string;
@@ -35,11 +36,12 @@ type CreditFilter = 'all' | 'credit' | 'cash';
   templateUrl: './suppliers.component.html',
 })
 export class SuppliersComponent {
+  protected readonly toast = inject(ToastService);
   readonly search = signal('');
   readonly status = signal<StatusFilter>('all');
   readonly credit = signal<CreditFilter>('all');
   readonly owing = signal(false);
-  readonly sort = signal<SupplierSort>('code-asc'); // default: Mã tăng dần
+  readonly sort = signal<SupplierSort>('newest'); // default: mới tạo nhất
   readonly columnFilters = signal<ColumnFilters>({});
   // Clicking a column header overrides the "Sắp xếp" select; picking from the select clears it.
   readonly headerSort = signal<ColumnSort | null>(null);
@@ -138,11 +140,10 @@ export class SuppliersComponent {
   private readonly api = inject(ApiService);
   private readonly auth = inject(AuthService);
   readonly canImport = computed(() => this.auth.can('supplier.create') || this.auth.can('supplier.update'));
-  readonly importNotice = signal('');
   readonly importConfig = supplierImportConfig(() => this.data.suppliers());
 
   async onImported(message: string): Promise<void> {
-    this.importNotice.set(message);
+    this.toast.success(message);
     this.data.suppliers.set(await this.api.get<Supplier[]>('/suppliers'));
   }
 

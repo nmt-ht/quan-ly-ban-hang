@@ -51,13 +51,7 @@
       </dl>
     </section>
 
-    @if (notice()) {
-      <div class="notice" role="status">
-        <span>{{ notice() }}</span>
-        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
-      </div>
-    }
-
+    
     @if (isReceivable() && row() && amountDue() > 0) {
       <section class="card ledger-pay" aria-label="Thanh toán công nợ">
         @if (account(); as a) {
@@ -261,8 +255,8 @@
   }
 
   @if (isReceivable()) {
-    <app-remind-dialog [account]="account()" (recorded)="notice.set($event)" />
-    <app-email-compose (sent)="notice.set($event)" />
+    <app-remind-dialog [account]="account()" (recorded)="toast.success($event)" />
+    <app-email-compose (sent)="toast.success($event)" />
   }
 } @else {
   <div class="card empty-state">

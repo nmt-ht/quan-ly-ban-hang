@@ -55,6 +55,7 @@ import { SearchOption, SearchSelectComponent } from '../../../shared/search-sele
 import { StatusStepsComponent } from '../../../shared/status-steps/status-steps.component';
 import { QuickCustomerDialogComponent } from '../../../shared/quick-create/quick-customer-dialog.component';
 import { DateInputDirective } from '../../../shared/date-input/date-input.directive';
+import { ToastService } from '../../../core/services/toast.service';
 
 type Mode = 'create' | 'edit' | 'view';
 type Tab = 'hang' | 'gia-von' | 'lsx' | 'pxk' | 'tra-hang' | 'cong-no' | 'nhat-ky';
@@ -111,6 +112,9 @@ const emptyLine = (): DraftLine => ({
   styleUrls: ['../../../shared/voucher/voucher.scss', './sales-order-voucher.component.scss'],
 })
 export class SalesOrderVoucherComponent implements HasUnsavedChanges {
+  protected readonly toast = inject(ToastService);
+  /** A failure still shown by the page logic also raises a toast. */
+  protected readonly failureToast = effect(() => this.toast.error(this.failure()));
   private readonly nextCode = inject(NextCodeService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -219,7 +223,6 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   readonly fromQuote = signal<Quotation | null>(null);
   readonly attempted = signal(false);
   readonly tab = signal<Tab>('hang');
-  readonly notice = signal('');
 
   // ---------- gửi email: phiếu xuất kho bán hàng + PDF ----------
   private readonly emailDlg = viewChild<EmailComposeComponent>('emailDlg');
@@ -293,8 +296,8 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
         this.attempted.set(false);
         this.tab.set('hang');
         this.page.set(1);
-        if (id) this.notice.set((history.state as { notice?: string } | null)?.notice ?? '');
-        else this.notice.set(quote ? `Đơn điền sẵn từ báo giá ${quote.code} — chọn kho xuất, ngày cần giao rồi lưu. Lưu xong báo giá chuyển sang Đã lập đơn.` : '');
+        if (id) this.toast.success((history.state as { notice?: string } | null)?.notice ?? '');
+        else this.toast.success(quote ? `Đơn điền sẵn từ báo giá ${quote.code} — chọn kho xuất, ngày cần giao rồi lưu. Lưu xong báo giá chuyển sang Đã lập đơn.` : '');
         this.baseline = this.snapshot();
       });
     });
@@ -864,20 +867,20 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   async createLsx(): Promise<void> {
     const created = await this.attempt(() => this.orders.createProductionOrders(this.id()!));
     if (!created) return;
-    this.notice.set(`Đã lập ${created.map((x) => x.code).join(', ')} (Nháp). Bắt đầu sản xuất để xuất vật tư theo định mức.`);
+    this.toast.success(`Đã lập ${created.map((x) => x.code).join(', ')} (Nháp). Bắt đầu sản xuất để xuất vật tư theo định mức.`);
     this.tab.set('lsx');
   }
 
   async startLsx(id: string, code: string): Promise<void> {
     const v = await this.attempt(() => this.orders.startProduction(id));
     if (!v) return;
-    this.notice.set(`${code} đang sản xuất${v.length ? ` — đã xuất vật tư (${v.map((x) => x.code).join(', ')})` : ' — mặt hàng chưa có định mức nên không xuất vật tư'}.`);
+    this.toast.success(`${code} đang sản xuất${v.length ? ` — đã xuất vật tư (${v.map((x) => x.code).join(', ')})` : ' — mặt hàng chưa có định mức nên không xuất vật tư'}.`);
   }
 
   async completeLsx(id: string, code: string): Promise<void> {
     const v = await this.attempt(() => this.orders.completeProduction(id));
     if (!v) return;
-    this.notice.set(`${code} hoàn tất — đã nhập thành phẩm vào kho (${v.map((x) => x.code).join(', ')}).`);
+    this.toast.success(`${code} hoàn tất — đã nhập thành phẩm vào kho (${v.map((x) => x.code).join(', ')}).`);
   }
 
   /** Huỷ đơn: a dialog asks for the reason (optional) and does the work, showing a refusal inside itself. */
@@ -891,7 +894,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
       fields: [{ key: 'reason', label: 'Lý do huỷ', type: 'textarea', placeholder: 'Không bắt buộc', maxLength: 300 }],
       run: (v) => this.orders.cancel(id, v['reason']),
     });
-    if (done) this.notice.set('Đã huỷ đơn. Lệnh sản xuất chưa hoàn tất của đơn cũng đã huỷ.');
+    if (done) this.toast.success('Đã huỷ đơn. Lệnh sản xuất chưa hoàn tất của đơn cũng đã huỷ.');
   }
 
   async askClose(): Promise<void> {
@@ -903,7 +906,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
       confirmLabel: 'Kết thúc đơn', cancelLabel: 'Để sau', tone: 'primary', fields: [],
       run: () => this.orders.close(id),
     });
-    if (ok) this.notice.set('Đã kết thúc đơn — phần còn lại không giao nữa. Công nợ chỉ tính trên số khách đã nhận.');
+    if (ok) this.toast.success('Đã kết thúc đơn — phần còn lại không giao nữa. Công nợ chỉ tính trên số khách đã nhận.');
   }
 
 /** Runs a save; on failure shows why and answers null. */
@@ -922,7 +925,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   }
 
   onDelivered(message: string): void {
-    this.notice.set(this.order()?.payNowAccountId ? `${message} Đã tự lập phiếu thu vào ${this.accountName()}.` : message);
+    this.toast.success(this.order()?.payNowAccountId ? `${message} Đã tự lập phiếu thu vào ${this.accountName()}.` : message);
     this.tab.set('pxk');
   }
 
@@ -941,7 +944,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   }
 
   onReturned(message: string): void {
-    this.notice.set(message);
+    this.toast.success(message);
     this.tab.set('tra-hang');
   }
 
@@ -966,7 +969,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
       fields: [{ key: 'reason', label: 'Lý do huỷ', type: 'textarea', placeholder: 'Không bắt buộc', maxLength: 300 }],
       run: (v) => this.orders.cancelReturn(id, r.id, v['reason']),
     });
-    if (done) this.notice.set(`Đã huỷ phiếu trả ${r.code}${r.voucherCode ? ` — phiếu ${r.voucherCode} đã huỷ, hàng ra khỏi kho` : ''}; công nợ phải thu tăng lại ${this.money(r.amount)}.`);
+    if (done) this.toast.success(`Đã huỷ phiếu trả ${r.code}${r.voucherCode ? ` — phiếu ${r.voucherCode} đã huỷ, hàng ra khỏi kho` : ''}; công nợ phải thu tăng lại ${this.money(r.amount)}.`);
   }
 
   // ---------- giảm giá hàng bán ----------
@@ -978,7 +981,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   }
 
   onAllowed(message: string): void {
-    this.notice.set(message);
+    this.toast.success(message);
     this.tab.set('tra-hang');
   }
 
@@ -998,7 +1001,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
       fields: [{ key: 'reason', label: 'Lý do huỷ', type: 'textarea', placeholder: 'Không bắt buộc', maxLength: 300 }],
       run: (v) => this.orders.cancelAllowance(id, a.id, v['reason']),
     });
-    if (done) this.notice.set('Đã huỷ phiếu giảm giá ' + a.code + '; công nợ phải thu và doanh thu tăng lại ' + this.money(a.amount) + '.');
+    if (done) this.toast.success('Đã huỷ phiếu giảm giá ' + a.code + '; công nợ phải thu và doanh thu tăng lại ' + this.money(a.amount) + '.');
   }
 
   // Phiếu xuất kho của đơn: new ones carry salesOrderId; demo ones mention the order / its trip.

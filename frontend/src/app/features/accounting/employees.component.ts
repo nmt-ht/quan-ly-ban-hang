@@ -8,6 +8,8 @@ import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { DataTableColumn, DataTableComponent } from '../../shared/data-table/data-table.component';
 import { formatVnd } from '../../shared/format.util';
 import { MoneyInputDirective } from '../../shared/money-input.directive';
+import { newestFirst } from '../../shared/column-sort';
+import { ToastService } from '../../core/services/toast.service';
 
 export const CENTER_LABEL: Record<PayrollCenterKey, string> = {
   QUAN_LY: 'Quản lý (642)', BAN_HANG: 'Bán hàng (641)', SAN_XUAT: 'Sản xuất trực tiếp (154)',
@@ -28,18 +30,13 @@ function blank(): EmployeeInput & { insuranceSalary: number | null } {
         <h1>Nhân viên</h1>
         <p class="subtitle">Lương cơ bản, phụ cấp, lương đóng bảo hiểm và người phụ thuộc. Bộ phận quyết định tài khoản chi phí lương.</p>
       </div>
+      @if (!showForm()) {
       <div class="toolbar">
-        <button type="button" class="btn btn-primary" (click)="openForm()"><app-nav-icon [name]="showForm() ? 'x' : 'plus'" />{{ showForm() ? 'Đóng' : 'Thêm nhân viên' }}</button>
+        <button type="button" class="btn btn-primary" (click)="openForm()"><app-nav-icon name="plus" />Thêm nhân viên</button>
       </div>
+      }
     </div>
-    @if (notice()) {
-      <div class="notice" role="status">
-        <span>{{ notice() }}</span>
-        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
-      </div>
-    }
-    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
-
+        
     @if (showForm()) {
       <section class="card section-block" aria-labelledby="nv-form">
         <h2 id="nv-form" class="form-section-title">{{ editingId() ? 'Sửa nhân viên' : 'Thêm nhân viên' }}</h2>
@@ -72,14 +69,19 @@ function blank(): EmployeeInput & { insuranceSalary: number | null } {
             <input id="nv-dep" type="number" min="0" class="num" [(ngModel)]="form.dependents" />
           </div>
         </div>
-        <div class="toolbar">
-          <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save()">Lưu</button>
-          <button type="button" class="btn" (click)="showForm.set(false)">Bỏ qua</button>
-        </div>
       </section>
-    }
+
+      <div class="form-actions-bar">
+        <span class="hint" role="status">Điền thông tin rồi bấm Lưu</span>
+        <div class="form-actions">
+          <button type="button" class="btn" (click)="showForm.set(false)">Huỷ</button>
+          <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save()"><app-nav-icon name="check" />Lưu nhân viên</button>
+        </div>
+      </div>
+    } @else {
 
     <app-data-table [columns]="columns" [rows]="items()" [actions]="rowActions()" emptyTitle="Chưa có nhân viên" emptyHint="Thêm nhân viên để tính lương." />
+    }
 
     <ng-template #rowActionsTpl let-e>
       <span class="row-actions">
@@ -91,13 +93,12 @@ function blank(): EmployeeInput & { insuranceSalary: number | null } {
   styles: [`.money-field { text-align: right; }`],
 })
 export class AccountingEmployeesComponent {
+  protected readonly toast = inject(ToastService);
   private readonly svc = inject(AccountingService);
   readonly items = signal<EmployeeView[]>([]);
   readonly showForm = signal(false);
   readonly editingId = signal<string | null>(null);
   readonly saving = signal(false);
-  readonly notice = signal('');
-  readonly failure = signal('');
   readonly money = formatVnd;
   readonly centers = (Object.keys(CENTER_LABEL) as PayrollCenterKey[]).map((key) => ({ key, label: CENTER_LABEL[key] }));
   form = blank();
@@ -118,7 +119,7 @@ export class AccountingEmployeesComponent {
   constructor() { this.load(); }
 
   async load() {
-    try { this.items.set(await this.svc.employees()); } catch (e) { this.failure.set(errorText(e)); }
+    try { this.items.set((await this.svc.employees()).sort(newestFirst)); } catch (e) { this.toast.error(errorText(e)); }
   }
 
   openForm() {
@@ -133,7 +134,7 @@ export class AccountingEmployeesComponent {
   }
 
   async save() {
-    this.failure.set(''); this.notice.set(''); this.saving.set(true);
+    this.toast.clear(); this.toast.clear(); this.saving.set(true);
     const dto: EmployeeInput = {
       name: this.form.name, center: this.form.center, baseSalary: Number(this.form.baseSalary) || 0,
       allowance: Number(this.form.allowance) || 0, dependents: Number(this.form.dependents) || 0,
@@ -142,16 +143,15 @@ export class AccountingEmployeesComponent {
     try {
       const id = this.editingId();
       if (id) await this.svc.updateEmployee(id, dto); else await this.svc.createEmployee(dto);
-      this.notice.set(id ? 'Đã cập nhật nhân viên.' : 'Đã thêm nhân viên.');
+      this.toast.success(id ? 'Đã cập nhật nhân viên.' : 'Đã thêm nhân viên.');
       this.showForm.set(false);
       await this.load();
-    } catch (e) { this.failure.set(errorText(e)); }
+    } catch (e) { this.toast.error(errorText(e)); }
     finally { this.saving.set(false); }
   }
 
   async toggle(e: EmployeeView) {
-    this.failure.set('');
     try { await this.svc.updateEmployee(e.id, { isActive: !e.isActive }); await this.load(); }
-    catch (err) { this.failure.set(errorText(err)); }
+    catch (err) { this.toast.error(errorText(err)); }
   }
 }

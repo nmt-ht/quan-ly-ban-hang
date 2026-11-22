@@ -8,7 +8,7 @@ import { DAY, slicePage, sortRows } from '../../common/paging.js';
 import type { cashToApi } from './cash-voucher.mapper.js';
 import { TRANSFER_CATEGORY_NAMES } from './transfer-categories.js';
 
-export const CASH_SORTS = ['code', 'date', 'category', 'partner', 'account', 'amount', 'description', 'createdBy'] as const;
+export const CASH_SORTS = ['code', 'date', 'category', 'partner', 'account', 'amount', 'description', 'createdBy', 'createdAt'] as const;
 
 export class CashVoucherPageQuery {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) page?: number;
@@ -90,6 +90,7 @@ export function cashPageOf(all: ApiCash[], q: CashVoucherPageQuery, lk: CashLook
     code: (v) => v.code, date: (v) => v.date, category: (v) => `${v.kind === 'THU' ? 'Phiếu thu' : 'Phiếu chi'} · ${v.category}`, partner,
     account: (v) => lk.accounts.get(v.accountId)?.name ?? v.accountId, amount: (v) => v.amount.toNumber(),
     description: (v) => v.description ?? '', createdBy: (v) => lk.users.get(v.createdBy) ?? v.createdBy,
+    createdAt: (v) => v.createdAt.toISOString(),
   };
   const sorted = sortRows(rows, key[q.sort ?? 'code'], q.dir ?? (q.sort ? 'asc' : 'desc'));
   return { ...slicePage(sorted, q.page, q.pageSize), categoryCounts, cards };

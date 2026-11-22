@@ -5,6 +5,7 @@ import { AccountingService } from '../../core/services/accounting.service';
 import { errorText } from '../../core/api/api.service';
 import { Account } from '../../core/models/domain.models';
 import { foldVi } from '../../shared/format.util';
+import { ToastService } from '../../core/services/toast.service';
 
 const KIND: Record<string, string> = {
   TAI_SAN: 'Tài sản', NO_PHAI_TRA: 'Nợ phải trả', VON_CSH: 'Vốn CSH', DOANH_THU: 'Doanh thu', CHI_PHI: 'Chi phí', KQKD: 'Xác định KQKD',
@@ -22,8 +23,7 @@ const KIND: Record<string, string> = {
         <p class="subtitle">{{ accounts().length }} tài khoản theo Thông tư 133. Bấm "Sổ cái" để xem phát sinh của tài khoản.</p>
       </div>
     </div>
-    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
-
+    
     <div class="filters-bar">
       <input type="search" class="filter-search" placeholder="Tìm số hiệu, tên tài khoản…" aria-label="Tìm tài khoản" [value]="search()" (input)="search.set($any($event.target).value)" />
       <select aria-label="Loại tài khoản" [value]="kindFilter()" (change)="kindFilter.set($any($event.target).value)">
@@ -71,9 +71,9 @@ const KIND: Record<string, string> = {
   `,
 })
 export class AccountingChartComponent {
+  protected readonly toast = inject(ToastService);
   private readonly svc = inject(AccountingService);
   readonly accounts = signal<Account[]>([]);
-  readonly failure = signal('');
   readonly search = signal('');
   readonly kindFilter = signal('');
   readonly kinds = Object.entries(KIND);
@@ -85,6 +85,6 @@ export class AccountingChartComponent {
   });
 
   constructor() {
-    this.svc.accounts().then((a) => this.accounts.set(a)).catch((e) => this.failure.set(errorText(e)));
+    this.svc.accounts().then((a) => this.accounts.set(a)).catch((e) => this.toast.error(errorText(e)));
   }
 }

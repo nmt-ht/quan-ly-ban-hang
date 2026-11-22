@@ -12,6 +12,8 @@ import { MoneyInputDirective } from '../../shared/money-input.directive';
 import { MonthPickerComponent } from '../../shared/month-picker/month-picker.component';
 import { formatDay, isoDay } from '../../shared/period';
 import { DateInputDirective } from '../../shared/date-input/date-input.directive';
+import { newestFirst } from '../../shared/column-sort';
+import { ToastService } from '../../core/services/toast.service';
 
 function blankForm(): PrepaidItemInput {
   return { name: '', cost: 0, startDate: isoDay(new Date()), allocationMonths: 12, expenseAccount: '642', fundingAccount: '153' };
@@ -28,20 +30,13 @@ function blankForm(): PrepaidItemInput {
         <h1>Công cụ dụng cụ</h1>
         <p class="subtitle">Ghi nhận vào TK 242 rồi phân bổ đều theo tháng: Nợ chi phí / Có 242.</p>
       </div>
-      @if (canManage) {
+      @if (canManage && !showForm()) {
         <div class="toolbar">
-          <button type="button" class="btn btn-primary" (click)="showForm.set(!showForm())"><app-nav-icon [name]="showForm() ? 'x' : 'plus'" />{{ showForm() ? 'Đóng' : 'Thêm CCDC' }}</button>
+          <button type="button" class="btn btn-primary" (click)="showForm.set(!showForm())"><app-nav-icon name="plus" />Thêm CCDC</button>
         </div>
       }
     </div>
-    @if (notice()) {
-      <div class="notice" role="status">
-        <span>{{ notice() }}</span>
-        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
-      </div>
-    }
-    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
-
+        
     @if (showForm() && canManage) {
       <section class="card section-block" aria-labelledby="cc-form">
         <h2 id="cc-form" class="form-section-title">Thêm công cụ dụng cụ</h2>
@@ -76,12 +71,16 @@ function blankForm(): PrepaidItemInput {
             </select>
           </div>
         </div>
-        <div class="toolbar">
-          <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save()">Lưu</button>
-          <button type="button" class="btn" (click)="showForm.set(false)">Bỏ qua</button>
-        </div>
       </section>
-    }
+
+      <div class="form-actions-bar">
+        <span class="hint" role="status">Điền thông tin rồi bấm Lưu</span>
+        <div class="form-actions">
+          <button type="button" class="btn" (click)="showForm.set(false)">Huỷ</button>
+          <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save()"><app-nav-icon name="check" />Lưu công cụ dụng cụ</button>
+        </div>
+      </div>
+    } @else {
 
     @if (canAllocate) {
       <div class="filters-bar">
@@ -100,10 +99,12 @@ function blankForm(): PrepaidItemInput {
     }
 
     <app-data-table [columns]="columns" [rows]="items()" emptyTitle="Chưa có công cụ dụng cụ" emptyHint="Thêm công cụ dụng cụ để phân bổ chi phí hằng tháng." />
+    }
   `,
   styles: [`.money-field { text-align: right; } .filter-label { font-size: var(--text-sm); color: var(--color-muted); }`],
 })
 export class AccountingPrepaidItemsComponent {
+  protected readonly toast = inject(ToastService);
   private readonly svc = inject(AccountingService);
   private readonly auth = inject(AuthService);
   readonly canManage = this.auth.can('accounting.manage_account');
@@ -112,8 +113,6 @@ export class AccountingPrepaidItemsComponent {
   readonly showForm = signal(false);
   readonly saving = signal(false);
   readonly allocating = signal(false);
-  readonly notice = signal('');
-  readonly failure = signal('');
   readonly money = formatVnd;
   period = isoDay(new Date()).slice(0, 7);
   form: PrepaidItemInput = blankForm();
@@ -136,26 +135,26 @@ export class AccountingPrepaidItemsComponent {
   totalRemaining(): number { return this.items().reduce((s, i) => s + i.remaining, 0); }
 
   async load() {
-    try { this.items.set(await this.svc.prepaidItems()); } catch (e) { this.failure.set(errorText(e)); }
+    try { this.items.set((await this.svc.prepaidItems()).sort(newestFirst)); } catch (e) { this.toast.error(errorText(e)); }
   }
 
   async save() {
-    this.failure.set(''); this.notice.set(''); this.saving.set(true);
+    this.toast.clear(); this.toast.clear(); this.saving.set(true);
     try {
       await this.svc.createPrepaid({ ...this.form, cost: Number(this.form.cost), allocationMonths: Number(this.form.allocationMonths) });
-      this.notice.set('Đã thêm công cụ dụng cụ.'); this.showForm.set(false); this.form = blankForm();
+      this.toast.success('Đã thêm công cụ dụng cụ.'); this.showForm.set(false); this.form = blankForm();
       await this.load();
-    } catch (e) { this.failure.set(errorText(e)); }
+    } catch (e) { this.toast.error(errorText(e)); }
     finally { this.saving.set(false); }
   }
 
   async allocate() {
-    this.failure.set(''); this.notice.set(''); this.allocating.set(true);
+    this.toast.clear(); this.toast.clear(); this.allocating.set(true);
     try {
       const r = await this.svc.allocatePrepaid(this.period);
-      this.notice.set(r.total > 0 ? `Đã phân bổ ${r.count} khoản: ${formatVnd(r.total)}.` : 'Không có khoản nào để phân bổ (đã phân bổ kỳ này, chưa tới ngày bắt đầu, hoặc đã hết).');
+      this.toast.success(r.total > 0 ? `Đã phân bổ ${r.count} khoản: ${formatVnd(r.total)}.` : 'Không có khoản nào để phân bổ (đã phân bổ kỳ này, chưa tới ngày bắt đầu, hoặc đã hết).');
       await this.load();
-    } catch (e) { this.failure.set(errorText(e)); }
+    } catch (e) { this.toast.error(errorText(e)); }
     finally { this.allocating.set(false); }
   }
 }

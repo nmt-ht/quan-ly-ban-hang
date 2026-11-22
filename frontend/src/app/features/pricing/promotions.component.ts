@@ -16,6 +16,7 @@ import { CUSTOMER_TYPE_LABEL } from '../sales-orders/sales-order.rules';
 import { PROMOTION_KIND_LABEL } from '../sales-orders/promotion.rules';
 import { PROMOTION_STATE_LABEL, PricingService, PromotionDraft, PromotionState, promotionState } from './pricing.service';
 import { DateInputDirective } from '../../shared/date-input/date-input.directive';
+import { ToastService } from '../../core/services/toast.service';
 
 const KIND_HINT: Record<PromotionKind, string> = {
   GIAM_HANG: 'Giảm % hoặc số tiền mỗi ĐVT chính trên các mặt hàng chọn — tự điền vào chiết khấu dòng.',
@@ -33,6 +34,7 @@ const KIND_HINT: Record<PromotionKind, string> = {
   styleUrl: './pricing.scss',
 })
 export class PromotionsComponent implements HasUnsavedChanges {
+  protected readonly toast = inject(ToastService);
   readonly data = inject(DataStore);
   private readonly svc = inject(PricingService);
   readonly money = formatVnd;
@@ -43,7 +45,6 @@ export class PromotionsComponent implements HasUnsavedChanges {
   readonly kinds = Object.keys(PROMOTION_KIND_LABEL) as PromotionKind[];
   readonly stateLabel = PROMOTION_STATE_LABEL;
 
-  readonly notice = signal('');
   readonly error = signal('');
   readonly saving = signal(false);
   readonly search = signal('');
@@ -185,7 +186,7 @@ export class PromotionsComponent implements HasUnsavedChanges {
     try {
       const id = this.editingId() || null;
       const p = await this.svc.savePromotion(id, draft);
-      this.notice.set(id ? `Đã lưu ${p.code}.` : `Đã lập khuyến mại ${p.code} — đơn và báo giá trong thời gian chạy sẽ tự áp.`);
+      this.toast.success(id ? `Đã lưu ${p.code}.` : `Đã lập khuyến mại ${p.code} — đơn và báo giá trong thời gian chạy sẽ tự áp.`);
       this.close();
     } catch (e) {
       this.error.set(errorText(e));
@@ -198,7 +199,7 @@ export class PromotionsComponent implements HasUnsavedChanges {
     this.error.set('');
     try {
       await this.svc.setPromotionActive(p.id, !p.isActive);
-      this.notice.set(p.isActive ? `Đã dừng ${p.code}.` : `${p.code} chạy lại.`);
+      this.toast.success(p.isActive ? `Đã dừng ${p.code}.` : `${p.code} chạy lại.`);
     } catch (e) {
       this.error.set(errorText(e));
     }

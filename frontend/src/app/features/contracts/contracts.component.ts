@@ -10,7 +10,7 @@ import { FilterMultiSelectComponent, FilterOption } from '../../shared/filter-mu
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
-import { ColumnSort, sortByColumn } from '../../shared/column-sort';
+import { ColumnSort, newestFirst, sortByColumn } from '../../shared/column-sort';
 import { foldVi, formatVnd } from '../../shared/format.util';
 import { formatDay, isoDay } from '../../shared/period';
 import { CONTRACT_STATUS_LABEL, contractStatusClass } from '../../shared/status-labels';
@@ -71,7 +71,7 @@ export class ContractsComponent {
     const st = this.statuses();
     const rows = this.matchedExceptStatus().filter((c) => !st.length || st.includes(c.status));
     const hs = this.headerSort();
-    const sorted = hs ? sortByColumn(rows, this.columns, hs) : [...rows].sort((a, b) => b.signedDate.localeCompare(a.signedDate) || b.code.localeCompare(a.code));
+    const sorted = hs ? sortByColumn(rows, this.columns, hs) : [...rows].sort(newestFirst);
     return applyColumnFilters(sorted, this.columns, this.columnFilters());
   });
 

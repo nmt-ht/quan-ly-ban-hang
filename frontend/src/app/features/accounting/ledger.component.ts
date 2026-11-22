@@ -13,6 +13,7 @@ import { BookPrintComponent } from '../../shared/print/tt133/book-print.componen
 import { BookSpec, ledgerBookSpec } from '../../shared/print/tt133/tt133-books';
 import { formatVnd } from '../../shared/format.util';
 import { formatDay } from '../../shared/period';
+import { ToastService } from '../../core/services/toast.service';
 
 /** /ke-toan/so-cai/:code — sổ cái một tài khoản + số dư luỹ kế. */
 @Component({
@@ -35,8 +36,7 @@ import { formatDay } from '../../shared/period';
     <div class="filters-bar">
       <input type="number" class="year-input" aria-label="Năm" min="2000" max="2100" [value]="period()" (change)="period.set(+$any($event.target).value); load()" />
     </div>
-    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
-
+    
     @if (data(); as d) {
       <dl class="list-totals">
         <div><dt>Số dư đầu kỳ (bên {{ side(d) }})</dt><dd class="num">{{ money(opening()) }}</dd></div>
@@ -73,12 +73,12 @@ import { formatDay } from '../../shared/period';
   `,
 })
 export class AccountingLedgerComponent {
+  protected readonly toast = inject(ToastService);
   private readonly svc = inject(AccountingService);
   private readonly confirmer = inject(ConfirmService);
   private readonly printer = inject(PrintService);
   private readonly code = toSignal(inject(ActivatedRoute).paramMap.pipe(map((p) => p.get('code') ?? '')), { initialValue: '' });
   readonly data = signal<LedgerView | null>(null);
-  readonly failure = signal('');
   readonly doc = signal<BookSpec | null>(null);
   readonly printBusy = signal(false);
   readonly money = formatVnd;
@@ -99,7 +99,6 @@ export class AccountingLedgerComponent {
 
   /** Sổ Cái S03b-DNN của cả năm đang xem: lấy từ sổ chi tiết tài khoản để có cột tài khoản đối ứng. */
   async printBook() {
-    this.failure.set('');
     this.printBusy.set(true);
     try {
       const y = this.period();
@@ -108,15 +107,14 @@ export class AccountingLedgerComponent {
       const spec = ledgerBookSpec(book);
       await this.printer.print('tt133-s03b', 'A4', () => this.doc.set(spec), () => this.doc.set(null));
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
     } finally {
       this.printBusy.set(false);
     }
   }
 
   async load() {
-    this.failure.set('');
     try { this.data.set(await this.svc.ledger(this.code(), String(this.period()))); }
-    catch (e) { this.data.set(null); this.failure.set(errorText(e)); }
+    catch (e) { this.data.set(null); this.toast.error(errorText(e)); }
   }
 }

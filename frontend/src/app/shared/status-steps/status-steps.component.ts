@@ -9,7 +9,7 @@ const STATE_TEXT: Record<StepState, string> = { done: 'đã xong', current: 'đa
 
 // Where a document is in its life, drawn as numbered markers joined by a line: a ticked filled marker for a step that is
 // done, a ringed marker for the one it is at, a hollow grey one for what is still to come. The line after a done step is
-// moss, the rest grey, so the progress reads at a glance without reading a word. Wide: a row; narrow (by the width of its
+// the accent, the rest grey, so the progress reads at a glance without reading a word. Wide: a row; narrow (by the width of its
 // own container, not the screen): a column. Read aloud as an ordered list, the current step marked aria-current="step".
 @Component({
   selector: 'app-status-steps',

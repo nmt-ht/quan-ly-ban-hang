@@ -28,6 +28,7 @@ import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { errorText } from '../../../core/api/api.service';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
+import { ToastService } from '../../../core/services/toast.service';
 
 export type SupplierTab = 'chung' | 'hang' | 'don-nhap' | 'cong-no' | 'nhat-ky';
 
@@ -47,6 +48,7 @@ interface CatalogRow {
   styleUrl: './supplier-detail.component.scss',
 })
 export class SupplierDetailComponent {
+  protected readonly toast = inject(ToastService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   readonly data = inject(DataStore);
@@ -75,16 +77,14 @@ export class SupplierDetailComponent {
   readonly poStatusClass = purchaseOrderStatusClass;
   readonly receivedPercent = receivedPercent;
 
-  readonly notice = signal('');
   /** A save the server refused (or that could not reach it). */
-  readonly failure = signal('');
 
   constructor() {
     // Reset per-record UI when navigating between suppliers (the component is reused).
     effect(() => {
       this.id();
       untracked(() => {
-        this.notice.set((history.state as { notice?: string } | null)?.notice ?? '');
+        this.toast.success((history.state as { notice?: string } | null)?.notice ?? '');
         this.resetCatalogForm();
       });
     });
@@ -130,12 +130,12 @@ export class SupplierDetailComponent {
     if (!(await this.attempt(() => this.svc.setActive(s.id, !s.isActive)))) return;
     if (s.isActive) {
       const open = this.openOrders().length;
-      this.notice.set(
+      this.toast.success(
         `Đã chuyển ${s.code} sang Ngừng hợp tác — không chọn được khi lập đơn mua hàng mới.` +
           (open ? ` Còn ${open} đơn đang chờ hàng, các đơn này vẫn nhận hàng bình thường.` : ''),
       );
     } else {
-      this.notice.set(`${s.code} đã được hợp tác lại.`);
+      this.toast.success(`${s.code} đã được hợp tác lại.`);
     }
   }
 
@@ -244,24 +244,23 @@ export class SupplierDetailComponent {
       });
     });
     if (!ok) return;
-    this.notice.set(result === 'added' ? `Đã thêm ${code} vào danh mục hàng.` : `Đã cập nhật giá mua của ${code}.`);
+    this.toast.success(result === 'added' ? `Đã thêm ${code} vào danh mục hàng.` : `Đã cập nhật giá mua của ${code}.`);
     this.resetCatalogForm();
   }
 
   async removeItem(row: CatalogRow): Promise<void> {
     if (!(await this.attempt(() => this.svc.removeCatalogItem(this.id(), row.productId)))) return;
-    this.notice.set(`Đã bỏ ${row.product?.code ?? row.productId} khỏi danh mục hàng của nhà cung cấp.`);
+    this.toast.success(`Đã bỏ ${row.product?.code ?? row.productId} khỏi danh mục hàng của nhà cung cấp.`);
     if (this.newProductId() === row.productId) this.resetCatalogForm();
   }
 
   /** Runs a save; on failure shows why and answers false. */
   private async attempt(save: () => Promise<unknown>): Promise<boolean> {
-    this.failure.set('');
     try {
       await save();
       return true;
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
       return false;
     }
   }

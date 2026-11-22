@@ -7,7 +7,7 @@ import { DataTableColumn, DataTableComponent } from '../../shared/data-table/dat
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
-import { ColumnSort, sortByColumn } from '../../shared/column-sort';
+import { ColumnSort, newestFirst, sortByColumn } from '../../shared/column-sort';
 import { foldVi, formatVnd } from '../../shared/format.util';
 import { formatDay, isoDay } from '../../shared/period';
 import { tagClass } from '../../shared/tag-class';
@@ -16,6 +16,7 @@ import { costTotal } from '../delivery-trips/delivery-trip.rules';
 import { VEHICLE_STATUSES, VEHICLE_STATUS_LABEL, VEHICLE_TYPES, VEHICLE_TYPE_LABEL, currentTripOf, expiryState } from './vehicle.rules';
 import { VehicleDialogComponent } from './vehicle-dialog/vehicle-dialog.component';
 import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
+import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   selector: 'app-vehicles',
@@ -24,6 +25,7 @@ import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
   templateUrl: './vehicles.component.html',
 })
 export class VehiclesComponent {
+  protected readonly toast = inject(ToastService);
   readonly data = inject(DataStore);
   private readonly router = inject(Router);
   private readonly dialog = viewChild.required<VehicleDialogComponent>('dialog');
@@ -37,7 +39,6 @@ export class VehiclesComponent {
   readonly headerSort = signal<ColumnSort | null>(null);
   readonly page = signal(1);
   readonly pageSize = signal(20);
-  readonly notice = signal('');
   readonly exporting = signal(false);
   readonly statuses = VEHICLE_STATUSES;
   readonly types = VEHICLE_TYPES;
@@ -82,7 +83,7 @@ export class VehiclesComponent {
       if (this.papersDue() && (v.status === 'NGUNG_DUNG' || this.paperLevel(v) === 'ok')) return false;
       return true;
     });
-    rows.sort((a, b) => a.code.localeCompare(b.code));
+    rows.sort(newestFirst);
     return sortByColumn(applyColumnFilters(rows, this.columns, this.columnFilters()), this.columns, this.headerSort());
   });
 
@@ -132,7 +133,7 @@ export class VehiclesComponent {
   }
 
   onSaved(e: { vehicle?: Vehicle; message: string }): void {
-    this.notice.set(e.message);
+    this.toast.success(e.message);
   }
 
   clearAll(): void {

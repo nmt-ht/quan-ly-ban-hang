@@ -11,6 +11,8 @@ import { formatVnd } from '../../shared/format.util';
 import { MoneyInputDirective } from '../../shared/money-input.directive';
 import { isoDay } from '../../shared/period';
 import { DateInputDirective } from '../../shared/date-input/date-input.directive';
+import { newestFirst } from '../../shared/column-sort';
+import { ToastService } from '../../core/services/toast.service';
 
 const STATUS: Record<string, string> = { NHAP: 'Nháp', DANG_SAN_XUAT: 'Đang sản xuất', HOAN_TAT: 'Đã nghiệm thu' };
 const STATUS_BADGE: Record<string, string> = { NHAP: 'badge-muted', DANG_SAN_XUAT: 'badge-warning', HOAN_TAT: 'badge-success' };
@@ -30,20 +32,13 @@ function blankForm(): ProductionCostInput {
         <h1>Giá thành sản xuất</h1>
         <p class="subtitle">Vật tư lấy từ phiếu xuất kho của lệnh. Nhân công và sản xuất chung nhập thêm ở đây (Nợ 154), rồi cộng vào giá thành khi nghiệm thu (Nợ 155 / Có 154).</p>
       </div>
-      @if (canAdd) {
+      @if (canAdd && !showForm()) {
         <div class="toolbar">
-          <button type="button" class="btn btn-primary" (click)="showForm.set(!showForm())"><app-nav-icon [name]="showForm() ? 'x' : 'plus'" />{{ showForm() ? 'Đóng' : 'Nhập chi phí' }}</button>
+          <button type="button" class="btn btn-primary" (click)="showForm.set(!showForm())"><app-nav-icon name="plus" />Nhập chi phí</button>
         </div>
       }
     </div>
-    @if (notice()) {
-      <div class="notice" role="status">
-        <span>{{ notice() }}</span>
-        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
-      </div>
-    }
-    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
-
+        
     @if (showForm() && canAdd) {
       <section class="card section-block" aria-labelledby="gt-form">
         <h2 id="gt-form" class="form-section-title">Nhập chi phí cho lệnh sản xuất</h2>
@@ -86,12 +81,16 @@ function blankForm(): ProductionCostInput {
             <input id="gt-desc" type="text" maxlength="300" [(ngModel)]="form.description" />
           </div>
         </div>
-        <div class="toolbar">
-          <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save()">Lưu</button>
-          <button type="button" class="btn" (click)="showForm.set(false)">Bỏ qua</button>
-        </div>
       </section>
-    }
+
+      <div class="form-actions-bar">
+        <span class="hint" role="status">Điền thông tin rồi bấm Lưu</span>
+        <div class="form-actions">
+          <button type="button" class="btn" (click)="showForm.set(false)">Huỷ</button>
+          <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save()"><app-nav-icon name="check" />Lưu chi phí</button>
+        </div>
+      </div>
+    } @else {
 
     @if (rows().length) {
       <dl class="list-totals">
@@ -101,18 +100,18 @@ function blankForm(): ProductionCostInput {
     }
 
     <app-data-table [columns]="columns" [rows]="rows()" emptyTitle="Chưa có lệnh sản xuất" emptyHint="Lệnh sản xuất lập ở phân hệ Kho." />
+    }
   `,
   styles: [`.money-field { text-align: right; }`],
 })
 export class AccountingProductionCostsComponent {
+  protected readonly toast = inject(ToastService);
   private readonly svc = inject(AccountingService);
   readonly canAdd = inject(AuthService).can('accounting.manual');
   readonly rows = signal<ProductionCostRow[]>([]);
   readonly openOrders = computed(() => this.rows().filter((r) => r.status !== 'HOAN_TAT'));
   readonly showForm = signal(false);
   readonly saving = signal(false);
-  readonly notice = signal('');
-  readonly failure = signal('');
   readonly money = formatVnd;
   form: ProductionCostInput = blankForm();
 
@@ -134,16 +133,16 @@ export class AccountingProductionCostsComponent {
   totalCost(): number { return this.rows().reduce((s, r) => s + r.total, 0); }
 
   async load() {
-    try { this.rows.set(await this.svc.productionCosts()); } catch (e) { this.failure.set(errorText(e)); }
+    try { this.rows.set((await this.svc.productionCosts()).sort(newestFirst)); } catch (e) { this.toast.error(errorText(e)); }
   }
 
   async save() {
-    this.failure.set(''); this.notice.set(''); this.saving.set(true);
+    this.toast.clear(); this.toast.clear(); this.saving.set(true);
     try {
       await this.svc.addProductionCost({ ...this.form, amount: Number(this.form.amount), description: this.form.description || undefined });
-      this.notice.set('Đã nhập chi phí.'); this.showForm.set(false); this.form = blankForm();
+      this.toast.success('Đã nhập chi phí.'); this.showForm.set(false); this.form = blankForm();
       await this.load();
-    } catch (e) { this.failure.set(errorText(e)); }
+    } catch (e) { this.toast.error(errorText(e)); }
     finally { this.saving.set(false); }
   }
 }

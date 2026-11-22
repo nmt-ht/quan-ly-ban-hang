@@ -19,6 +19,7 @@ import { UserDialogComponent } from './user-dialog/user-dialog.component';
 import { PasswordDialogComponent } from './password-dialog/password-dialog.component';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { errorText } from '../../../core/api/api.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 export const USER_STATUS_LABEL = { ACTIVE: 'Đang hoạt động', DISABLED: 'Đã khoá' } as const;
 const IDLE_DAYS = 30;
@@ -33,6 +34,7 @@ const IDLE_DAYS = 30;
   templateUrl: './users.component.html',
 })
 export class UsersComponent {
+  protected readonly toast = inject(ToastService);
   private readonly dialogs = inject(ConfirmService);
   readonly data = inject(DataStore);
   readonly svc = inject(UserService);
@@ -49,7 +51,6 @@ export class UsersComponent {
   readonly headerSort = signal<ColumnSort | null>(null);
   readonly page = signal(1);
   readonly pageSize = signal(20);
-  readonly notice = signal('');
   readonly error = signal('');
   readonly exporting = signal(false);
 
@@ -79,11 +80,8 @@ export class UsersComponent {
       if (this.idle() && !this.isIdle(u)) return false;
       return true;
     });
-    // Active first, then by role order, then name (as an org chart reads).
-    const order = new Map(this.data.roles().map((r, i) => [r.id, i]));
-    rows.sort((a, b) =>
-      (a.status === b.status ? 0 : a.status === 'ACTIVE' ? -1 : 1) ||
-      (order.get(a.roleId) ?? 99) - (order.get(b.roleId) ?? 99) || a.name.localeCompare(b.name, 'vi'));
+    // Most recently created first, like every list.
+    rows.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? '') || a.name.localeCompare(b.name, 'vi'));
     return sortByColumn(applyColumnFilters(rows, this.columns, this.columnFilters()), this.columns, this.headerSort());
   });
 
@@ -142,7 +140,7 @@ export class UsersComponent {
 
   onSaved(e: { message: string }): void {
     this.error.set('');
-    this.notice.set(e.message);
+    this.toast.success(e.message);
   }
 
   canLock(u: AppUser): boolean {
@@ -156,7 +154,7 @@ export class UsersComponent {
       fields: [{ key: 'reason', label: 'Lý do khoá', placeholder: 'Ví dụ: Nghỉ việc', maxLength: 200 }],
       run: (v) => this.svc.lock(u.id, v['reason']),
     });
-    if (done) this.notice.set(`Đã khoá ${u.name} — mọi phiên đã đăng xuất; chứng từ do người này lập vẫn giữ nguyên.`);
+    if (done) this.toast.success(`Đã khoá ${u.name} — mọi phiên đã đăng xuất; chứng từ do người này lập vẫn giữ nguyên.`);
   }
 
   async unlock(u: AppUser): Promise<void> {
@@ -166,7 +164,7 @@ export class UsersComponent {
       this.error.set(errorText(e));
       return;
     }
-    this.notice.set(`Đã mở khoá ${u.name}.`);
+    this.toast.success(`Đã mở khoá ${u.name}.`);
   }
 
   clearAll(): void {

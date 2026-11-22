@@ -9,6 +9,7 @@ import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { foldVi } from '../../../shared/format.util';
 import { errorText } from '../../../core/api/api.service';
 import { CategoryService, MoveTarget } from './category.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 // /thiet-lap/nhom-hang — the user's own way to divide the catalogue (Tính chất is the system's, not edited here).
 @Component({
@@ -23,6 +24,7 @@ import { CategoryService, MoveTarget } from './category.service';
   ],
 })
 export class CategoriesComponent {
+  protected readonly toast = inject(ToastService);
   private readonly dialogs = inject(ConfirmService);
   readonly data = inject(DataStore);
   readonly svc = inject(CategoryService);
@@ -34,7 +36,6 @@ export class CategoriesComponent {
   readonly canDelete = this.auth.can('category.delete');
 
   readonly search = signal('');
-  readonly notice = signal('');
   readonly error = signal('');
 
   /** All nhóm A → Z with their product counts (search on the name). */
@@ -87,7 +88,7 @@ export class CategoriesComponent {
     }
     this.close();
     this.error.set('');
-    this.notice.set(c ? `Đã đổi tên "${c.name}" thành "${name}".` : `Đã thêm nhóm "${name}".`);
+    this.toast.success(c ? `Đã đổi tên "${c.name}" thành "${name}".` : `Đã thêm nhóm "${name}".`);
   }
 
   // ---- delete (a nhóm with products moves them first — this is how two nhóm are merged)
@@ -109,7 +110,7 @@ export class CategoriesComponent {
     const to = done['to'];
     const target = to && to !== 'none' ? this.data.categories().find((x) => x.id === to)?.name : null;
     this.error.set('');
-    this.notice.set(n
+    this.toast.success(n
       ? `Đã xoá nhóm "${c.name}" — ${n} mặt hàng ${target ? `chuyển sang "${target}"` : 'không còn thuộc nhóm nào'}.`
       : `Đã xoá nhóm "${c.name}".`);
   }

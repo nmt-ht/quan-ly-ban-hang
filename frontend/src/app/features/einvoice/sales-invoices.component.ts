@@ -1,6 +1,6 @@
 /* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 import { ConfirmService } from '../../shared/confirm/confirm.service';
-import { Component, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, TemplateRef, computed, inject, signal, viewChild, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { errorText } from '../../core/api/api.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -14,6 +14,7 @@ import { formatDay, presetRange } from '../../shared/period';
 import { EXPORT_COLUMNS, EXPORT_NOTES, ImportColumnMap, detectColumns, exportRows, importRows } from './einvoice-file';
 import { EInvoiceService } from './einvoice.service';
 import { DateInputDirective } from '../../shared/date-input/date-input.directive';
+import { ToastService } from '../../core/services/toast.service';
 
 const SERIES_KEY = 'einvoice.series';
 const STATUS_LABEL: Record<string, string> = { PENDING: 'Đang chờ', ISSUED: 'Đã ghi nhận', FAILED: 'Lỗi', REPLACED: 'Đã thay thế', VOID: 'Đã gỡ' };
@@ -47,14 +48,7 @@ function savedSeries(): string {
         </div>
       }
     </div>
-    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
-    @if (notice()) {
-      <div class="notice" role="status">
-        <span>{{ notice() }}</span>
-        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
-      </div>
-    }
-
+        
     <div class="detail-tabs" role="tablist">
       <button type="button" role="tab" [attr.aria-selected]="tab() === 'can-lap'" (click)="tab.set('can-lap')">Cần lập hoá đơn @if (outstanding()) { <span class="tab-count num">{{ outstanding()!.items.length }}</span> }</button>
       <button type="button" role="tab" [attr.aria-selected]="tab() === 'da-ghi'" (click)="tab.set('da-ghi'); loadList()">Đã ghi nhận @if (list()) { <span class="tab-count num">{{ list()!.length }}</span> }</button>
@@ -99,7 +93,7 @@ function savedSeries(): string {
           </div>
           <div class="toolbar">
             <button type="button" class="btn btn-primary" [disabled]="busy()" (click)="saveRecord()">Ghi nhận</button>
-            <button type="button" class="btn" (click)="rec.set(null)">Bỏ qua</button>
+            <button type="button" class="btn" (click)="rec.set(null)">Huỷ</button>
           </div>
         </section>
       }
@@ -221,6 +215,9 @@ function savedSeries(): string {
   `,
 })
 export class SalesInvoicesComponent {
+  protected readonly toast = inject(ToastService);
+  /** A failure still shown by the page logic also raises a toast. */
+  protected readonly failureToast = effect(() => this.toast.error(this.failure()));
   private readonly dialogs = inject(ConfirmService);
   private readonly svc = inject(EInvoiceService);
   private readonly auth = inject(AuthService);
@@ -236,7 +233,6 @@ export class SalesInvoicesComponent {
   readonly search = signal('');
   readonly status = signal('');
   readonly failure = signal('');
-  readonly notice = signal('');
   readonly busy = signal(false);
 
   readonly outstanding = signal<OutstandingView | null>(null);
@@ -297,7 +293,7 @@ export class SalesInvoicesComponent {
 
   async loadList() {
     this.failure.set('');
-    try { this.list.set((await this.svc.list(this.from(), this.to(), this.status(), this.search())).rows); }
+    try { this.list.set((await this.svc.list(this.from(), this.to(), this.status(), this.search())).rows.sort((a, b) => b.issueDate.localeCompare(a.issueDate) || (b.number ?? '').localeCompare(a.number ?? '', 'vi', { numeric: true }))); }
     catch (e) { this.failure.set(errorText(e)); }
   }
 
@@ -305,10 +301,9 @@ export class SalesInvoicesComponent {
     if (this.busy()) return;
     this.busy.set(true);
     this.failure.set('');
-    this.notice.set('');
     try {
       await action();
-      if (done) this.notice.set(done);
+      if (done) this.toast.success(done);
     } catch (e) {
       this.failure.set(errorText(e));
     } finally {
@@ -334,7 +329,7 @@ export class SalesInvoicesComponent {
       if (ok.length) {
         await downloadWorkbook(exportFileName('Dữ liệu hoá đơn bán ra'), [{ name: 'Hoá đơn', columns: EXPORT_COLUMNS, rows: exportRows(ok), notes: EXPORT_NOTES }]);
       }
-      this.notice.set(`Đã xuất ${ok.length} hoá đơn.${bad.length ? ` Không xuất được ${bad.length}: ${bad.slice(0, 3).map((b) => b.error).join('; ')}` : ''}`);
+      this.toast.success(`Đã xuất ${ok.length} hoá đơn.${bad.length ? ` Không xuất được ${bad.length}: ${bad.slice(0, 3).map((b) => b.error).join('; ')}` : ''}`);
     });
   }
 
@@ -354,7 +349,7 @@ export class SalesInvoicesComponent {
         orderId: r.item.orderId, deliveryId: r.item.deliveryId ?? undefined, templateCode: r.templateCode, series: r.series.trim(), number: r.number.trim(), issueDate: r.date,
       });
       try { localStorage.setItem(SERIES_KEY, r.series.trim()); } catch { /* không lưu được thì thôi */ }
-      this.notice.set(`Đã ghi nhận hoá đơn ${r.templateCode}${r.series.trim()} số ${r.number.trim()} cho ${r.item.ref}.`);
+      this.toast.success(`Đã ghi nhận hoá đơn ${r.templateCode}${r.series.trim()} số ${r.number.trim()} cho ${r.item.ref}.`);
       this.rec.set(null);
       await this.loadOutstanding();
     });
@@ -372,7 +367,7 @@ export class SalesInvoicesComponent {
       },
     });
     if (!done) return;
-    this.notice.set('Đã gỡ ghi nhận hoá đơn; đợt giao đó có thể ghi nhận lại.');
+    this.toast.success('Đã gỡ ghi nhận hoá đơn; đợt giao đó có thể ghi nhận lại.');
     await this.loadList();
   }
   /** File mẫu: các cột phần mềm cần để ghi nhận số hoá đơn (danh sách hoá đơn tải từ cổng thường đã có đủ). */
@@ -431,7 +426,7 @@ export class SalesInvoicesComponent {
       this.checked.set(dryRun && r.summary.ok > 0);
       if (!dryRun) {
         try { if (this.series().trim()) localStorage.setItem(SERIES_KEY, this.series().trim()); } catch { /* bỏ qua */ }
-        this.notice.set(`Đã ghi nhận ${r.summary.ok} hoá đơn.`);
+        this.toast.success(`Đã ghi nhận ${r.summary.ok} hoá đơn.`);
         void this.loadOutstanding();
       }
     });

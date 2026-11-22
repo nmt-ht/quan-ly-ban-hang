@@ -113,8 +113,8 @@ export class PurchaseOrdersComponent {
       q: this.searchQuery().trim() || undefined,
       status: this.statuses(), supplierId: sup === ALL ? undefined : sup, createdBy: this.createdBy(),
       from: range.from || undefined, to: range.to || undefined, min: min ?? undefined, max: max ?? undefined,
-      // default: Mã tăng dần
-      ...(hs ? { sort: COLUMN_SORT[hs.key] ?? 'code', dir: hs.dir } : { sort: 'code', dir: 'asc' as const }),
+      // default: mới tạo nhất trước
+      ...(hs ? { sort: COLUMN_SORT[hs.key] ?? 'code', dir: hs.dir } : { sort: 'code', dir: 'desc' as const }),
     };
   });
 

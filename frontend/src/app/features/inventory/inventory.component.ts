@@ -10,7 +10,7 @@ import { DivideItem, ListRailComponent, ListTabsComponent, syncSliceToUrl } from
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
-import { ColumnSort, sortByColumn } from '../../shared/column-sort';
+import { ColumnSort, newestFirst, sortByColumn } from '../../shared/column-sort';
 import { foldVi, formatVnd } from '../../shared/format.util';
 import { PRODUCT_TYPE_CLASS, PRODUCT_TYPE_LABEL } from '../../shared/status-labels';
 import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
@@ -20,7 +20,7 @@ import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 import { ReorderDialogComponent } from './reorder-dialog/reorder-dialog.component';
 import { reorderLines } from './reorder.rules';
 
-type Sort = 'name' | 'code' | 'qty-desc' | 'qty-asc' | 'value';
+type Sort = 'created' | 'name' | 'code' | 'qty-desc' | 'qty-asc' | 'value';
 type TypeTab = 'all' | ProductType;
 const STOCK_TYPES: ProductType[] = ['VAT_TU', 'THANH_PHAM'];
 const TYPE_PARAM: Record<string, ProductType> = { 'vat-tu': 'VAT_TU', 'thanh-pham': 'THANH_PHAM' };
@@ -67,7 +67,7 @@ export class InventoryComponent {
   readonly negativeOnly = signal(false);
   readonly belowMinOnly = signal(false);
   readonly showZero = signal(false);
-  readonly sort = signal<Sort>('code'); // default: Mã tăng dần
+  readonly sort = signal<Sort>('created'); // default: mới tạo nhất (the mặt hàng most recently created)
   readonly columnFilters = signal<ColumnFilters>({});
   // Clicking a column header overrides the "Sắp xếp" select; picking from the select clears it.
   readonly headerSort = signal<ColumnSort | null>(null);
@@ -201,7 +201,8 @@ export class InventoryComponent {
     const rows = this.baseRows().filter((r) => this.matchesToggles(r));
     const s = this.sort();
     rows.sort((a, b) =>
-      s === 'code' ? a.product.code.localeCompare(b.product.code, 'vi', { numeric: true })
+      s === 'created' ? newestFirst(a.product, b.product)
+        : s === 'code' ? a.product.code.localeCompare(b.product.code, 'vi', { numeric: true })
         : s === 'qty-desc' ? b.qty - a.qty
           : s === 'qty-asc' ? a.qty - b.qty
             : s === 'value' ? b.value - a.value

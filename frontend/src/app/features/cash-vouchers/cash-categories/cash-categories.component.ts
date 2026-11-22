@@ -9,6 +9,7 @@ import { PARTNER_LABEL, PartnerType, categoryHint } from '../cash-voucher.rules'
 import { CashVoucherService } from '../cash-voucher.service';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { errorText } from '../../../core/api/api.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 // /thu-chi/loai — loại thu chi quyết định phiếu gắn khách hàng, nhà cung cấp hay không gắn đối tác.
 @Component({
@@ -23,6 +24,7 @@ import { errorText } from '../../../core/api/api.service';
   ],
 })
 export class CashCategoriesComponent {
+  protected readonly toast = inject(ToastService);
   readonly data = inject(DataStore);
   private readonly svc = inject(CashVoucherService);
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
@@ -30,11 +32,9 @@ export class CashCategoriesComponent {
   readonly partnerLabel = PARTNER_LABEL;
   readonly hint = categoryHint;
   readonly partnerTypes: PartnerType[] = ['KHACH_HANG', 'NHA_CUNG_CAP', 'KHAC'];
-  readonly notice = signal('');
   readonly dialogError = signal('');
   readonly saving = signal(false);
   /** A save the server refused (or that could not reach it). */
-  readonly failure = signal('');
 
   readonly editing = signal<CashCategory | null>(null);
   readonly name = signal('');
@@ -106,7 +106,7 @@ export class CashCategoriesComponent {
       isSystem: c?.isSystem,
     });
     this.close();
-    this.notice.set(c ? `Đã lưu loại "${this.name().trim()}".` : `Đã thêm loại "${this.name().trim()}".`);
+    this.toast.success(c ? `Đã lưu loại "${this.name().trim()}".` : `Đã thêm loại "${this.name().trim()}".`);
     } catch (e) {
       this.dialogError.set(errorText(e));
     } finally {
@@ -115,13 +115,12 @@ export class CashCategoriesComponent {
   }
 
   async toggle(c: CashCategory): Promise<void> {
-    this.failure.set('');
     try {
       await this.svc.setCategoryActive(c.code, !c.isActive);
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
       return;
     }
-    this.notice.set(c.isActive ? `"${c.name}" ngừng dùng — phiếu cũ giữ nguyên.` : `"${c.name}" dùng lại.`);
+    this.toast.success(c.isActive ? `"${c.name}" ngừng dùng — phiếu cũ giữ nguyên.` : `"${c.name}" dùng lại.`);
   }
 }

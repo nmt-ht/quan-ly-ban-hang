@@ -1,6 +1,6 @@
 /* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 import { ConfirmService } from '../../shared/confirm/confirm.service';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AccountingService } from '../../core/services/accounting.service';
@@ -11,6 +11,7 @@ import { formatVnd } from '../../shared/format.util';
 import { formatDay } from '../../shared/period';
 import { MoneyInputDirective } from '../../shared/money-input.directive';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
+import { ToastService } from '../../core/services/toast.service';
 
 const PERIODS: { value: CitPeriod; label: string }[] = [
   { value: 'Q1', label: 'Quý I' }, { value: 'Q2', label: 'Quý II' }, { value: 'Q3', label: 'Quý III' }, { value: 'Q4', label: 'Quý IV' },
@@ -33,14 +34,7 @@ const PERIODS: { value: CitPeriod; label: string }[] = [
     <div class="filters-bar">
       <input type="number" class="year-input" aria-label="Năm" min="2000" max="2100" [value]="year()" (change)="setYear(+$any($event.target).value)" />
     </div>
-    @if (notice()) {
-      <div class="notice" role="status">
-        <span>{{ notice() }}</span>
-        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
-      </div>
-    }
-    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
-
+        
     @if (ov(); as o) {
       @if (!o.ledgerStartDate) {
         <div class="notice is-error" role="alert"><span>Sổ kế toán chưa bật. Đặt ngày bắt đầu ghi sổ ở <a routerLink="/ke-toan">Kế toán</a> trước.</span></div>
@@ -155,6 +149,9 @@ const PERIODS: { value: CitPeriod; label: string }[] = [
   `,
 })
 export class AccountingCorporateTaxComponent {
+  protected readonly toast = inject(ToastService);
+  /** A failure still shown by the page logic also raises a toast. */
+  protected readonly failureToast = effect(() => this.toast.error(this.failure()));
   private readonly svc = inject(AccountingService);
   private readonly confirmer = inject(ConfirmService);
   private readonly auth = inject(AuthService);
@@ -172,7 +169,6 @@ export class AccountingCorporateTaxComponent {
   readonly loss = signal<number | null>(null);
   readonly note = signal('');
   readonly pv = signal<CitPreview | null>(null);
-  readonly notice = signal('');
   readonly failure = signal('');
   readonly busy = signal(false);
   /** Các kỳ chọn được: từ kỳ kế tiếp trở đi. */
@@ -235,8 +231,8 @@ export class AccountingCorporateTaxComponent {
   }
 
   private async run(work: () => Promise<string>): Promise<void> {
-    this.busy.set(true); this.failure.set(''); this.notice.set('');
-    try { this.notice.set(await work()); await this.load(); }
+    this.busy.set(true); this.failure.set(''); this.toast.clear();
+    try { this.toast.success(await work()); await this.load(); }
     catch (e) { this.failure.set(errorText(e)); }
     finally { this.busy.set(false); }
   }

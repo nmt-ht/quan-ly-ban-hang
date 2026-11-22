@@ -11,6 +11,7 @@ import { formatVnd, foldVi } from '../../shared/format.util';
 import { errorText } from '../../core/api/api.service';
 import { HasUnsavedChanges, isSaveShortcut, warnBeforeUnload } from '../../core/guards/unsaved-changes.guard';
 import { PricingService } from './pricing.service';
+import { ToastService } from '../../core/services/toast.service';
 
 interface ItemDraft {
   key: string;
@@ -31,11 +32,11 @@ const newItem = (): ItemDraft => ({ key: crypto.randomUUID(), productId: '', uni
   styleUrl: './pricing.scss',
 })
 export class PriceListsComponent implements HasUnsavedChanges {
+  protected readonly toast = inject(ToastService);
   readonly data = inject(DataStore);
   private readonly svc = inject(PricingService);
   readonly money = formatVnd;
 
-  readonly notice = signal('');
   readonly error = signal('');
   readonly saving = signal(false);
 
@@ -149,7 +150,7 @@ export class PriceListsComponent implements HasUnsavedChanges {
         name: this.name().trim(), note: this.note().trim() || undefined, isActive: this.isActive(),
         items: this.items().filter((x) => x.productId).map((x) => ({ productId: x.productId, unitName: x.unitName, price: x.price ?? 0 })),
       });
-      this.notice.set(id ? `Đã lưu chính sách giá "${l.name}".` : `Đã lập chính sách giá "${l.name}". Gán cho khách ở form khách hàng.`);
+      this.toast.success(id ? `Đã lưu chính sách giá "${l.name}".` : `Đã lập chính sách giá "${l.name}". Gán cho khách ở form khách hàng.`);
       this.close();
     } catch (e) {
       this.error.set(errorText(e));

@@ -8,6 +8,7 @@ import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { formatVnd } from '../../shared/format.util';
 import { PeriodFilterComponent, PeriodValue } from '../../shared/period-filter/period-filter.component';
 import { presetRange } from '../../shared/period';
+import { ToastService } from '../../core/services/toast.service';
 
 /** /ke-toan/tong-hop-cong-no — tổng hợp công nợ phải thu (131) / phải trả (331) theo từng đối tượng, từ sổ cái. */
 @Component({
@@ -32,8 +33,7 @@ import { presetRange } from '../../shared/period';
       </div>
       <app-period-filter [value]="period()" (valueChange)="onPeriod($event)" />
     </div>
-    @if (failure()) { <div class="notice is-error" role="alert">{{ failure() }}</div> }
-
+    
     @if (data(); as d) {
       <dl class="list-totals">
         <div><dt>{{ code() === '131' ? 'Khách hàng' : 'Nhà cung cấp' }} có số liệu</dt><dd class="num">{{ d.rows.length }}</dd></div>
@@ -84,9 +84,9 @@ import { presetRange } from '../../shared/period';
   `,
 })
 export class AccountingPartnerSummaryComponent {
+  protected readonly toast = inject(ToastService);
   private readonly svc = inject(AccountingService);
   readonly data = signal<PartnerSummaryView | null>(null);
-  readonly failure = signal('');
   readonly code = signal<'131' | '331'>('131');
   readonly period = signal<PeriodValue>({ preset: 'thisYear', range: presetRange('thisYear') });
   readonly money = formatVnd;
@@ -105,11 +105,10 @@ export class AccountingPartnerSummaryComponent {
   }
 
   async load() {
-    this.failure.set('');
     const { from, to } = this.period().range;
-    if (!from || !to) { this.data.set(null); this.failure.set('Chọn kỳ có ngày bắt đầu và kết thúc.'); return; }
+    if (!from || !to) { this.data.set(null); this.toast.error('Chọn kỳ có ngày bắt đầu và kết thúc.'); return; }
     if (from.slice(0, 4) !== to.slice(0, 4)) {
-      this.failure.set('Chọn khoảng trong cùng một năm (số dư đầu kỳ nhập theo năm).');
+      this.toast.error('Chọn khoảng trong cùng một năm (số dư đầu kỳ nhập theo năm).');
       this.data.set(null);
       return;
     }
@@ -117,7 +116,7 @@ export class AccountingPartnerSummaryComponent {
       this.data.set(await this.svc.partnerSummary(this.code(), from, to));
     } catch (e) {
       this.data.set(null);
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
     }
   }
 

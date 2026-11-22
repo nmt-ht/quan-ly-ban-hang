@@ -1,5 +1,5 @@
-/* Hallmark · genre: modern-minimal · shape: app screen · scope: app · theme: brand (moss, kept) · redesign: restyle · built: the project · v2.0.0
- * critique: one accent (moss) on every page: primary action, selected tab, link, focus, the topbar edge. Figure tiles and icons are neutral. */
+/* Hallmark · genre: modern-minimal · shape: app screen · scope: app · theme: brand (xanh ngọc) · redesign: restyle · built: the project · v2.0.0
+ * critique: one accent (teal) on every page: primary action, selected tab, link, focus, the topbar edge. Figure tiles and icons are neutral. */
 
 // Design tokens (colour, type, space, motion) live in tokens.css — see /design.md.
 @use 'tokens';
@@ -1440,6 +1440,7 @@ textarea {
 .field input::placeholder,
 .field textarea::placeholder {
   color: var(--color-muted);
+  opacity: 1; // Firefox fades a placeholder to 0.54 by default, which would drop --color-muted under 4.5:1
 }
 
 @media (hover: hover) {
@@ -2365,6 +2366,7 @@ input[type='radio'] {
 
   &::placeholder {
     color: var(--color-muted);
+    opacity: 1;
   }
 
   &:focus-visible {

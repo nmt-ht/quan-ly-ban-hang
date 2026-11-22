@@ -15,8 +15,8 @@
   <!-- Màn rộng: sơ đồ. -->
   @if (layout(); as l) {
     <section class="card fm-desktop" aria-label="Sơ đồ">
-      <div class="fm-scroll">
-        <svg class="fm-svg" [style.width.px]="l.width" [style.min-width.px]="l.width < 980 ? l.width : 980" [attr.viewBox]="'0 0 ' + l.width + ' ' + l.height" role="group" [attr.aria-label]="'Sơ đồ ' + d.title">
+      <div class="fm-scroll" #frame>
+        <svg class="fm-svg" [style.width.px]="l.width" [attr.viewBox]="'0 0 ' + l.width + ' ' + l.height" role="group" [attr.aria-label]="'Sơ đồ ' + d.title">
           <defs>
             <marker id="fm-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
               <path d="M 0 1 L 9 5 L 0 9 z" class="fm-arrowhead" />

@@ -19,6 +19,7 @@ import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { errorText } from '../../../core/api/api.service';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-vehicle-detail',
@@ -28,6 +29,7 @@ import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
   styleUrl: '../../suppliers/supplier-detail/supplier-detail.component.scss',
 })
 export class VehicleDetailComponent {
+  protected readonly toast = inject(ToastService);
   readonly data = inject(DataStore);
   private readonly svc = inject(VehicleService);
   private readonly dialog = viewChild.required<VehicleDialogComponent>('dialog');
@@ -35,9 +37,7 @@ export class VehicleDetailComponent {
   readonly id = toSignal(inject(ActivatedRoute).paramMap.pipe(map((p) => p.get('id') ?? '')), { initialValue: '' });
   readonly vehicle = computed(() => this.data.vehicles().find((v) => v.id === this.id()));
   readonly today = isoDay(new Date());
-  readonly notice = signal('');
   /** A save the server refused (or that could not reach it). */
-  readonly failure = signal('');
 
   readonly money = formatVnd;
   readonly day = formatDay;
@@ -78,18 +78,17 @@ export class VehicleDetailComponent {
   }
 
   onSaved(e: { message: string }): void {
-    this.notice.set(e.message);
+    this.toast.success(e.message);
   }
 
   async setStatus(status: VehicleStatus): Promise<void> {
     const v = this.vehicle() as Vehicle;
-    this.failure.set('');
     try {
       await this.svc.setStatus(v.id, status);
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
       return;
     }
-    this.notice.set(`Xe ${v.plateNumber}: ${VEHICLE_STATUS_LABEL[status].toLowerCase()}${status === 'DANG_DUNG' ? '' : ' — không chọn được khi tạo chuyến mới'}.`);
+    this.toast.success(`Xe ${v.plateNumber}: ${VEHICLE_STATUS_LABEL[status].toLowerCase()}${status === 'DANG_DUNG' ? '' : ' — không chọn được khi tạo chuyến mới'}.`);
   }
 }

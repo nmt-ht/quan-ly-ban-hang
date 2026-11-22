@@ -12,6 +12,8 @@ import { MoneyInputDirective } from '../../shared/money-input.directive';
 import { MonthPickerComponent } from '../../shared/month-picker/month-picker.component';
 import { formatDay, isoDay } from '../../shared/period';
 import { DateInputDirective } from '../../shared/date-input/date-input.directive';
+import { newestFirst } from '../../shared/column-sort';
+import { ToastService } from '../../core/services/toast.service';
 
 const newForm = (): FixedAssetInput => ({ name: '', cost: 0, usageStartDate: isoDay(new Date()), usefulLifeMonths: 12, expenseAccount: '642' });
 
@@ -26,20 +28,13 @@ const newForm = (): FixedAssetInput => ({ name: '', cost: 0, usageStartDate: iso
         <h1>Tài sản cố định</h1>
         <p class="subtitle">Khấu hao đường thẳng (nguyên giá ÷ số tháng). Trích khấu hao: Nợ chi phí / Có 214.</p>
       </div>
-      @if (canManage) {
+      @if (canManage && !showForm()) {
         <div class="toolbar">
-          <button type="button" class="btn btn-primary" (click)="showForm.set(!showForm())"><app-nav-icon [name]="showForm() ? 'x' : 'plus'" />{{ showForm() ? 'Đóng' : 'Thêm tài sản' }}</button>
+          <button type="button" class="btn btn-primary" (click)="showForm.set(!showForm())"><app-nav-icon name="plus" />Thêm tài sản</button>
         </div>
       }
     </div>
-    @if (notice()) {
-      <div class="notice" role="status">
-        <span>{{ notice() }}</span>
-        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
-      </div>
-    }
-    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
-
+        
     @if (showForm() && canManage) {
       <section class="card section-block" aria-labelledby="ts-form">
         <h2 id="ts-form" class="form-section-title">Thêm tài sản cố định</h2>
@@ -65,12 +60,16 @@ const newForm = (): FixedAssetInput => ({ name: '', cost: 0, usageStartDate: iso
             <input id="ts-acc" type="text" class="num" maxlength="6" placeholder="642" [(ngModel)]="form.expenseAccount" />
           </div>
         </div>
-        <div class="toolbar">
-          <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save()">Lưu</button>
-          <button type="button" class="btn" (click)="showForm.set(false)">Bỏ qua</button>
-        </div>
       </section>
-    }
+
+      <div class="form-actions-bar">
+        <span class="hint" role="status">Điền thông tin rồi bấm Lưu</span>
+        <div class="form-actions">
+          <button type="button" class="btn" (click)="showForm.set(false)">Huỷ</button>
+          <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save()"><app-nav-icon name="check" />Lưu tài sản</button>
+        </div>
+      </div>
+    } @else {
 
     @if (canDepreciate) {
       <div class="filters-bar">
@@ -90,10 +89,12 @@ const newForm = (): FixedAssetInput => ({ name: '', cost: 0, usageStartDate: iso
     }
 
     <app-data-table [columns]="columns" [rows]="assets()" emptyTitle="Chưa có tài sản cố định" emptyHint="Thêm tài sản để trích khấu hao hằng tháng." />
+    }
   `,
   styles: [`.money-field { text-align: right; } .filter-label { font-size: var(--text-sm); color: var(--color-muted); }`],
 })
 export class AccountingFixedAssetsComponent {
+  protected readonly toast = inject(ToastService);
   private readonly svc = inject(AccountingService);
   private readonly auth = inject(AuthService);
   readonly canManage = this.auth.can('accounting.manage_account');
@@ -102,8 +103,6 @@ export class AccountingFixedAssetsComponent {
   readonly showForm = signal(false);
   readonly saving = signal(false);
   readonly depreciating = signal(false);
-  readonly notice = signal('');
-  readonly failure = signal('');
   readonly money = formatVnd;
   period = isoDay(new Date()).slice(0, 7);
   form: FixedAssetInput = newForm();
@@ -126,27 +125,27 @@ export class AccountingFixedAssetsComponent {
   totalRemaining(): number { return this.assets().reduce((s, a) => s + a.remaining, 0); }
 
   async load() {
-    try { this.assets.set(await this.svc.fixedAssets()); } catch (e) { this.failure.set(errorText(e)); }
+    try { this.assets.set((await this.svc.fixedAssets()).sort(newestFirst)); } catch (e) { this.toast.error(errorText(e)); }
   }
 
   async save() {
-    this.failure.set(''); this.notice.set(''); this.saving.set(true);
+    this.toast.clear(); this.toast.clear(); this.saving.set(true);
     try {
       await this.svc.createAsset({ ...this.form, cost: Number(this.form.cost), usefulLifeMonths: Number(this.form.usefulLifeMonths) });
-      this.notice.set('Đã thêm tài sản.'); this.showForm.set(false);
+      this.toast.success('Đã thêm tài sản.'); this.showForm.set(false);
       this.form = newForm();
       await this.load();
-    } catch (e) { this.failure.set(errorText(e)); }
+    } catch (e) { this.toast.error(errorText(e)); }
     finally { this.saving.set(false); }
   }
 
   async depreciate() {
-    this.failure.set(''); this.notice.set(''); this.depreciating.set(true);
+    this.toast.clear(); this.toast.clear(); this.depreciating.set(true);
     try {
       const r = await this.svc.depreciate(this.period);
-      this.notice.set(r.total > 0 ? `Đã trích khấu hao ${r.count} tài sản: ${formatVnd(r.total)}.` : 'Không có tài sản nào để trích (đã trích kỳ này hoặc hết khấu hao).');
+      this.toast.success(r.total > 0 ? `Đã trích khấu hao ${r.count} tài sản: ${formatVnd(r.total)}.` : 'Không có tài sản nào để trích (đã trích kỳ này hoặc hết khấu hao).');
       await this.load();
-    } catch (e) { this.failure.set(errorText(e)); }
+    } catch (e) { this.toast.error(errorText(e)); }
     finally { this.depreciating.set(false); }
   }
 }

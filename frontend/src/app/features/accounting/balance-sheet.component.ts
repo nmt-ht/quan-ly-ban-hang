@@ -13,6 +13,7 @@ import { isoDay } from '../../shared/period';
 import { PrintService } from '../../shared/print/print.service';
 import { StatementPrintComponent } from '../../shared/print/tt133/statement-print.component';
 import { atDayText } from '../../shared/print/tt133/tt133-books';
+import { ToastService } from '../../core/services/toast.service';
 
 /** /ke-toan/can-doi-ke-toan — Bảng cân đối kế toán; bản in là Báo cáo tình hình tài chính mẫu B01b-DNN (TT133). */
 @Component({
@@ -35,8 +36,7 @@ import { atDayText } from '../../shared/print/tt133/tt133-books';
       <input type="number" class="year-input" aria-label="Năm" min="2000" max="2100" [value]="period()" (change)="setYear(+$any($event.target).value)" />
       <label class="inline-field">Báo cáo tại ngày <input appDate [ngModel]="asOf()" (ngModelChange)="asOf.set($event)" /></label>
     </div>
-    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
-
+    
     @if (data(); as d) {
       @if (!d.balanced) { <div class="notice is-error" role="alert">Chưa cân: Tổng tài sản {{ money(d.totalAssets) }} ≠ Tổng nguồn vốn {{ money(d.totalResources) }}.</div> }
       <dl class="list-totals">
@@ -83,11 +83,11 @@ import { atDayText } from '../../shared/print/tt133/tt133-books';
   `,
 })
 export class AccountingBalanceSheetComponent {
+  protected readonly toast = inject(ToastService);
   private readonly svc = inject(AccountingService);
   private readonly confirmer = inject(ConfirmService);
   private readonly printer = inject(PrintService);
   readonly data = signal<BalanceSheetView | null>(null);
-  readonly failure = signal('');
   readonly money = formatVnd;
   readonly period = signal(new Date().getFullYear());
   readonly atDay = atDayText;
@@ -113,7 +113,6 @@ export class AccountingBalanceSheetComponent {
   }
 
   async printPosition() {
-    this.failure.set('');
     this.printBusy.set(true);
     try {
       const v = await this.svc.financialPosition(this.asOf());
@@ -123,15 +122,14 @@ export class AccountingBalanceSheetComponent {
       }
       await this.printer.print('tt133-b01b', 'A4', () => this.position.set(v), () => this.position.set(null));
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
     } finally {
       this.printBusy.set(false);
     }
   }
 
   async load() {
-    this.failure.set('');
     try { this.data.set(await this.svc.balanceSheet(String(this.period()))); }
-    catch (e) { this.data.set(null); this.failure.set(errorText(e)); }
+    catch (e) { this.data.set(null); this.toast.error(errorText(e)); }
   }
 }

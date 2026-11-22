@@ -28,6 +28,7 @@ import { AuditHistoryComponent } from '../../../shared/audit/audit-history.compo
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 import { PickableWarehousesPipe } from '../../../shared/pickable-warehouses.pipe';
 import { DateInputDirective } from '../../../shared/date-input/date-input.directive';
+import { ToastService } from '../../../core/services/toast.service';
 
 interface Line {
   key: string;
@@ -55,6 +56,7 @@ const emptyLine = (): Line => ({ key: crypto.randomUUID(), productId: '', unitNa
   styleUrls: ['../../../shared/voucher/voucher.scss', './warehouse-voucher-form.component.scss'],
 })
 export class WarehouseVoucherFormComponent {
+  protected readonly toast = inject(ToastService);
   private readonly nextCode = inject(NextCodeService);
   private readonly dialogs = inject(ConfirmService);
   private readonly route = inject(ActivatedRoute);
@@ -106,7 +108,6 @@ export class WarehouseVoucherFormComponent {
   readonly saving = signal(false);
   /** Đơn giá trên phiếu nhập needs its own permission (Thủ kho does not see purchase prices). */
   readonly showPrice = computed(() => this.type() === 'NHAP' && this.auth.can('stock.import_price'));
-  readonly notice = signal('');
 
   constructor() {
     effect(() => {
@@ -122,7 +123,7 @@ export class WarehouseVoucherFormComponent {
         this.lines.set([emptyLine()]);
         this.attempted.set(false);
         this.error.set('');
-        this.notice.set((history.state as { notice?: string } | null)?.notice ?? '');
+        this.toast.success((history.state as { notice?: string } | null)?.notice ?? '');
       });
     });
   }
@@ -301,7 +302,7 @@ export class WarehouseVoucherFormComponent {
       confirmLabel: 'Huỷ phiếu', cancelLabel: 'Không huỷ', tone: 'danger', fields: [{ key: 'reason', label: 'Lý do huỷ', type: 'textarea', placeholder: 'Không bắt buộc', maxLength: 300 }],
       run: (x) => this.svc.cancel(v.id, x['reason']),
     });
-    if (done) this.notice.set(`Đã huỷ ${v.code} — tồn kho đã trả về như trước khi lập phiếu.`);
+    if (done) this.toast.success(`Đã huỷ ${v.code} — tồn kho đã trả về như trước khi lập phiếu.`);
   }
 
   /** Signature block by document type. The maker's name is printed under the signature space. */

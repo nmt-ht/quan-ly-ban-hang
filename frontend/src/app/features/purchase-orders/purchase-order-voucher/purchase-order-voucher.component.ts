@@ -45,6 +45,7 @@ import { SearchOption, SearchSelectComponent } from '../../../shared/search-sele
 import { StatusStepsComponent } from '../../../shared/status-steps/status-steps.component';
 import { QuickSupplierDialogComponent } from '../../../shared/quick-create/quick-supplier-dialog.component';
 import { DateInputDirective } from '../../../shared/date-input/date-input.directive';
+import { ToastService } from '../../../core/services/toast.service';
 
 type Mode = 'create' | 'edit' | 'view';
 
@@ -84,6 +85,7 @@ const emptyLine = (): DraftLine => ({
   styleUrl: '../../../shared/voucher/voucher.scss',
 })
 export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
+  protected readonly toast = inject(ToastService);
   private readonly nextCode = inject(NextCodeService);
   private readonly dialogs = inject(ConfirmService);
   private readonly route = inject(ActivatedRoute);
@@ -148,7 +150,6 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
   readonly lines = signal<DraftLine[]>([emptyLine()]);
   readonly attempted = signal(false);
   readonly tab = signal<'hang' | 'phieu' | 'hoa-don' | 'tra-hang' | 'nhat-ky'>('hang');
-  readonly notice = signal('');
 
   // ---------- gửi email: đơn mua hàng cho nhà cung cấp + PDF ----------
   private readonly emailDlg = viewChild<EmailComposeComponent>('emailDlg');
@@ -165,7 +166,6 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
     });
   }
   /** A save or status change the server refused (or that could not reach it). */
-  readonly failure = signal('');
   readonly busy = signal(false);
 
   readonly vatRates = VAT_RATES;
@@ -197,8 +197,8 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
         this.attempted.set(false);
         this.tab.set('hang');
         this.page.set(1);
-        if (id) this.notice.set((history.state as { notice?: string } | null)?.notice ?? '');
-        else if (reorder.length) this.notice.set(`Đã điền ${reorder.length} vật tư dưới tồn tối thiểu theo gợi ý — xem lại số lượng, giá rồi Lập đơn mua hàng.`);
+        if (id) this.toast.success((history.state as { notice?: string } | null)?.notice ?? '');
+        else if (reorder.length) this.toast.success(`Đã điền ${reorder.length} vật tư dưới tồn tối thiểu theo gợi ý — xem lại số lượng, giá rồi Lập đơn mua hàng.`);
         // A suggested order counts as unsaved work: leaving asks first.
         if (!reorder.length) this.baseline = this.snapshot();
       });
@@ -436,11 +436,10 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
   /** Runs a save; on failure shows why and answers null. */
   private async attempt<T>(save: () => Promise<T>): Promise<T | null> {
     this.busy.set(true);
-    this.failure.set('');
     try {
       return await save();
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
       return null;
     } finally {
       this.busy.set(false);
@@ -464,12 +463,12 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
 
   async send(): Promise<void> {
     if ((await this.attempt(() => this.orders.send(this.id()!).then(() => true))) === null) return;
-    this.notice.set('Đã chuyển đơn sang "Đã gửi NCC".');
+    this.toast.success('Đã chuyển đơn sang "Đã gửi NCC".');
   }
 
   async complete(): Promise<void> {
     if ((await this.attempt(() => this.orders.complete(this.id()!).then(() => true))) === null) return;
-    this.notice.set('Đơn đã hoàn tất.');
+    this.toast.success('Đơn đã hoàn tất.');
   }
 
   async askCancel(): Promise<void> {
@@ -480,7 +479,7 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
       confirmLabel: 'Huỷ đơn', cancelLabel: 'Không huỷ', tone: 'danger', fields: [{ key: 'reason', label: 'Lý do huỷ', type: 'textarea', placeholder: 'Không bắt buộc', maxLength: 300 }],
       run: (v) => this.orders.cancel(id, v['reason']),
     });
-    if (done) this.notice.set('Đã huỷ đơn.');
+    if (done) this.toast.success('Đã huỷ đơn.');
   }
 
   async askCancelReturn(r: PurchaseReturn): Promise<void> {
@@ -491,7 +490,7 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
       confirmLabel: 'Huỷ phiếu trả', cancelLabel: 'Không huỷ', tone: 'danger', fields: [{ key: 'reason', label: 'Lý do huỷ', type: 'textarea', placeholder: 'Không bắt buộc', maxLength: 300 }],
       run: (v) => this.orders.cancelReturn(id, r.id, v['reason']),
     });
-    if (done) this.notice.set(`Đã huỷ phiếu trả ${r.code} — hàng nhập lại kho, công nợ phải trả tính lại.`);
+    if (done) this.toast.success(`Đã huỷ phiếu trả ${r.code} — hàng nhập lại kho, công nợ phải trả tính lại.`);
   }
 
   openReceive(): void {
@@ -499,7 +498,7 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
   }
 
   onReceived(message: string): void {
-    this.notice.set(message);
+    this.toast.success(message);
     this.tab.set('phieu');
   }
 
@@ -534,7 +533,7 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
     }));
     if (o) {
       this.editingInvoice.set(null);
-      this.notice.set('Đã lưu hoá đơn nhà cung cấp.');
+      this.toast.success('Đã lưu hoá đơn nhà cung cấp.');
     }
   }
 
@@ -552,7 +551,7 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
   }
 
   onReturned(message: string): void {
-    this.notice.set(message);
+    this.toast.success(message);
     this.tab.set('tra-hang');
   }
 

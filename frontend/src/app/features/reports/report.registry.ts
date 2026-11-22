@@ -11,7 +11,7 @@ export interface ReportGroup {
   icon: NavIconName;
   /** Who may open the reports of this group (the server checks the same). */
   permission: string;
-  /** Phân hệ whose hue the group wears on the hub (none = the moss brand). */
+  /** Phân hệ whose hue the group wears on the hub (none = the teal brand). */
 }
 
 // 8 nhóm / 21 báo cáo, theo thứ tự của hệ thống tham chiếu (docs/crawl/02-bao-cao.md).

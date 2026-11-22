@@ -12,6 +12,7 @@ import { MoneyInputDirective } from '../../shared/money-input.directive';
 import { MonthPickerComponent } from '../../shared/month-picker/month-picker.component';
 import { isoDay } from '../../shared/period';
 import { CENTER_LABEL } from './employees.component';
+import { ToastService } from '../../core/services/toast.service';
 
 /** /ke-toan/luong — tính, chốt, huỷ bảng lương tháng; thiết lập tỷ lệ bảo hiểm, giảm trừ, biểu thuế. */
 @Component({
@@ -30,14 +31,7 @@ import { CENTER_LABEL } from './employees.component';
       <label class="filter-label" for="pl-period">Kỳ lương</label>
       <app-month-picker inputId="pl-period" ariaLabel="Kỳ lương" [(value)]="period" (valueChange)="load()" />
     </div>
-    @if (notice()) {
-      <div class="notice" role="status">
-        <span>{{ notice() }}</span>
-        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
-      </div>
-    }
-    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
-
+        
     @if (sheet(); as sh) {
       <section class="section-bare">
         <h3>Kỳ {{ sh.period }} — {{ sh.existing ? 'đã chốt' : 'xem trước (chưa chốt)' }}</h3>
@@ -160,6 +154,7 @@ import { CENTER_LABEL } from './employees.component';
   `],
 })
 export class AccountingPayrollComponent {
+  protected readonly toast = inject(ToastService);
   private readonly svc = inject(AccountingService);
   private readonly confirmer = inject(ConfirmService);
   readonly sheet = signal<PayrollSheetView | null>(null);
@@ -167,8 +162,6 @@ export class AccountingPayrollComponent {
   readonly settings = signal<PayrollParamsView | null>(null);
   readonly showSettings = signal(false);
   readonly busy = signal(false);
-  readonly notice = signal('');
-  readonly failure = signal('');
   readonly money = formatVnd;
   period = isoDay(new Date()).slice(0, 7);
   private readonly runActionsRef = viewChild<TemplateRef<{ $implicit: PayrollRunSummary }>>('runActionsTpl');
@@ -189,16 +182,15 @@ export class AccountingPayrollComponent {
 
   /** Kỳ đã chốt thì xem bảng đã lưu; chưa chốt thì tính xem trước (giữ số thưởng/phụ cấp đang nhập). */
   async load() {
-    this.failure.set('');
     const keep = new Map((this.sheet()?.rows ?? []).map((r) => [r.employeeId, r.adjustment]));
     try {
       const pv = await this.svc.payrollPreview(this.period, [...keep].map(([employeeId, amount]) => ({ employeeId, amount: Number(amount) || 0 })));
       this.sheet.set(pv.existing ? await this.svc.payrollRunDetail(this.period) : pv);
-    } catch (e) { this.failure.set(errorText(e)); }
+    } catch (e) { this.toast.error(errorText(e)); }
   }
 
   async loadRuns() {
-    try { this.runs.set(await this.svc.payrollRuns()); } catch { /* danh sách kỳ đã chốt không bắt buộc */ }
+    try { this.runs.set((await this.svc.payrollRuns()).sort((a, b) => b.period.localeCompare(a.period))); } catch { /* danh sách kỳ đã chốt không bắt buộc */ }
   }
 
   open(period: string) { this.period = period; this.sheet.set(null); this.load(); }
@@ -206,31 +198,31 @@ export class AccountingPayrollComponent {
   async run() {
     const sh = this.sheet();
     if (!sh) return;
-    this.failure.set(''); this.notice.set(''); this.busy.set(true);
+    this.toast.clear(); this.toast.clear(); this.busy.set(true);
     try {
       await this.svc.payrollRun(this.period, sh.rows.map((r) => ({ employeeId: r.employeeId, amount: Number(r.adjustment) || 0 })));
-      this.notice.set(`Đã chốt bảng lương kỳ ${this.period}.`);
+      this.toast.success(`Đã chốt bảng lương kỳ ${this.period}.`);
       this.sheet.set(null); await this.load(); await this.loadRuns();
-    } catch (e) { this.failure.set(errorText(e)); }
+    } catch (e) { this.toast.error(errorText(e)); }
     finally { this.busy.set(false); }
   }
 
   async cancel() {
     const ok = await this.confirmer.ask({ title: `Huỷ bảng lương kỳ ${this.period}?`, message: 'Các bút toán đã ghi sẽ được đảo lại. Sau đó có thể tính lại.', confirmLabel: 'Huỷ bảng lương', cancelLabel: 'Không huỷ', tone: 'danger' });
     if (!ok) return;
-    this.failure.set(''); this.notice.set(''); this.busy.set(true);
+    this.toast.clear(); this.toast.clear(); this.busy.set(true);
     try {
       await this.svc.payrollCancel(this.period);
-      this.notice.set(`Đã huỷ bảng lương kỳ ${this.period}. Có thể tính lại.`);
+      this.toast.success(`Đã huỷ bảng lương kỳ ${this.period}. Có thể tính lại.`);
       this.sheet.set(null); await this.load(); await this.loadRuns();
-    } catch (e) { this.failure.set(errorText(e)); }
+    } catch (e) { this.toast.error(errorText(e)); }
     finally { this.busy.set(false); }
   }
 
   async toggleSettings() {
     if (this.showSettings()) { this.showSettings.set(false); return; }
     try { this.settings.set(await this.svc.payrollSettings()); this.showSettings.set(true); }
-    catch (e) { this.failure.set(errorText(e)); }
+    catch (e) { this.toast.error(errorText(e)); }
   }
 
   addBracket() {
@@ -246,13 +238,13 @@ export class AccountingPayrollComponent {
   async saveSettings() {
     const s = this.settings();
     if (!s) return;
-    this.failure.set(''); this.notice.set(''); this.busy.set(true);
+    this.toast.clear(); this.toast.clear(); this.busy.set(true);
     try {
       const brackets = s.brackets.map((b) => ({ upTo: b.upTo ? Number(b.upTo) : undefined, rate: Number(b.rate) || 0 }));
       this.settings.set(await this.svc.savePayrollSettings({ ...s, brackets }));
-      this.notice.set('Đã lưu thiết lập lương. Áp dụng cho các bảng lương chốt từ bây giờ.');
+      this.toast.success('Đã lưu thiết lập lương. Áp dụng cho các bảng lương chốt từ bây giờ.');
       this.sheet.set(null); await this.load();
-    } catch (e) { this.failure.set(errorText(e)); }
+    } catch (e) { this.toast.error(errorText(e)); }
     finally { this.busy.set(false); }
   }
 }

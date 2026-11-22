@@ -4,8 +4,9 @@ A locked design system for the Ninh Trang ERP frontend (`frontend/`). Every page
 redesign reads this file before emitting code. Do not regenerate per page —
 extend or amend this file when the system needs to grow.
 
-Codename: **Sổ cái** (ledger) — ledger paper, moss ink, dense. Since 22/11/2026 (Hallmark redesign): **one accent on every
-page** — moss. (From 25/10 to 22/11/2026 each phân hệ wore its own hue; that was taken out, see "One accent" below.)
+Codename: **Sổ cái** (ledger) — ledger paper, xanh ngọc (teal), dense. Since 22/11/2026 (Hallmark redesign): **one accent on every
+page**, and that accent is teal (hue 195). (From 25/10 to 22/11/2026 each phân hệ wore its own hue; that was taken out, see "One accent" below.
+The accent was moss, hue 158, until the colour pass of 22/11/2026; an indigo trial the same day was dropped as too cold.)
 
 ## Audience · use · tone
 - **Audience** — office, sales, warehouse and accounting staff at Ninh Trang who
@@ -25,26 +26,26 @@ modern-minimal (ERP / B2B app)
 - Marketing / content pages: none yet. Add a family here before building one.
 
 ## Theme
-Source of truth: `frontend/src/tokens.css`. Light values:
+Source of truth: `frontend/src/tokens.css`. Light values (neutrals other than paper carry the accent's hue 195 at chroma ≤ 0.015, dark mode paper and surfaces too, so ink and the dark ground read as one family with the accent; every accent pair ≥ 5.4:1):
 
-- `--color-paper`        oklch(97.6% 0.008 90)
+- `--color-paper`        oklch(97.6% 0.008 90) — warm ledger paper (unchanged)
 - `--color-surface`      oklch(99.3% 0.004 90)
 - `--color-paper-2`      oklch(95.2% 0.010 90)
 - `--color-rule`         oklch(89% 0.010 95)
 - `--color-rule-strong`  oklch(62% 0.014 100) — control boundaries, ≥ 3:1
 - `--color-muted`        oklch(47% 0.014 110) — ≥ 4.5:1 on paper
-- `--color-ink`          oklch(22% 0.015 160)
-- `--color-ink-2`        oklch(31% 0.014 150)
-- `--color-accent`       oklch(40% 0.09 158) — moss
+- `--color-ink`          oklch(22% 0.015 195)
+- `--color-ink-2`        oklch(31% 0.014 195)
+- `--color-accent`       oklch(44% 0.07 195) — xanh ngọc (teal); hover oklch(38% 0.06 195), tint oklch(94.5% 0.02 195)
 - `--color-accent-ink`   oklch(98.5% 0.006 90)
-- `--color-focus`        oklch(48% 0.11 158)
+- `--color-focus`        oklch(50% 0.08 195)
 
 Dark mode (`body.dark-theme`) keeps every hue; only lightness and chroma move.
 Status colours (danger / success / warning / info) each have a text + tint
 pair; all pairs verified ≥ 5.5:1 light, ≥ 5.1:1 dark.
 Status hues: danger 16 (crimson) · warning 84–88 (golden amber) · success 144 · info 239.
 
-Axes: light / geometric-sans / chromatic-moss.
+Axes: light / geometric-sans / chromatic-teal.
 
 ### Colour rules (best-practice pass, 08/11/2026)
 - **Every token sits inside sRGB.** Pick L and H first, then the highest chroma that still fits sRGB — never more.
@@ -63,23 +64,23 @@ Axes: light / geometric-sans / chromatic-moss.
   a tint (active menu item, selected tab / segment, pressed toggle, palette row) takes `Highlight` / `HighlightText`;
   small swatches whose colour is the meaning (aging dots, Màu hiển thị swatches) opt out with `forced-color-adjust`.
   A new tint-only state must be added to that list.
-- **The accent is never mistaken for a status.** Moss (hue 158) and success green (144) are close in hue, so they are told
+- **The accent is never mistaken for a status.** Teal (hue 195) sits 44° from info blue (239) and 45° from success green (144), so the two are told
   apart by what they do, not by hue alone: the accent fills actions, selected states and focus; success only ever appears
   as a text + tint pair next to a word or an icon ("Đã thu", ✓), never as a button or a selected row. Danger is crimson
-  (16), warning golden amber (84–88), info blue (239); dark mode spreads them by lightness (moss 68 %, success 80 %).
+  (16), warning golden amber (84–88), info blue (239); dark mode spreads them by lightness (teal 69 %, info 78 %, success 80 %).
 - **Browser chrome follows the theme.** ThemeService writes `--color-paper` (as hex) into `<meta name="theme-color">`;
   index.html carries the light paper for first paint.
 
 ### One accent (since 22/11/2026)
-Every page, in every phân hệ, uses the same moss accent (`--color-accent`, `-hover`, `-tint`, `--color-focus`; light
-oklch(40% 0.09 158), dark oklch(68% 0.11 158)). There is no per-module remapping: the `data-module` attribute,
+Every page, in every phân hệ, uses the same teal accent (`--color-accent`, `-hover`, `-tint`, `--color-focus`; light
+oklch(44% 0.07 195), dark oklch(69% 0.115 195)). There is no per-module remapping: the `data-module` attribute,
 `moduleOf()`, the `--mod-*` tokens and `ModuleKey` are gone, and a new menu group or report group names nothing but its label.
 
 Where the accent shows (≤ 5 % of a viewport): primary buttons, links, the selected menu item (tint + 3 px bar), selected
 tabs / segments, focus rings, the 3 px edge along the top of the topbar and the progress streak under it. Where it does
 **not**: menu icons (muted, ink on hover), figure tiles of `dl.list-totals` (neutral paper, status tint only for a
 problem), icon tiles in Báo cáo and Thông báo (neutral paper), the Tổng quan area panels (no coloured rule or heading).
-Charts keep to the one hue: series differ by lightness, never by a second colour (`--chart-1` moss, `--chart-2` neutral
+Charts keep to the one hue: series differ by lightness, never by a second colour (`--chart-1` teal, `--chart-2` neutral
 grey, `--chart-3` ink line; dark mode mirrors them). Status colours (danger / success / warning / info) keep their
 meaning everywhere. User-chosen tag colours (Màu hiển thị) are data, not theme, and stay as picked.
 
@@ -118,13 +119,13 @@ widths); table text 13 px.
 - Reduced motion: transitions collapse to ~0 ms.
 
 ## Microinteractions stance
-- Silent success; no celebratory toasts.
+- Success is quiet: a result ("Đã lưu …") is one plain toast that fades on its own (see Toasts); no confetti, no sound, no celebratory wording.
 - Hover only under `@media (hover: hover)`; pressed = 1 px down.
 - `:focus-visible` ring 2 px `--color-focus`, offset 2 px, never animated.
 - Disabled = 0.5 opacity + `not-allowed`.
 
 ## CTA voice
-- Primary: solid moss fill, 6 px radius, verb-first label ("Lập đơn hàng").
+- Primary: solid teal fill, 6 px radius, verb-first label ("Lập đơn hàng").
   One primary per page header.
 - Secondary: surface fill + `--color-rule-strong` border, same shape.
 - Inline actions: `.link-btn` — accent text, underline on hover.
@@ -223,10 +224,14 @@ Kho only).
   khách hàng, nhà cung cấp) is a searchable `app-filter-multi-select` with counts in the filter bar, and the table keeps
   the full width. A rail with more than 12 entries shows its own search box ("Tất cả" and the open entry always stay);
   a rail whose entries the user manages ends with a quiet link to that page (`.ld-manage`, e.g. "Quản lý nhóm hàng").
-- **Every grid with a Mã column opens sorted by Mã, ascending** (numeric-aware compare). A page with a "Sắp xếp" select
-  defaults the select to "Mã tăng dần" (added where missing); a page without one uses it as its base order. Exceptions
-  where time order *is* the content: Lịch sử nhập xuất (running stock), sổ công nợ, tuổi nợ, voucher lines (entry order),
-  report tables (their own definition, e.g. "quay chậm nhất lên đầu").
+- **Every list opens with the most recently created first** (changed 22/11/2026; it was Mã ascending). The order is `createdAt` descending, then the
+  mã (numeric-aware) descending — mã are issued in creation order, so it stands in for rows without a timestamp. One helper does it for lists
+  sorted in the browser: `newestFirst` in `shared/column-sort.ts`. Lists paged by the server send `sort` + `dir`: `createdAt` desc for phiếu thu chi
+  and phiếu kho (their mã mix prefixes — PT/PC, PNK/PXK — so mã alone would not be time order), `code` desc for đơn bán, đơn mua, lệnh sản xuất and
+  chuyến giao. A page with a "Sắp xếp" select makes "Mới tạo nhất" its first choice and default (Mã tăng dần stays as a choice); a column
+  header click still overrides it. Exceptions where the order *is* the content: Lịch sử nhập xuất (running stock), sổ công nợ, tuổi nợ,
+  voucher lines (entry order), report tables (their own definition), the "Cần lập hoá đơn" worklist of Hoá đơn bán ra (by ngày giao, as the cổng
+  is filled), and Bảng lương's kỳ list (newest kỳ first).
 - Filter bar: search · `app-filter-multi-select` (checkbox dropdown, optional
   search + counts) · native selects · `.filter-toggle` buttons
   (`aria-pressed`, pressed = ink fill) · sort select. Active filters repeat as
@@ -262,7 +267,7 @@ Kho only).
   them into colours. Badge = `class="badge"` + `tagClass(group, key)`
   (shared/tag-class.ts); helpers per entity live in shared/status-labels.ts.
 - Defaults: Vật tư 250 · Thành phẩm 50 · Dịch vụ 330; Đang kinh doanh 150,
-  Ngừng/Huỷ = Xám. Moss (accent) is never a tag colour by default.
+  Ngừng/Huỷ = Xám. Teal (accent) is never a tag colour by default (the nearest default hues, Vật tư 250 and Đang kinh doanh 150, are 55° and 45° away).
 - New status sets: add a group to TAG_GROUPS, then use `tagClass` — no CSS.
 - Storage: a company setting on the server (`GET/PUT /api/company/display-colors`,
   `CompanyInfo.tagColors`); everyone reads it, changing needs `company.update`.
@@ -274,8 +279,8 @@ Kho only).
   document's `*.rules.ts` (`salesOrderSteps`, `purchaseOrderSteps`, `productionSteps`, `tripSteps`), tested there; a partial state (giao một phần,
   nhận một phần) is a short `hint` after the current label. It sits in the header card, above the explanatory note, for an existing record only. One
   component, never a hand-made list: `<app-status-steps [steps]="…" ariaLabel="…" />`, steps built with `stepsAt(labels, indexOfCurrent, finished)`.
-- A numbered round marker per step, joined by a line. **Done**: filled moss marker with a tick, the line after it moss. **Current**: moss ring on a
-  moss tint with a soft outer ring, the label bold ink. **To do**: hollow grey marker with its number, muted label, grey line. A stopped document
+- A numbered round marker per step, joined by a line. **Done**: filled accent marker with a tick, the line after it accent. **Current**: accent ring on an
+  accent tint with a soft outer ring, the label bold ink. **To do**: hollow grey marker with its number, muted label, grey line. A stopped document
   (Huỷ) shows every step as to-do. It is an indicator, not a control — no hover, no click.
 - Wide container: a row (the line fills what the label leaves). Under 40 rem **of its own container**, not of the screen: a column with the line
   running down between markers. Labels never wrap in the row.
@@ -321,7 +326,7 @@ Kho only).
   Row = **the icon of the screen it opens, on neutral paper** (`menuEntryOf(url)` in nav-items.ts, so it matches
   the left menu: tuổi nợ → hourglass, tồn kho → layers) · title (13 px / 600) · why (muted, ≤ 2 lines)
   · chevron · ✓ while unread; the action word is read to screen readers only. Unread rows carry an **ink** dot and a
-  paper fill (never the page accent: moss / orange would read as ổn / cảnh báo). Footer: one link to Tổng
+  paper fill (never the page accent: green / orange would read as ổn / cảnh báo). Footer: one link to Tổng
   quan. States: loading = three still placeholder rows (no shimmer) · error = alert icon + reason + Thử lại · clear =
   success tick + what the bell watches for.
 - **Phones (≤ 40 rem):** the panel is `position: fixed` under the topbar, 8 px from both edges — anchored to the bell it
@@ -335,7 +340,7 @@ Kho only).
 
 ## Permission screens (reference: Chức vụ & phân quyền)
 - Master-detail Workbench: chức vụ cards on the left (initials avatar, name, "N người · x/98 quyền", thin
-  coverage bar; active = moss border + tint), detail on the right. Under 1100 px the list becomes a
+  coverage bar; active = accent border + tint), detail on the right. Under 1100 px the list becomes a
   horizontal strip above the detail.
 - Detail top = summary card (avatar, name, mô tả, Sửa / Ngừng dùng) with three stats: Người dùng (initials
   chips linking to the profile), Quyền đã cấp (x/98 + bar), Nhóm chức năng (n/23).
@@ -387,7 +392,7 @@ Kho only).
   opens it; it stays open while a column filter is set. Tables without an actions column keep the row.
 
 ## Loading (khởi động, tải danh mục, mở trang)
-- **One spinner everywhere** (`.nt-spinner` in styles.scss): a 44 px ring, 3 px hairline track (`--color-rule`) and a moss arc turning at 0.8 s linear, `transform` only. Reduced motion: it stops turning and breathes (opacity 1 → 0.35, 1.6 s). Forced colours: GrayText track, Highlight arc. A bar is never used for loading.
+- **One spinner everywhere** (`.nt-spinner` in styles.scss): a 44 px ring, 3 px hairline track (`--color-rule`) and an accent arc turning at 0.8 s linear, `transform` only. Reduced motion: it stops turning and breathes (opacity 1 → 0.35, 1.6 s). Forced colours: GrayText track, Highlight arc. A bar is never used for loading.
 - **Full-page veil while a page opens** (`.page-loading`, shell): from the start of a navigation, and while the GET calls the new page makes as it opens (the first 700 ms after it opens; `PageLoadingService` + `pageLoadingInterceptor`) are still out, the whole window is covered by the paper colour at 88 % with the spinner and "Đang tải trang…" centred. It appears only after 150 ms (quick pages never flash), stays at least 350 ms once shown, blocks clicks on a half-drawn page, and gives up after 20 s. Reads that start later — a refresh, a filter, a poll, a button — are not the page loading and never raise it; they keep their own in-page state.
 - Two screens, one look — ledger paper (page ground with faint 32 px ruled lines), a centred surface card: brand mark
   (logo, else the monogram on an ink tile) → company name (20 px, 600) → one muted line → the spinner →
@@ -421,7 +426,7 @@ Kho only).
 
 ## Quick-create from a picker (thêm nhanh khách hàng / nhà cung cấp)
 - On a document screen (đơn bán, báo giá, đơn mua, hoá đơn mua, phiếu thu / chi) the customer or supplier picker ends with a **"+ Thêm … mới"** row
-  (`app-search-select [createLabel] (create)`): a text-button in the moss accent under a hairline, not an option — it shows only for someone who holds
+  (`app-search-select [createLabel] (create)`): a text-button in the accent under a hairline, not an option — it shows only for someone who holds
   `customer.create` / `supplier.create`. Click it, or ArrowDown past the last option and Enter. What was typed in the search box rides along
   as the new name, and the row stays reachable when nothing matches.
 - It opens a small modal (`shared/quick-create`, shell like `rg-dialog` but 34 rem, two columns, one on a phone): tên (required), điện thoại,
@@ -434,16 +439,16 @@ Kho only).
 - Order (redesigned 25/10/2026 from the user's reference): header with a date chip → period tabs (Tháng này · Quý
   này · Năm nay · Tất cả, segmented, plus the period filter for any other range) → **hero band** → 4 sparkline cards →
   **Cần xử lý** → 12-month chart + cơ cấu tồn kho → daily revenue + bán chạy → **Tình hình từng mảng**.
-- Hero band — the one place the page leaves the paper: a deep-moss gradient (`--hero-1` → `--hero-2`, light ink
+- Hero band — the one place the page leaves the paper: a deep-teal gradient (`--hero-1` → `--hero-2`, light ink
   `--hero-ink` / `--hero-muted` ≥ 7:1, dark-mode steps in tokens.css). Left: eyebrow "Doanh thu · kỳ", the figure
   (fluid 28–40 px mono), one comparison chip (status tints), three stats, Lập đơn hàng (light solid) + Lập phiếu thu
   (ghost). Middle: doanh thu 12 tháng as a line in an inset panel (hover tooltip, last point ringed, peak in the head).
-  Right: ring "% mặt hàng đủ tồn an toàn" (moss ≥ 80 %, warning ≥ 50 %, danger below) linking to Tồn kho. Stacks to
+  Right: ring "% mặt hàng đủ tồn an toàn" (light line ≥ 80 %, warning ≥ 50 %, danger below) linking to Tồn kho. Stacks to
   two columns < 1180 px and one < 640 px.
 - Sparkline cards (`.db-card`): tinted icon in the series colour → label → comparison chip right → the period's
   figure → one context line → a bleed-to-edge 12-month area spark. Cards a role may not see (nhập hàng without
   giá nhập, lãi gộp without report.view_profit) are left out; the grid refills.
-- Chart colours are `--chart-1` moss (doanh thu) · `--chart-2` blue (nhập hàng) · `--chart-3` amber (lãi gộp line),
+- Chart colours are `--chart-1` teal (doanh thu) · `--chart-2` blue (nhập hàng) · `--chart-3` amber (lãi gộp line),
   validated all-pairs in light and dark (dataviz validator). One money axis only; bars 2 px apart, rounded at the data
   end; a legend over every multi-series chart and a visually-hidden table under it (wrap the table in a
   `div.visually-hidden` — a table ignores overflow and would widen the page). Cơ cấu tồn kho uses one hue (magnitude).
@@ -475,7 +480,7 @@ Kho only).
   average line appears once ≥ 2 days have sales. ≤ 8 x labels, every other one hidden when the plot is < 28 rem
   wide (container query). Hover shows date + amount just above the bar, opening inward at the edges; the same data
   sits in a visually-hidden table for screen readers (the drawn chart is `aria-hidden`).
-- Bán chạy: rank disc (first one moss-tinted) → product name on its own line (full width, wraps, never truncated) →
+- Bán chạy: rank disc (first one accent-tinted) → product name on its own line (full width, wraps, never truncated) →
   qty · share on the left with the amount right → share bar. No link-coloured names; the name links on hover.
 - New check = push one `Issue` in `issues()`; no template change.
 
@@ -512,6 +517,20 @@ Kho only).
 - **Position: always the LAST controls of the filters bar** — after search, dropdowns, period and the sort select, before "Xoá bộ lọc". Put them at the end of the markup too (not just visually) so tab order matches.
 - Markup: `<button type="button" class="filter-toggle" [attr.aria-pressed]="flag()" (click)="flag.set(!flag())">Chỉ quá hạn</button>`
   (an extra `btn` class is harmless). No per-screen CSS.
+
+## Toasts (thông báo kết quả) — since 22/11/2026
+- **One way to tell the person what just happened**, everywhere: `ToastService` (`core/services/toast.service.ts`, drawn by `<app-toast-host>` in the app root).
+  `toast.success('Đã ghi nhận nhắc nợ …')`, `toast.error(errorText(e))`, `toast.info(…)`. A page never keeps its own "notice" signal and strip any more.
+- **Where and how long:** top right, just under the topbar (never bottom right: the sticky action bar sits there). A success or info toast leaves after **5 s**,
+  an error after **10 s** (it asks the person to do something). The clock stops while the pointer or keyboard focus is on a toast and resumes with at least
+  1 s left. Always a close button. At most 4 at once (the oldest gives way); the same words within 1.5 s are one toast.
+- **Look:** success = success tint + 4 px success edge; error = danger tint + 4 px danger edge; the one shadow (`--shadow-pop`); 13 px / 500. It fades in with
+  opacity and a 4 px slide only (none under reduced motion). Errors are `role="alert"`, the rest `role="status"` inside one polite live region.
+- **Messages that follow a navigation** (`router.navigate(…, { state: { notice } })`) are shown once by `toast.fromNavigation()` in the target page's constructor.
+- **What stays on the page, not in a toast:** a state the person must act on or keep seeing — "Sổ kế toán chưa bật…", "Chưa cân…", "Kỳ có hơn 500 bút toán…" (inline
+  `.notice`, no close button, shown while the state is true); the message inside a dialog or a form next to the field it is about (`.hint.text-danger`,
+  `.notice.is-error` inside `app-confirm-host` / the quick-create dialogs); the catalog load failure with its "Thử lại" button; the global `app-error-banner`
+  (a fault nobody caught, with its mã lỗi).
 
 ## Placeholders
 - A placeholder must fit its field at 375 px: ≤ ~38 characters in a search box, ≤ ~18 in a narrow table cell. Name the 3–4 things you can search by ("Tìm mã đơn, khách, người nhận, mặt hàng…"), never a sentence. Use "…" (one character), not "...".
@@ -712,10 +731,13 @@ puts one `.year-input` in the filters bar; an entry grid (nhập bút toán, ho�
 - **Record lists** (biên bản kiểm kê, chuyển tiền) use `app-data-table`: codes with copy, money right-aligned, status as a
   badge, text actions in the sticky actions cell (`.btn.row-act-btn` in `.row-actions`; destructive = `.btn-danger-ghost`).
   "Hiện … đã huỷ" and "Chỉ … chưa xử lý" are `.filter-toggle`s; cancelled rows are hidden by default and shown muted by the badge, never by opacity.
-- **Create / resolve / cancel forms** open as a `.card.section-block` above the list: `h2.form-section-title`, `.field` labels above
-  inputs with `.required-mark`, `.form-grid` / `.form-grid-3`, VND amounts with `appMoney`, a validation line (`.hint.text-danger`)
-  only after the first save attempt, then primary + "Bỏ qua". A destructive step asks for its reason in the same card ("Xác nhận huỷ").
-- **One tone of success:** a saved action reports in a dismissible `.notice` (`.notice-x`); errors in `.notice.is-error`.
+- **Create / resolve forms are a screen of their own** (changed 22/11/2026 so they read like Record forms above): the list, filters and totals
+  step aside while the form is open (`@if (creating()) { … } @else { list }`), and the header's "Lập …" / "Thêm …" button hides. The form is a
+  `.card.section-block` (`h2.form-section-title`, `.field` labels above inputs with `.required-mark`, `.form-grid` / `.form-grid-3`, VND amounts
+  with `appMoney`) followed by the same sticky `.form-actions-bar` as every record form: left hint = the first missing thing (or "Điền thông
+  tin rồi bấm Lưu"), right **Huỷ** + primary with a check icon ("Lưu hoá đơn"). Never "Bỏ qua", never buttons inside the card. A destructive step
+  (cancel) asks for its reason in the shared form dialog (`ConfirmService.form`), not in the page.
+- **One way to report a result:** a saved action says so in a toast, an error in an error toast (see Toasts). Never a strip at the top of the page.
 - A new accounting page uses these parts; it adds a class to styles.scss only when none of them fits.
 
 ## What pages MUST share
@@ -723,7 +745,7 @@ puts one `.year-input` in the filters bar; an entry grid (nhập bút toán, ho�
   dropped, full name on hover), logo tile or the initials ink mark ("NT"). The same name ends every tab title
   ("Hàng hoá · Ninh Trang") and the tab icon is the logo on a light rounded tile (monogram SVG without one). Saving
   the company changes them at once; the last brand is remembered per browser for the login page.
-- Moss accent, used ≤ 5 % per viewport: active nav, primary button, links,
+- Teal accent, used ≤ 5 % per viewport: active nav, primary button, links,
   focus, chart bars.
 - Be Vietnam Pro + JetBrains Mono.
 - Page header pattern and button shapes above.

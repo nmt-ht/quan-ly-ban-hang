@@ -9,7 +9,7 @@ import { PaginationComponent } from '../../shared/pagination/pagination.componen
 import { PeriodFilterComponent, PeriodValue, NO_PERIOD } from '../../shared/period-filter/period-filter.component';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { ColumnFilters, applyColumnFilters } from '../../shared/column-filter';
-import { ColumnSort, sortByColumn } from '../../shared/column-sort';
+import { ColumnSort, newestFirst, sortByColumn } from '../../shared/column-sort';
 import { foldVi, formatVnd } from '../../shared/format.util';
 import { PERIOD_PRESETS, formatDay, inRange, isoDay, rangeLabel } from '../../shared/period';
 import { QUOTATION_STATUS_LABEL, QuotationView, quotationStatusClass, quotationView } from '../../shared/status-labels';
@@ -68,7 +68,7 @@ export class QuotationsComponent {
     const st = this.statuses();
     const rows = this.matchedExceptStatus().filter((x) => !st.length || st.includes(this.view(x)));
     const hs = this.headerSort();
-    const sorted = hs ? sortByColumn(rows, this.columns, hs) : [...rows].sort((a, b) => b.quoteDate.localeCompare(a.quoteDate) || b.code.localeCompare(a.code));
+    const sorted = hs ? sortByColumn(rows, this.columns, hs) : [...rows].sort(newestFirst);
     return applyColumnFilters(sorted, this.columns, this.columnFilters());
   });
 

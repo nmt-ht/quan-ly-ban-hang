@@ -11,6 +11,7 @@ import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { formatVnd } from '../../shared/format.util';
 import { PrintService } from '../../shared/print/print.service';
 import { StatementPrintComponent } from '../../shared/print/tt133/statement-print.component';
+import { ToastService } from '../../core/services/toast.service';
 
 type PrintPeriod = 'Y' | 'Q1' | 'Q2' | 'Q3' | 'Q4';
 const PERIODS: { value: PrintPeriod; label: string; from: string; to: string }[] = [
@@ -47,8 +48,7 @@ const PERIODS: { value: PrintPeriod; label: string; from: string; to: string }[]
     <div class="filters-bar">
       <input type="number" class="year-input" aria-label="Năm" min="2000" max="2100" [value]="period()" (change)="period.set(+$any($event.target).value); load()" />
     </div>
-    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
-
+    
     @if (data(); as d) {
       <dl class="list-totals">
         <div><dt>Lợi nhuận sau thuế</dt><dd class="num" [class.amt-neg]="d.profitAfterTax < 0">{{ money(d.profitAfterTax) }}</dd></div>
@@ -76,11 +76,11 @@ const PERIODS: { value: PrintPeriod; label: string; from: string; to: string }[]
   `,
 })
 export class AccountingIncomeStatementComponent {
+  protected readonly toast = inject(ToastService);
   private readonly svc = inject(AccountingService);
   private readonly printer = inject(PrintService);
   readonly canClose = inject(AuthService).can('accounting.manual');
   readonly data = signal<IncomeStatementView | null>(null);
-  readonly failure = signal('');
   readonly money = formatVnd;
   readonly period = signal(new Date().getFullYear());
   readonly periods = PERIODS;
@@ -93,15 +93,13 @@ export class AccountingIncomeStatementComponent {
   constructor() { this.load(); }
 
   async load() {
-    this.failure.set('');
     try { this.data.set(await this.svc.incomeStatement(String(this.period()))); }
-    catch (e) { this.data.set(null); this.failure.set(errorText(e)); }
+    catch (e) { this.data.set(null); this.toast.error(errorText(e)); }
   }
 
   async printReport() {
     const p = PERIODS.find((x) => x.value === this.printPeriod())!;
     const year = this.period();
-    this.failure.set('');
     this.busy.set(true);
     try {
       const v = await this.svc.incomeStatementTt133(`${year}-${p.from}`, `${year}-${p.to}`);
@@ -109,7 +107,7 @@ export class AccountingIncomeStatementComponent {
       this.docHeads.set(p.value === 'Y' ? ['Năm nay', 'Năm trước'] : ['Kỳ này', 'Kỳ trước']);
       await this.printer.print('tt133-b02', 'A4', () => this.doc.set(v), () => this.doc.set(null));
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
     } finally {
       this.busy.set(false);
     }

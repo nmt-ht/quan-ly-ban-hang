@@ -19,6 +19,7 @@ import { PasswordDialogComponent } from '../password-dialog/password-dialog.comp
 import { AllowedLinkDirective } from '../../../../shared/allowed-link.directive';
 import { errorText } from '../../../../core/api/api.service';
 import { AuditHistoryComponent } from '../../../../shared/audit/audit-history.component';
+import { ToastService } from '../../../../core/services/toast.service';
 
 interface Activity {
   date: string;
@@ -38,6 +39,7 @@ interface Activity {
   styleUrl: '../../../suppliers/supplier-detail/supplier-detail.component.scss',
 })
 export class UserDetailComponent {
+  protected readonly toast = inject(ToastService);
   private readonly dialogs = inject(ConfirmService);
   readonly data = inject(DataStore);
   readonly svc = inject(UserService);
@@ -48,7 +50,6 @@ export class UserDetailComponent {
   readonly user = computed(() => this.data.users().find((u) => u.id === this.id()));
   readonly role = computed(() => this.data.roles().find((r) => r.id === this.user()?.roleId));
 
-  readonly notice = signal('');
   readonly error = signal('');
 
   readonly statusLabel = USER_STATUS_LABEL;
@@ -99,7 +100,7 @@ export class UserDetailComponent {
 
   async endSessions(): Promise<void> {
     if (!(await this.attempt(() => this.svc.endSessions(this.user()!.id)))) return;
-    this.notice.set(`Đã đăng xuất mọi phiên của ${this.user()!.name}.`);
+    this.toast.success(`Đã đăng xuất mọi phiên của ${this.user()!.name}.`);
   }
 
   async askLock(): Promise<void> {
@@ -112,14 +113,14 @@ export class UserDetailComponent {
       run: (v) => this.svc.lock(u.id, v['reason']),
     });
     if (done) {
-      this.notice.set(`Đã khoá ${u.name}.`);
+      this.toast.success(`Đã khoá ${u.name}.`);
       this.error.set('');
     }
   }
 
   async unlock(): Promise<void> {
     if (!(await this.attempt(() => this.svc.unlock(this.user()!.id)))) return;
-    this.notice.set(`Đã mở khoá ${this.user()!.name}.`);
+    this.toast.success(`Đã mở khoá ${this.user()!.name}.`);
   }
 
   /** Runs a save; on failure shows why and answers false. */

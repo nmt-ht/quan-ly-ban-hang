@@ -21,6 +21,7 @@ import { ExcelImportDialogComponent } from '../../shared/import/excel-import-dia
 import { ApiService } from '../../core/api/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { customerImportConfig } from './customer-import';
+import { ToastService } from '../../core/services/toast.service';
 
 interface ActiveChip {
   label: string;
@@ -36,6 +37,7 @@ type StatusFilter = 'all' | 'active' | 'inactive';
   templateUrl: './customers.component.html',
 })
 export class CustomersComponent {
+  protected readonly toast = inject(ToastService);
   readonly data = inject(DataStore);
   private readonly svc = inject(CustomerService);
   private readonly api = inject(ApiService);
@@ -44,10 +46,9 @@ export class CustomersComponent {
   // ---------- Nhập Excel (Pha 1.9) ----------
   readonly canImport = computed(() => this.auth.can('customer.create') || this.auth.can('customer.update'));
   readonly importConfig = customerImportConfig({ customers: this.data.customers, tags: this.data.tags, priceLists: this.data.priceLists });
-  readonly importNotice = signal('');
 
   async onImported(message: string): Promise<void> {
-    this.importNotice.set(message);
+    this.toast.success(message);
     this.data.customers.set(await this.api.get<Customer[]>('/customers'));
   }
 
@@ -56,7 +57,7 @@ export class CustomersComponent {
   readonly tags = signal<string[]>([]);
   readonly status = signal<StatusFilter>('all');
   readonly owing = signal(false);
-  readonly sort = signal<CustomerSort>('code-asc'); // default: Mã tăng dần
+  readonly sort = signal<CustomerSort>('newest'); // default: mới tạo nhất
   readonly columnFilters = signal<ColumnFilters>({});
   // Clicking a column header overrides the "Sắp xếp" select; picking from the select clears it.
   readonly headerSort = signal<ColumnSort | null>(null);

@@ -14,6 +14,7 @@ import { errorText } from '../../../core/api/api.service';
 import { CHANNEL_LABEL, DebtReminder, maxOverdueDays } from '../reminder.rules';
 import { ReminderService } from '../reminder.service';
 import { RemindDialogComponent } from '../remind-dialog/remind-dialog.component';
+import { ToastService } from '../../../core/services/toast.service';
 
 type Show = 'qua-han' | 'sap-den-han' | 'tat-ca';
 
@@ -37,6 +38,7 @@ const SOON_DAYS = 7;
   styleUrl: './debt-reminders.component.scss',
 })
 export class DebtRemindersComponent {
+  protected readonly toast = inject(ToastService);
   private readonly data = inject(DataStore);
   private readonly debt = inject(DebtService);
   private readonly auth = inject(AuthService);
@@ -49,7 +51,6 @@ export class DebtRemindersComponent {
   readonly today = isoDay(new Date());
   readonly show = signal<Show>('qua-han');
   readonly search = signal('');
-  readonly notice = signal('');
   readonly error = signal('');
   readonly canRemind = computed(() => this.auth.can('debt.remind'));
 

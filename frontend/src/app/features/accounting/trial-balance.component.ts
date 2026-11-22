@@ -5,6 +5,7 @@ import { AccountingService } from '../../core/services/accounting.service';
 import { errorText } from '../../core/api/api.service';
 import { TrialBalanceView } from '../../core/models/domain.models';
 import { formatVnd } from '../../shared/format.util';
+import { ToastService } from '../../core/services/toast.service';
 
 /** /ke-toan/can-doi-phat-sinh — bảng cân đối số phát sinh của kỳ. */
 @Component({
@@ -22,8 +23,7 @@ import { formatVnd } from '../../shared/format.util';
     <div class="filters-bar">
       <input type="number" class="year-input" aria-label="Năm" min="2000" max="2100" [value]="period()" (change)="period.set(+$any($event.target).value); load()" />
     </div>
-    @if (failure()) { <div class="notice is-error" role="alert">{{ failure() }}</div> }
-
+    
     @if (data(); as d) {
       <dl class="list-totals">
         <div><dt>Phát sinh Nợ</dt><dd class="num">{{ money(d.totals.pd) }}</dd></div>
@@ -75,17 +75,16 @@ import { formatVnd } from '../../shared/format.util';
   `,
 })
 export class AccountingTrialBalanceComponent {
+  protected readonly toast = inject(ToastService);
   private readonly svc = inject(AccountingService);
   readonly data = signal<TrialBalanceView | null>(null);
-  readonly failure = signal('');
   readonly money = formatVnd;
   readonly period = signal(new Date().getFullYear());
 
   constructor() { this.load(); }
 
   async load() {
-    this.failure.set('');
     try { this.data.set(await this.svc.trialBalance(String(this.period()))); }
-    catch (e) { this.data.set(null); this.failure.set(errorText(e)); }
+    catch (e) { this.data.set(null); this.toast.error(errorText(e)); }
   }
 }

@@ -18,13 +18,7 @@
       }
     </header>
 
-    @if (notice()) {
-      <div class="notice" role="status">
-        <span>{{ notice() }}</span>
-        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
-      </div>
-    }
-    @if (error()) { <p class="form-note text-danger" role="alert">{{ error() }}</p> }
+        @if (error()) { <p class="form-note text-danger" role="alert">{{ error() }}</p> }
 
     <section class="card voucher-head">
       <div class="head-fields">

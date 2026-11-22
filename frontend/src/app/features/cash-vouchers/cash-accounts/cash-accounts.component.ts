@@ -12,6 +12,7 @@ import { errorText } from '../../../core/api/api.service';
 import { VN_BANKS, bankNameOf } from '../../../shared/vietqr/vietqr';
 import { VietQrComponent, qrReady } from '../../../shared/vietqr/vietqr.component';
 import { SearchOption, SearchSelectComponent } from '../../../shared/search-select/search-select.component';
+import { ToastService } from '../../../core/services/toast.service';
 
 interface Draft {
   id?: string;
@@ -48,16 +49,15 @@ const EMPTY: Draft = {
   ],
 })
 export class CashAccountsComponent {
+  protected readonly toast = inject(ToastService);
   readonly data = inject(DataStore);
   private readonly svc = inject(CashVoucherService);
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
 
   readonly money = formatVnd;
-  readonly notice = signal('');
   readonly dialogError = signal('');
   readonly saving = signal(false);
   /** A save the server refused (or that could not reach it). */
-  readonly failure = signal('');
   readonly draft = signal<Draft>({ ...EMPTY });
   readonly attempted = signal(false);
 
@@ -174,7 +174,7 @@ export class CashAccountsComponent {
       isActive: d.isActive,
     });
     this.close();
-    this.notice.set(d.id ? `Đã lưu ${a.name}.` : `Đã thêm ${a.name}.`);
+    this.toast.success(d.id ? `Đã lưu ${a.name}.` : `Đã thêm ${a.name}.`);
     } catch (e) {
       this.dialogError.set(errorText(e));
     } finally {
@@ -184,13 +184,12 @@ export class CashAccountsComponent {
 
   async toggleActive(a: CashAccount): Promise<void> {
     const on = a.isActive === false;
-    this.failure.set('');
     try {
       await this.svc.setAccountActive(a.id, on);
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
       return;
     }
-    this.notice.set(on ? `${a.name} dùng lại.` : `${a.name} ngừng dùng — phiếu cũ giữ nguyên, không chọn được khi lập phiếu mới.`);
+    this.toast.success(on ? `${a.name} dùng lại.` : `${a.name} ngừng dùng — phiếu cũ giữ nguyên, không chọn được khi lập phiếu mới.`);
   }
 }

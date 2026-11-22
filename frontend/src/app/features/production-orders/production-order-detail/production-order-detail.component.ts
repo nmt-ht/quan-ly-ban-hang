@@ -23,6 +23,7 @@ import { StatusStepsComponent } from '../../../shared/status-steps/status-steps.
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
+import { ToastService } from '../../../core/services/toast.service';
 
 
 // Xuất vật tư happens before nhập thành phẩm on the same day.
@@ -37,6 +38,7 @@ const STEP: Record<string, number> = { XUAT: 0, NHAP: 1, CHUYEN: 2, KIEM_KE: 3 }
   styleUrls: ['../../../shared/voucher/voucher.scss', './production-order-detail.component.scss'],
 })
 export class ProductionOrderDetailComponent {
+  protected readonly toast = inject(ToastService);
   private readonly dialogs = inject(ConfirmService);
   private readonly route = inject(ActivatedRoute);
   readonly data = inject(DataStore);
@@ -75,9 +77,7 @@ export class ProductionOrderDetailComponent {
   readonly kindLabel = (v: Parameters<typeof kindOf>[0]) => VOUCHER_KIND_LABEL[kindOf(v)];
   readonly kindClass = (v: Parameters<typeof kindOf>[0]) => tagClass('warehouse-voucher', kindOf(v));
 
-  readonly notice = signal('');
   /** A save the server refused (or that could not reach it). */
-  readonly failure = signal('');
   /** Ngày bắt đầu / nghiệm thu — ngày của phiếu xuất vật tư / nhập thành phẩm; hôm nay unless changed. */
   readonly today = isoDay(new Date());
 
@@ -85,7 +85,6 @@ export class ProductionOrderDetailComponent {
     effect(() => {
       this.id();
       untracked(() => {
-        this.notice.set('');
       });
     });
   }
@@ -149,7 +148,7 @@ export class ProductionOrderDetailComponent {
       fields: [{ key: 'date', label: 'Ngày bắt đầu', type: 'date', required: true, value: this.today, max: this.today }],
       run: async (v) => { issued = await this.orders.startProduction(x.id, v['date']); },
     });
-    if (done) this.notice.set(`${x.code} đang sản xuất${issued.length ? ` — đã xuất vật tư (${issued.map((p) => p.code).join(', ')})` : ' — chưa có định mức nên không xuất vật tư'}.`);
+    if (done) this.toast.success(`${x.code} đang sản xuất${issued.length ? ` — đã xuất vật tư (${issued.map((p) => p.code).join(', ')})` : ' — chưa có định mức nên không xuất vật tư'}.`);
   }
 
   /** Hoàn tất: the số thực làm được and the nghiệm thu day, then the phiếu nhập thành phẩm. */
@@ -174,7 +173,7 @@ export class ProductionOrderDetailComponent {
       },
     });
     if (done) {
-      this.notice.set(received.length
+      this.toast.success(received.length
         ? `${x.code} hoàn tất — đã nhập ${qty.toLocaleString('vi-VN')} ${unit} vào kho thành phẩm (${received.map((p) => p.code).join(', ')}).`
         : `${x.code} hoàn tất — không có thành phẩm đạt nên không nhập kho.`);
     }
@@ -191,16 +190,15 @@ export class ProductionOrderDetailComponent {
       fields: [{ key: 'reason', label: 'Lý do huỷ', type: 'textarea', placeholder: 'Không bắt buộc', maxLength: 300 }],
       run: (v) => this.orders.cancelProduction(x.id, v['reason']),
     });
-    if (done) this.notice.set(`Đã huỷ ${x.code}.${wasRunning ? ' Vật tư đã xuất không tự nhập lại — lập phiếu nhập kho nếu còn dùng được.' : ''}`);
+    if (done) this.toast.success(`Đã huỷ ${x.code}.${wasRunning ? ' Vật tư đã xuất không tự nhập lại — lập phiếu nhập kho nếu còn dùng được.' : ''}`);
   }
 
   /** Runs a save; on failure shows why and answers null. */
   private async attempt<T>(save: () => Promise<T>): Promise<T | null> {
-    this.failure.set('');
     try {
       return await save();
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
       return null;
     }
   }

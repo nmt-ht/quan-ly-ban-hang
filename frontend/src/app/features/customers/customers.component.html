@@ -14,12 +14,6 @@
   </div>
 </div>
 
-@if (importNotice()) {
-  <div class="notice" role="status">
-    <span>{{ importNotice() }}</span>
-    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="importNotice.set('')"><app-nav-icon name="x" /></button>
-  </div>
-}
 <app-excel-import-dialog #importDialog [config]="importConfig" (imported)="onImported($event)" />
 
 <div class="filters-bar">

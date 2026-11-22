@@ -55,6 +55,7 @@
   />
   <app-filter-multi-select label="Nhóm VTHH" [options]="categoryOptions()" [(selected)]="categories" />
   <select aria-label="Sắp xếp" [value]="sort()" (change)="sort.set($any($event.target).value); headerSort.set(null)">
+    <option value="created">Mới tạo nhất</option>
     <option value="name">Tên A → Z</option>
     <option value="code">Mã tăng dần</option>
     <option value="qty-desc">Tồn nhiều → ít</option>

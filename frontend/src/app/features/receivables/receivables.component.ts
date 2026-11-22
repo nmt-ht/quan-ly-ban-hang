@@ -19,10 +19,12 @@ import { DebtLedgerComponent } from '../debts/debt-ledger/debt-ledger.component'
 import { AGING_COLUMNS } from '../debts/aging';
 import { CUSTOMER_TYPES } from '../customers/customer.rules';
 import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
+import { ToastService } from '../../core/services/toast.service';
 
-type ReceivableSort = 'code' | 'balance' | 'overdue' | 'due' | 'name';
+type ReceivableSort = 'created' | 'code' | 'balance' | 'overdue' | 'due' | 'name';
 
 const SORTS: { value: ReceivableSort; label: string }[] = [
+  { value: 'created', label: 'Mới tạo nhất' },
   { value: 'code', label: 'Mã tăng dần' },
   { value: 'balance', label: 'Số dư lớn nhất' },
   { value: 'overdue', label: 'Quá hạn nhiều nhất' },
@@ -38,6 +40,7 @@ const SORTS: { value: ReceivableSort; label: string }[] = [
   templateUrl: './receivables.component.html',
 })
 export class ReceivablesComponent {
+  protected readonly toast = inject(ToastService);
   private readonly data = inject(DataStore);
   private readonly debt = inject(DebtService);
   readonly partnerId = toSignal(inject(ActivatedRoute).queryParamMap.pipe(map((q) => q.get('partnerId'))), { initialValue: null });
@@ -46,14 +49,13 @@ export class ReceivablesComponent {
   readonly types = signal<string[]>([]);
   readonly owingOnly = signal(true);
   readonly overdueOnly = signal(false);
-  readonly sort = signal<ReceivableSort>('code'); // default: Mã tăng dần
+  readonly sort = signal<ReceivableSort>('created'); // default: mới tạo nhất
   readonly columnFilters = signal<ColumnFilters>({});
   // Clicking a column header overrides the "Sắp xếp" select; picking from the select clears it.
   readonly headerSort = signal<ColumnSort | null>(null);
   readonly page = signal(1);
   readonly pageSize = signal(20);
   readonly exporting = signal(false);
-  readonly notice = signal('');
   readonly sorts = SORTS;
   readonly money = formatVnd;
 
@@ -101,7 +103,8 @@ export class ReceivablesComponent {
     });
     const s = this.sort();
     rows.sort((a, b) =>
-      s === 'code' ? a.code.localeCompare(b.code, 'vi', { numeric: true })
+      s === 'created' ? b.code.localeCompare(a.code, 'vi', { numeric: true }) // mã are issued in creation order
+        : s === 'code' ? a.code.localeCompare(b.code, 'vi', { numeric: true })
         : s === 'balance' ? b.balance - a.balance
         : s === 'overdue' ? b.overdue - a.overdue || b.balance - a.balance
           : s === 'due' ? (a.nextDue ?? '9999').localeCompare(b.nextDue ?? '9999')
@@ -136,7 +139,7 @@ export class ReceivablesComponent {
     // Notice from the page we came back from (e.g. a saved phiếu thu); reset when list ↔ sổ chi tiết.
     effect(() => {
       this.partnerId();
-      untracked(() => this.notice.set((history.state as { notice?: string } | null)?.notice ?? ''));
+      untracked(() => this.toast.success((history.state as { notice?: string } | null)?.notice ?? ''));
     });
     effect(() => {
       this.rows();

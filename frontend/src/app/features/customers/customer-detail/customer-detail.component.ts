@@ -23,6 +23,7 @@ import { errorText } from '../../../core/api/api.service';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 import { SalesOrderService } from '../../sales-orders/sales-order.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 export type CustomerTab = 'chung' | 'dia-chi' | 'don-hang' | 'cong-no' | 'nhat-ky';
 
@@ -34,6 +35,7 @@ export type CustomerTab = 'chung' | 'dia-chi' | 'don-hang' | 'cong-no' | 'nhat-k
   styleUrls: ['../../suppliers/supplier-detail/supplier-detail.component.scss', './customer-detail.component.scss'],
 })
 export class CustomerDetailComponent {
+  protected readonly toast = inject(ToastService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   readonly data = inject(DataStore);
@@ -64,15 +66,13 @@ export class CustomerDetailComponent {
   readonly soClass = salesOrderStatusClass;
   readonly deliveredPercent = deliveredPercent;
 
-  readonly notice = signal('');
   /** A save the server refused (or that could not reach it). */
-  readonly failure = signal('');
 
   constructor() {
     effect(() => {
       this.id();
       untracked(() => {
-        this.notice.set((history.state as { notice?: string } | null)?.notice ?? '');
+        this.toast.success((history.state as { notice?: string } | null)?.notice ?? '');
         this.cancelAddress();
       });
     });
@@ -123,7 +123,7 @@ export class CustomerDetailComponent {
     const c = this.customer();
     if (!c) return;
     if (!(await this.attempt(() => this.svc.setActive(c.id, !c.isActive)))) return;
-    this.notice.set(
+    this.toast.success(
       c.isActive
         ? `Đã chuyển ${c.code} sang Ngừng theo dõi — không chọn được khi lên đơn mới. Đơn cũ và công nợ vẫn giữ nguyên.`
         : `${c.code} đã được theo dõi lại.`,
@@ -200,29 +200,28 @@ export class CustomerDetailComponent {
       isDefault: !!d.isDefault,
     }));
     if (!ok) return;
-    this.notice.set(isNew ? 'Đã thêm địa chỉ giao hàng.' : 'Đã lưu địa chỉ giao hàng.');
+    this.toast.success(isNew ? 'Đã thêm địa chỉ giao hàng.' : 'Đã lưu địa chỉ giao hàng.');
     this.cancelAddress();
   }
 
   async removeAddress(a: CustomerAddress): Promise<void> {
     if (!(await this.attempt(() => this.svc.removeAddress(this.id(), a.id)))) return;
-    this.notice.set(`Đã xoá địa chỉ "${a.label || a.address}".`);
+    this.toast.success(`Đã xoá địa chỉ "${a.label || a.address}".`);
     if (this.addrEditing() === a.id) this.cancelAddress();
   }
 
   async makeDefault(a: CustomerAddress): Promise<void> {
     if (!(await this.attempt(() => this.svc.setDefaultAddress(this.id(), a.id)))) return;
-    this.notice.set(`"${a.label || a.address}" là địa chỉ giao mặc định.`);
+    this.toast.success(`"${a.label || a.address}" là địa chỉ giao mặc định.`);
   }
 
   /** Runs a save; on failure shows why and answers false. */
   private async attempt(save: () => Promise<unknown>): Promise<boolean> {
-    this.failure.set('');
     try {
       await save();
       return true;
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
       return false;
     }
   }

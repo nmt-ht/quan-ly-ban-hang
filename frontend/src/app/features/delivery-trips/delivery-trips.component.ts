@@ -20,6 +20,7 @@ import { TripHeaderDialogComponent } from './trip-header-dialog/trip-header-dial
 import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 import { SalesOrderService } from '../sales-orders/sales-order.service';
 import { errorText } from '../../core/api/api.service';
+import { ToastService } from '../../core/services/toast.service';
 
 interface ActiveChip {
   label: string;
@@ -48,6 +49,7 @@ const EMPTY_PAGE: DeliveryTripPage = { rows: [], total: 0, page: 1, pageSize: 20
   templateUrl: './delivery-trips.component.html',
 })
 export class DeliveryTripsComponent {
+  protected readonly toast = inject(ToastService);
   readonly data = inject(DataStore);
   private readonly tripsSvc = inject(DeliveryTripService);
   private readonly salesOrders = inject(SalesOrderService);
@@ -66,7 +68,6 @@ export class DeliveryTripsComponent {
   readonly pageSize = signal(20);
   readonly exporting = signal(false);
   readonly loading = signal(false);
-  readonly error = signal('');
 
   private readonly result = signal<DeliveryTripPage>(EMPTY_PAGE);
   private requestSeq = 0;
@@ -82,8 +83,9 @@ export class DeliveryTripsComponent {
     vehicle: this.vehicle() === 'all' ? undefined : this.vehicle(),
     from: this.period().range.from ?? undefined,
     to: this.period().range.to ?? undefined,
-    sort: this.headerSort() ? SORT_KEY[this.headerSort()!.key] : undefined,
-    dir: this.headerSort()?.dir,
+    // default: mới tạo nhất (mã chuyến are issued in creation order)
+    sort: this.headerSort() ? SORT_KEY[this.headerSort()!.key] : 'code',
+    dir: this.headerSort() ? this.headerSort()!.dir : 'desc',
   }));
 
   readonly driverOptions = computed<FilterOption[]>(() => {
@@ -157,9 +159,8 @@ export class DeliveryTripsComponent {
       const res = await this.tripsSvc.page(query);
       if (seq !== this.requestSeq) return; // a newer request answered first
       this.result.set(res);
-      this.error.set('');
     } catch (e) {
-      if (seq === this.requestSeq) this.error.set(errorText(e));
+      if (seq === this.requestSeq) this.toast.error(errorText(e));
     } finally {
       if (seq === this.requestSeq) this.loading.set(false);
     }
@@ -223,7 +224,7 @@ export class DeliveryTripsComponent {
         ]),
       }]);
     } catch (e) {
-      this.error.set(errorText(e));
+      this.toast.error(errorText(e));
     } finally {
       this.exporting.set(false);
     }

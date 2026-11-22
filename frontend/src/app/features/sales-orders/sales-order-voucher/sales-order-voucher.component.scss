@@ -195,11 +195,34 @@
   }
 }
 
+// The note under an input (tồn tại kho, quy đổi VND) sits in a strip reserved at the foot of its row, out of the flow: the inputs of the row
+// stay on one line with the other cells instead of being pushed up by the note.
+.so-note-cell {
+  position: relative;
+}
+
+.so-notes {
+  position: absolute;
+  right: var(--space-xs);
+  bottom: var(--space-3xs);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.4;
+}
+
+.has-note > td {
+  padding-bottom: calc(var(--text-2xs) * 1.4 + var(--space-xs));
+}
+
+.has-note-2 > td {
+  padding-bottom: calc(var(--text-2xs) * 2.8 + var(--space-xs));
+}
+
 // Tồn tại kho xuất dưới ô Số lượng; vượt tồn chỉ cảnh báo, không chặn lưu.
 // Quy đổi ra VND under a đơn giá typed in nguyên tệ.
 .so-fx {
   display: block;
-  margin-top: 2px;
   font-size: var(--text-2xs);
   color: var(--color-muted);
   white-space: nowrap;
@@ -207,7 +230,6 @@
 
 .so-stock {
   display: block;
-  margin-top: 2px;
   font-size: var(--text-2xs);
   color: var(--color-muted);
   white-space: nowrap;

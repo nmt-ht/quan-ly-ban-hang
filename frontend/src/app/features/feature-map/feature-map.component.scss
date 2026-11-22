@@ -50,10 +50,9 @@
   max-width: 100%;
 }
 
-// The card hugs the drawing (never wider than it needs), and the drawing is never shown bigger than 1:1.
+// The card spans the page; the drawing is laid out to the card's width (boxes keep their size, the gaps grow), so every map fills it the same way.
 .fm-desktop {
-  width: fit-content;
-  max-width: 100%;
+  width: 100%;
 }
 
 .fm-stage {
@@ -110,8 +109,14 @@
 
 .fm-node.is-off,
 .fm-card.is-off {
-  opacity: 0.5;
+  // Not opened for this role: quiet fill and muted words (never opacity — the label is still content, ≥ 4.5:1).
+  background: var(--color-paper-2);
+  border-color: var(--color-rule);
+  color: var(--color-muted);
   cursor: not-allowed;
+
+  .fm-node-label { color: var(--color-ink-2); }
+  .fm-node-icon { color: var(--color-muted); }
 }
 
 @media (hover: hover) {

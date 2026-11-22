@@ -13,7 +13,7 @@ export const CUSTOMER_SORTS: { value: CustomerSort; label: string }[] = [
   { value: 'name-asc', label: 'Tên A → Z' },
   { value: 'name-desc', label: 'Tên Z → A' },
   { value: 'code-asc', label: 'Mã tăng dần' },
-  { value: 'newest', label: 'Mới thêm nhất' },
+  { value: 'newest', label: 'Mới tạo nhất' },
   { value: 'revenue', label: 'Mua nhiều nhất' },
   { value: 'debt', label: 'Nợ nhiều nhất' },
 ];

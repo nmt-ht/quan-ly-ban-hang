@@ -8,6 +8,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { errorText } from '../../core/api/api.service';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { formatDay } from '../../shared/period';
+import { ToastService } from '../../core/services/toast.service';
 
 /** Đường tắt tới sổ sách và báo cáo, nhóm theo việc người làm kế toán cần. */
 const GROUPS = [
@@ -45,9 +46,7 @@ const GROUPS = [
       </div>
     </div>
 
-    @if (notice()) { <div class="notice" role="status"><span>{{ notice() }}</span></div> }
-    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
-
+        
     <section class="card section-block" aria-labelledby="kt-state">
       <h2 id="kt-state" class="form-section-title">Trạng thái ghi sổ</h2>
       @if (loaded()) {
@@ -84,6 +83,7 @@ const GROUPS = [
   `,
 })
 export class AccountingComponent {
+  protected readonly toast = inject(ToastService);
   private readonly svc = inject(AccountingService);
   readonly canManage = inject(AuthService).can('accounting.manage_account');
   readonly groups = GROUPS;
@@ -91,8 +91,6 @@ export class AccountingComponent {
   /** Ngày bắt đầu ghi sổ đang nhập (chưa lưu). */
   readonly draft = signal('');
   readonly loaded = signal(false);
-  readonly notice = signal('');
-  readonly failure = signal('');
   readonly formatDay = formatDay;
 
   constructor() {
@@ -105,21 +103,20 @@ export class AccountingComponent {
       this.startDate.set(s.ledgerStartDate ?? null);
       this.draft.set(s.ledgerStartDate?.slice(0, 10) ?? '');
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
     } finally {
       this.loaded.set(true);
     }
   }
 
   async save(value: string) {
-    this.failure.set('');
     try {
       const s = await this.svc.setSettings(value || null);
       this.startDate.set(s.ledgerStartDate ?? null);
       this.draft.set(s.ledgerStartDate?.slice(0, 10) ?? '');
-      this.notice.set(value ? 'Đã bật sổ cái.' : 'Đã tắt sổ cái.');
+      this.toast.success(value ? 'Đã bật sổ cái.' : 'Đã tắt sổ cái.');
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
     }
   }
 }

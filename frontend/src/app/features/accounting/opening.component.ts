@@ -8,6 +8,7 @@ import { OpeningRow } from '../../core/models/domain.models';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { formatVnd } from '../../shared/format.util';
 import { MoneyInputDirective } from '../../shared/money-input.directive';
+import { ToastService } from '../../core/services/toast.service';
 
 /** /ke-toan/so-du-dau-ky — nhập số dư đầu kỳ cho từng tài khoản. */
 @Component({
@@ -30,14 +31,7 @@ import { MoneyInputDirective } from '../../shared/money-input.directive';
     <div class="filters-bar">
       <input type="number" class="year-input" aria-label="Năm" min="2000" max="2100" [value]="period()" (change)="period.set(+$any($event.target).value); load()" />
     </div>
-    @if (notice()) {
-      <div class="notice" role="status">
-        <span>{{ notice() }}</span>
-        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
-      </div>
-    }
-    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
-
+        
     <dl class="list-totals">
       <div><dt>Tổng Nợ</dt><dd class="num">{{ money(totalDebit()) }}</dd></div>
       <div><dt>Tổng Có</dt><dd class="num">{{ money(totalCredit()) }}</dd></div>
@@ -69,11 +63,10 @@ import { MoneyInputDirective } from '../../shared/money-input.directive';
   styles: [`.money-cell { width: 11rem; text-align: right; }`],
 })
 export class AccountingOpeningComponent {
+  protected readonly toast = inject(ToastService);
   private readonly svc = inject(AccountingService);
   readonly canEdit = inject(AuthService).can('accounting.opening');
   readonly rows = signal<OpeningRow[]>([]);
-  readonly notice = signal('');
-  readonly failure = signal('');
   readonly saving = signal(false);
   readonly money = formatVnd;
   readonly period = signal(new Date().getFullYear());
@@ -86,21 +79,18 @@ export class AccountingOpeningComponent {
   constructor() { this.load(); }
 
   async load() {
-    this.failure.set('');
     try { this.rows.set((await this.svc.openingBalances(String(this.period()))).rows); }
-    catch (e) { this.rows.set([]); this.failure.set(errorText(e)); }
+    catch (e) { this.rows.set([]); this.toast.error(errorText(e)); }
   }
 
   async save() {
-    this.failure.set('');
-    this.notice.set('');
     this.saving.set(true);
     try {
       const rows = this.rows().map((r) => ({ accountCode: r.code, debit: Number(r.debit) || 0, credit: Number(r.credit) || 0 }));
       await this.svc.saveOpening(String(this.period()), rows);
-      this.notice.set('Đã lưu số dư đầu kỳ.');
+      this.toast.success('Đã lưu số dư đầu kỳ.');
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
     } finally {
       this.saving.set(false);
     }

@@ -10,6 +10,7 @@ import { formatVnd } from '../../shared/format.util';
 import { MoneyInputDirective } from '../../shared/money-input.directive';
 import { isoDay } from '../../shared/period';
 import { DateInputDirective } from '../../shared/date-input/date-input.directive';
+import { ToastService } from '../../core/services/toast.service';
 
 interface LineRow { accountCode: string; debit: number | null; credit: number | null; description: string }
 
@@ -26,8 +27,7 @@ interface LineRow { accountCode: string; debit: number | null; credit: number | 
         <p class="subtitle">Tổng Nợ phải bằng tổng Có. Mỗi dòng chỉ ghi Nợ hoặc Có.</p>
       </div>
     </div>
-    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
-
+    
     <section class="card section-block" aria-labelledby="bt-head">
       <h2 id="bt-head" class="form-section-title">Thông tin chung</h2>
       <div class="form-grid-3">
@@ -85,6 +85,7 @@ interface LineRow { accountCode: string; debit: number | null; credit: number | 
   styles: [`.money-cell { width: 8.5rem; text-align: right; } .account-cell { min-width: 12rem; width: 100%; }`],
 })
 export class AccountingManualEntryComponent {
+  protected readonly toast = inject(ToastService);
   private readonly svc = inject(AccountingService);
   private readonly router = inject(Router);
   readonly accounts = signal<Account[]>([]);
@@ -93,10 +94,9 @@ export class AccountingManualEntryComponent {
   date = isoDay(new Date());
   description = '';
   readonly saving = signal(false);
-  readonly failure = signal('');
   readonly money = formatVnd;
 
-  constructor() { this.svc.accounts().then((a) => this.accounts.set(a.filter((x) => x.isDetail && x.isActive))).catch((e) => this.failure.set(errorText(e))); }
+  constructor() { this.svc.accounts().then((a) => this.accounts.set(a.filter((x) => x.isDetail && x.isActive))).catch((e) => this.toast.error(errorText(e))); }
 
   // Lines are edited in place (ngModel), so the totals are plain methods read on every change detection.
   totalDebit(): number { return this.lines().reduce((s, l) => s + (Number(l.debit) || 0), 0); }
@@ -106,7 +106,6 @@ export class AccountingManualEntryComponent {
   removeLine(i: number) { this.lines.update((ls) => ls.filter((_, j) => j !== i)); }
 
   async save() {
-    this.failure.set('');
     const lines = this.lines()
       .filter((l) => l.accountCode && ((Number(l.debit) || 0) !== 0 || (Number(l.credit) || 0) !== 0))
       .map((l) => ({ accountCode: l.accountCode, debit: Number(l.debit) || 0, credit: Number(l.credit) || 0, description: l.description || undefined }));
@@ -115,7 +114,7 @@ export class AccountingManualEntryComponent {
       await this.svc.createManual({ date: this.date, description: this.description || undefined, lines });
       this.router.navigate(['/ke-toan/so-nhat-ky']);
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
     } finally {
       this.saving.set(false);
     }

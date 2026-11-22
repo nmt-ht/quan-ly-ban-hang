@@ -10,6 +10,7 @@ import { foldVi } from '../../../shared/format.util';
 import { AREAS, AccessLevel, hasViewLevel, initialsOf, levelOf, sameSet, setLevel, togglePermission } from './role.rules';
 import { RoleService } from './role.service';
 import { errorText } from '../../../core/api/api.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 const LEVEL_LABEL: Record<AccessLevel, string> = { none: 'Không có quyền', view: 'Chỉ xem', full: 'Đầy đủ', custom: 'Tuỳ chỉnh' };
 
@@ -29,6 +30,7 @@ const LEVEL_LABEL: Record<AccessLevel, string> = { none: 'Không có quyền', v
   ],
 })
 export class RolesPermissionsComponent {
+  protected readonly toast = inject(ToastService);
   private readonly dialogs = inject(ConfirmService);
   readonly data = inject(DataStore);
   private readonly svc = inject(RoleService);
@@ -43,9 +45,7 @@ export class RolesPermissionsComponent {
   readonly role = computed(() => this.data.roles().find((r) => r.id === this.selectedId()));
   readonly draft = signal<Set<string>>(new Set());
   readonly query = signal('');
-  readonly notice = signal('');
   /** A save the server refused (or that could not reach it). */
-  readonly failure = signal('');
   readonly tab = signal(AREAS[0].key);
   readonly open = signal<ReadonlySet<string>>(new Set());
 
@@ -151,7 +151,7 @@ export class RolesPermissionsComponent {
     const from = this.data.roles().find((r) => r.id === id);
     if (!from) return;
     this.draft.set(new Set(from.permissions));
-    this.notice.set(`Đã lấy quyền của ${from.name} làm bản nháp — kiểm tra rồi bấm Lưu phân quyền.`);
+    this.toast.success(`Đã lấy quyền của ${from.name} làm bản nháp — kiểm tra rồi bấm Lưu phân quyền.`);
   }
 
   // ---------- switching role with unsaved changes ----------
@@ -171,7 +171,6 @@ export class RolesPermissionsComponent {
   private go(id: string): void {
     this.selectedId.set(id);
     this.query.set('');
-    this.notice.set('');
     this.open.set(new Set());
   }
 
@@ -180,14 +179,13 @@ export class RolesPermissionsComponent {
     const r = this.role();
     if (!r || !this.dirty()) return;
     const { added, removed } = this.diff();
-    this.failure.set('');
     try {
       await this.svc.setPermissions(r.id, this.draft());
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
       return;
     }
-    this.notice.set(`Đã lưu phân quyền cho ${r.name}: thêm ${added}, bỏ ${removed} quyền.`);
+    this.toast.success(`Đã lưu phân quyền cho ${r.name}: thêm ${added}, bỏ ${removed} quyền.`);
   }
 
   revert(): void {
@@ -235,12 +233,12 @@ export class RolesPermissionsComponent {
       if (this.dlgMode() === 'edit') {
         const r = this.role()!;
         await this.svc.update(r.id, draft);
-        this.notice.set(`Đã lưu vai trò "${draft.name.trim()}".`);
+        this.toast.success(`Đã lưu vai trò "${draft.name.trim()}".`);
       } else {
         const from = this.data.roles().find((x) => x.id === this.copyFrom());
         const created = await this.svc.create(draft, this.copyFrom() || undefined);
         this.go(created.id);
-        this.notice.set(from ? `Đã thêm vai trò "${created.name}" với quyền sao chép từ ${from.name}.` : `Đã thêm vai trò "${created.name}". Chọn quyền cho vai trò này.`);
+        this.toast.success(from ? `Đã thêm vai trò "${created.name}" với quyền sao chép từ ${from.name}.` : `Đã thêm vai trò "${created.name}". Chọn quyền cho vai trò này.`);
       }
       this.error.set('');
       this.closeDialog();
@@ -256,13 +254,13 @@ export class RolesPermissionsComponent {
     try {
       await this.svc.setActive(r.id, on);
       const holders = this.members().length;
-      this.notice.set(
+      this.toast.success(
         on
           ? `Đã dùng lại vai trò "${r.name}".`
           : `Đã ngừng dùng "${r.name}". Vai trò này không còn hiện khi thêm người dùng mới${holders ? `; ${holders} người đang giữ vai trò này bị đăng xuất và không đăng nhập được cho tới khi được chuyển sang chức vụ khác hoặc chức vụ được dùng lại` : ''}.`,
       );
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
     }
   }
 }

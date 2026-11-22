@@ -14,26 +14,26 @@
        since the stylesheet may not be applied yet. */
     .boot { position: fixed; inset: 0; display: grid; place-items: center; padding: 24px;
       background: repeating-linear-gradient(to bottom, transparent 0 31px, oklch(89% 0.010 95 / 0.55) 31px 32px), oklch(97.6% 0.008 90);
-      color: oklch(22% 0.015 160); font-family: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif; }
+      color: oklch(22% 0.015 195); font-family: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif; }
     .boot-card { display: flex; flex-direction: column; align-items: center; width: min(22rem, 100%); padding: 32px 24px;
       border: 1px solid oklch(89% 0.010 95); border-radius: 8px; background: oklch(99.3% 0.004 90); text-align: center; }
     .boot-mark { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 12px;
-      background: oklch(22% 0.015 160); color: oklch(99.3% 0.004 90); font: 600 20px/1 "JetBrains Mono", ui-monospace, monospace; }
+      background: oklch(22% 0.015 195); color: oklch(99.3% 0.004 90); font: 600 20px/1 "JetBrains Mono", ui-monospace, monospace; }
     .boot-mark img { width: 100%; height: 100%; object-fit: contain; border-radius: 12px; background: oklch(99.3% 0.004 90); }
     .boot-name { margin: 12px 0 0; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
     .boot-lead { margin: 4px 0 20px; color: oklch(47% 0.014 110); font-size: 13px; }
-    .boot-spin { width: 44px; height: 44px; border: 3px solid oklch(89% 0.010 95); border-top-color: oklch(43% 0.11 160); border-radius: 50%;
+    .boot-spin { width: 44px; height: 44px; border: 3px solid oklch(89% 0.010 95); border-top-color: oklch(44% 0.07 195); border-radius: 50%;
       animation: boot-turn 0.8s linear infinite; }
     @keyframes boot-turn { to { transform: rotate(360deg); } }
     @keyframes boot-breathe { 50% { opacity: 0.35; } }
-    @media (prefers-reduced-motion: reduce) { .boot-spin { border-color: oklch(43% 0.11 160); animation: boot-breathe 1.6s ease-in-out infinite; } }
-    html.boot-dark .boot { background: repeating-linear-gradient(to bottom, transparent 0 31px, oklch(30% 0.012 150 / 0.55) 31px 32px), oklch(16.5% 0.008 150);
-      color: oklch(94% 0.008 150); }
-    html.boot-dark .boot-card { border-color: oklch(30% 0.012 150); background: oklch(20% 0.009 150); }
-    html.boot-dark .boot-mark { background: oklch(94% 0.008 150); color: oklch(20% 0.009 150); }
-    html.boot-dark .boot-lead { color: oklch(72% 0.012 150); }
-    html.boot-dark .boot-spin { border-color: oklch(30% 0.012 150); border-top-color: oklch(72% 0.12 160); }
-    @media (prefers-reduced-motion: reduce) { html.boot-dark .boot-spin { border-color: oklch(72% 0.12 160); } }
+    @media (prefers-reduced-motion: reduce) { .boot-spin { border-color: oklch(44% 0.07 195); animation: boot-breathe 1.6s ease-in-out infinite; } }
+    html.boot-dark .boot { background: repeating-linear-gradient(to bottom, transparent 0 31px, oklch(30% 0.010 195 / 0.55) 31px 32px), oklch(16.5% 0.008 195);
+      color: oklch(93.5% 0.008 95); }
+    html.boot-dark .boot-card { border-color: oklch(30% 0.010 195); background: oklch(20% 0.009 195); }
+    html.boot-dark .boot-mark { background: oklch(93.5% 0.008 95); color: oklch(20% 0.009 195); }
+    html.boot-dark .boot-lead { color: oklch(72% 0.012 195); }
+    html.boot-dark .boot-spin { border-color: oklch(30% 0.010 195); border-top-color: oklch(69% 0.115 195); }
+    @media (prefers-reduced-motion: reduce) { html.boot-dark .boot-spin { border-color: oklch(69% 0.115 195); } }
   </style>
 </head>
 <body>

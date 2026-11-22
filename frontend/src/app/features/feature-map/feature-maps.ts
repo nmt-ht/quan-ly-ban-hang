@@ -169,9 +169,10 @@ export const COL_GAP_WIDE = 58;
 export const ROW_GAP = 36;
 const PAD = 16;
 const HEAD = 30;
-/** A map with few columns is spread to about this width (its gaps grow, up to MAX_GAP) instead of being stretched later: the drawing is never shown larger than 1:1. */
-const TARGET_W = 1100;
-const MAX_GAP = 150;
+/** Width a map is spread to when the screen's width is not known yet. */
+export const TARGET_W = 1100;
+/** Below this the drawing stops narrowing: it scrolls sideways instead. */
+export const MIN_W = 980;
 
 export interface Placed extends MapNode { x: number; y: number }
 export interface Routed extends MapEdge { d: string; lx: number; ly: number; lw: number }
@@ -188,13 +189,17 @@ export interface MapLayout {
 /** Width of an arrow's label chip: about 7px a letter at 12.5px, plus padding. */
 export const labelWidth = (text: string): number => Math.round(text.length * 7 + 14);
 
-/** Boxes by (stage, lane), and a smooth curve from the right side of each source to the left side of its target. */
-export function layoutOf(map: FeatureMap): MapLayout {
+/**
+ * Boxes by (stage, lane), and a smooth curve from the right side of each source to the left side of its target.
+ * The drawing is spread across `targetW` (the screen's width): boxes keep their size, the gaps between columns grow, so every map fills the page the same way
+ * and is never shown larger than 1:1.
+ */
+export function layoutOf(map: FeatureMap, targetW: number = TARGET_W): MapLayout {
   const lanes = Math.max(...map.nodes.map((x) => x.lane)) + 1;
   const cols = map.stages.length;
   const nodeW = cols >= 6 ? NODE_W_WIDE : NODE_W;
   const minGap = cols >= 6 ? COL_GAP_WIDE : COL_GAP;
-  const gap = cols > 1 ? Math.min(MAX_GAP, Math.max(minGap, Math.round((TARGET_W - 2 * PAD - cols * nodeW) / (cols - 1)))) : minGap;
+  const gap = cols > 1 ? Math.max(minGap, Math.floor((targetW - 2 * PAD - cols * nodeW) / (cols - 1))) : minGap;
   const nodes = map.nodes.map((x): Placed => ({ ...x, x: PAD + x.stage * (nodeW + gap), y: PAD + HEAD + x.lane * (NODE_H + ROW_GAP) }));
   const byId = new Map(nodes.map((x) => [x.id, x]));
   const edges = map.edges.flatMap((e): Routed[] => {

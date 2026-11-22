@@ -27,13 +27,7 @@
     </div>
   </div>
 
-  @if (notice()) {
-    <div class="notice" role="status">
-      <span>{{ notice() }}</span>
-      <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
-    </div>
-  }
-  @if (error()) { <p class="form-note text-danger" role="alert">{{ error() }}</p> }
+    @if (error()) { <p class="form-note text-danger" role="alert">{{ error() }}</p> }
 
   <div class="sd-overview">
     <section class="card">
@@ -116,8 +110,8 @@
     <app-audit-history entityType="User" [entityId]="u.id" [code]="u.email" />
   </section>
 
-  <app-user-dialog #userDialog (saved)="notice.set($event.message)" />
-  <app-password-dialog #passwordDialog (done)="notice.set($event)" />
+  <app-user-dialog #userDialog (saved)="toast.success($event.message)" />
+  <app-password-dialog #passwordDialog (done)="toast.success($event)" />
 } @else {
   <div class="card empty-state">
     <h3>Không tìm thấy người dùng</h3>

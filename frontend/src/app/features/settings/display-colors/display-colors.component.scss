@@ -154,6 +154,10 @@
   --tag-bg-c: var(--tag-bg-c-dark);
 }
 
+.preview-light .dc-stage-label {
+  color: var(--light-muted);
+}
+
 .preview-dark .dc-stage-label {
   color: var(--dark-muted);
 }

@@ -15,6 +15,7 @@ import { formatVnd } from '../../shared/format.util';
 import { formatDay, isoDay } from '../../shared/period';
 import { CashOpsService } from './cash-ops.service';
 import { DateInputDirective } from '../../shared/date-input/date-input.directive';
+import { ToastService } from '../../core/services/toast.service';
 
 // Tiêu đề cột thường gặp của sao kê (đã bỏ dấu, chữ thường): cột nào khớp trước thì dùng.
 const COLS = {
@@ -54,14 +55,7 @@ function parseMoney(v: unknown): number {
         </div>
       }
     </div>
-    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
-    @if (notice()) {
-      <div class="notice" role="status">
-        <span>{{ notice() }}</span>
-        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
-      </div>
-    }
-
+        
     <div class="filters-bar">
       <select aria-label="Tài khoản ngân hàng" [value]="accountId()" (change)="accountId.set($any($event.target).value); load()">
         <option value="">Chọn tài khoản ngân hàng…</option>
@@ -207,6 +201,9 @@ function parseMoney(v: unknown): number {
   `,
 })
 export class BankReconciliationComponent {
+  protected readonly toast = inject(ToastService);
+  /** A failure still shown by the page logic also raises a toast. */
+  protected readonly failureToast = effect(() => this.toast.error(this.failure()));
   private readonly svc = inject(CashOpsService);
   private readonly store = inject(DataStore);
   private readonly router = inject(Router);
@@ -225,7 +222,6 @@ export class BankReconciliationComponent {
   readonly statement = signal<number | null>(null);
   readonly data = signal<ReconciliationView | null>(null);
   readonly failure = signal('');
-  readonly notice = signal('');
   readonly busy = signal(false);
   readonly adding = signal(false);
   readonly manual = signal<StatementRowInput>({ date: isoDay(new Date()), description: '', reference: '', amountIn: undefined, amountOut: undefined });
@@ -276,7 +272,7 @@ export class BankReconciliationComponent {
     if (day.test(q.get('from') ?? '') && day.test(q.get('to') ?? '')) this.period.set({ preset: 'custom', range: { from: q.get('from')!, to: q.get('to')! } });
     if (first) { this.accountId.set(first.id); this.load(); }
     const back = (history.state as { notice?: unknown } | null)?.notice;
-    if (typeof back === 'string') this.notice.set(back);
+    if (typeof back === 'string') this.toast.success(back);
   }
 
   /** Dòng sao kê chưa ghi sổ → màn lập phiếu thu / chi điền sẵn tài khoản, ngày, số tiền, diễn giải; lập xong tự khớp dòng này. */
@@ -320,7 +316,7 @@ export class BankReconciliationComponent {
     this.failure.set('');
     try {
       await action();
-      if (done) this.notice.set(done);
+      if (done) this.toast.success(done);
       await this.load();
     } catch (e) {
       this.failure.set(errorText(e));
@@ -362,7 +358,6 @@ export class BankReconciliationComponent {
     const file = input.files?.[0];
     input.value = '';
     if (!file) return;
-    this.notice.set('');
     try {
       const { headers, rows } = await readSheet(file);
       const col = (names: string[]) => names.find((n) => headers.includes(n));
@@ -387,7 +382,7 @@ export class BankReconciliationComponent {
       if (!out.length) { this.failure.set('File không có dòng giao dịch nào.'); return; }
       await this.run(async () => {
         const r = await this.svc.importStatement(this.accountId(), out);
-        this.notice.set(`Đã nhập ${r.inserted} dòng sao kê${r.skipped ? `, bỏ ${r.skipped} dòng trùng số tham chiếu` : ''}.`);
+        this.toast.success(`Đã nhập ${r.inserted} dòng sao kê${r.skipped ? `, bỏ ${r.skipped} dòng trùng số tham chiếu` : ''}.`);
       });
     } catch (e) {
       this.failure.set(errorText(e));
@@ -402,14 +397,14 @@ export class BankReconciliationComponent {
         amountIn: m.amountIn ? Math.round(m.amountIn) : undefined, amountOut: m.amountOut ? Math.round(m.amountOut) : undefined,
       }]);
       this.manual.set({ date: m.date, description: '', reference: '', amountIn: undefined, amountOut: undefined });
-      this.notice.set('Đã thêm dòng sao kê.');
+      this.toast.success('Đã thêm dòng sao kê.');
     });
   }
 
   auto() {
     return this.run(async () => {
       const r = await this.svc.autoMatch(this.accountId(), this.from(), this.to());
-      this.notice.set(`Đã tự khớp ${r.matched}/${r.lines} dòng chưa khớp (cùng chiều, cùng số tiền, lệch ngày tối đa 3 ngày).`);
+      this.toast.success(`Đã tự khớp ${r.matched}/${r.lines} dòng chưa khớp (cùng chiều, cùng số tiền, lệch ngày tối đa 3 ngày).`);
     });
   }
 

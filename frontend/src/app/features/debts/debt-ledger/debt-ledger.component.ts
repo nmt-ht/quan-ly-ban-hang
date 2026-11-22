@@ -22,6 +22,7 @@ import { vndInWords } from '../../../shared/vnd-words';
 import { CHANNEL_LABEL, debtTransferNote, openCharges } from '../reminder.rules';
 import { ReminderService } from '../reminder.service';
 import { RemindDialogComponent } from '../remind-dialog/remind-dialog.component';
+import { ToastService } from '../../../core/services/toast.service';
 
 export type DebtSide = 'PHAI_TRA' | 'PHAI_THU';
 
@@ -67,6 +68,7 @@ const SIDE = {
   styleUrl: './debt-ledger.component.scss',
 })
 export class DebtLedgerComponent {
+  protected readonly toast = inject(ToastService);
   readonly partnerId = input.required<string>();
   readonly side = input.required<DebtSide>();
 
@@ -151,7 +153,6 @@ export class DebtLedgerComponent {
   readonly isReceivable = computed(() => this.side() === 'PHAI_THU');
   /** Which printout window.print() shows: biên bản đối chiếu, or thông báo công nợ gửi khách. */
   readonly printMode = signal<'doi-chieu' | 'thong-bao'>('doi-chieu');
-  readonly notice = signal('');
   readonly channelLabel = CHANNEL_LABEL;
   readonly words = vndInWords;
   readonly bankName = bankNameOf;

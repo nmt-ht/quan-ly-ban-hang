@@ -18,6 +18,7 @@ import { ACCOUNT_TYPE_LABEL } from './cash-voucher.rules';
 import { CashVoucherPage, CashVoucherPageQuery, CashVoucherService } from './cash-voucher.service';
 import { errorText } from '../../core/api/api.service';
 import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
+import { ToastService } from '../../core/services/toast.service';
 
 interface ActiveChip {
   label: string;
@@ -50,11 +51,11 @@ const EMPTY_PAGE: CashVoucherPage = {
   styleUrl: './cash-vouchers.component.scss',
 })
 export class CashVouchersComponent {
+  protected readonly toast = inject(ToastService);
   readonly data = inject(DataStore);
   private readonly debt = inject(DebtService);
   private readonly svc = inject(CashVoucherService);
 
-  readonly notice = signal((history.state as { notice?: string } | null)?.notice ?? '');
   readonly search = signal('');
   readonly kind = signal<'all' | 'THU' | 'CHI'>('all');
   readonly categories = signal<string[]>([]);
@@ -83,6 +84,7 @@ export class CashVouchersComponent {
   private requestSeq = 0;
 
   constructor() {
+    this.toast.fromNavigation();
     // Số dư quỹ as of now (another user may have lập phiếu since the list was loaded).
     void this.svc.refreshBalances();
     // New filters start again from page 1.
@@ -193,8 +195,8 @@ export class CashVouchersComponent {
       kind: k === 'all' ? undefined : k, categories: this.categories(), method: m === 'all' ? undefined : m, accountId: a === 'all' ? undefined : a,
       from: range.from || undefined, to: range.to || undefined, createdBy: this.createdBy(),
       min: min ?? undefined, max: max ?? undefined, cancelled: this.showCancelled() || undefined,
-      // default: Mã tăng dần
-      ...(hs ? { sort: COLUMN_SORT[hs.key] ?? 'code', dir: hs.dir } : { sort: 'code', dir: 'asc' as const }),
+      // default: mới tạo nhất trước
+      ...(hs ? { sort: COLUMN_SORT[hs.key] ?? 'code', dir: hs.dir } : { sort: 'createdAt', dir: 'desc' as const }),
     };
   });
 

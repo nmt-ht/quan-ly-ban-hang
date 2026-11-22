@@ -21,12 +21,6 @@
   </div>
 </div>
 
-@if (notice()) {
-  <div class="notice" role="status">
-    <span>{{ notice() }}</span>
-    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
-  </div>
-}
 
 <!-- The catalogue divided two ways: Tính chất as tabs across the top, Nhóm VTHH as a rail beside the list (a row of
      chips on a narrow screen). Both count what the other filters leave, both live in the address (?tc= / ?nhom=). -->

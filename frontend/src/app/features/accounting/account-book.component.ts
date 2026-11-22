@@ -16,6 +16,7 @@ import { PrintService } from '../../shared/print/print.service';
 import { BookPrintComponent } from '../../shared/print/tt133/book-print.component';
 import { BookSpec, accountBookSpec } from '../../shared/print/tt133/tt133-books';
 import { SearchOption, SearchSelectComponent } from '../../shared/search-select/search-select.component';
+import { ToastService } from '../../core/services/toast.service';
 
 const PRESETS = [
   { code: '111', label: 'Sổ quỹ tiền mặt' },
@@ -62,8 +63,7 @@ const PRESETS = [
       <app-period-filter [value]="period()" (valueChange)="onPeriod($event)" />
     </div>
 
-    @if (failure()) { <div class="notice is-error" role="alert">{{ failure() }}</div> }
-    @if (data()?.note; as n) { <div class="notice" role="status">{{ n }}</div> }
+        @if (data()?.note; as n) { <div class="notice" role="status">{{ n }}</div> }
     @if (data()?.truncated) { <div class="notice is-error" role="alert">Sổ có hơn 5.000 dòng — chỉ hiển thị 5.000 dòng đầu. Thu hẹp khoảng ngày để xem đủ.</div> }
 
     @if (data(); as d) {
@@ -122,6 +122,7 @@ const PRESETS = [
   `,
 })
 export class AccountingAccountBookComponent {
+  protected readonly toast = inject(ToastService);
   private readonly svc = inject(AccountingService);
   private readonly confirmer = inject(ConfirmService);
   private readonly store = inject(DataStore);
@@ -129,7 +130,6 @@ export class AccountingAccountBookComponent {
   readonly presets = PRESETS;
   readonly accounts = signal<Account[]>([]);
   readonly data = signal<AccountBookView | null>(null);
-  readonly failure = signal('');
   readonly code = signal('111');
   readonly partnerId = signal('');
   readonly period = signal<PeriodValue>({ preset: 'thisYear', range: presetRange('thisYear') });
@@ -171,11 +171,10 @@ export class AccountingAccountBookComponent {
   }
 
   async load() {
-    this.failure.set('');
     const { from, to } = this.period().range;
-    if (!from || !to) { this.data.set(null); this.failure.set('Chọn kỳ có ngày bắt đầu và kết thúc.'); return; }
+    if (!from || !to) { this.data.set(null); this.toast.error('Chọn kỳ có ngày bắt đầu và kết thúc.'); return; }
     if (from.slice(0, 4) !== to.slice(0, 4)) {
-      this.failure.set('Chọn khoảng trong cùng một năm (số dư đầu kỳ nhập theo năm).');
+      this.toast.error('Chọn khoảng trong cùng một năm (số dư đầu kỳ nhập theo năm).');
       this.data.set(null);
       return;
     }
@@ -183,7 +182,7 @@ export class AccountingAccountBookComponent {
       this.data.set(await this.svc.accountBook(this.code(), from, to, this.partnerId() || undefined));
     } catch (e) {
       this.data.set(null);
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
     }
   }
 

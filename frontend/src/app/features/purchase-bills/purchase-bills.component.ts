@@ -14,6 +14,8 @@ import { formatDay, isoDay } from '../../shared/period';
 import { SearchOption, SearchSelectComponent } from '../../shared/search-select/search-select.component';
 import { QuickSupplierDialogComponent } from '../../shared/quick-create/quick-supplier-dialog.component';
 import { DateInputDirective } from '../../shared/date-input/date-input.directive';
+import { newestFirst } from '../../shared/column-sort';
+import { ToastService } from '../../core/services/toast.service';
 
 /** TK dùng được trên hoá đơn không qua kho (khớp BILL_ACCOUNTS ở server): hàng tồn kho đi qua phiếu nhập kho. */
 const GIA_NHAP = 'GIA_NHAP';
@@ -43,7 +45,7 @@ const blankRow = (): Row => ({ accountCode: '642', description: '', amount: null
     <div class="page-header">
       <div>
         <h1>Hoá đơn mua hàng, dịch vụ</h1>
-        <p class="subtitle">Khoản mua không nhập kho (điện, nước, vận chuyển, thuê ngoài…). Ghi chi phí, thuế GTGT đầu vào và công nợ phải trả nhà cung cấp. Chi phí vận chuyển, bốc xếp của một lô hàng nhập thì chọn "phân bổ vào giá nhập".</p>
+        <p class="subtitle">Khoản mua không nhập kho (điện, nước, vận chuyển, thuê ngoài…): ghi chi phí, thuế GTGT đầu vào và công nợ phải trả nhà cung cấp.</p>
       </div>
       @if (canCreate() && !creating()) {
         <div class="toolbar">
@@ -52,14 +54,7 @@ const blankRow = (): Row => ({ accountCode: '642', description: '', amount: null
       }
     </div>
 
-    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
-    @if (notice()) {
-      <div class="notice" role="status">
-        <span>{{ notice() }}</span>
-        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
-      </div>
-    }
-
+        
     @if (creating()) {
       <section class="card section-block" aria-labelledby="hm-new">
         <h2 id="hm-new" class="form-section-title">Hoá đơn mua mới</h2>
@@ -125,7 +120,7 @@ const blankRow = (): Row => ({ accountCode: '642', description: '', amount: null
             </tfoot>
           </table>
         </div>
-        <button type="button" class="btn" (click)="addRow()"><app-nav-icon name="plus" />Thêm dòng</button>
+        <div class="toolbar hm-add"><button type="button" class="btn" (click)="addRow()"><app-nav-icon name="plus" />Thêm dòng</button></div>
 
         @if (hasLanded()) {
           <div class="form-grid-3 hm-landed">
@@ -144,15 +139,16 @@ const blankRow = (): Row => ({ accountCode: '642', description: '', amount: null
           </div>
         }
 
-        @if (attempted() && issue()) { <p class="hint text-danger" role="alert">{{ issue() }}</p> }
-        <div class="toolbar">
-          <button type="button" class="btn btn-primary" [disabled]="busy()" (click)="save()">Lưu hoá đơn</button>
-          <button type="button" class="btn" (click)="creating.set(false)">Bỏ qua</button>
-        </div>
       </section>
-    }
 
-
+      <div class="form-actions-bar">
+        <span class="hint" [class.text-danger]="attempted() && issue()" role="status">{{ attempted() && issue() ? issue() : 'Điền thông tin rồi bấm Lưu' }}</span>
+        <div class="form-actions">
+          <button type="button" class="btn" (click)="creating.set(false)">Huỷ</button>
+          <button type="button" class="btn btn-primary" [disabled]="busy()" (click)="save()"><app-nav-icon name="check" />Lưu hoá đơn</button>
+        </div>
+      </div>
+    } @else {
     <div class="filters-bar">
       <input type="search" class="filter-search" placeholder="Tìm số chứng từ, NCC, số hoá đơn…" aria-label="Tìm hoá đơn mua" [value]="search()" (input)="search.set($any($event.target).value)" />
       <button type="button" class="filter-toggle" [attr.aria-pressed]="noInvoiceOnly()" (click)="noInvoiceOnly.set(!noInvoiceOnly())">Chỉ chưa có hoá đơn NCC</button>
@@ -170,6 +166,7 @@ const blankRow = (): Row => ({ accountCode: '642', description: '', amount: null
     <app-data-table
       [columns]="columns" [rows]="visible()" [actions]="rowActions()" emptyTitle="Chưa có hoá đơn mua hàng, dịch vụ"
       [emptyHint]="bills().length ? 'Không có hoá đơn nào khớp bộ lọc.' : 'Lập hoá đơn cho điện, nước, vận chuyển, thuê ngoài… để ghi chi phí và thuế đầu vào.'" />
+    }
 
     <ng-template #rowActionsTpl let-b>
       @if (!b.isCancelled && canCancel()) {
@@ -177,9 +174,10 @@ const blankRow = (): Row => ({ accountCode: '642', description: '', amount: null
       }
     </ng-template>
   `,
-  styles: [`.money-cell { width: 8.5rem; text-align: right; } .account-cell { min-width: 12rem; width: 100%; }`],
+  styles: [`.money-cell { width: 8.5rem; text-align: right; } .account-cell { min-width: 12rem; width: 100%; } .hm-add { margin-top: var(--space-xs); } .hm-landed { margin-top: var(--space-sm); }`],
 })
 export class PurchaseBillsComponent {
+  protected readonly toast = inject(ToastService);
   private readonly dialogs = inject(ConfirmService);
   private readonly api = inject(ApiService);
   private readonly auth = inject(AuthService);
@@ -205,8 +203,6 @@ export class PurchaseBillsComponent {
   ];
 
   readonly bills = signal<PurchaseBillView[]>([]);
-  readonly failure = signal('');
-  readonly notice = signal('');
   readonly busy = signal(false);
   readonly creating = signal(false);
   readonly attempted = signal(false);
@@ -272,9 +268,9 @@ export class PurchaseBillsComponent {
 
   async load() {
     try {
-      this.bills.set(await this.api.get<PurchaseBillView[]>('/purchase-bills'));
+      this.bills.set((await this.api.get<PurchaseBillView[]>('/purchase-bills')).sort(newestFirst));
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
     }
   }
 
@@ -283,7 +279,6 @@ export class PurchaseBillsComponent {
     this.rows.set([blankRow()]);
     this.purchaseOrderId.set('');
     this.basis.set('GIA_TRI');
-    this.failure.set('');
     this.attempted.set(false);
     this.creating.set(true);
   }
@@ -305,15 +300,14 @@ export class PurchaseBillsComponent {
       ...(this.hasLanded() ? { purchaseOrderId: this.purchaseOrderId(), allocationBasis: this.basis() } : {}),
     };
     this.busy.set(true);
-    this.failure.set('');
     try {
       const b = await this.api.post<PurchaseBillView>('/purchase-bills', body);
       this.creating.set(false);
       const landed = b.purchaseOrderCode ? ` Chi phí mua hàng đã phân bổ vào giá nhập của đơn ${b.purchaseOrderCode}.` : '';
-      this.notice.set(`Đã ghi hoá đơn ${b.code}: ${formatVnd(b.total)} (thuế ${formatVnd(b.vat)}) — công nợ phải trả nhà cung cấp tăng.${landed}`);
+      this.toast.success(`Đã ghi hoá đơn ${b.code}: ${formatVnd(b.total)} (thuế ${formatVnd(b.vat)}) — công nợ phải trả nhà cung cấp tăng.${landed}`);
       await this.load();
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
     } finally {
       this.busy.set(false);
     }
@@ -327,7 +321,7 @@ export class PurchaseBillsComponent {
       run: (v) => this.api.post<PurchaseBillView>(`/purchase-bills/${b.id}/cancel`, { reason: v['reason'] || undefined }),
     });
     if (!done) return;
-    this.notice.set(`Đã huỷ hoá đơn ${b.code}; bút toán được đảo và công nợ phải trả tính lại${b.purchaseOrderCode ? `, giá bình quân hàng của đơn ${b.purchaseOrderCode} trả về như trước` : ''}.`);
+    this.toast.success(`Đã huỷ hoá đơn ${b.code}; bút toán được đảo và công nợ phải trả tính lại${b.purchaseOrderCode ? `, giá bình quân hàng của đơn ${b.purchaseOrderCode} trả về như trước` : ''}.`);
     await this.load();
   }
 }

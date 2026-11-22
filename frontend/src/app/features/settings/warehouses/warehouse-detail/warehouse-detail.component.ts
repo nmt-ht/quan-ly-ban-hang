@@ -21,6 +21,7 @@ import { errorText } from '../../../../core/api/api.service';
 import { VOUCHER_KIND_LABEL, kindOf } from '../../../warehouse-vouchers/warehouse-voucher.rules';
 import { WarehouseService } from '../warehouse.service';
 import { WarehouseFormDialogComponent } from '../warehouse-form-dialog.component';
+import { ToastService } from '../../../../core/services/toast.service';
 
 type Tab = 'chung' | 'ton-kho' | 'phieu' | 'nhat-ky';
 /** Rows shown per tab here; the full list is one click away (Tồn kho / Phiếu kho filtered on this kho). */
@@ -35,6 +36,11 @@ const LIMIT = 50;
   styleUrl: './warehouse-detail.component.scss',
 })
 export class WarehouseDetailComponent {
+  protected readonly toast = inject(ToastService);
+
+  constructor() {
+    this.toast.fromNavigation();
+  }
   private readonly dialogs = inject(ConfirmService);
   readonly data = inject(DataStore);
   readonly svc = inject(WarehouseService);
@@ -54,8 +60,6 @@ export class WarehouseDetailComponent {
   readonly kindClass = (v: WarehouseVoucher) => 'badge ' + tagClass('warehouse-voucher', kindOf(v));
   readonly limit = LIMIT;
 
-  readonly notice = signal((history.state as { notice?: string } | null)?.notice ?? '');
-  readonly failure = signal('');
 
   private readonly id = toSignal(this.route.paramMap.pipe(map((p) => p.get('id') ?? '')), { initialValue: '' });
   readonly warehouse = computed(() => this.data.warehouses().find((w) => w.id === this.id()) ?? null);
@@ -132,8 +136,7 @@ export class WarehouseDetailComponent {
   }
 
   onSaved(): void {
-    this.failure.set('');
-    this.notice.set('Đã lưu thông tin kho.');
+    this.toast.success('Đã lưu thông tin kho.');
   }
 
   async toggleActive(): Promise<void> {
@@ -142,11 +145,10 @@ export class WarehouseDetailComponent {
     try {
       await this.svc.setActive(w.id, next);
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
       return;
     }
-    this.failure.set('');
-    this.notice.set(next ? `Kho "${w.name}" dùng lại — chọn được khi lập chứng từ mới.` : `Kho "${w.name}" ngừng dùng — không còn được chọn khi lập chứng từ mới; tồn và phiếu cũ vẫn giữ.`);
+    this.toast.success(next ? `Kho "${w.name}" dùng lại — chọn được khi lập chứng từ mới.` : `Kho "${w.name}" ngừng dùng — không còn được chọn khi lập chứng từ mới; tồn và phiếu cũ vẫn giữ.`);
   }
 
   async askDelete(): Promise<void> {

@@ -1,6 +1,6 @@
 /* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 import { ConfirmService } from '../../shared/confirm/confirm.service';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, effect } from '@angular/core';
 import { AccountingService } from '../../core/services/accounting.service';
 import { AuthService } from '../../core/services/auth.service';
 import { errorText } from '../../core/api/api.service';
@@ -9,6 +9,7 @@ import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { formatVnd } from '../../shared/format.util';
 import { formatDay } from '../../shared/period';
+import { ToastService } from '../../core/services/toast.service';
 
 type Tab = 'tong-hop' | 'ban-ra' | 'mua-vao';
 
@@ -58,9 +59,7 @@ const KIND_LABEL: Record<string, string> = { ORIGINAL: 'Gốc', ADJUST: 'Điều
       <button type="button" role="tab" [attr.aria-selected]="tab() === 'mua-vao'" (click)="tab.set('mua-vao')">Bảng kê mua vào @if (inputs()) { <span class="tab-count num">{{ inputs()!.rows.length }}</span> }</button>
     </div>
 
-    @if (failure()) { <div class="notice is-error" role="alert">{{ failure() }}</div> }
-    @if (notice()) { <div class="notice" role="status">{{ notice() }}</div> }
-
+        
     @if (tab() === 'tong-hop') {
       @if (summary(); as s) {
         <dl class="list-totals">
@@ -232,6 +231,9 @@ const KIND_LABEL: Record<string, string> = { ORIGINAL: 'Gốc', ADJUST: 'Điều
   styles: [`.year-input { width: 5.5rem; }`],
 })
 export class AccountingVatComponent {
+  protected readonly toast = inject(ToastService);
+  /** A failure still shown by the page logic also raises a toast. */
+  protected readonly failureToast = effect(() => this.toast.error(this.failure()));
   private readonly dialogs = inject(ConfirmService);
   private readonly svc = inject(AccountingService);
   private readonly auth = inject(AuthService);
@@ -260,7 +262,6 @@ export class AccountingVatComponent {
   readonly outputs = signal<VatOutputsView | null>(null);
   readonly inputs = signal<VatInputsView | null>(null);
   readonly failure = signal('');
-  readonly notice = signal('');
   readonly busy = signal(false);
   readonly canOffset = computed(() => this.auth.can('accounting.manual'));
 
@@ -275,7 +276,6 @@ export class AccountingVatComponent {
     // Đổi giữa tháng và quý thì giữ số trong khoảng hợp lệ.
     if (this.n() > this.options().length) this.n.set(this.options().length);
     this.failure.set('');
-    this.notice.set('');
     const { from, to } = this.range();
     try {
       const [s, o, i] = await Promise.all([this.svc.vatSummary(from, to), this.svc.vatOutputs(from, to), this.svc.vatInputs(from, to)]);
@@ -298,7 +298,7 @@ export class AccountingVatComponent {
     if (!ok || !done) return;
     const r = done as { amount: number; date: string };
     await this.load();
-    this.notice.set(`Đã khấu trừ thuế GTGT ${formatVnd(r.amount)} (Nợ 3331 / Có 133) ngày ${formatDay(r.date)}.`);
+    this.toast.success(`Đã khấu trừ thuế GTGT ${formatVnd(r.amount)} (Nợ 3331 / Có 133) ngày ${formatDay(r.date)}.`);
   }
   async exportOutputs() {
     const o = this.outputs();

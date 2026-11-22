@@ -1,8 +1,9 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, effect } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { DisplayColorsService, TAG_PRESETS, TagColor, TagGroup, TagItem } from '../../../core/services/display-colors.service';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
 import { tagClass } from '../../../shared/tag-class';
+import { ToastService } from '../../../core/services/toast.service';
 
 // Thiết lập › Màu hiển thị: master-detail. Pick a group of labels on the left (each shows its current
 // palette as dots); on the right see the whole group on a light and a dark ground at once, then
@@ -15,6 +16,9 @@ import { tagClass } from '../../../shared/tag-class';
   styleUrl: './display-colors.component.scss',
 })
 export class DisplayColorsComponent {
+  protected readonly toast = inject(ToastService);
+  /** The service keeps the failure of the last save; the person is told once, as a toast. */
+  protected readonly saveFailure = effect(() => { const e = this.colors.error(); if (e) this.toast.error('Chưa lưu được màu: ' + e); });
   readonly colors = inject(DisplayColorsService);
   readonly presets = TAG_PRESETS;
   readonly groups = this.colors.groups;

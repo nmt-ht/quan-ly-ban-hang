@@ -13,18 +13,6 @@
   </div>
 </div>
 
-@if (notice()) {
-  <div class="notice" role="status">
-    <span>{{ notice() }}</span>
-    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
-  </div>
-}
-@if (failure()) {
-  <div class="notice is-error" role="alert">
-    <span>{{ failure() }}</span>
-    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="failure.set('')"><app-nav-icon name="x" /></button>
-  </div>
-}
 
 <!-- Divided by Trạng thái (tabs). Thành phẩm is a searchable filter, not a rail: it grows to hundreds of items. -->
 <div class="list-divided">

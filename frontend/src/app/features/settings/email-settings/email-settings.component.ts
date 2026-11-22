@@ -6,6 +6,7 @@ import {
 } from '../../../core/services/mail.service';
 import { errorText } from '../../../core/api/api.service';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
+import { ToastService } from '../../../core/services/toast.service';
 
 type Mode = MailSettings['mode'];
 
@@ -20,13 +21,12 @@ type Mode = MailSettings['mode'];
   styleUrl: './email-settings.component.scss',
 })
 export class EmailSettingsComponent {
+  protected readonly toast = inject(ToastService);
   private readonly mail = inject(MailService);
   readonly auth = inject(AuthService);
   readonly kindLabel = MAIL_KIND_LABEL;
 
   readonly loading = signal(true);
-  readonly notice = signal('');
-  readonly failure = signal('');
   readonly s = signal<MailSettings | null>(null);
 
   // ---------- form (a copy of the settings, saved together) ----------
@@ -95,7 +95,7 @@ export class EmailSettingsComponent {
       this.pickKind(this.kind());
       this.log.set(log);
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
     } finally {
       this.loading.set(false);
     }
@@ -154,12 +154,10 @@ export class EmailSettingsComponent {
 
   async save(): Promise<void> {
     if (this.saving()) return;
-    this.failure.set('');
-    this.notice.set('');
     const missing = this.missing();
     if (missing.length) {
       this.attempted.set(true);
-      this.failure.set(`Còn thiếu: ${missing.map(([, label]) => label).join(', ')}. Chọn nhanh Gmail / Outlook… ở trên để điền sẵn máy chủ và cổng.`);
+      this.toast.error(`Còn thiếu: ${missing.map(([, label]) => label).join(', ')}. Chọn nhanh Gmail / Outlook… ở trên để điền sẵn máy chủ và cổng.`);
       document.getElementById(missing[0][0])?.focus();
       return;
     }
@@ -176,9 +174,9 @@ export class EmailSettingsComponent {
       });
       this.apply(s);
       this.attempted.set(false);
-      this.notice.set(s.mode === 'OFF' ? 'Đã tắt gửi email.' : 'Đã lưu. Bấm "Gửi thử" để chắc chắn email đi được.');
+      this.toast.success(s.mode === 'OFF' ? 'Đã tắt gửi email.' : 'Đã lưu. Bấm "Gửi thử" để chắc chắn email đi được.');
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
     } finally {
       this.saving.set(false);
     }
@@ -187,14 +185,12 @@ export class EmailSettingsComponent {
   async test(): Promise<void> {
     if (this.testing() || this.dirty()) return;
     this.testing.set(true);
-    this.failure.set('');
-    this.notice.set('');
     try {
       const r = await this.mail.test(this.testTo().trim() || undefined);
-      this.notice.set(`Đã gửi thư thử tới ${r.to} — kiểm tra hộp thư (cả mục Spam).`);
+      this.toast.success(`Đã gửi thư thử tới ${r.to} — kiểm tra hộp thư (cả mục Spam).`);
       this.apply(await this.mail.settings());
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
     } finally {
       this.testing.set(false);
       this.log.set(await this.mail.log().catch(() => this.log()));
@@ -220,26 +216,24 @@ export class EmailSettingsComponent {
   async saveTemplate(): Promise<void> {
     if (this.tplSaving()) return;
     this.tplSaving.set(true);
-    this.failure.set('');
     try {
       this.templates.set(await this.mail.saveTemplate({ kind: this.kind(), subject: this.subject().trim(), body: this.body() }));
       this.pickKind(this.kind());
-      this.notice.set(`Đã lưu mẫu email ${MAIL_KIND_LABEL[this.kind()]}.`);
+      this.toast.success(`Đã lưu mẫu email ${MAIL_KIND_LABEL[this.kind()]}.`);
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
     } finally {
       this.tplSaving.set(false);
     }
   }
 
   async resetTemplate(): Promise<void> {
-    this.failure.set('');
     try {
       this.templates.set(await this.mail.resetTemplate(this.kind()));
       this.pickKind(this.kind());
-      this.notice.set(`Đã dùng lại mẫu mặc định cho ${MAIL_KIND_LABEL[this.kind()]}.`);
+      this.toast.success(`Đã dùng lại mẫu mặc định cho ${MAIL_KIND_LABEL[this.kind()]}.`);
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
     }
   }
 

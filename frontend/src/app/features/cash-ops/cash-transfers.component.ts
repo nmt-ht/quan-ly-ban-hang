@@ -13,6 +13,8 @@ import { MoneyInputDirective } from '../../shared/money-input.directive';
 import { formatDay, isoDay } from '../../shared/period';
 import { CashOpsService } from './cash-ops.service';
 import { DateInputDirective } from '../../shared/date-input/date-input.directive';
+import { newestFirst } from '../../shared/column-sort';
+import { ToastService } from '../../core/services/toast.service';
 
 /**
  * /thu-chi/chuyen-tien — chuyển tiền nội bộ: nộp tiền mặt vào ngân hàng, rút tiền, chuyển giữa các tài khoản ngân hàng.
@@ -34,14 +36,7 @@ import { DateInputDirective } from '../../shared/date-input/date-input.directive
         </div>
       }
     </div>
-    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
-    @if (notice()) {
-      <div class="notice" role="status">
-        <span>{{ notice() }}</span>
-        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
-      </div>
-    }
-
+        
     @if (creating()) {
       <section class="card section-block" aria-labelledby="ct-new">
         <h2 id="ct-new" class="form-section-title">Chuyển tiền mới</h2>
@@ -73,15 +68,16 @@ import { DateInputDirective } from '../../shared/date-input/date-input.directive
           <label for="ct-desc">Diễn giải</label>
           <input id="ct-desc" type="text" maxlength="500" placeholder="VD: Nộp tiền bán hàng vào ngân hàng" [ngModel]="description()" (ngModelChange)="description.set($event)" />
         </div>
-        @if (attempted() && issue()) { <p class="hint text-danger" role="alert">{{ issue() }}</p> }
-        <div class="toolbar">
-          <button type="button" class="btn btn-primary" [disabled]="busy()" (click)="save()">Lưu chuyển tiền</button>
-          <button type="button" class="btn" (click)="creating.set(false)">Bỏ qua</button>
-        </div>
       </section>
-    }
 
-
+      <div class="form-actions-bar">
+        <span class="hint" [class.text-danger]="attempted() && issue()" role="status">{{ attempted() && issue() ? issue() : 'Điền thông tin rồi bấm Lưu' }}</span>
+        <div class="form-actions">
+          <button type="button" class="btn" (click)="creating.set(false)">Huỷ</button>
+          <button type="button" class="btn btn-primary" [disabled]="busy()" (click)="save()"><app-nav-icon name="check" />Lưu chuyển tiền</button>
+        </div>
+      </div>
+    } @else {
     <div class="filters-bar">
       <button type="button" class="filter-toggle" [attr.aria-pressed]="showCancelled()" (click)="showCancelled.set(!showCancelled())">Hiện chuyển tiền đã huỷ</button>
     </div>
@@ -96,6 +92,7 @@ import { DateInputDirective } from '../../shared/date-input/date-input.directive
     <app-data-table
       [columns]="columns" [rows]="visible()" [actions]="rowActions()" emptyTitle="Chưa có chuyển tiền nội bộ"
       [emptyHint]="rows().length ? 'Không có chuyển tiền nào khớp bộ lọc.' : 'Lập chuyển tiền đầu tiên để nộp, rút hoặc chuyển tiền giữa các quỹ.'" />
+    }
 
     <ng-template #rowActionsTpl let-t>
       @if (!t.isCancelled && canCancel()) {
@@ -106,6 +103,7 @@ import { DateInputDirective } from '../../shared/date-input/date-input.directive
   styles: [`.amount-input { text-align: right; }`],
 })
 export class CashTransfersComponent {
+  protected readonly toast = inject(ToastService);
   private readonly dialogs = inject(ConfirmService);
   private readonly svc = inject(CashOpsService);
   private readonly auth = inject(AuthService);
@@ -127,8 +125,6 @@ export class CashTransfersComponent {
   ];
 
   readonly rows = signal<CashTransferView[]>([]);
-  readonly failure = signal('');
-  readonly notice = signal('');
   readonly busy = signal(false);
   readonly creating = signal(false);
   readonly attempted = signal(false);
@@ -158,12 +154,11 @@ export class CashTransfersComponent {
   constructor() { this.load(); }
 
   async load() {
-    try { this.rows.set(await this.svc.transfers()); } catch (e) { this.failure.set(errorText(e)); }
+    try { this.rows.set((await this.svc.transfers()).sort(newestFirst)); } catch (e) { this.toast.error(errorText(e)); }
   }
 
   start() {
     this.fromId.set(''); this.toId.set(''); this.date.set(isoDay(new Date())); this.amount.set(null); this.description.set('');
-    this.failure.set('');
     this.attempted.set(false);
     this.creating.set(true);
   }
@@ -173,16 +168,15 @@ export class CashTransfersComponent {
     this.attempted.set(true);
     if (this.issue()) return;
     this.busy.set(true);
-    this.failure.set('');
     try {
       const t = await this.svc.createTransfer({
         fromAccountId: this.fromId(), toAccountId: this.toId(), date: this.date(), amount: Math.round(this.amount() ?? 0), description: this.description().trim() || undefined,
       });
       this.creating.set(false);
-      this.notice.set(`Đã chuyển ${formatVnd(t.amount)} từ ${t.fromAccountName} sang ${t.toAccountName} (${t.code}).`);
+      this.toast.success(`Đã chuyển ${formatVnd(t.amount)} từ ${t.fromAccountName} sang ${t.toAccountName} (${t.code}).`);
       await this.load();
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
     } finally {
       this.busy.set(false);
     }
@@ -197,7 +191,7 @@ export class CashTransfersComponent {
       run: (v) => this.svc.cancelTransfer(t.id, v['reason'] || undefined),
     });
     if (!done) return;
-    this.notice.set(`Đã huỷ ${t.code}; số dư hai quỹ trở lại như trước.`);
+    this.toast.success(`Đã huỷ ${t.code}; số dư hai quỹ trở lại như trước.`);
     await this.load();
   }
 }

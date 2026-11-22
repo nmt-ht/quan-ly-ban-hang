@@ -37,12 +37,6 @@
   }
 </div>
 
-@if (error()) {
-  <div class="notice is-error" role="alert">
-    <span>{{ error() }}</span>
-    <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="error.set('')"><app-nav-icon name="x" /></button>
-  </div>
-}
 
 <div class="card al-card">
   @if (!rows().length) {

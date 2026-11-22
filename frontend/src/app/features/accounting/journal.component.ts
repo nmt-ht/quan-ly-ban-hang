@@ -14,6 +14,7 @@ import { PeriodFilterComponent, PeriodValue } from '../../shared/period-filter/p
 import { BookPrintComponent } from '../../shared/print/tt133/book-print.component';
 import { BookSpec, journalBookSpec } from '../../shared/print/tt133/tt133-books';
 import { PrintService } from '../../shared/print/print.service';
+import { ToastService } from '../../core/services/toast.service';
 
 /** /ke-toan/so-nhat-ky — sổ nhật ký chung (bút toán + các dòng Nợ/Có); bản in là mẫu S03a-DNN (TT133). */
 @Component({
@@ -34,8 +35,7 @@ import { PrintService } from '../../shared/print/print.service';
         }
       </div>
     </div>
-    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
-    @if (truncated()) { <div class="notice" role="status">Kỳ có hơn 500 bút toán, màn hình chỉ hiện 500 bút toán mới nhất. Bản in lấy đủ kỳ (tối đa 5.000 bút toán).</div> }
+        @if (truncated()) { <div class="notice" role="status">Kỳ có hơn 500 bút toán, màn hình chỉ hiện 500 bút toán mới nhất. Bản in lấy đủ kỳ (tối đa 5.000 bút toán).</div> }
 
     <div class="filters-bar">
       <input type="search" class="filter-search" placeholder="Tìm số CT, diễn giải, tài khoản, số tiền…" aria-label="Tìm bút toán" [value]="search()" (input)="search.set($any($event.target).value)" />
@@ -82,6 +82,7 @@ import { PrintService } from '../../shared/print/print.service';
   `,
 })
 export class AccountingJournalComponent {
+  protected readonly toast = inject(ToastService);
   private readonly svc = inject(AccountingService);
   private readonly confirmer = inject(ConfirmService);
   private readonly auth = inject(AuthService);
@@ -107,7 +108,6 @@ export class AccountingJournalComponent {
     return this.filtered().slice(start, start + this.pageSize());
   });
   readonly truncated = signal(false);
-  readonly failure = signal('');
   readonly period = signal<PeriodValue>({ preset: 'thisYear', range: presetRange('thisYear') });
   readonly doc = signal<BookSpec | null>(null);
   readonly printBusy = signal(false);
@@ -135,20 +135,19 @@ export class AccountingJournalComponent {
       this.entries.set(rows);
       this.truncated.set(rows.length >= 500);
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
     }
   }
 
   async reverse(e: JournalEntryView) {
     const ok = await this.confirmer.ask({ title: `Đảo bút toán ${e.code}?`, message: 'Hệ thống ghi một bút toán ngược lại, bút toán gốc vẫn giữ trong sổ.', confirmLabel: 'Đảo bút toán', cancelLabel: 'Không đảo', tone: 'danger' });
     if (!ok) return;
-    try { await this.svc.reverse(e.id); await this.load(); } catch (err) { this.failure.set(errorText(err)); }
+    try { await this.svc.reverse(e.id); await this.load(); } catch (err) { this.toast.error(errorText(err)); }
   }
 
   async printBook() {
     const { from, to } = this.period().range;
-    if (!from || !to) { this.failure.set('Chọn kỳ có ngày bắt đầu và kết thúc để in sổ.'); return; }
-    this.failure.set('');
+    if (!from || !to) { this.toast.error('Chọn kỳ có ngày bắt đầu và kết thúc để in sổ.'); return; }
     this.printBusy.set(true);
     try {
       const book = await this.svc.journalBook(from, to);
@@ -156,7 +155,7 @@ export class AccountingJournalComponent {
       const spec = journalBookSpec(book);
       await this.printer.print('tt133-s03a', 'A4', () => this.doc.set(spec), () => this.doc.set(null));
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
     } finally {
       this.printBusy.set(false);
     }

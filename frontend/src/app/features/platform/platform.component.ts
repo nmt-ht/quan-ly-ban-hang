@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { toDataURL } from 'qrcode';
 import { CopyButtonComponent } from '../../shared/copy-button/copy-button.component';
 import { NewTenant, PlatformApiService, PlatformAuditRow, PlatformTenant, TenantStats, TenantStatus, platformError } from './platform-api.service';
+import { ToastService } from '../../core/services/toast.service';
 
 const STATUS: Record<TenantStatus, { label: string; tone: string }> = {
   ACTIVE: { label: 'Đang hoạt động', tone: 'badge-success' },
@@ -35,6 +36,7 @@ const CODE = /^[a-z][a-z0-9-]{2,29}$/;
   styleUrls: ['./platform.component.scss', './platform-tenants.scss'],
 })
 export class PlatformComponent implements OnInit, OnDestroy {
+  protected readonly toast = inject(ToastService);
   readonly api = inject(PlatformApiService);
   private readonly confirmer = inject(ConfirmService);
   readonly statusOf = (s: TenantStatus) => STATUS[s];
@@ -56,7 +58,6 @@ export class PlatformComponent implements OnInit, OnDestroy {
   readonly tenants = signal<PlatformTenant[]>([]);
   readonly latestMigration = signal<string | null>(null);
   readonly busy = signal<string | null>(null);
-  readonly notice = signal<{ text: string; error: boolean } | null>(null);
   readonly handover = signal<Handover | null>(null);
   /** Per doanh nghiệp: its figures, 'loading' on the way, 'error' when its database did not answer. */
   readonly stats = signal<Record<string, TenantStats | 'loading' | 'error'>>({});
@@ -150,7 +151,7 @@ export class PlatformComponent implements OnInit, OnDestroy {
       if (this.audit()) this.audit.set(await this.api.audit());
       this.loadStats(res.tenants);
     } catch (e) {
-      if (this.api.token()) this.notice.set({ text: platformError(e), error: true });
+      if (this.api.token()) this.toast.error(platformError(e));
     }
   }
 
@@ -183,7 +184,7 @@ export class PlatformComponent implements OnInit, OnDestroy {
       link.download = filename;
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 10_000);
-      this.notice.set({ text: `Đã xuất dữ liệu của ${t.name} (${filename}). Khôi phục bằng pg_restore, xem tools/backup/README.md.`, error: false });
+      this.toast.success(`Đã xuất dữ liệu của ${t.name} (${filename}). Khôi phục bằng pg_restore, xem tools/backup/README.md.`);
     });
   }
 
@@ -248,14 +249,14 @@ export class PlatformComponent implements OnInit, OnDestroy {
     if (suspend && !(await this.confirmer.ask({ title: `Tạm ngưng ${t.name}?`, message: 'Mọi người dùng của doanh nghiệp này sẽ không đăng nhập hay thao tác được nữa, dữ liệu vẫn giữ nguyên.', confirmLabel: 'Tạm ngưng', cancelLabel: 'Không', tone: 'danger' }))) return;
     await this.run(t.code, async () => {
       await this.api.action(t.code, suspend ? 'suspend' : 'reopen');
-      this.notice.set({ text: suspend ? `Đã tạm ngưng ${t.name}.` : `Đã mở lại ${t.name}.`, error: false });
+      this.toast.success(suspend ? `Đã tạm ngưng ${t.name}.` : `Đã mở lại ${t.name}.`);
     });
   }
 
   async migrate(t: PlatformTenant): Promise<void> {
     await this.run(t.code, async () => {
       await this.api.action(t.code, 'migrate');
-      this.notice.set({ text: `Đã cập nhật cấu trúc dữ liệu của ${t.name}.`, error: false });
+      this.toast.success(`Đã cập nhật cấu trúc dữ liệu của ${t.name}.`);
     });
   }
 
@@ -263,11 +264,8 @@ export class PlatformComponent implements OnInit, OnDestroy {
     await this.run('all', async () => {
       const results = await this.api.migrateAll();
       const failed = results.filter((r) => !r.ok);
-      this.notice.set(
-        failed.length
-          ? { text: `Lỗi khi cập nhật: ${failed.map((r) => `${r.code} (${r.error})`).join('; ')}`, error: true }
-          : { text: `Đã cập nhật cấu trúc dữ liệu cho ${results.length} doanh nghiệp.`, error: false },
-      );
+      if (failed.length) this.toast.error(`Lỗi khi cập nhật: ${failed.map((r) => `${r.code} (${r.error})`).join('; ')}`);
+      else this.toast.success(`Đã cập nhật cấu trúc dữ liệu cho ${results.length} doanh nghiệp.`);
     });
   }
 
@@ -303,7 +301,7 @@ export class PlatformComponent implements OnInit, OnDestroy {
     try {
       this.audit.set(await this.api.audit());
     } catch (e) {
-      this.notice.set({ text: platformError(e), error: true });
+      this.toast.error(platformError(e));
     }
   }
 
@@ -315,11 +313,10 @@ export class PlatformComponent implements OnInit, OnDestroy {
   private async run(key: string, work: () => Promise<void>): Promise<void> {
     if (this.busy()) return;
     this.busy.set(key);
-    this.notice.set(null);
     try {
       await work();
     } catch (e) {
-      this.notice.set({ text: platformError(e), error: true });
+      this.toast.error(platformError(e));
     } finally {
       this.busy.set(null);
       await this.refresh();

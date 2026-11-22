@@ -11,6 +11,8 @@ import { formatVnd } from '../../shared/format.util';
 import { formatDay, isoDay } from '../../shared/period';
 import { CashOpsService } from './cash-ops.service';
 import { DateInputDirective } from '../../shared/date-input/date-input.directive';
+import { newestFirst } from '../../shared/column-sort';
+import { ToastService } from '../../core/services/toast.service';
 
 /** Mệnh giá tiền Việt Nam đang lưu hành, từ cao xuống thấp. */
 const NOTES = [500_000, 200_000, 100_000, 50_000, 20_000, 10_000, 5_000, 2_000, 1_000, 500];
@@ -35,14 +37,7 @@ const NOTES = [500_000, 200_000, 100_000, 50_000, 20_000, 10_000, 5_000, 2_000, 
         </div>
       }
     </div>
-    @if (failure()) { <div class="notice is-error" role="alert"><span>{{ failure() }}</span></div> }
-    @if (notice()) {
-      <div class="notice" role="status">
-        <span>{{ notice() }}</span>
-        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="notice.set('')"><app-nav-icon name="x" /></button>
-      </div>
-    }
-
+        
     @if (creating()) {
       <section class="card section-block" aria-labelledby="kk-new">
         <h2 id="kk-new" class="form-section-title">Biên bản kiểm kê mới</h2>
@@ -91,15 +86,16 @@ const NOTES = [500_000, 200_000, 100_000, 50_000, 20_000, 10_000, 5_000, 2_000, 
           <label for="kk-note">Ghi chú</label>
           <input id="kk-note" type="text" maxlength="500" [ngModel]="note()" (ngModelChange)="note.set($event)" />
         </div>
-        @if (issue()) { <p class="hint text-danger" role="alert">{{ issue() }}</p> }
-        <div class="toolbar">
-          <button type="button" class="btn btn-primary" [disabled]="busy()" (click)="save()">Lưu biên bản</button>
-          <button type="button" class="btn" (click)="creating.set(false)">Bỏ qua</button>
-        </div>
       </section>
-    }
 
-    @if (resolveRow(); as c) {
+      <div class="form-actions-bar">
+        <span class="hint" role="status">{{ issue() || 'Có thể lưu biên bản' }}</span>
+        <div class="form-actions">
+          <button type="button" class="btn" (click)="creating.set(false)">Huỷ</button>
+          <button type="button" class="btn btn-primary" [disabled]="busy()" (click)="save()"><app-nav-icon name="check" />Lưu biên bản</button>
+        </div>
+      </div>
+    } @else if (resolveRow(); as c) {
       <section class="card section-block" aria-labelledby="kk-res">
         <h2 id="kk-res" class="form-section-title">Xử lý chênh lệch của {{ c.code }}: {{ diffText(c.difference) }}</h2>
         <div class="form-grid">
@@ -111,13 +107,16 @@ const NOTES = [500_000, 200_000, 100_000, 50_000, 20_000, 10_000, 5_000, 2_000, 
             <span class="hint">Lập một phiếu {{ c.difference < 0 ? 'chi' : 'thu' }} {{ money(c.difference < 0 ? -c.difference : c.difference) }} ngày kiểm kê; huỷ biên bản thì phiếu huỷ theo.</span>
           </div>
         </div>
-        <div class="toolbar">
-          <button type="button" class="btn btn-primary" [disabled]="busy()" (click)="resolve(c)">Lập phiếu {{ c.difference < 0 ? 'chi' : 'thu' }}</button>
-          <button type="button" class="btn" (click)="resolving.set(null)">Bỏ qua</button>
-        </div>
       </section>
-    }
 
+      <div class="form-actions-bar">
+        <span class="hint" role="status">Điền thông tin rồi bấm Lưu</span>
+        <div class="form-actions">
+          <button type="button" class="btn" (click)="resolving.set(null)">Huỷ</button>
+          <button type="button" class="btn btn-primary" [disabled]="busy()" (click)="resolve(c)"><app-nav-icon name="check" />Lập phiếu {{ c.difference < 0 ? 'chi' : 'thu' }}</button>
+        </div>
+      </div>
+    } @else {
     <div class="filters-bar">
       <button type="button" class="filter-toggle" [attr.aria-pressed]="pendingOnly()" (click)="pendingOnly.set(!pendingOnly())">Chỉ chênh lệch chưa xử lý</button>
       <button type="button" class="filter-toggle" [attr.aria-pressed]="showCancelled()" (click)="showCancelled.set(!showCancelled())">Hiện biên bản đã huỷ</button>
@@ -133,6 +132,7 @@ const NOTES = [500_000, 200_000, 100_000, 50_000, 20_000, 10_000, 5_000, 2_000, 
     <app-data-table
       [columns]="columns" [rows]="visible()" [actions]="rowActions()" emptyTitle="Chưa có biên bản kiểm kê quỹ"
       [emptyHint]="rows().length ? 'Không có biên bản nào khớp bộ lọc.' : 'Lập biên bản đầu tiên để so số tiền thực tế với sổ sách.'" />
+    }
 
     <ng-template #rowActionsTpl let-c>
       @if (!c.isCancelled && canCreate()) {
@@ -151,6 +151,7 @@ const NOTES = [500_000, 200_000, 100_000, 50_000, 20_000, 10_000, 5_000, 2_000, 
   styles: [`.count-input { width: 6rem; text-align: right; }`],
 })
 export class CashCountsComponent {
+  protected readonly toast = inject(ToastService);
   private readonly svc = inject(CashOpsService);
   private readonly auth = inject(AuthService);
   private readonly store = inject(DataStore);
@@ -173,8 +174,6 @@ export class CashCountsComponent {
   ];
 
   readonly rows = signal<CashCountView[]>([]);
-  readonly failure = signal('');
-  readonly notice = signal('');
   readonly busy = signal(false);
   readonly creating = signal(false);
   readonly pendingOnly = signal(false);
@@ -218,7 +217,7 @@ export class CashCountsComponent {
   }
 
   async load() {
-    try { this.rows.set(await this.svc.counts()); } catch (e) { this.failure.set(errorText(e)); }
+    try { this.rows.set((await this.svc.counts()).sort(newestFirst)); } catch (e) { this.toast.error(errorText(e)); }
   }
 
   private statusText(c: CashCountView): string {
@@ -236,7 +235,6 @@ export class CashCountsComponent {
 
   start() {
     this.accountId.set(this.accounts()[0]?.id ?? ''); this.date.set(isoDay(new Date())); this.countedBy.set(''); this.note.set(''); this.counts.set({});
-    this.failure.set('');
     this.resolving.set(null);
     this.creating.set(true);
   }
@@ -251,19 +249,18 @@ export class CashCountsComponent {
 
   async save() {
     if (this.busy()) return;
-    if (this.issue()) { this.failure.set(this.issue()); return; }
+    if (this.issue()) { this.toast.error(this.issue()); return; }
     this.busy.set(true);
-    this.failure.set('');
     try {
       const c = await this.svc.createCount({
         accountId: this.accountId(), date: this.date(), countedBy: this.countedBy().trim() || undefined, note: this.note().trim() || undefined,
         denominations: NOTES.filter((n) => (this.counts()[n] ?? 0) > 0).map((n) => ({ value: n, count: this.counts()[n] })),
       });
       this.creating.set(false);
-      this.notice.set(`Đã lập biên bản ${c.code}: ${this.diffText(c.difference)}.`);
+      this.toast.success(`Đã lập biên bản ${c.code}: ${this.diffText(c.difference)}.`);
       await this.load();
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
     } finally {
       this.busy.set(false);
     }
@@ -280,38 +277,35 @@ export class CashCountsComponent {
     const r = this.resolving();
     if (!r || this.busy()) return;
     this.busy.set(true);
-    this.failure.set('');
     try {
       const out = await this.svc.resolveCount(c, r.option);
       this.resolving.set(null);
-      this.notice.set(`Đã lập phiếu ${out.resolutionVoucherCode} xử lý chênh lệch của ${c.code}.`);
+      this.toast.success(`Đã lập phiếu ${out.resolutionVoucherCode} xử lý chênh lệch của ${c.code}.`);
       await this.load();
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
     } finally {
       this.busy.set(false);
     }
   }
 
   async unresolve(c: CashCountView) {
-    this.failure.set('');
     try {
       await this.svc.unresolveCount(c);
-      this.notice.set(`Đã huỷ phiếu xử lý chênh lệch của ${c.code}.`);
+      this.toast.success(`Đã huỷ phiếu xử lý chênh lệch của ${c.code}.`);
       await this.load();
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
     }
   }
 
   async cancel(c: CashCountView) {
-    this.failure.set('');
     try {
       await this.svc.cancelCount(c);
-      this.notice.set(`Đã huỷ biên bản ${c.code}${c.resolutionVoucherCode ? ` và phiếu xử lý ${c.resolutionVoucherCode}` : ''}.`);
+      this.toast.success(`Đã huỷ biên bản ${c.code}${c.resolutionVoucherCode ? ` và phiếu xử lý ${c.resolutionVoucherCode}` : ''}.`);
       await this.load();
     } catch (e) {
-      this.failure.set(errorText(e));
+      this.toast.error(errorText(e));
     }
   }
 }

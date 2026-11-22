@@ -1,5 +1,5 @@
 import { ConfirmService } from '../../../shared/confirm/confirm.service';
-import { Component, computed, effect, inject, signal, untracked , viewChild } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { AuthService } from '../../../core/services/auth.service';
 import { EmailComposeComponent } from '../../../shared/email-compose/email-compose.component';
 import { pdfName } from '../../../shared/print/print-pdf';
@@ -22,6 +22,7 @@ import { PrintMenuComponent } from '../../../shared/print/print-menu.component';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
 import { SalesOrderService } from '../../sales-orders/sales-order.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 // One phiếu thu / phiếu chi: xem, in (mẫu phiếu thu / phiếu chi), huỷ. Sửa = huỷ rồi lập lại (giữ dấu vết).
 @Component({
@@ -32,6 +33,7 @@ import { SalesOrderService } from '../../sales-orders/sales-order.service';
   styleUrls: ['../../../shared/voucher/voucher.scss', './cash-voucher-view.component.scss'],
 })
 export class CashVoucherViewComponent {
+  protected readonly toast = inject(ToastService);
   private readonly dialogs = inject(ConfirmService);
   readonly data = inject(DataStore);
   private readonly salesOrders = inject(SalesOrderService);
@@ -58,7 +60,6 @@ export class CashVoucherViewComponent {
   readonly signed = formatVndSigned;
   readonly day = formatDay;
   readonly words = vndInWords;
-  readonly notice = signal('');
 
   // ---------- gửi email: phiếu thu (biên nhận) cho khách + PDF ----------
   private readonly emailDlg = viewChild<EmailComposeComponent>('emailDlg');
@@ -79,13 +80,12 @@ export class CashVoucherViewComponent {
   }
   readonly cancelling = signal(false);
   /** A huỷ the server refused (or that could not reach it). */
-  readonly failure = signal('');
 
   constructor() {
     effect(() => {
       this.id();
       untracked(() => {
-        this.notice.set((history.state as { notice?: string } | null)?.notice ?? '');
+        this.toast.success((history.state as { notice?: string } | null)?.notice ?? '');
       });
     });
   }
@@ -141,7 +141,7 @@ export class CashVoucherViewComponent {
       confirmLabel: 'Huỷ phiếu', cancelLabel: 'Không huỷ', tone: 'danger', fields: [{ key: 'reason', label: 'Lý do huỷ', type: 'textarea', placeholder: 'Không bắt buộc', maxLength: 300 }],
       run: (x) => this.svc.cancel(v.id, x['reason']),
     });
-    if (done) this.notice.set(`Đã huỷ ${v.code} — không còn tính vào số dư quỹ${v.partnerType === 'KHAC' ? '' : ' và công nợ đã mở lại'}.`);
+    if (done) this.toast.success(`Đã huỷ ${v.code} — không còn tính vào số dư quỹ${v.partnerType === 'KHAC' ? '' : ' và công nợ đã mở lại'}.`);
   }
 
 }
