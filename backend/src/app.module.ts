@@ -30,7 +30,7 @@ import { AccountingModule } from './modules/accounting/accounting.module.js';
 import { PricingModule } from './modules/pricing/pricing.module.js';
 import { PlatformModule } from './platform/platform.module.js';
 import { DecimalInterceptor } from './common/decimal.interceptor.js';
-import { PrismaExceptionFilter } from './common/prisma-exception.filter.js';
+import { AllExceptionsFilter } from './common/all-exceptions.filter.js';
 
 @Module({
   imports: [
@@ -77,7 +77,7 @@ import { PrismaExceptionFilter } from './common/prisma-exception.filter.js';
     AppService,
     { provide: APP_INTERCEPTOR, useClass: ErrorReportInterceptor },
     { provide: APP_INTERCEPTOR, useClass: DecimalInterceptor },
-    { provide: APP_FILTER, useClass: PrismaExceptionFilter },
+    { provide: APP_FILTER, useClass: AllExceptionsFilter },
   ],
 })
 export class AppModule {}

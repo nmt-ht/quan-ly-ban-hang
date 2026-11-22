@@ -542,6 +542,7 @@ model PurchaseOrder {
   warehouseVouchers WarehouseVoucher[]
   receipts          PurchaseOrderReceipt[]
   returns           PurchaseReturn[]
+  costBills         PurchaseBill[]
 }
 
 model PurchaseOrderLine {
@@ -589,27 +590,33 @@ model PurchaseOrderReceipt {
  * là một khoản công nợ phải trả như lần nhận hàng, trả bằng phiếu chi cho NCC. Huỷ: đảo bút toán.
  */
 model PurchaseBill {
-  id            String             @id @default(uuid())
-  code          String             @unique
-  supplierId    String
-  supplier      Supplier           @relation(fields: [supplierId], references: [id])
-  date          DateTime           @db.Date
-  description   String?
-  invoiceSeries String?
-  invoiceNo     String?
-  invoiceDate   DateTime?          @db.Date
-  taxable       Decimal // tổng chưa thuế
-  vat           Decimal // tổng thuế GTGT
-  total         Decimal // tổng thanh toán = công nợ phải trả
-  isCancelled   Boolean            @default(false)
-  cancelReason  String?
-  cancelledAt   DateTime?
-  createdById   String
-  createdBy     User               @relation("PurchaseBillCreatedBy", fields: [createdById], references: [id])
-  createdAt     DateTime           @default(now())
-  lines         PurchaseBillLine[]
+  id              String                   @id @default(uuid())
+  code            String                   @unique
+  supplierId      String
+  supplier        Supplier                 @relation(fields: [supplierId], references: [id])
+  date            DateTime                 @db.Date
+  description     String?
+  invoiceSeries   String?
+  invoiceNo       String?
+  invoiceDate     DateTime?                @db.Date
+  taxable         Decimal // tổng chưa thuế
+  vat             Decimal // tổng thuế GTGT
+  total           Decimal // tổng thanh toán = công nợ phải trả
+  // Chi phí mua hàng: các dòng TK "GIA_NHAP" được phân bổ vào giá nhập hàng đã nhận của đơn nhập này, theo giá trị hoặc số lượng.
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder?           @relation(fields: [purchaseOrderId], references: [id])
+  allocationBasis String? // GIA_TRI | SO_LUONG
+  isCancelled     Boolean                  @default(false)
+  cancelReason    String?
+  cancelledAt     DateTime?
+  createdById     String
+  createdBy       User                     @relation("PurchaseBillCreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime                 @default(now())
+  lines           PurchaseBillLine[]
+  allocations     PurchaseCostAllocation[]
 
   @@index([supplierId])
+  @@index([purchaseOrderId])
   @@index([date])
 }
 
@@ -617,7 +624,7 @@ model PurchaseBillLine {
   id          String       @id @default(uuid())
   billId      String
   bill        PurchaseBill @relation(fields: [billId], references: [id], onDelete: Cascade)
-  accountCode String // TK chi phí (642, 641, 811, 635) hoặc 242
+  accountCode String // TK chi phí (642, 641, 811, 635), 242, hoặc GIA_NHAP = chi phí mua hàng phân bổ vào giá nhập
   description String
   amount      Decimal // chưa thuế
   vatRate     Decimal      @default(0)
@@ -1760,4 +1767,18 @@ model SalesAllowanceLine {
   taxable     Decimal // giảm chưa thuế của dòng
   vat         Decimal // thuế GTGT của phần giảm
   sortOrder   Int            @default(0)
+}
+
+// Chi phí mua hàng đã phân bổ vào một mặt hàng của đơn nhập (một hàng mỗi mặt hàng mỗi hoá đơn): `toStock` cộng vào giá trị tồn
+// (giá bình quân của mặt hàng tăng), `toCogs` là phần của hàng đã bán (Nợ 632). Giữ lại để huỷ hoá đơn hoàn được giá bình quân.
+model PurchaseCostAllocation {
+  id        String       @id @default(uuid())
+  billId    String
+  bill      PurchaseBill @relation(fields: [billId], references: [id], onDelete: Cascade)
+  productId String
+  amount    Decimal // chi phí chưa thuế phân bổ cho mặt hàng
+  toStock   Decimal
+  toCogs    Decimal
+
+  @@index([billId])
 }

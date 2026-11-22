@@ -41,40 +41,6 @@
   --icon-size: 14px;
 }
 
-// Lifecycle stepper under the header.
-.tv-steps {
-  display: flex;
-  gap: var(--space-2xs);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  counter-reset: step;
-  font-size: var(--text-xs);
-}
-
-.tv-steps li {
-  flex: 1;
-  padding: 6px var(--space-xs);
-  border-top: 3px solid var(--color-rule);
-  color: var(--color-muted);
-  counter-increment: step;
-}
-
-.tv-steps li::before {
-  content: counter(step) '. ';
-}
-
-.tv-steps li.is-done {
-  border-top-color: var(--color-accent);
-  color: var(--color-ink-2);
-}
-
-.tv-steps li.is-current {
-  border-top-color: var(--color-ink);
-  color: var(--color-ink);
-  font-weight: 600;
-}
-
 .tv-grid {
   min-width: 70rem;
 }

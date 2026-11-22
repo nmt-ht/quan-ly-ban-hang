@@ -81,12 +81,7 @@
         }
       </aside>
 
-      <ol class="tv-steps head-note" aria-label="Các bước của chuyến">
-        <li [class.is-done]="t.status !== 'GOM_DON' && t.status !== 'HUY'" [class.is-current]="t.status === 'GOM_DON'">Gom đơn</li>
-        <li [class.is-done]="t.status === 'XE_VE_KHO' || t.status === 'HOAN_TAT'" [class.is-current]="t.status === 'DA_XUAT_KHO'">Xuất kho &amp; chốt giao</li>
-        <li [class.is-done]="t.status === 'HOAN_TAT'" [class.is-current]="t.status === 'XE_VE_KHO'">Xe về kho</li>
-        <li [class.is-done]="t.status === 'HOAN_TAT'">Hoàn tất</li>
-      </ol>
+      <app-status-steps class="head-note" ariaLabel="Các bước của chuyến" [steps]="steps()" />
     </section>
 
     <div class="detail-tabs voucher-tabs" role="tablist" aria-label="Nội dung chuyến">

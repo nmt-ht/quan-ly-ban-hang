@@ -267,6 +267,19 @@ Kho only).
 - Storage: a company setting on the server (`GET/PUT /api/company/display-colors`,
   `CompanyInfo.tagColors`); everyone reads it, changing needs `company.update`.
 
+## Lifecycle steps (thanh các bước) — `app-status-steps`
+- For a document that moves through a fixed sequence (today: Chuyến giao hàng — Gom đơn → Xuất kho & chốt giao → Xe về kho → Hoàn tất). One
+  component, never a hand-made list: `<app-status-steps [steps]="…" ariaLabel="…" />`, steps built with `stepsAt(labels, indexOfCurrent, finished)`.
+- A numbered round marker per step, joined by a line. **Done**: filled moss marker with a tick, the line after it moss. **Current**: moss ring on a
+  moss tint with a soft outer ring, the label bold ink. **To do**: hollow grey marker with its number, muted label, grey line. A stopped document
+  (Huỷ) shows every step as to-do. It is an indicator, not a control — no hover, no click.
+- Wide container: a row (the line fills what the label leaves). Under 40 rem **of its own container**, not of the screen: a column with the line
+  running down between markers. Labels never wrap in the row.
+- Read aloud as an ordered list; the current step has `aria-current="step"` and every label ends with a hidden "— đã xong / đang ở bước này /
+  chưa tới", so the state is never carried by colour alone.
+- Status *badges* (`.badge` + `tagClass`) stay the way to show one status in a list or a title bar; steps are for the "where in the process" strip
+  on a record page.
+
 ## Topbar
 - Right side = the **Thông báo bell**, then one account menu (`layout/account-menu`, WAI-ARIA menu button):
   avatar initials + name/role (avatar only on mobile) → header (name, email,
@@ -382,6 +395,36 @@ Kho only).
 - **Màn đang tải** (`layout/loading-screen`, shown by the root while `CatalogLoader.status()` is loading): spinner with
   `CatalogLoader.progress` as the step named ("Đang tải: Đơn hàng bán và lệnh sản xuất · 3/7"); after 8 s a
   warning-tint note says the connection is slow. A new load step = one entry in `LOAD_STEPS` + one `step(i)` call.
+
+## Errors (lỗi): say what happened, what to do, and who fixes it
+- **Five kinds** (`ApiError.kind`, `core/api/api.service.ts › describeHttpError`), each with its own wording:
+  - *business* (400 / 404 / 409 / 413 / 429…): the server's own sentence is shown as written (it names the field or the rule); an English
+    Nest default ("Bad Request", "Not Found"…) is never shown, it is replaced by a Vietnamese instruction ("Kiểm tra lại các ô đã nhập…",
+    "Tải lại trang…").
+  - *permission* (403): the sentence naming the missing right, plus "Nhờ quản trị viên cấp quyền…".
+  - *session* (401 with no sentence of its own): the interceptor has already sent the person to the sign-in page; no banner.
+  - *network* (no answer, or a gateway page instead of our JSON): "Kiểm tra mạng… Nếu mạng bình thường mà vẫn lỗi, báo bộ phận IT kiểm tra."
+  - *system* (5xx, or any fault the person cannot fix): says it is not the person's mistake, tells them to **báo bộ phận IT kiểm tra**,
+    and prints the **mã lỗi** (the server's `X-Request-Id`, the same id as in the server log and Sentry) and the time.
+- **Server**: `common/all-exceptions.filter.ts` answers every error as `{ statusCode, message, error }`; an unexpected exception is a generic
+  500 ("Lỗi hệ thống, chưa xử lý được yêu cầu.") with `requestId`; stack traces and connection strings never leave the server.
+- **On the page**: every save / load that fails shows `errorText(e)` in its `.notice.is-error`, so the wording above is the same everywhere.
+- **Nothing caught** (a template that threw, a promise nobody awaited, a page's code that did not load): `ErrorNoticeService` +
+  `layout/error-banner` — a banner fixed at the bottom (danger tint, 4 px left rule, above the page-loading veil), title "Lỗi hệ thống" or
+  "Không tải được trang", the instruction, the code with a copy button and "Tải lại trang". The code is `LOI-…` for an error that never reached
+  the server (also tagged on the Sentry report). Browser noise (ResizeObserver, aborted requests) is ignored; the same message repeating within
+  5 s shows once.
+
+## Quick-create from a picker (thêm nhanh khách hàng / nhà cung cấp)
+- On a document screen (đơn bán, báo giá, đơn mua, hoá đơn mua, phiếu thu / chi) the customer or supplier picker ends with a **"+ Thêm … mới"** row
+  (`app-search-select [createLabel] (create)`): a text-button in the moss accent under a hairline, not an option — it shows only for someone who holds
+  `customer.create` / `supplier.create`. Click it, or ArrowDown past the last option and Enter. What was typed in the search box rides along
+  as the new name, and the row stays reachable when nothing matches.
+- It opens a small modal (`shared/quick-create`, shell like `rg-dialog` but 34 rem, two columns, one on a phone): tên (required), điện thoại,
+  loại khách (customers) or địa chỉ (suppliers), mã số thuế, số ngày nợ, địa chỉ giao hàng. Nothing else — the rest is completed later on the
+  full form. Same rules as the full form: a duplicate name / phone only warns, a supplier tax code already in use blocks. Enter in a field saves.
+- "Lưu và chọn" saves through the normal create API (the server issues the code), the new record goes into the DataStore and the document selects
+  it at once; a refusal from the server stays inside the dialog as a `.notice.is-error`.
 
 ## Dashboard (Tổng quan)
 - Order (redesigned 25/10/2026 from the user's reference): header with a date chip → period tabs (Tháng này · Quý

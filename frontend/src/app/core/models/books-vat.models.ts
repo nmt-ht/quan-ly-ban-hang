@@ -153,8 +153,15 @@ export interface PurchaseBillView {
   total: number;
   isCancelled: boolean;
   cancelReason?: string;
+  /** Chi phí mua hàng: đơn nhập nhận phần phân bổ, cách chia và kết quả chia cho từng mặt hàng. */
+  purchaseOrderId?: string;
+  purchaseOrderCode?: string;
+  allocationBasis?: AllocationBasis;
+  allocations?: { productId: string; amount: number; toStock: number; toCogs: number }[];
   lines: PurchaseBillLineView[];
 }
+
+export type AllocationBasis = 'GIA_TRI' | 'SO_LUONG';
 
 export interface PurchaseBillInput {
   supplierId: string;
@@ -163,5 +170,7 @@ export interface PurchaseBillInput {
   invoiceSeries?: string;
   invoiceNo?: string;
   invoiceDate?: string;
+  purchaseOrderId?: string;
+  allocationBasis?: AllocationBasis;
   lines: { accountCode: string; description: string; amount: number; vatRate: number }[];
 }

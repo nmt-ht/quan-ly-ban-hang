@@ -29,7 +29,10 @@
         <div class="field span-2">
           <label for="cv-partner">{{ text().partner }} <span class="required-mark">*</span></label>
           <app-search-select inputId="cv-partner" [options]="partnerOptions()" [value]="partnerId()" (valueChange)="onPartnerChange($event)"
-            [placeholder]="'— ' + text().partnerPick + ' —'" [invalid]="attempted() && !partnerId()" />
+            [placeholder]="'— ' + text().partnerPick + ' —'" [invalid]="attempted() && !partnerId()"
+            [createLabel]="kind() === 'CHI' ? qs.label() : qc.label()" (create)="kind() === 'CHI' ? qs.open($event) : qc.open($event)" />
+          <app-quick-customer-dialog #qc (created)="onPartnerChange($event.id)" />
+          <app-quick-supplier-dialog #qs (created)="onPartnerChange($event.id)" />
         </div>
         <div class="field">
           <span class="field-label">Mã số thuế</span>

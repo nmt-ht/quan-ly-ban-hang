@@ -10,6 +10,42 @@
   color: var(--color-muted);
 }
 
+// "+ Thêm mới" under the list: quiet text-button in the accent, with a hairline above so it reads as an action, not an option.
+.ss-create {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  width: 100%;
+  min-height: var(--control-h);
+  padding: 0 var(--space-xs);
+  border: 0;
+  border-top: var(--rule-hair) solid var(--color-rule);
+  background: transparent;
+  color: var(--color-accent);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  --icon-size: 14px;
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &:hover,
+  &.is-active {
+    background: var(--color-paper-2);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: -2px;
+  }
+}
+
 // In a filters bar it sits inline like the selects beside it.
 :host-context(.filters-bar) {
   display: inline-block;

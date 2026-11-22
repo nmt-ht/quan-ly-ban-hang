@@ -2,6 +2,7 @@ import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http
 import { Injectable, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { API_BASE } from '../../core/api/api.config';
+import { describeHttpError } from '../../core/api/api.service';
 
 // Shapes of /api/platform (backend src/platform/platform.controller.ts).
 export type TenantStatus = 'PROVISIONING' | 'FAILED' | 'ACTIVE' | 'SUSPENDED';
@@ -57,13 +58,9 @@ const TOKEN_KEY = 'nt_platform_token';
 
 /** The server's message for a failed call, in the words the page shows. */
 export function platformError(e: unknown): string {
-  if (e instanceof HttpErrorResponse) {
-    if (e.status === 0) return 'Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.';
-    if (e.status === 429) return 'Thử quá nhiều lần. Vui lòng đợi vài phút rồi thử lại.';
-    const msg = (e.error as { message?: string | string[] } | null)?.message;
-    if (msg) return Array.isArray(msg) ? msg.join('. ') : msg;
-  }
-  return 'Máy chủ gặp lỗi. Thử lại sau ít phút.';
+  // Same wording as the rest of the app: a rule the owner can fix is shown as written; a fault on our side says to tell IT, with the code.
+  if (e instanceof HttpErrorResponse) return describeHttpError(e).message;
+  return 'Có lỗi không mong muốn. Tải lại trang (F5) rồi thử lại; nếu vẫn lỗi, báo bộ phận IT kiểm tra.';
 }
 
 /**

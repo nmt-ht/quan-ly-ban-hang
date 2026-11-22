@@ -7,6 +7,7 @@ import { map } from 'rxjs';
 import { DataStore } from '../../../core/services/data-store.service';
 import { SalesOrder, TripLoad } from '../../../core/models/domain.models';
 import { NavIconComponent } from '../../../layout/nav-icon/nav-icon.component';
+import { StatusStepsComponent } from '../../../shared/status-steps/status-steps.component';
 import { CopyButtonComponent } from '../../../shared/copy-button/copy-button.component';
 import { MoneyInputDirective } from '../../../shared/money-input.directive';
 import { foldVi, formatVnd } from '../../../shared/format.util';
@@ -17,7 +18,7 @@ import { round4 } from '../../purchase-orders/purchase-order.rules';
 import { lineRatio, lineRemaining, movesStock } from '../../sales-orders/sales-order.rules';
 import {
   canArrange, canCancel, canComplete, canConfirm, canEditCosts, canEditHeader, canLoadOrder, canReturn, canShip, costTotal,
-  isConfirmed, remainingValue, unitValues,
+  isConfirmed, remainingValue, tripSteps, unitValues,
 } from '../delivery-trip.rules';
 import { DeliveryTripService } from '../delivery-trip.service';
 import { TripHeaderDialogComponent } from '../trip-header-dialog/trip-header-dialog.component';
@@ -61,7 +62,7 @@ interface ConfirmRow {
 @Component({
   selector: 'app-delivery-trip-voucher',
   standalone: true,
-  imports: [DateInputDirective, FrozenColsDirective, NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, TripHeaderDialogComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent],
+  imports: [DateInputDirective, FrozenColsDirective, StatusStepsComponent, NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, TripHeaderDialogComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent],
   templateUrl: './delivery-trip-voucher.component.html',
   styleUrls: [
     '../../../shared/voucher/voucher.scss',
@@ -90,6 +91,7 @@ export class DeliveryTripVoucherComponent {
 
   readonly id = toSignal(this.route.paramMap.pipe(map((p) => p.get('id') ?? '')), { initialValue: this.route.snapshot.paramMap.get('id') ?? '' });
   readonly trip = computed(() => this.data.deliveryTrips().find((t) => t.id === this.id()));
+  readonly steps = computed(() => tripSteps(this.trip()?.status ?? 'HUY'));
 
   readonly money = formatVnd;
   readonly day = formatDay;

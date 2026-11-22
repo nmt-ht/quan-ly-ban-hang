@@ -1,5 +1,6 @@
 import { ErrorHandler, Injectable, inject } from '@angular/core';
 import { ClientConfigService } from './client-config.service';
+import { ErrorNoticeService } from './error-notice.service';
 
 type SentryBrowser = typeof import('@sentry/browser');
 
@@ -25,18 +26,26 @@ export class MonitoringService {
     }
   }
 
-  capture(error: unknown): void {
-    this.sentry?.captureException(error);
+  /** `clientErrorId`: the code shown to the person, so IT can find this report in Sentry. */
+  capture(error: unknown, clientErrorId?: string): void {
+    this.sentry?.captureException(error, clientErrorId ? { tags: { clientErrorId } } : undefined);
   }
 }
 
-/** Angular's default behaviour (log to the console), plus a report to Sentry when it is on. */
+/**
+ * Angular's default behaviour (log to the console), a report to Sentry when it is on, and — so the person is not left with a screen that
+ * silently stopped working — a banner saying what to do (ErrorNoticeService: report to IT, with a code).
+ */
 @Injectable()
 export class MonitoringErrorHandler implements ErrorHandler {
-  constructor(private readonly monitoring: MonitoringService) {}
+  constructor(
+    private readonly monitoring: MonitoringService,
+    private readonly notice: ErrorNoticeService,
+  ) {}
 
   handleError(error: unknown): void {
     console.error(error);
-    this.monitoring.capture(error);
+    const shown = this.notice.report(error);
+    this.monitoring.capture(error, shown?.clientErrorId);
   }
 }

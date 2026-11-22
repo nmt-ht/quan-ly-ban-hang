@@ -1,6 +1,6 @@
 import { DeliveryTrip, SalesOrder, SalesOrderLine } from '../../core/models/domain.models';
 import {
-  canCancel, canComplete, canConfirm, canEditCosts, canLoadOrder, canReturn, canShip, costTotal, remainingValue, unitValues,
+  canCancel, canComplete, canConfirm, canEditCosts, canLoadOrder, canReturn, canShip, costTotal, remainingValue, tripSteps, unitValues,
 } from './delivery-trip.rules';
 
 const trip = (status: DeliveryTrip['status'], extra: Partial<DeliveryTrip> = {}) =>
@@ -49,5 +49,24 @@ describe('đơn trên chuyến', () => {
     const o = order('GIAO_MOT_PHAN', [line(4, 100000, 1, { vatRate: 10 }), line(2, 50000)], { discountAmount: 0 });
     expect(unitValues(o)).toEqual([110000, 50000]);
     expect(remainingValue(o)).toBe(3 * 110000 + 2 * 50000);
+  });
+});
+
+describe('chuyến giao hàng: thanh các bước (tripSteps)', () => {
+  const states = (status: DeliveryTrip['status']) => tripSteps(status).map((s) => s.state);
+
+  it('mỗi trạng thái: các bước trước đã xong, bước hiện tại sáng lên, các bước sau chưa tới', () => {
+    expect(tripSteps('GOM_DON').map((s) => s.label)).toEqual(['Gom đơn', 'Xuất kho & chốt giao', 'Xe về kho', 'Hoàn tất']);
+    expect(states('GOM_DON')).toEqual(['current', 'todo', 'todo', 'todo']);
+    expect(states('DA_XUAT_KHO')).toEqual(['done', 'current', 'todo', 'todo']);
+    expect(states('XE_VE_KHO')).toEqual(['done', 'done', 'current', 'todo']);
+  });
+
+  it('hoàn tất: cả bốn bước đã xong, không còn bước hiện tại', () => {
+    expect(states('HOAN_TAT')).toEqual(['done', 'done', 'done', 'done']);
+  });
+
+  it('chuyến đã huỷ chưa từng chạy: không bước nào xong hay hiện tại', () => {
+    expect(states('HUY')).toEqual(['todo', 'todo', 'todo', 'todo']);
   });
 });

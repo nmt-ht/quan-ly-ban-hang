@@ -97,7 +97,9 @@
           <label for="so-customer">Khách hàng @if (editable()) { <span class="required-mark">*</span> }</label>
           @if (editable()) {
             <app-search-select inputId="so-customer" [options]="customerOptions()" [value]="customerId()" (valueChange)="setCustomer($event)"
-              placeholder="— Chọn khách hàng —" [invalid]="attempted() && !customerId()" />
+              placeholder="— Chọn khách hàng —" [invalid]="attempted() && !customerId()"
+              [createLabel]="qc.label()" (create)="qc.open($event)" />
+            <app-quick-customer-dialog #qc (created)="setCustomer($event.id)" />
           } @else {
             <p class="field-value num">{{ customer()?.code }}</p>
           }

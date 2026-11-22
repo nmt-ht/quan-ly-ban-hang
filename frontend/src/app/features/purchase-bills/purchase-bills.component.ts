@@ -4,22 +4,26 @@ import { FormsModule } from '@angular/forms';
 import { ApiService, errorText } from '../../core/api/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { DataStore } from '../../core/services/data-store.service';
-import { PurchaseBillInput, PurchaseBillView } from '../../core/models/books-vat.models';
+import { AllocationBasis, PurchaseBillInput, PurchaseBillView } from '../../core/models/books-vat.models';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { DataTableColumn, DataTableComponent } from '../../shared/data-table/data-table.component';
 import { foldVi, formatVnd } from '../../shared/format.util';
 import { MoneyInputDirective } from '../../shared/money-input.directive';
 import { formatDay, isoDay } from '../../shared/period';
 import { SearchOption, SearchSelectComponent } from '../../shared/search-select/search-select.component';
+import { QuickSupplierDialogComponent } from '../../shared/quick-create/quick-supplier-dialog.component';
 import { DateInputDirective } from '../../shared/date-input/date-input.directive';
 
 /** TK dùng được trên hoá đơn không qua kho (khớp BILL_ACCOUNTS ở server): hàng tồn kho đi qua phiếu nhập kho. */
+const GIA_NHAP = 'GIA_NHAP';
 const EXPENSE_ACCOUNTS = [
-  { code: '642', name: 'Chi phí quản lý kinh doanh' },
-  { code: '641', name: 'Chi phí bán hàng' },
-  { code: '635', name: 'Chi phí tài chính' },
-  { code: '811', name: 'Chi phí khác' },
-  { code: '242', name: 'Chi phí trả trước' },
+  { code: '642', label: '642 — Chi phí quản lý kinh doanh' },
+  { code: '641', label: '641 — Chi phí bán hàng' },
+  { code: '635', label: '635 — Chi phí tài chính' },
+  { code: '811', label: '811 — Chi phí khác' },
+  { code: '242', label: '242 — Chi phí trả trước' },
+  // Không phải TK: chi phí mua hàng (vận chuyển, bốc xếp…) chia vào giá nhập hàng đã nhận của một đơn nhập.
+  { code: GIA_NHAP, label: 'Chi phí mua hàng — phân bổ vào giá nhập' },
 ];
 const VAT_RATES = [0, 5, 8, 10];
 
@@ -33,12 +37,12 @@ const blankRow = (): Row => ({ accountCode: '642', description: '', amount: null
 @Component({
   selector: 'app-purchase-bills',
   standalone: true,
-  imports: [DateInputDirective, FormsModule, NavIconComponent, DataTableComponent, SearchSelectComponent, MoneyInputDirective],
+  imports: [DateInputDirective, FormsModule, NavIconComponent, DataTableComponent, SearchSelectComponent, QuickSupplierDialogComponent, MoneyInputDirective],
   template: `
     <div class="page-header">
       <div>
         <h1>Hoá đơn mua hàng, dịch vụ</h1>
-        <p class="subtitle">Khoản mua không nhập kho (điện, nước, vận chuyển, thuê ngoài…). Ghi chi phí, thuế GTGT đầu vào và công nợ phải trả nhà cung cấp.</p>
+        <p class="subtitle">Khoản mua không nhập kho (điện, nước, vận chuyển, thuê ngoài…). Ghi chi phí, thuế GTGT đầu vào và công nợ phải trả nhà cung cấp. Chi phí vận chuyển, bốc xếp của một lô hàng nhập thì chọn "phân bổ vào giá nhập".</p>
       </div>
       @if (canCreate() && !creating()) {
         <div class="toolbar">
@@ -61,7 +65,9 @@ const blankRow = (): Row => ({ accountCode: '642', description: '', amount: null
         <div class="form-grid-3">
           <div class="field span-2">
             <label for="hm-supplier">Nhà cung cấp <span class="required-mark">*</span></label>
-            <app-search-select inputId="hm-supplier" ariaLabel="Nhà cung cấp" [options]="supplierOptions()" [(value)]="supplierId" placeholder="Chọn nhà cung cấp…" />
+            <app-search-select inputId="hm-supplier" ariaLabel="Nhà cung cấp" [options]="supplierOptions()" [(value)]="supplierId" placeholder="Chọn nhà cung cấp…"
+              [createLabel]="qs.label()" (create)="qs.open($event)" />
+            <app-quick-supplier-dialog #qs (created)="supplierId.set($event.id)" />
           </div>
           <div class="field">
             <label for="hm-date">Ngày hạch toán <span class="required-mark">*</span></label>
@@ -97,7 +103,7 @@ const blankRow = (): Row => ({ accountCode: '642', description: '', amount: null
                 <tr>
                   <td>
                     <select class="account-cell" [ngModel]="r.accountCode" (ngModelChange)="patch(i, { accountCode: $event })" [attr.aria-label]="'Tài khoản dòng ' + (i + 1)">
-                      @for (a of accounts; track a.code) { <option [value]="a.code">{{ a.code }} — {{ a.name }}</option> }
+                      @for (a of accounts; track a.code) { <option [value]="a.code">{{ a.label }}</option> }
                     </select>
                   </td>
                   <td><input type="text" maxlength="200" [ngModel]="r.description" (ngModelChange)="patch(i, { description: $event })" [attr.aria-label]="'Nội dung dòng ' + (i + 1)" /></td>
@@ -119,6 +125,23 @@ const blankRow = (): Row => ({ accountCode: '642', description: '', amount: null
           </table>
         </div>
         <button type="button" class="btn" (click)="addRow()"><app-nav-icon name="plus" />Thêm dòng</button>
+
+        @if (hasLanded()) {
+          <div class="form-grid-3 hm-landed">
+            <div class="field span-2">
+              <label for="hm-order">Đơn nhập hàng nhận chi phí <span class="required-mark">*</span></label>
+              <app-search-select inputId="hm-order" ariaLabel="Đơn nhập hàng" [options]="orderOptions()" [(value)]="purchaseOrderId" placeholder="Chọn đơn nhập đã nhận hàng…" />
+              <span class="hint">Chi phí chưa thuế của các dòng "phân bổ vào giá nhập" chia cho hàng đã nhận của đơn (trừ phần đã trả NCC): phần hàng còn trong kho tăng giá bình quân, phần hàng đã bán tính vào giá vốn (TK 632).</span>
+            </div>
+            <div class="field">
+              <span class="field-label" id="hm-basis-label">Phân bổ theo</span>
+              <div class="segmented" role="group" aria-labelledby="hm-basis-label">
+                <button type="button" [attr.aria-pressed]="basis() === 'GIA_TRI'" (click)="basis.set('GIA_TRI')">Giá trị hàng</button>
+                <button type="button" [attr.aria-pressed]="basis() === 'SO_LUONG'" (click)="basis.set('SO_LUONG')">Số lượng hàng</button>
+              </div>
+            </div>
+          </div>
+        }
 
         @if (attempted() && issue()) { <p class="hint text-danger" role="alert">{{ issue() }}</p> }
         <div class="toolbar">
@@ -186,6 +209,7 @@ export class PurchaseBillsComponent {
     { key: 'supplier', label: 'Nhà cung cấp', format: (b) => `${b.supplierCode} — ${b.supplierName}` },
     { key: 'invoice', label: 'Hoá đơn NCC', format: (b) => (b.invoiceNo ? `${b.invoiceSeries ?? ''} ${b.invoiceNo}`.trim() : 'Chưa có hoá đơn'), mono: true },
     { key: 'description', label: 'Diễn giải', format: (b) => b.description ?? '' },
+    { key: 'order', label: 'Phân bổ vào đơn nhập', format: (b) => (b.purchaseOrderCode ? `${b.purchaseOrderCode} · theo ${b.allocationBasis === 'SO_LUONG' ? 'số lượng' : 'giá trị'}` : ''), mono: true },
     { key: 'taxable', label: 'Chưa thuế', align: 'right', format: (b) => formatVnd(b.taxable) },
     { key: 'vat', label: 'Thuế GTGT', align: 'right', format: (b) => formatVnd(b.vat) },
     { key: 'total', label: 'Tổng cộng', align: 'right', format: (b) => formatVnd(b.total) },
@@ -229,6 +253,17 @@ export class PurchaseBillsComponent {
   readonly invoiceDate = signal('');
   readonly description = signal('');
   readonly rows = signal<Row[]>([blankRow()]);
+  readonly purchaseOrderId = signal('');
+  readonly basis = signal<AllocationBasis>('GIA_TRI');
+  readonly hasLanded = computed(() => this.rows().some((r) => r.accountCode === GIA_NHAP));
+  /** Đơn nhập đã nhận hàng, mới nhất trước. */
+  readonly orderOptions = computed<SearchOption[]>(() => {
+    const suppliers = new Map(this.store.suppliers().map((s) => [s.id, s.name]));
+    return this.store.purchaseOrders()
+      .filter((o) => o.status !== 'HUY' && o.lines.some((l) => (l.receivedQuantity ?? 0) > 0))
+      .sort((a, b) => b.code.localeCompare(a.code))
+      .map((o) => ({ value: o.id, code: o.code, label: suppliers.get(o.supplierId) ?? '—' }));
+  });
 
   readonly lineVat = (r: Row) => Math.round((Math.round(r.amount ?? 0) * r.vatRate) / 100);
   readonly totals = computed(() => {
@@ -242,6 +277,7 @@ export class PurchaseBillsComponent {
     if (this.date() > isoDay(new Date())) return 'Ngày hạch toán không được sau hôm nay.';
     if ((this.series().trim() || this.invoiceDate()) && !this.invoiceNo().trim()) return 'Nhập số hoá đơn NCC (hoặc xoá ký hiệu và ngày hoá đơn).';
     if (this.invoiceDate() && this.invoiceDate() > isoDay(new Date())) return 'Ngày hoá đơn không được sau hôm nay.';
+    if (this.hasLanded() && !this.purchaseOrderId()) return 'Chọn đơn nhập hàng nhận chi phí mua hàng.';
     const bad = this.rows().findIndex((r) => !r.description.trim() || !(r.amount && r.amount > 0));
     if (bad >= 0) return `Dòng ${bad + 1}: nhập nội dung và thành tiền lớn hơn 0.`;
     return '';
@@ -260,6 +296,8 @@ export class PurchaseBillsComponent {
   startCreate() {
     this.supplierId.set(''); this.date.set(isoDay(new Date())); this.series.set(''); this.invoiceNo.set(''); this.invoiceDate.set(''); this.description.set('');
     this.rows.set([blankRow()]);
+    this.purchaseOrderId.set('');
+    this.basis.set('GIA_TRI');
     this.failure.set('');
     this.attempted.set(false);
     this.cancelling.set(null);
@@ -280,13 +318,15 @@ export class PurchaseBillsComponent {
       supplierId: this.supplierId(), date: this.date(), description: this.description().trim() || undefined,
       invoiceSeries: this.series().trim() || undefined, invoiceNo: this.invoiceNo().trim() || undefined, invoiceDate: this.invoiceDate() || undefined,
       lines: this.rows().map((r) => ({ accountCode: r.accountCode, description: r.description.trim(), amount: Math.round(r.amount ?? 0), vatRate: r.vatRate })),
+      ...(this.hasLanded() ? { purchaseOrderId: this.purchaseOrderId(), allocationBasis: this.basis() } : {}),
     };
     this.busy.set(true);
     this.failure.set('');
     try {
       const b = await this.api.post<PurchaseBillView>('/purchase-bills', body);
       this.creating.set(false);
-      this.notice.set(`Đã ghi hoá đơn ${b.code}: ${formatVnd(b.total)} (thuế ${formatVnd(b.vat)}) — công nợ phải trả nhà cung cấp tăng.`);
+      const landed = b.purchaseOrderCode ? ` Chi phí mua hàng đã phân bổ vào giá nhập của đơn ${b.purchaseOrderCode}.` : '';
+      this.notice.set(`Đã ghi hoá đơn ${b.code}: ${formatVnd(b.total)} (thuế ${formatVnd(b.vat)}) — công nợ phải trả nhà cung cấp tăng.${landed}`);
       await this.load();
     } catch (e) {
       this.failure.set(errorText(e));
@@ -301,7 +341,7 @@ export class PurchaseBillsComponent {
     try {
       await this.api.post<PurchaseBillView>(`/purchase-bills/${b.id}/cancel`, { reason: this.reason().trim() || undefined });
       this.cancelling.set(null);
-      this.notice.set(`Đã huỷ hoá đơn ${b.code}; bút toán được đảo và công nợ phải trả tính lại.`);
+      this.notice.set(`Đã huỷ hoá đơn ${b.code}; bút toán được đảo và công nợ phải trả tính lại${b.purchaseOrderCode ? `, giá bình quân hàng của đơn ${b.purchaseOrderCode} trả về như trước` : ''}.`);
       await this.load();
     } catch (e) {
       this.failure.set(errorText(e));

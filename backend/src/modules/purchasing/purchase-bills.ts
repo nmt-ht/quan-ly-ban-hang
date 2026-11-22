@@ -2,7 +2,7 @@ import {
   BadRequestException, Body, ConflictException, Controller, Get, HttpCode, HttpStatus, Injectable, NotFoundException, Param, Post, Query, UseGuards,
 } from '@nestjs/common';
 import { Type } from 'class-transformer';
-import { ArrayMinSize, IsArray, IsIn, IsNumber, IsPositive, Matches, ValidateNested } from 'class-validator';
+import { ArrayMinSize, IsArray, IsIn, IsNumber, IsOptional, IsPositive, Matches, ValidateNested } from 'class-validator';
 import { Prisma } from '@prisma/client';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard.js';
 import { PermissionsGuard } from '../../auth/permissions.guard.js';
@@ -17,10 +17,14 @@ import { AuditService } from '../../audit/audit.service.js';
 import { vnd } from '../../audit/audit.diff.js';
 import { LedgerLineInput, LedgerService } from '../accounting/ledger.service.js';
 import { SupplierInvoiceDto, cleanSupplierInvoice } from './supplier-invoice.dto.js';
+import { allocateCost, avgAfterCost, avgBeforeCost, splitStockCogs } from './landed-cost.rules.js';
+import type { AllocationBasis } from './landed-cost.rules.js';
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 /** TK được hạch toán trên hoá đơn không qua kho: chi phí bán hàng, quản lý, tài chính, khác và chi phí trả trước. Hàng tồn kho đi qua phiếu nhập kho, không qua đây. */
 export const BILL_ACCOUNTS = ['641', '642', '635', '811', '242'];
+/** "Tài khoản" của một dòng chi phí mua hàng: không phải TK, mà là lệnh phân bổ vào giá nhập hàng đã nhận của một đơn nhập. */
+export const GIA_NHAP = 'GIA_NHAP';
 export const VAT_RATES = [0, 5, 8, 10];
 
 export class PurchaseBillLineDto {
@@ -34,6 +38,9 @@ export class PurchaseBillDto extends SupplierInvoiceDto {
   @Text(60) supplierId!: string;
   @Matches(DAY, { message: 'Ngày phải có dạng YYYY-MM-DD' }) date!: string;
   @OptionalText(300) description?: string;
+  /** Đơn nhập nhận chi phí mua hàng (bắt buộc khi có dòng GIA_NHAP). */
+  @OptionalText(60) purchaseOrderId?: string;
+  @IsOptional() @IsIn(['GIA_TRI', 'SO_LUONG'], { message: 'Phân bổ theo giá trị hoặc số lượng' }) allocationBasis?: AllocationBasis;
   @IsArray() @ArrayMinSize(1, { message: 'Thêm ít nhất một dòng chi phí' }) @ValidateNested({ each: true }) @Type(() => PurchaseBillLineDto)
   lines!: PurchaseBillLineDto[];
 }
@@ -45,6 +52,8 @@ export class CancelBillDto {
 const INCLUDE = {
   lines: { orderBy: { sortOrder: 'asc' } },
   supplier: { select: { code: true, name: true } },
+  purchaseOrder: { select: { code: true } },
+  allocations: true,
 } as const satisfies Prisma.PurchaseBillInclude;
 type Row = Prisma.PurchaseBillGetPayload<{ include: typeof INCLUDE }>;
 
@@ -54,8 +63,20 @@ export function billToApi(b: Row) {
     date: toDay(b.date)!, description: b.description, invoiceSeries: b.invoiceSeries, invoiceNo: b.invoiceNo, invoiceDate: toDay(b.invoiceDate),
     taxable: b.taxable.toNumber(), vat: b.vat.toNumber(), total: b.total.toNumber(),
     isCancelled: b.isCancelled, cancelReason: b.cancelReason,
+    purchaseOrderId: b.purchaseOrderId, purchaseOrderCode: b.purchaseOrder?.code ?? null, allocationBasis: b.allocationBasis,
+    allocations: b.allocations.map((a) => ({ productId: a.productId, amount: a.amount.toNumber(), toStock: a.toStock.toNumber(), toCogs: a.toCogs.toNumber() })),
     lines: b.lines.map((l) => ({ id: l.id, accountCode: l.accountCode, description: l.description, amount: l.amount.toNumber(), vatRate: l.vatRate.toNumber() })),
   };
+}
+
+/** Chi phí mua hàng đã chia cho một mặt hàng của đơn nhập. */
+interface Allocation {
+  productId: string;
+  type: string;
+  amount: number;
+  toStock: number;
+  toCogs: number;
+  avgAfter: number;
 }
 
 /** Tổng chưa thuế, thuế và tổng thanh toán của các dòng (thuế làm tròn từng dòng, như hoá đơn). */
@@ -110,7 +131,8 @@ export class PurchaseBillsService {
         if (dup) throw new ConflictException(`Hoá đơn ${series ?? ''} ${no} của ${supplier.name} đã ghi ở ${dup.code}.`.replace('  ', ' '));
       }
 
-      const codes = [...new Set(dto.lines.map((l) => l.accountCode))];
+      const landed = dto.lines.filter((l) => l.accountCode === GIA_NHAP);
+      const codes = [...new Set(dto.lines.filter((l) => l.accountCode !== GIA_NHAP).map((l) => l.accountCode))];
       const bad = codes.find((c) => !BILL_ACCOUNTS.includes(c));
       if (bad) throw new BadRequestException(`Tài khoản ${bad} không dùng cho hoá đơn mua hàng không qua kho (chỉ ${BILL_ACCOUNTS.join(', ')}).`);
       const accts = await tx.account.findMany({ where: { code: { in: codes } }, select: { code: true, isDetail: true } });
@@ -118,21 +140,40 @@ export class PurchaseBillsService {
 
       const { taxable, vat, total } = billTotals(dto.lines);
       if (total <= 0) throw new BadRequestException('Tổng hoá đơn phải lớn hơn 0.');
+
+      // Chi phí mua hàng: phần chưa thuế của các dòng GIA_NHAP chia cho hàng đã nhận của đơn nhập, cộng vào giá bình quân.
+      let allocations: Allocation[] = [];
+      if (landed.length) {
+        if (!dto.purchaseOrderId) throw new BadRequestException('Chọn đơn nhập hàng nhận chi phí mua hàng.');
+        allocations = await this.allocate(tx, dto.purchaseOrderId, landed.reduce((s, l) => s + Math.round(l.amount), 0), dto.allocationBasis ?? 'GIA_TRI');
+      } else if (dto.purchaseOrderId) {
+        throw new BadRequestException('Chỉ gắn đơn nhập hàng khi có dòng chi phí mua hàng phân bổ vào giá nhập.');
+      }
+
       const code = await this.sequences.nextCode('HM', tx);
       const bill = await tx.purchaseBill.create({
         data: {
           code, supplierId: dto.supplierId, date: fromDay(day)!, description: dto.description ?? null,
           invoiceSeries: series, invoiceNo: no, invoiceDate: fromDay(invoiceDate),
           taxable, vat, total, createdById: user.id,
+          purchaseOrderId: landed.length ? dto.purchaseOrderId : null, allocationBasis: landed.length ? (dto.allocationBasis ?? 'GIA_TRI') : null,
           lines: { create: dto.lines.map((l, i) => ({ accountCode: l.accountCode, description: l.description, amount: Math.round(l.amount), vatRate: l.vatRate, sortOrder: i })) },
+          allocations: { create: allocations.map((a) => ({ productId: a.productId, amount: a.amount, toStock: a.toStock, toCogs: a.toCogs })) },
         },
         include: INCLUDE,
       });
+      for (const a of allocations) await tx.product.update({ where: { id: a.productId }, data: { avgCost: a.avgAfter } });
 
-      // Sổ cái: Nợ TK chi phí (từng TK) + Nợ 133 (VAT đầu vào) / Có 331 (phải trả NCC).
+      // Sổ cái: Nợ TK chi phí (từng TK) + Nợ 133 (VAT đầu vào) / Có 331 (phải trả NCC). Chi phí mua hàng: Nợ 156 / 155 phần hàng
+      // còn trong kho, Nợ 632 phần của hàng đã bán.
       if (await this.ledger.isLedgerActive(tx, day)) {
         const byAccount = new Map<string, number>();
-        for (const l of dto.lines) byAccount.set(l.accountCode, (byAccount.get(l.accountCode) ?? 0) + Math.round(l.amount));
+        for (const l of dto.lines.filter((x) => x.accountCode !== GIA_NHAP)) byAccount.set(l.accountCode, (byAccount.get(l.accountCode) ?? 0) + Math.round(l.amount));
+        for (const a of allocations) {
+          const stock = a.type === 'THANH_PHAM' ? '155' : '156';
+          if (a.toStock) byAccount.set(stock, (byAccount.get(stock) ?? 0) + a.toStock);
+          if (a.toCogs) byAccount.set('632', (byAccount.get('632') ?? 0) + a.toCogs);
+        }
         const lines: LedgerLineInput[] = [...byAccount].map(([accountCode, debit]) => ({ accountCode, debit }));
         if (vat) lines.push({ accountCode: '133', debit: vat });
         lines.push({ accountCode: '331', credit: total, partnerType: 'NHA_CUNG_CAP', supplierId: dto.supplierId });
@@ -150,6 +191,42 @@ export class PurchaseBillsService {
     });
   }
 
+  /**
+   * Chia `total` (chưa thuế) cho hàng đã nhận của đơn nhập (trừ phần đã trả NCC, bỏ dịch vụ). Mỗi mặt hàng: phần đi vào tồn kho
+   * theo tỷ lệ hàng còn lại (mọi kho), phần còn lại là giá vốn của hàng đã bán; giá bình quân tăng theo phần vào tồn kho.
+   */
+  private async allocate(tx: Prisma.TransactionClient, orderId: string, total: number, basis: AllocationBasis): Promise<Allocation[]> {
+    const o = await tx.purchaseOrder.findUnique({
+      where: { id: orderId },
+      include: {
+        lines: { include: { product: { select: { type: true, avgCost: true } } } },
+        returns: { where: { isCancelled: false }, include: { lines: true } },
+      },
+    });
+    if (!o) throw new BadRequestException('Đơn nhập hàng không tồn tại.');
+    if (o.status === 'HUY') throw new BadRequestException(`Đơn ${o.code} đã huỷ — không phân bổ chi phí được.`);
+
+    const byProduct = new Map<string, { quantity: number; value: number; type: string; avg: number }>();
+    for (const l of o.lines) {
+      if (l.product.type === 'DICH_VU') continue;
+      const back = o.returns.flatMap((r) => r.lines).filter((x) => x.orderLineId === l.id).reduce((s, x) => s + x.quantity.toNumber(), 0);
+      const got = l.receivedQuantity.toNumber() - back;
+      if (got <= 0) continue;
+      const prev = byProduct.get(l.productId) ?? { quantity: 0, value: 0, type: l.product.type, avg: l.product.avgCost.toNumber() };
+      byProduct.set(l.productId, { ...prev, quantity: prev.quantity + got * l.ratioToBase.toNumber(), value: prev.value + got * l.unitPrice.toNumber() });
+    }
+    if (!byProduct.size) throw new BadRequestException(`Đơn ${o.code} chưa nhận hàng nhập kho nào (hoặc đã trả hết) — chưa có hàng để phân bổ chi phí.`);
+
+    const shares = allocateCost(total, [...byProduct].map(([key, v]) => ({ key, quantity: v.quantity, value: v.value })), basis);
+    const stock = await tx.stockLevel.groupBy({ by: ['productId'], where: { productId: { in: [...byProduct.keys()] } }, _sum: { quantity: true } });
+    const onHand = new Map(stock.map((s) => [s.productId, Math.max(0, s._sum.quantity?.toNumber() ?? 0)]));
+    return [...byProduct].map(([productId, v]) => {
+      const amount = shares.get(productId) ?? 0;
+      const { toStock, toCogs } = splitStockCogs(amount, v.quantity, onHand.get(productId) ?? 0);
+      return { productId, type: v.type, amount, toStock, toCogs, avgAfter: avgAfterCost(v.avg, onHand.get(productId) ?? 0, toStock) };
+    });
+  }
+
   async cancel(id: string, reason: string | undefined, user: AuthUser) {
     return this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT "id" FROM "PurchaseBill" WHERE "id" = ${id} FOR UPDATE`;
@@ -161,6 +238,16 @@ export class PurchaseBillsService {
       const used = await tx.cashAllocation.findFirst({ where: { ref: b.code, voucher: { isCancelled: false } }, select: { voucher: { select: { code: true } } } });
       if (used) throw new BadRequestException(`${b.code} đã được đối trừ bằng phiếu ${used.voucher.code} — huỷ phiếu đó trước.`);
       await this.ledger.reverseEntriesFor(tx, 'PurchaseBill', b.id, { date: toDay(b.date)!, createdById: user.id, description: `Huỷ hoá đơn mua hàng ${b.code}` });
+      // Chi phí mua hàng đã cộng vào giá bình quân thì trả lại phần đó (theo tồn hiện tại).
+      for (const a of b.allocations) {
+        const toStock = a.toStock.toNumber();
+        if (!toStock) continue;
+        const [p, stock] = await Promise.all([
+          tx.product.findUnique({ where: { id: a.productId }, select: { avgCost: true } }),
+          tx.stockLevel.aggregate({ where: { productId: a.productId }, _sum: { quantity: true } }),
+        ]);
+        if (p) await tx.product.update({ where: { id: a.productId }, data: { avgCost: avgBeforeCost(p.avgCost.toNumber(), Math.max(0, stock._sum.quantity?.toNumber() ?? 0), toStock) } });
+      }
       const out = await tx.purchaseBill.update({ where: { id }, data: { isCancelled: true, cancelReason: reason ?? null, cancelledAt: new Date() }, include: INCLUDE });
       await this.audit.log(tx, {
         action: 'purchase_bill.cancel', entityType: 'PurchaseBill', entityId: b.id, entityCode: b.code,

@@ -1,5 +1,5 @@
 import {
-  ChangeDetectionStrategy, Component, ElementRef, HostListener, computed, input, model, signal, viewChild,
+  ChangeDetectionStrategy, Component, ElementRef, HostListener, computed, input, model, output, signal, viewChild,
 } from '@angular/core';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { foldVi } from '../format.util';
@@ -18,6 +18,8 @@ const SHOWN = 80;
 /** Height of the list (px, = 18 rem) and of the search row above it — used to decide where the panel opens. */
 const LIST_MAX = 288;
 const SEARCH_H = 48;
+/** Height of the "+ Thêm mới" row under the list. */
+const CREATE_H = 41;
 
 // Searchable select for lists that grow (khách hàng, nhà cung cấp, người dùng…): a trigger that reads like a select,
 // a panel with a search box (mã, tên, số điện thoại — không cần dấu) and the matching options. Same look and keys as
@@ -95,6 +97,20 @@ const SEARCH_H = 48;
             <li class="pp-empty">Còn {{ more().toLocaleString('vi-VN') }} kết quả — gõ thêm để thu hẹp</li>
           }
         </ul>
+        @if (createLabel()) {
+          <button
+            type="button"
+            class="ss-create"
+            [id]="listId + '-' + visible().length"
+            [class.is-active]="active() === visible().length"
+            (mousedown)="$event.preventDefault()"
+            (click)="startCreate()"
+            (mouseenter)="active.set(visible().length)"
+          >
+            <app-nav-icon name="plus" />
+            <span>{{ createLabel() }}@if (query().trim()) { <strong> “{{ query().trim() }}”</strong> }</span>
+          </button>
+        }
       </div>
     }
   `,
@@ -114,6 +130,10 @@ export class SearchSelectComponent {
   readonly inputId = input('');
   readonly disabled = input(false);
   readonly invalid = input(false);
+  /** Text of the "+ Thêm mới" row under the list (e.g. "Thêm khách hàng mới"); no row when empty. The parent opens its quick-create dialog. */
+  readonly createLabel = input('');
+  /** The row was chosen; carries what was typed in the search box so the dialog can start with it as the name. */
+  readonly create = output<string>();
   readonly value = model<string>('');
 
   private static seq = 0;
@@ -161,8 +181,8 @@ export class SearchSelectComponent {
     // the room it has, so the panel never runs off the screen.
     const below = window.innerHeight - r.bottom - 12;
     const above = r.top - 12;
-    const up = below < LIST_MAX + SEARCH_H && above > below;
-    const listMax = Math.max(120, Math.min(LIST_MAX, (up ? above : below) - SEARCH_H));
+    const up = below < LIST_MAX + SEARCH_H + (this.createLabel() ? CREATE_H : 0) && above > below;
+    const listMax = Math.max(120, Math.min(LIST_MAX, (up ? above : below) - SEARCH_H - (this.createLabel() ? CREATE_H : 0)));
     this.pos.set({
       top: r.bottom + 4, bottom: window.innerHeight - r.top + 4, left: Math.max(8, left), width: Math.min(width, window.innerWidth - 16), up, listMax,
     });
@@ -185,6 +205,13 @@ export class SearchSelectComponent {
     this.close();
   }
 
+  /** "+ Thêm mới": closes the panel and hands the typed text to the parent. */
+  startCreate(): void {
+    const typed = this.query().trim();
+    this.close(false);
+    this.create.emit(typed);
+  }
+
   onTriggerKey(e: KeyboardEvent): void {
     if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -193,7 +220,8 @@ export class SearchSelectComponent {
   }
 
   onSearchKey(e: KeyboardEvent): void {
-    const n = this.visible().length;
+    // The "+ Thêm mới" row is one step past the last option.
+    const n = this.visible().length + (this.createLabel() ? 1 : 0);
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       this.active.set(Math.min(n - 1, this.active() + 1));
@@ -206,6 +234,7 @@ export class SearchSelectComponent {
       e.preventDefault();
       const o = this.visible()[this.active()];
       if (o) this.choose(o);
+      else if (this.createLabel() && this.active() === this.visible().length) this.startCreate();
     } else if (e.key === 'Escape') {
       e.preventDefault();
       this.close();
@@ -215,7 +244,7 @@ export class SearchSelectComponent {
   }
 
   private scrollActive(): void {
-    setTimeout(() => this.host.nativeElement.querySelector('.pp-option.is-active')?.scrollIntoView({ block: 'nearest' }));
+    setTimeout(() => this.host.nativeElement.querySelector('.pp-option.is-active, .ss-create.is-active')?.scrollIntoView({ block: 'nearest' }));
   }
 
   @HostListener('document:mousedown', ['$event'])

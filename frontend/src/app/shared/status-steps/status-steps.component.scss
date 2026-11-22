@@ -1,0 +1,128 @@
+/* Hallmark · component: stepper · genre: modern-minimal · theme: custom (Sổ cái) · design-system: design.md
+ * states: done · current · todo (a read-only indicator: no hover / focus / loading / error — it is not a control)
+ * contrast: pass — marker boundary rule-strong ≥ 3:1, labels ink / ink-2 / muted ≥ 4.5:1
+ */
+
+:host {
+  display: block;
+  container-type: inline-size;
+  --ss-mark: 1.75rem;
+  --ss-gap: var(--space-xs);
+  --icon-size: 14px;
+}
+
+.ss-steps {
+  display: flex;
+  margin: 0;
+  padding: var(--space-3xs) 0;
+  list-style: none;
+}
+
+.ss-step {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 0;
+  min-width: 0;
+  gap: var(--ss-gap);
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+.ss-step:last-child {
+  flex: 0 0 auto;
+}
+
+// The line to the next marker, a hairline-thick bar that fills what the label leaves.
+.ss-step:not(:last-child)::after {
+  content: '';
+  flex: 1 1 auto;
+  min-width: var(--space-sm);
+  height: 2px;
+  margin-right: var(--ss-gap);
+  border-radius: 1px;
+  background: var(--color-rule);
+}
+
+.ss-step.is-done:not(:last-child)::after {
+  background: var(--color-accent);
+}
+
+.ss-mark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--ss-mark);
+  height: var(--ss-mark);
+  border: 1.5px solid var(--color-rule-strong);
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.ss-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ss-step.is-done {
+  color: var(--color-ink-2);
+}
+
+.ss-step.is-done .ss-mark {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+}
+
+.ss-step.is-current {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.ss-step.is-current .ss-mark {
+  border: 2px solid var(--color-accent);
+  background: var(--color-accent-tint);
+  color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-tint);
+}
+
+// Narrow container: a column, the line running down between the markers.
+@container (max-width: 40rem) {
+  .ss-steps {
+    flex-direction: column;
+  }
+
+  .ss-step,
+  .ss-step:last-child {
+    flex: none;
+    min-height: calc(var(--ss-mark) + var(--space-md));
+    align-items: flex-start;
+  }
+
+  .ss-step:last-child {
+    min-height: var(--ss-mark);
+  }
+
+  .ss-label {
+    padding-top: 0.2rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .ss-step:not(:last-child)::after {
+    position: absolute;
+    left: calc(var(--ss-mark) / 2 - 1px);
+    top: calc(var(--ss-mark) + 4px);
+    bottom: 4px;
+    width: 2px;
+    min-width: 0;
+    height: auto;
+    margin: 0;
+  }
+}

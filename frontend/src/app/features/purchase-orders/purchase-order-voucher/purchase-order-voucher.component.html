@@ -44,7 +44,9 @@
           <label for="v-supplier">Nhà cung cấp @if (editable()) { <span class="required-mark">*</span> }</label>
           @if (editable()) {
             <app-search-select inputId="v-supplier" [options]="supplierOptions()" [(value)]="supplierId"
-              placeholder="— Chọn nhà cung cấp —" searchPlaceholder="Tìm mã, tên, số điện thoại hoặc mã số thuế…" [invalid]="attempted() && !supplierId()" />
+              placeholder="— Chọn nhà cung cấp —" searchPlaceholder="Tìm mã, tên, số điện thoại hoặc mã số thuế…" [invalid]="attempted() && !supplierId()"
+              [createLabel]="qs.label()" (create)="qs.open($event)" />
+            <app-quick-supplier-dialog #qs (created)="supplierId.set($event.id)" />
           } @else {
             <p class="field-value"><span class="num">{{ supplier()?.code }}</span></p>
           }
