@@ -54,6 +54,10 @@
         var t = localStorage.getItem('nt.theme');
         if (t === 'dark' || (t !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('boot-dark');
         var b = JSON.parse(localStorage.getItem('nt.brand') || 'null');
+        // Nhiều doanh nghiệp: the remembered brand belongs to one mã (BrandService saves it as `tenant`); for another
+        // mã (typed on the login screen, or ?dn= in the link) the splash stays generic rather than show someone else's name.
+        var dn = (new URLSearchParams(location.search).get('dn') || localStorage.getItem('nt_tenant') || '').trim().toLowerCase();
+        if (b && (b.tenant || '') !== dn) b = null;
         if (b && b.name) document.getElementById('boot-name').textContent = b.name;
         var mark = document.getElementById('boot-mark');
         if (b && typeof b.icon === 'string' && b.icon.indexOf('data:image/') === 0) {

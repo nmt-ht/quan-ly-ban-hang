@@ -1,4 +1,5 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Req, Res, UseGuards } from '@nestjs/common';
+import type { Response } from 'express';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { IsBoolean, IsEmail, IsNotEmpty, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
 import { PlatformAuthService, PlatformGuard } from './platform-auth.js';
@@ -108,6 +109,27 @@ export class PlatformController {
   @HttpCode(HttpStatus.OK)
   migrate(@Param('code') code: string, @Req() req: Req) {
     return this.tenants.migrate(code, req.ip ?? null);
+  }
+
+  @UseGuards(PlatformGuard)
+  @Get('tenants/:code/stats')
+  stats(@Param('code') code: string) {
+    return this.tenants.stats(code);
+  }
+
+  /** The whole database as a pg_dump file (custom format). Streamed, never held in memory. */
+  @UseGuards(PlatformGuard)
+  @Get('tenants/:code/export')
+  async export(@Param('code') code: string, @Req() req: Req, @Res() res: Response) {
+    const { child, first, filename } = await this.tenants.openExport(code, req.ip ?? null);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'no-store');
+    // The client going away stops pg_dump; a pg_dump that fails halfway cuts the response so the file is not taken as whole.
+    res.on('close', () => child.kill());
+    child.once('close', (exit) => (exit === 0 ? res.end() : res.destroy()));
+    res.write(first);
+    child.stdout!.pipe(res, { end: false });
   }
 
   @UseGuards(PlatformGuard)

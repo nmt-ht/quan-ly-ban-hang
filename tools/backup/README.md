@@ -38,6 +38,12 @@ các file đã xong vẫn được tải lên, rồi lần chạy được đán
 Mỗi doanh nghiệp được tạo trên nền tảng có admin ban đầu nên luôn có ít nhất một người dùng; database nền tảng được
 kiểm tra bằng số dòng của `platform_tenant`.
 
+### Xuất dữ liệu một doanh nghiệp
+
+Actions › Backup DB › Run workflow, điền mã doanh nghiệp vào ô **only** (để trống là sao lưu tất cả). Workflow chỉ sao lưu
+doanh nghiệp đó, file `<mã>-YYYYMMDD.dump.enc` mã hoá bằng `BACKUP_PASSPHRASE`; giải mã và khôi phục như dưới đây.
+Trang Quản trị nền tảng có nút "Xuất dữ liệu" tải thẳng file `.dump` chưa mã hoá, nhưng chỉ chạy được trên máy chủ có `pg_dump`.
+
 ## Khôi phục
 
 ```bash

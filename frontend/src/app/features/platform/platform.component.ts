@@ -3,7 +3,7 @@ import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular
 import { FormsModule } from '@angular/forms';
 import { toDataURL } from 'qrcode';
 import { CopyButtonComponent } from '../../shared/copy-button/copy-button.component';
-import { NewTenant, PlatformApiService, PlatformAuditRow, PlatformTenant, TenantStatus, platformError } from './platform-api.service';
+import { NewTenant, PlatformApiService, PlatformAuditRow, PlatformTenant, TenantStats, TenantStatus, platformError } from './platform-api.service';
 
 const STATUS: Record<TenantStatus, { label: string; tone: string }> = {
   ACTIVE: { label: 'Đang hoạt động', tone: 'badge-success' },
@@ -56,6 +56,9 @@ export class PlatformComponent implements OnInit, OnDestroy {
   readonly busy = signal<string | null>(null);
   readonly notice = signal<{ text: string; error: boolean } | null>(null);
   readonly handover = signal<Handover | null>(null);
+  /** Per doanh nghiệp: its figures, 'loading' on the way, 'error' when its database did not answer. */
+  readonly stats = signal<Record<string, TenantStats | 'loading' | 'error'>>({});
+  readonly totalBytes = computed(() => Object.values(this.stats()).reduce((sum, s) => sum + (typeof s === 'object' ? s.databaseBytes : 0), 0));
   readonly counts = computed(() => {
     const list = this.tenants();
     return {
@@ -129,6 +132,7 @@ export class PlatformComponent implements OnInit, OnDestroy {
   signOut(): void {
     this.api.signOut();
     this.tenants.set([]);
+    this.stats.set({});
     this.audit.set(null);
     this.handover.set(null);
     this.stopPolling();
@@ -142,10 +146,51 @@ export class PlatformComponent implements OnInit, OnDestroy {
       if (res.tenants.some((t) => t.status === 'PROVISIONING')) this.startPolling();
       else this.stopPolling();
       if (this.audit()) this.audit.set(await this.api.audit());
+      this.loadStats(res.tenants);
     } catch (e) {
       if (this.api.token()) this.notice.set({ text: platformError(e), error: true });
     }
   }
+
+  /** Each doanh nghiệp once, in parallel and without waiting: a slow database only delays its own row. */
+  private loadStats(list: PlatformTenant[], force = false): void {
+    for (const t of list) {
+      if ((t.status !== 'ACTIVE' && t.status !== 'SUSPENDED') || (!force && t.code in this.stats())) continue;
+      this.stats.update((s) => ({ ...s, [t.code]: 'loading' }));
+      this.api.stats(t.code).then(
+        (s) => this.stats.update((all) => ({ ...all, [t.code]: s })),
+        () => this.stats.update((all) => ({ ...all, [t.code]: 'error' })),
+      );
+    }
+  }
+
+  reloadStats(): void {
+    this.stats.set({});
+    this.loadStats(this.tenants());
+  }
+
+  /** The file of the doanh nghiệp's whole database (pg_dump), saved by the browser. */
+  async exportData(t: PlatformTenant): Promise<void> {
+    if (!confirm(`Xuất toàn bộ dữ liệu của ${t.name}? File chứa dữ liệu thật của doanh nghiệp, hãy giữ ở nơi an toàn. Việc xuất được ghi vào nhật ký nền tảng.`)) return;
+    await this.run(t.code, async () => {
+      const { blob, filename } = await this.api.exportDump(t.code);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      this.notice.set({ text: `Đã xuất dữ liệu của ${t.name} (${filename}). Khôi phục bằng pg_restore, xem tools/backup/README.md.`, error: false });
+    });
+  }
+
+  /** Dung lượng: 12,3 MB. */
+  size(bytes: number): string {
+    if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024)).toLocaleString('vi-VN')} KB`;
+    if (bytes < 1024 ** 3) return `${(bytes / 1024 ** 2).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} MB`;
+    return `${(bytes / 1024 ** 3).toLocaleString('vi-VN', { maximumFractionDigits: 2 })} GB`;
+  }
+
 
   openCreate(): void {
     this.form = blankForm();

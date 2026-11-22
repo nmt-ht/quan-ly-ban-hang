@@ -22,6 +22,14 @@ export interface PlatformTenant {
   needsMigration: boolean;
 }
 
+/** GET /platform/tenants/:code/stats: read from the doanh nghiệp's own database, so it is a call per row. */
+export interface TenantStats {
+  databaseBytes: number;
+  activeUsers: number;
+  totalUsers: number;
+  lastLoginAt: string | null;
+}
+
 export interface PlatformAuditRow {
   id: string;
   at: string;
@@ -132,6 +140,34 @@ export class PlatformApiService {
     return this.call(() =>
       firstValueFrom(this.http.post<{ email: string; password: string }>(`${this.base}/tenants/${encodeURIComponent(code)}/reset-password`, { email: email || undefined }, { headers: this.headers() })),
     );
+  }
+
+  stats(code: string) {
+    return this.call(() => firstValueFrom(this.http.get<TenantStats>(`${this.base}/tenants/${encodeURIComponent(code)}/stats`, { headers: this.headers() })));
+  }
+
+  /** The pg_dump file of one doanh nghiệp, as a Blob (an error comes back as JSON inside a Blob; it is unpacked here). */
+  exportDump(code: string) {
+    return this.call(async () => {
+      try {
+        const res = await firstValueFrom(
+          this.http.get(`${this.base}/tenants/${encodeURIComponent(code)}/export`, { headers: this.headers(), responseType: 'blob', observe: 'response' }),
+        );
+        const named = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1];
+        return { blob: res.body as Blob, filename: named ?? `${code}.dump` };
+      } catch (e) {
+        if (e instanceof HttpErrorResponse && e.error instanceof Blob) {
+          let error: unknown = null;
+          try {
+            error = JSON.parse(await e.error.text());
+          } catch {
+            /* not JSON: the generic message shows */
+          }
+          throw new HttpErrorResponse({ status: e.status, error });
+        }
+        throw e;
+      }
+    });
   }
 
   migrateAll() {

@@ -16,6 +16,11 @@ on:
   schedule:
     - cron: '17 20 * * *' # 03:17 giờ Việt Nam
   workflow_dispatch:
+    inputs:
+      only:
+        description: 'Chỉ sao lưu doanh nghiệp có mã này (để trống: sao lưu tất cả). Dùng khi cần xuất dữ liệu một doanh nghiệp.'
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -39,6 +44,7 @@ jobs:
       PLATFORM_SECRET: ${{ secrets.PLATFORM_SECRET }}
       DEFAULT_TENANT_CODE: ${{ vars.DEFAULT_TENANT_CODE || 'ninhtrang' }}
       TARGETS: ${{ runner.temp }}/targets.tsv
+      ONLY: ${{ inputs.only }}
     steps:
       - name: Kiểm tra secret
         run: |
@@ -77,6 +83,18 @@ jobs:
           SQL
           [ -f "$RUNNER_TEMP/tenants.tsv" ] && cat "$RUNNER_TEMP/tenants.tsv" >> "$TARGETS"
           rm -f "$RUNNER_TEMP/tenants.tsv"
+      - name: Chỉ một doanh nghiệp
+        if: env.ONLY != ''
+        run: |
+          # Chạy tay với ô "only": giữ đúng một dòng. $ONLY chỉ được so sánh, không chạy như lệnh.
+          umask 077
+          awk -F '\t' -v only="$ONLY" '$1 == only' "$TARGETS" > "$TARGETS.one"
+          if [ ! -s "$TARGETS.one" ]; then
+            rm -f "$TARGETS.one"
+            echo "::error::Không có doanh nghiệp này trong danh sách sao lưu (đang hoạt động hoặc tạm ngưng)"
+            exit 1
+          fi
+          mv "$TARGETS.one" "$TARGETS"
       - name: Sao lưu từng database
         run: |
           # Một database lỗi không chặn các database khác; bước cuối báo lỗi nếu có.

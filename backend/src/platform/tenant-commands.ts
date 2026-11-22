@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { ChildProcess, spawn } from 'node:child_process';
 import { readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -57,6 +57,46 @@ export function migrateDeploy(databaseUrl: string): Promise<CommandResult> {
 /** A TypeScript script under prisma/ (seed.ts, seed-demo.ts), run through tsx. */
 export function runScript(script: string, env: Record<string, string>): Promise<CommandResult> {
   return runNode(['--import', 'tsx', join(BACKEND_ROOT, script)], env);
+}
+
+/** pg_dump's missing-program error: the caller turns it into the way round (the Backup DB workflow). */
+export const PG_DUMP_MISSING = 'PG_DUMP_MISSING';
+
+/** Connection settings for pg_dump as PG* variables, so the password never shows in the process list. */
+function pgEnv(databaseUrl: string): Record<string, string> {
+  const u = new URL(databaseUrl);
+  const env: Record<string, string> = {
+    PGHOST: u.hostname,
+    PGPORT: u.port || '5432',
+    PGUSER: decodeURIComponent(u.username),
+    PGPASSWORD: decodeURIComponent(u.password),
+    PGDATABASE: decodeURIComponent(u.pathname.replace(/^\//, '')),
+    PGCONNECT_TIMEOUT: '30',
+  };
+  const ssl = u.searchParams.get('sslmode');
+  if (ssl) env.PGSSLMODE = ssl;
+  return env;
+}
+
+/**
+ * Starts `pg_dump --format=custom` on one database and resolves once its first bytes are out, so a wrong
+ * password or a missing program is still an error to report, not a half-sent download. The caller sends `first`,
+ * then pipes `child.stdout`. Rejects with PG_DUMP_MISSING when the program is not installed (PG_DUMP_PATH names it).
+ */
+export function openPgDump(databaseUrl: string): Promise<{ child: ChildProcess; first: Buffer }> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.env.PG_DUMP_PATH || 'pg_dump', ['--format=custom', '--no-owner', '--no-privileges'], {
+      env: { PATH: process.env.PATH ?? '', ...pgEnv(databaseUrl) },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let errors = '';
+    child.stderr.on('data', (chunk: Buffer) => {
+      errors = (errors + chunk.toString('utf8')).slice(-4000);
+    });
+    child.once('error', (err: NodeJS.ErrnoException) => reject(new Error(err.code === 'ENOENT' ? PG_DUMP_MISSING : err.message)));
+    child.stdout.once('readable', () => resolve({ child, first: (child.stdout.read() as Buffer | null) ?? Buffer.alloc(0) }));
+    child.once('close', (code) => reject(new Error(errorTail(errors) || `pg_dump thoát với mã ${code}`)));
+  });
 }
 
 /** The useful end of a failed command's output: the last lines, without connection strings. */

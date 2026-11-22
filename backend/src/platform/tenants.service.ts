@@ -1,4 +1,5 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import type { ChildProcess } from 'node:child_process';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
@@ -6,7 +7,7 @@ import { randomInt } from 'node:crypto';
 import { AuditService } from '../audit/audit.service.js';
 import { createDatabase, PlatformDbService, Tenant } from './platform-db.service.js';
 import { databaseOf, describeUrl, TENANT_CODE, tenantDbName, withDatabase } from './secret-box.js';
-import { errorTail, latestMigration, migrateDeploy, runScript } from './tenant-commands.js';
+import { errorTail, latestMigration, migrateDeploy, openPgDump, PG_DUMP_MISSING, runScript } from './tenant-commands.js';
 import { TenantClientsService } from './tenant-clients.service.js';
 
 export interface CreateTenantInput {
@@ -16,6 +17,15 @@ export interface CreateTenantInput {
   adminPassword?: string;
   databaseUrl?: string;
   demo?: boolean;
+}
+
+/** What the owner sees about a doanh nghiệp's database: read on demand, so one slow database never holds the list. */
+export interface TenantStats {
+  databaseBytes: number;
+  /** Tài khoản đang hoạt động (không tính đã tắt). */
+  activeUsers: number;
+  totalUsers: number;
+  lastLoginAt: Date | null;
 }
 
 export interface TenantView extends Tenant {
@@ -175,6 +185,45 @@ export class TenantsService {
     await this.platform.update(code, { status: 'ACTIVE' });
     await this.platform.audit('tenant.reopen', code, `Mở lại doanh nghiệp ${code}`, ip);
     return this.view(code);
+  }
+
+  /** Dung lượng database, số người dùng và lần đăng nhập gần nhất của một doanh nghiệp. */
+  async stats(code: string): Promise<TenantStats> {
+    const t = this.get(code);
+    if (t.status !== 'ACTIVE' && t.status !== 'SUSPENDED') throw new BadRequestException('Doanh nghiệp chưa tạo xong.');
+    const db = await this.clients.get(code, t.databaseUrl);
+    const [size, activeUsers, totalUsers, last] = await Promise.all([
+      db.$queryRaw<{ bytes: bigint }[]>`SELECT pg_database_size(current_database()) AS bytes`,
+      db.user.count({ where: { status: 'ACTIVE' } }),
+      db.user.count(),
+      db.user.aggregate({ _max: { lastLoginAt: true } }),
+    ]);
+    return { databaseBytes: Number(size[0]?.bytes ?? 0), activeUsers, totalUsers, lastLoginAt: last._max.lastLoginAt };
+  }
+
+  /**
+   * Xuất toàn bộ dữ liệu một doanh nghiệp bằng pg_dump (định dạng custom, khôi phục bằng pg_restore). A host
+   * without pg_dump (Render's Node image) gets the way round, the Backup DB workflow, instead of a file.
+   */
+  async openExport(code: string, ip: string | null): Promise<{ child: ChildProcess; first: Buffer; filename: string }> {
+    const t = this.get(code);
+    if (t.status !== 'ACTIVE' && t.status !== 'SUSPENDED') throw new BadRequestException('Doanh nghiệp chưa tạo xong, chưa có dữ liệu để xuất.');
+    let opened: { child: ChildProcess; first: Buffer };
+    try {
+      opened = await openPgDump(t.databaseUrl);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      await this.platform.audit('tenant.export_failed', code, `Xuất dữ liệu doanh nghiệp ${code} lỗi`, ip);
+      if (message === PG_DUMP_MISSING) {
+        throw new ServiceUnavailableException(
+          `Máy chủ này chưa cài pg_dump nên không xuất trực tiếp được. Chạy workflow "Backup DB" trên GitHub với ô "only" = ${code}, rồi giải mã file theo tools/backup/README.md.`,
+        );
+      }
+      throw new BadRequestException(`Xuất dữ liệu lỗi: ${errorTail(message)}`);
+    }
+    await this.platform.audit('tenant.export', code, `Xuất dữ liệu doanh nghiệp ${code} (pg_dump)`, ip);
+    const day = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    return { ...opened, filename: `${code}-${day}.dump` };
   }
 
   /** prisma migrate deploy on one doanh nghiệp's database (start-up does it for all: prisma/migrate-tenants.ts). */

@@ -88,6 +88,12 @@
         <div><span class="num">{{ counts().active }}</span> đang hoạt động</div>
         @if (counts().suspended) { <div><span class="num">{{ counts().suspended }}</span> tạm ngưng</div> }
         @if (counts().failed) { <div class="text-danger"><span class="num">{{ counts().failed }}</span> tạo lỗi</div> }
+        @if (totalBytes()) {
+          <div title="Tổng dung lượng các database doanh nghiệp (không tính database nền tảng). Gói Neon miễn phí dùng chung một hạn mức cho cả project.">
+            <span class="num">{{ size(totalBytes()) }}</span> dữ liệu
+            <button type="button" class="link-btn" (click)="reloadStats()">Đo lại</button>
+          </div>
+        }
         <div class="pf-version">
           Cấu trúc dữ liệu mới nhất <span class="mono">{{ latestMigration() ?? '—' }}</span>
           @if (counts().behind) {
@@ -181,6 +187,7 @@
                 <th scope="col">Trạng thái</th>
                 <th scope="col">Quản trị</th>
                 <th scope="col">Cơ sở dữ liệu</th>
+                <th scope="col">Sử dụng</th>
                 <th scope="col">Tạo lúc</th>
                 <th scope="col"><span class="visually-hidden">Thao tác</span></th>
               </tr>
@@ -221,6 +228,23 @@
                     <span class="mono">{{ t.database }}</span>
                     <div class="pf-sub">{{ t.managed ? 'Tạo bởi nền tảng' : 'Có sẵn' }}@if (t.migratedAt) {, cập nhật {{ t.migratedAt | date: 'dd/MM/yyyy HH:mm' }}}</div>
                   </td>
+                  <td>
+                    @let st = stats()[t.code];
+                    @if (st === 'loading') {
+                      <span class="pf-muted" role="status">Đang đo…</span>
+                    } @else if (st === 'error') {
+                      <span class="text-warning">Không đọc được</span>
+                      <div class="pf-sub">Database không trả lời</div>
+                    } @else if (st) {
+                      <div><span class="num">{{ size(st.databaseBytes) }}</span></div>
+                      <div class="pf-sub">
+                        {{ st.activeUsers }} người dùng@if (st.totalUsers > st.activeUsers) { ({{ st.totalUsers - st.activeUsers }} đã tắt)}
+                      </div>
+                      <div class="pf-sub">{{ st.lastLoginAt ? 'Đăng nhập gần nhất ' + (st.lastLoginAt | date: 'dd/MM/yyyy HH:mm') : 'Chưa có ai đăng nhập' }}</div>
+                    } @else {
+                      —
+                    }
+                  </td>
                   <td class="num">{{ t.createdAt | date: 'dd/MM/yyyy' }}</td>
                   <td class="pf-actions">
                     @switch (t.status) {
@@ -236,6 +260,7 @@
                             <button type="button" class="link-btn" (click)="startRename(t)">Đổi tên</button>
                             <button type="button" class="link-btn" (click)="startReset(t)">Cấp lại mật khẩu</button>
                             <button type="button" class="link-btn" (click)="migrate(t)" [disabled]="!!busy()">Cập nhật cấu trúc dữ liệu</button>
+                            <button type="button" class="link-btn" (click)="exportData(t)" [disabled]="!!busy()">Xuất dữ liệu (pg_dump)</button>
                             <app-copy-button [text]="loginLink(t.code)" label="đường dẫn đăng nhập" />
                           </div>
                         </details>
@@ -245,7 +270,7 @@
                 </tr>
                 @if (t.lastError) {
                   <tr class="pf-error-row">
-                    <td colspan="6">
+                    <td colspan="7">
                       <details>
                         <summary>Lỗi gần nhất</summary>
                         <pre class="mono">{{ t.lastError }}</pre>

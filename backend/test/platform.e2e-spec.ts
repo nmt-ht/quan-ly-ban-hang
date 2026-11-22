@@ -214,4 +214,35 @@ describe.skipIf(!enabled)('Nhiều doanh nghiệp (e2e)', () => {
       expect(actions.has(a), a).toBe(true);
     }
   }, 120_000);
+
+  it('Thống kê từng doanh nghiệp (dung lượng, người dùng, đăng nhập gần nhất) và xuất dữ liệu', async () => {
+    await api().get('/api/platform/tenants/e2e-a/stats').expect(401);
+    await api().get('/api/platform/tenants/khong-co/stats').set(bearer(owner)).expect(404);
+    const stats = (await api().get('/api/platform/tenants/e2e-a/stats').set(bearer(owner)).expect(200)).body;
+    expect(stats.databaseBytes).toBeGreaterThan(100_000);
+    expect(stats).toMatchObject({ activeUsers: 1, totalUsers: 1 });
+    expect(new Date(stats.lastLoginAt).getTime()).toBeGreaterThan(Date.now() - 10 * 60_000);
+
+    // pg_dump is not on every machine: with it the file is a custom-format dump, without it the way round is explained.
+    await api().get('/api/platform/tenants/e2e-a/export').expect(401);
+    const exported = await api()
+      .get('/api/platform/tenants/e2e-a/export')
+      .set(bearer(owner))
+      .ok(() => true)
+      .buffer(true)
+      .parse((res, done) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (c: Buffer) => chunks.push(c));
+        res.on('end', () => done(null, Buffer.concat(chunks)));
+      });
+    if (exported.status === 200) {
+      expect(exported.headers['content-disposition']).toMatch(/attachment; filename="e2e-a-\d{8}\.dump"/);
+      expect((exported.body as Buffer).subarray(0, 5).toString()).toBe('PGDMP');
+    } else {
+      expect(exported.status).toBe(503);
+      expect((exported.body as Buffer).toString()).toContain('Backup DB');
+    }
+    const audit = (await api().get('/api/platform/audit').set(bearer(owner)).expect(200)).body as { action: string }[];
+    expect(audit.some((r) => r.action === (exported.status === 200 ? 'tenant.export' : 'tenant.export_failed'))).toBe(true);
+  }, 60_000);
 });
