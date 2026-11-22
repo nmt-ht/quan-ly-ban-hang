@@ -26,12 +26,14 @@ export const NAV_GROUPS: NavGroup[] = [
   { label: 'Mua hàng', links: [
     { label: 'Nhà cung cấp', path: '/nha-cung-cap', icon: 'supplier' },
     { label: 'Đơn mua hàng', path: '/mua-hang', icon: 'cart' },
+    { label: 'Hợp đồng mua', path: '/hop-dong/mua', icon: 'voucher' },
     { label: 'Hoá đơn mua dịch vụ', path: '/hoa-don-mua', icon: 'receipt' },
     { label: 'Công nợ phải trả', path: '/cong-no/nha-cung-cap', icon: 'ledger-out' },
   ]},
   { label: 'Bán hàng', links: [
     { label: 'Khách hàng', path: '/khach-hang', icon: 'customers' },
     { label: 'Báo giá', path: '/bao-gia', icon: 'voucher' },
+    { label: 'Hợp đồng bán', path: '/hop-dong/ban', icon: 'voucher' },
     { label: 'Chính sách giá', path: '/bang-gia', icon: 'tag' },
     { label: 'Chương trình khuyến mại', path: '/khuyen-mai', icon: 'percent' },
     { label: 'Chứng từ bán hàng', path: '/don-hang', icon: 'receipt' },

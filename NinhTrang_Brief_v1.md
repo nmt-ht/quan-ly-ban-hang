@@ -53,7 +53,7 @@ Mọi commit dưới đây đã push lên `origin/master` (đỉnh `fedeb1e`).
 3. Theo dõi dung lượng Neon: gói miễn phí dùng chung một hạn mức lưu trữ cho mọi database của project; ảnh đang lưu dạng data URL trong DB nên 1.2 (R2/S3) giờ quan trọng hơn. Cân nhắc nâng gói khi có khách thật; Render free ngủ sau 15 phút cũng nên nâng cho khách trả tiền.
 4. Xem lại giao diện mới trên trình duyệt (desktop + điện thoại), nhất là Tổng quan và menu tài khoản.
 5. Đóng ba lỗ nghiệp vụ còn lại (giá sàn cho Sale theo MISA: không bán dưới giá tối thiểu trừ khi có quyền; chặn huỷ phiếu thu làm quỹ âm; cho xưởng xem đơn gốc chỉ đọc).
-6. Trang nền tảng: thêm dung lượng DB, số người dùng, lần đăng nhập gần nhất của từng doanh nghiệp; xuất dữ liệu một doanh nghiệp (pg_dump) khi khách ngừng dùng.
+6. ~~Trang nền tảng: dung lượng DB, số người dùng, lần đăng nhập gần nhất; xuất dữ liệu một doanh nghiệp~~ — xong 22/11/2026 (chưa commit; xuất cần pg_dump trên máy chủ, Render dùng workflow Backup DB với ô only).
 7. Việc treo nhỏ: in K80 thật, quét VietQR thật, phân trang chuyến / lệnh SX khi số lượng lớn.
 
 ## Việc đầu tiên khi áp xong

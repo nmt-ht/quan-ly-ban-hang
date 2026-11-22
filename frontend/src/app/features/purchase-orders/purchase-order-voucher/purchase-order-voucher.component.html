@@ -81,6 +81,17 @@
           <span class="field-label">Điện thoại</span>
           <p class="field-value num">{{ supplier()?.contactPhone || '—' }}</p>
         </div>
+        @if (contractOptions().length || contractId()) {
+          <div class="field span-2">
+            <label for="v-contract">Hợp đồng</label>
+            @if (editable()) {
+              <app-search-select inputId="v-contract" [options]="contractOptions()" [(value)]="contractId" emptyLabel="— Không gắn hợp đồng —"
+                placeholder="— Không gắn hợp đồng —" searchPlaceholder="Tìm mã, số hợp đồng hoặc trích yếu…" />
+            } @else {
+              <p class="field-value">@if (contractOf(); as c) { <a [routerLink]="['/hop-dong/chi-tiet', c.id]">{{ c.code }}</a> · {{ c.title }} } @else { — }</p>
+            }
+          </div>
+        }
         <div class="field span-2">
           <label for="v-note">Diễn giải</label>
           @if (editable()) {

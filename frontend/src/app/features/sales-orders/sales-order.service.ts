@@ -20,6 +20,8 @@ export interface SalesOrderDraft {
   orderDate: string;
   neededByDate?: string;
   salesRep: string;
+  /** Hợp đồng bán mà đơn này thực hiện (bỏ trống = không gắn). */
+  contractId?: string;
   discountAmount: number;
   /** Khuyến mãi theo tổng đơn đã áp vào chiết khấu cả đơn. */
   promotionId?: string;

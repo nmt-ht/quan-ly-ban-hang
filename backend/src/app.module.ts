@@ -17,6 +17,7 @@ import { ProductsModule } from './modules/products/products.module.js';
 import { SuppliersModule } from './modules/suppliers/suppliers.module.js';
 import { TagsModule } from './modules/tags/tags.module.js';
 import { VehiclesModule } from './modules/vehicles/vehicles.module.js';
+import { ContractsModule } from './modules/contracts/contracts.module.js';
 import { InventoryModule } from './modules/inventory/inventory.module.js';
 import { PurchasingModule } from './modules/purchasing/purchasing.module.js';
 import { SalesModule } from './modules/sales/sales.module.js';
@@ -50,6 +51,7 @@ import { AllExceptionsFilter } from './common/all-exceptions.filter.js';
     CustomersModule,
     SuppliersModule,
     VehiclesModule,
+    ContractsModule,
     CashCatalogModule,
     // Đợt 2 — kho
     InventoryModule,

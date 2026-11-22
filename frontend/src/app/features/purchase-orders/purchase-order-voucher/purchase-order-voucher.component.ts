@@ -37,6 +37,7 @@ import { AuditHistoryComponent } from '../../../shared/audit/audit-history.compo
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 import { PickableWarehousesPipe } from '../../../shared/pickable-warehouses.pipe';
 import type { ReorderDraft } from '../../inventory/reorder.rules';
+import { pickableContracts } from '../../contracts/contract.rules';
 import { SearchOption, SearchSelectComponent } from '../../../shared/search-select/search-select.component';
 import { StatusStepsComponent } from '../../../shared/status-steps/status-steps.component';
 import { QuickSupplierDialogComponent } from '../../../shared/quick-create/quick-supplier-dialog.component';
@@ -125,6 +126,20 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
   readonly supplierId = signal('');
   readonly date = signal(isoDay(new Date()));
   readonly note = signal('');
+  // ---------- hợp đồng ----------
+  readonly contractId = signal('');
+  /** Hợp đồng còn nhận được đơn của đối tác này (cộng hợp đồng đơn vốn đã gắn). */
+  readonly contractOptions = computed<SearchOption[]>(() =>
+    pickableContracts(this.data.contracts(), 'MUA', this.supplierId(), this.order()?.contractId).map((c) => ({
+      value: c.id, code: c.code, label: c.title, hint: c.contractNo ?? '', search: c.contractNo ?? '',
+    })),
+  );
+  readonly contractOf = computed(() => this.data.contracts().find((c) => c.id === this.contractId()));
+  /** Chỉ gửi hợp đồng còn khớp đối tác (đổi khách / nhà cung cấp thì hợp đồng cũ tự bỏ). */
+  private effectiveContract(): string | undefined {
+    return this.contractOptions().some((o) => o.value === this.contractId()) ? this.contractId() : undefined;
+  }
+
   readonly lines = signal<DraftLine[]>([emptyLine()]);
   readonly attempted = signal(false);
   readonly tab = signal<'hang' | 'phieu' | 'hoa-don' | 'tra-hang' | 'nhat-ky'>('hang');
@@ -169,6 +184,7 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
         this.supplierId.set(o?.supplierId ?? preset);
         this.date.set(o ? o.date.slice(0, 10) : isoDay(new Date()));
         this.note.set(o?.note ?? '');
+        this.contractId.set(o?.contractId ?? '');
         // "Gợi ý lập đơn nhập" (Tồn kho) hands over the lines to buy in history.state — nothing is saved until Lập đơn.
         const reorder = id ? [] : ((history.state as Partial<ReorderDraft> | null)?.reorder ?? []);
         this.baseline = '';
@@ -403,6 +419,7 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
       supplierId: this.supplierId(),
       date: this.date(),
       note: this.note().trim(),
+      contractId: this.effectiveContract(),
       lines: this.validLines().map((l) => this.toLine(l)),
     };
     const id = this.id();
@@ -560,7 +577,7 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
   private baseline = '';
 
   private snapshot(): string {
-    return JSON.stringify([this.supplierId(), this.date(), this.note(), this.lines().map(({ key, ...line }) => line)]);
+    return JSON.stringify([this.supplierId(), this.date(), this.note(), this.contractId(), this.lines().map(({ key, ...line }) => line)]);
   }
 
   hasUnsavedChanges(): boolean {

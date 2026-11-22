@@ -118,6 +118,12 @@ export const PERMISSION_MODULES: PermissionModule[] = [
     { code: 'quote.update', label: 'Sửa báo giá' },
     { code: 'quote.cancel', label: 'Huỷ báo giá' },
   ]},
+  { key: 'contract', label: 'Hợp đồng', permissions: [
+    { code: 'contract.view', label: 'Xem hợp đồng' },
+    { code: 'contract.create', label: 'Lập hợp đồng' },
+    { code: 'contract.update', label: 'Sửa hợp đồng' },
+    { code: 'contract.close', label: 'Thanh lý, huỷ hợp đồng' },
+  ]},
   { key: 'vehicle', label: 'Xe', permissions: [
     { code: 'vehicle.view', label: 'Xem danh mục xe' },
     { code: 'vehicle.create', label: 'Thêm xe' },

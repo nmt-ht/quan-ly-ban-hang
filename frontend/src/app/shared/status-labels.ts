@@ -1,6 +1,7 @@
 import {
   CustomerType, DeliveryTripStatus, ProductionOrderStatus, ProductType, PurchaseOrderStatus, QuotationStatus, SalesOrderStatus,
 } from '../core/models/domain.models';
+import { ContractStatus } from '../core/models/contract.models';
 import { tagClass } from './tag-class';
 
 export const PRODUCT_TYPE_LABEL: Record<ProductType, string> = {
@@ -40,6 +41,13 @@ export const QUOTATION_STATUS_LABEL: Record<QuotationView, string> = {
 };
 export const quotationView = (q: { status: QuotationStatus; validUntil?: string | null }, today: string): QuotationView =>
   q.status === 'MOI' && !!q.validUntil && q.validUntil.slice(0, 10) < today ? 'HET_HAN' : q.status;
+
+export const CONTRACT_STATUS_LABEL: Record<ContractStatus, string> = {
+  DANG_THUC_HIEN: 'Đang thực hiện',
+  DA_THANH_LY: 'Đã thanh lý',
+  HUY: 'Đã huỷ',
+};
+export const contractStatusClass = (s: ContractStatus) => tagClass('contract', s);
 
 export const SALES_ORDER_STATUS_LABEL: Record<SalesOrderStatus, string> = {
   CHO_SAN_XUAT: 'Chờ sản xuất',

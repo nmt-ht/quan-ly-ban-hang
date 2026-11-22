@@ -51,6 +51,8 @@ model User {
   purchaseReturns   PurchaseReturn[]    @relation("PurchaseReturnCreatedBy")
   quotations        Quotation[]         @relation("QuotationCreatedBy")
   quotationsAsRep   Quotation[]         @relation("QuotationRep")
+  contractsOwned    Contract[]          @relation("ContractOwner")
+  contractsCreated  Contract[]          @relation("ContractCreatedBy")
   promotions        Promotion[]         @relation("PromotionCreatedBy")
   debtReminders     DebtReminder[]      @relation("DebtReminderCreatedBy")
   einvoices         EInvoice[]          @relation("EInvoiceCreatedBy")
@@ -497,6 +499,7 @@ model Supplier {
 
   products       SupplierProduct[]
   purchaseOrders PurchaseOrder[]
+  contracts      Contract[]
   purchaseBills  PurchaseBill[]
   cashVouchers   CashVoucher[]
 }
@@ -530,6 +533,8 @@ model PurchaseOrder {
   date         DateTime            @db.Date
   status       PurchaseOrderStatus @default(NHAP)
   note         String?
+  contractId   String? // hợp đồng mua mà đơn này thực hiện
+  contract     Contract?           @relation(fields: [contractId], references: [id])
   sentDate     DateTime?           @db.Date
   receivedDate DateTime?           @db.Date
   cancelReason String?
@@ -701,6 +706,7 @@ model Customer {
   tags         CustomerTag[]
   salesOrders  SalesOrder[]
   quotations   Quotation[]
+  contracts    Contract[]
   cashVouchers CashVoucher[]
   reminders    DebtReminder[]
 }
@@ -770,6 +776,8 @@ model SalesOrder {
   // "Thu tiền ngay": each receipt by the customer auto-creates a phiếu thu into this account.
   payNowAccountId String?
   payNowAccount   CashAccount?     @relation(fields: [payNowAccountId], references: [id])
+  contractId      String? // hợp đồng bán mà đơn này thực hiện
+  contract        Contract?        @relation(fields: [contractId], references: [id])
   salesRepId      String?
   salesRep        User?            @relation("SalesOrderRep", fields: [salesRepId], references: [id])
   createdById     String
@@ -1781,4 +1789,53 @@ model PurchaseCostAllocation {
   toCogs    Decimal
 
   @@index([billId])
+}
+
+enum ContractKind {
+  BAN // hợp đồng bán: với khách hàng
+  MUA // hợp đồng mua: với nhà cung cấp
+}
+
+enum ContractStatus {
+  DANG_THUC_HIEN
+  DA_THANH_LY // hai bên đã thực hiện xong (hoặc chấm dứt thoả thuận)
+  HUY // huỷ bỏ
+}
+
+/**
+ * Hợp đồng bán (HDB…) / hợp đồng mua (HDM…): thoả thuận khung với một khách hàng hoặc nhà cung cấp. Đơn bán / đơn mua
+ * gắn vào hợp đồng để theo dõi giá trị đã thực hiện so với giá trị hợp đồng. Hợp đồng không ghi sổ, không động tới kho.
+ */
+model Contract {
+  id           String         @id @default(uuid())
+  code         String         @unique
+  kind         ContractKind
+  contractNo   String? // số hợp đồng ghi trên bản hai bên ký
+  title        String
+  customerId   String?
+  customer     Customer?      @relation(fields: [customerId], references: [id])
+  supplierId   String?
+  supplier     Supplier?      @relation(fields: [supplierId], references: [id])
+  signedDate   DateTime       @db.Date
+  startDate    DateTime?      @db.Date
+  endDate      DateTime?      @db.Date
+  value        Decimal        @default(0) // giá trị hợp đồng (gồm thuế); 0 = không ấn định
+  paymentTerms String?
+  description  String?
+  status       ContractStatus @default(DANG_THUC_HIEN)
+  closedDate   DateTime?      @db.Date // ngày thanh lý / huỷ
+  closeNote    String? // lý do thanh lý / huỷ
+  ownerId      String?
+  owner        User?          @relation("ContractOwner", fields: [ownerId], references: [id])
+  createdById  String
+  createdBy    User           @relation("ContractCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @default(now()) @updatedAt
+
+  salesOrders    SalesOrder[]
+  purchaseOrders PurchaseOrder[]
+
+  @@index([kind, status])
+  @@index([customerId])
+  @@index([supplierId])
 }

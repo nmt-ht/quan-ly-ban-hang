@@ -1,0 +1,212 @@
+@if (notFound()) {
+  <div class="card empty-state">
+    <h3>Không tìm thấy hợp đồng</h3>
+    <p>Hợp đồng có thể không thuộc quyền xem của bạn hoặc đường dẫn không đúng.</p>
+    <a class="btn" routerLink="/hop-dong/ban">Về danh sách hợp đồng</a>
+  </div>
+} @else {
+  <div class="voucher">
+    <header class="voucher-bar">
+      <a class="icon-action" [routerLink]="listPath()" aria-label="Về danh sách hợp đồng" title="Về danh sách"><app-nav-icon name="arrow-left" /></a>
+      <h1>
+        @switch (mode()) {
+          @case ('create') { Lập {{ kindLabel().toLowerCase() }} }
+          @case ('edit') { Sửa {{ kindLabel().toLowerCase() }} <span class="num">{{ contract()?.code }}</span> }
+          @default { {{ kindLabel() }} <span class="num">{{ contract()?.code }}</span> }
+        }
+      </h1>
+      @if (contract(); as c) {
+        @if (!editable()) { <app-copy-button [text]="c.code" label="mã hợp đồng" /> }
+        <span class="badge" [ngClass]="statusClass(c.status)">{{ statusLabel[c.status] }}</span>
+        @if (expiry() !== 'none') { <span class="badge" [class.text-danger]="expiry() === 'expired'">{{ expiryLabel[expiry() === 'expired' ? 'expired' : 'soon'] }}</span> }
+      }
+    </header>
+
+    @if (failure()) {
+      <div class="notice is-error" role="alert">
+        <span>{{ failure() }}</span>
+        <button type="button" class="notice-x" aria-label="Đóng thông báo" (click)="failure.set('')"><app-nav-icon name="x" /></button>
+      </div>
+    }
+
+    <section class="card voucher-head">
+      <div class="head-fields">
+        <div class="field span-2">
+          <label for="hd-title">Trích yếu @if (editable()) { <span class="required-mark">*</span> }</label>
+          @if (editable()) {
+            <input id="hd-title" type="text" maxlength="300" [ngModel]="title()" (ngModelChange)="title.set($event)" [attr.aria-invalid]="attempted() && !title().trim() ? 'true' : null" />
+          } @else {
+            <p class="field-value">{{ contract()?.title }}</p>
+          }
+        </div>
+        <div class="field">
+          <label for="hd-no">Số hợp đồng</label>
+          @if (editable()) {
+            <input id="hd-no" type="text" maxlength="60" placeholder="Như trên bản hai bên ký" [ngModel]="contractNo()" (ngModelChange)="contractNo.set($event)" />
+          } @else {
+            <p class="field-value num">{{ contract()?.contractNo || '—' }}</p>
+          }
+        </div>
+        <div class="field">
+          <label for="hd-value">Giá trị hợp đồng</label>
+          @if (editable()) {
+            <input id="hd-value" class="num" appMoney placeholder="0 = không ấn định" [ngModel]="value()" (ngModelChange)="value.set($event)" />
+          } @else {
+            <p class="field-value num">{{ contract()?.value ? money(contract()!.value) : 'Không ấn định' }}</p>
+          }
+        </div>
+
+        <div class="field span-2">
+          <label for="hd-partner">{{ partyLabel() }} @if (editable()) { <span class="required-mark">*</span> }</label>
+          @if (editable()) {
+            <app-search-select inputId="hd-partner" [options]="partnerOptions()" [(value)]="partnerId" [placeholder]="'— Chọn ' + partyLabel().toLowerCase() + ' —'" [invalid]="attempted() && !partnerId()" />
+          } @else {
+            <p class="field-value">{{ contract()?.partnerCode }} · {{ contract()?.partnerName }}</p>
+          }
+        </div>
+        <div class="field">
+          <label for="hd-signed">Ngày ký @if (editable()) { <span class="required-mark">*</span> }</label>
+          @if (editable()) {
+            <input id="hd-signed" appDate [ngModel]="signedDate()" (ngModelChange)="signedDate.set($event)" />
+          } @else {
+            <p class="field-value num">{{ day(signedDate()) }}</p>
+          }
+        </div>
+        <div class="field">
+          <label for="hd-owner">Người phụ trách</label>
+          @if (editable()) {
+            <app-search-select inputId="hd-owner" [options]="ownerOptions()" [(value)]="owner" emptyLabel="— Chưa chọn —" placeholder="— Chưa chọn —" searchPlaceholder="Tìm tên hoặc email nhân viên…" />
+          } @else {
+            <p class="field-value">{{ userName(owner()) }}</p>
+          }
+        </div>
+
+        <div class="field">
+          <label for="hd-start">Hiệu lực từ</label>
+          @if (editable()) {
+            <input id="hd-start" appDate [ngModel]="startDate()" (ngModelChange)="startDate.set($event)" />
+          } @else {
+            <p class="field-value num">{{ startDate() ? day(startDate()) : '—' }}</p>
+          }
+        </div>
+        <div class="field">
+          <label for="hd-end">Hiệu lực đến</label>
+          @if (editable()) {
+            <input id="hd-end" appDate [min]="startDate()" [ngModel]="endDate()" (ngModelChange)="endDate.set($event)" [attr.aria-invalid]="startDate() && endDate() && endDate() < startDate() ? 'true' : null" />
+          } @else {
+            <p class="field-value num" [class.text-danger]="expiry() === 'expired'">{{ endDate() ? day(endDate()) : 'Không thời hạn' }}</p>
+          }
+        </div>
+        <div class="field span-2">
+          <label for="hd-pay">Điều khoản thanh toán</label>
+          @if (editable()) {
+            <input id="hd-pay" type="text" maxlength="1000" [ngModel]="paymentTerms()" (ngModelChange)="paymentTerms.set($event)" />
+          } @else {
+            <p class="field-value">{{ paymentTerms() || '—' }}</p>
+          }
+        </div>
+        <div class="field span-full">
+          <label for="hd-desc">Diễn giải</label>
+          @if (editable()) {
+            <textarea id="hd-desc" rows="2" maxlength="2000" [ngModel]="description()" (ngModelChange)="description.set($event)"></textarea>
+          } @else {
+            <p class="field-value">{{ description() || '—' }}</p>
+          }
+        </div>
+        @if (contract(); as c) {
+          @if (c.status !== 'DANG_THUC_HIEN') {
+            <div class="field span-full">
+              <span class="field-label">{{ c.status === 'HUY' ? 'Huỷ' : 'Thanh lý' }} ngày {{ day(c.closedDate!) }}</span>
+              <p class="field-value">{{ c.closeNote || '—' }}</p>
+            </div>
+          }
+        }
+      </div>
+    </section>
+
+    @if (contract(); as c) {
+      <section class="card voucher-head">
+        <dl class="list-totals">
+          <div><dt>Giá trị hợp đồng</dt><dd class="num">{{ c.value ? money(c.value) : 'Không ấn định' }}</dd></div>
+          <div><dt>Đơn gắn vào ({{ c.orderCount }})</dt><dd class="num">{{ money(c.orderValue) }}@if (c.percent !== null) { · {{ c.percent }}% }</dd></div>
+          <div><dt>Đã {{ kind() === 'BAN' ? 'giao' : 'nhận' }} thực tế</dt><dd class="num">{{ money(c.receivedValue) }}</dd></div>
+          @if (c.remaining !== null) {
+            <div>
+              <dt>{{ c.over ? 'Vượt hợp đồng' : 'Còn lại' }}</dt>
+              <dd class="num" [class.text-danger]="c.over">{{ money(c.over ? -c.remaining : c.remaining) }}</dd>
+            </div>
+          }
+        </dl>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">Đơn {{ kind() === 'BAN' ? 'bán' : 'mua' }} thực hiện hợp đồng</h2>
+        @let orders = full()?.orders ?? [];
+        @if (orders.length) {
+          <table class="table">
+            <thead>
+              <tr><th>Số đơn</th><th>Ngày</th><th>Trạng thái</th><th class="num">Giá trị</th><th class="num">Đã {{ kind() === 'BAN' ? 'giao' : 'nhận' }}</th></tr>
+            </thead>
+            <tbody>
+              @for (o of orders; track o.id) {
+                <tr>
+                  <td><a [routerLink]="orderLink(o)">{{ o.code }}</a></td>
+                  <td class="num">{{ day(o.date) }}</td>
+                  <td>{{ orderStatus(o.status) }}</td>
+                  <td class="num">{{ money(o.total) }}</td>
+                  <td class="num">{{ money(o.received) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        } @else {
+          <p class="subtitle">Chưa có đơn nào gắn vào hợp đồng này. Chọn hợp đồng ngay trên {{ kind() === 'BAN' ? 'chứng từ bán hàng' : 'đơn mua hàng' }}.</p>
+        }
+      </section>
+
+      @if (!editable()) {
+        <section class="card history-card"><app-audit-history entityType="Contract" [entityId]="c.id" [code]="c.code" /></section>
+      }
+    }
+
+    @if (closing(); as k) {
+      <div class="confirm-strip" role="alertdialog" aria-labelledby="close-title">
+        <p id="close-title"><strong>{{ k === 'cancel' ? 'Huỷ' : 'Thanh lý' }} hợp đồng {{ contract()?.code }}?</strong> Hợp đồng không sửa và không nhận thêm đơn được nữa. Không hoàn tác được.</p>
+        <input appDate [ngModel]="closeDate()" (ngModelChange)="closeDate.set($event)" [max]="today" aria-label="Ngày" />
+        <input type="text" placeholder="Ghi chú (không bắt buộc)" aria-label="Ghi chú" maxlength="500" [ngModel]="closeNote()" (ngModelChange)="closeNote.set($event)" />
+        <div class="toolbar">
+          <button type="button" class="btn" (click)="closing.set(null)">Không</button>
+          <button type="button" class="btn btn-danger" [disabled]="saving()" (click)="confirmClose()">{{ k === 'cancel' ? 'Huỷ hợp đồng' : 'Thanh lý' }}</button>
+        </div>
+      </div>
+    }
+
+    <footer class="voucher-actions">
+      <div class="actions-left">
+        <p class="actions-hint" [class.text-danger]="attempted() && issues().length" role="status">
+          @if (editable()) {
+            {{ issues()[0] ?? 'Sẵn sàng lưu' }}
+          } @else if (contract(); as c) {
+            Lập bởi {{ userName(c.createdBy) }} · ngày ký <span class="num">{{ day(c.signedDate) }}</span>
+          }
+        </p>
+      </div>
+      <div class="toolbar">
+        @if (editable()) {
+          <button type="button" class="btn" (click)="cancelEditing()">Huỷ</button>
+          <button type="button" class="btn btn-primary" [disabled]="saving() || (attempted() && issues().length > 0)" (click)="save()">
+            {{ mode() === 'edit' ? 'Lưu thay đổi' : 'Lập hợp đồng' }}
+          </button>
+        } @else if (contract(); as c) {
+          @if (canClose()) {
+            <button type="button" class="btn btn-danger-ghost" (click)="startClosing('cancel')">Huỷ hợp đồng</button>
+            <button type="button" class="btn" (click)="startClosing('liquidate')">Thanh lý</button>
+          }
+          @if (canUpdate()) {
+            <a class="btn btn-primary" [routerLink]="['/hop-dong/chi-tiet', c.id, 'sua']"><app-nav-icon name="pencil" />Sửa</a>
+          }
+        }
+      </div>
+    </footer>
+  </div>
+}

@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { Prisma, PurchaseOrderStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { SequenceService } from '../../prisma/sequence.service.js';
+import { checkContractLink } from '../contracts/contract-link.js';
 import { InventoryService, StockActor, VoucherLineInput } from '../inventory/inventory.service.js';
 import { LedgerService } from '../accounting/ledger.service.js';
 import { fromDay, toDay, vnDay } from '../../common/text.js';
@@ -32,6 +33,8 @@ export interface OrderInput {
   supplierId: string;
   date: string; // YYYY-MM-DD
   note?: string;
+  /** Hợp đồng mua mà đơn này thực hiện; phải của đúng nhà cung cấp và còn đang thực hiện. */
+  contractId?: string;
   lines: OrderLineInput[];
   /** The updatedAt the editor loaded; a different one on the server means someone else saved first. */
   updatedAt?: string;
@@ -104,18 +107,20 @@ export class PurchaseOrdersService {
 
   /** An order as the edit diff compares it: NCC by name, lines as "VT0000001 × 10 Cái @ 50.000 ₫ · VAT 8%". */
   private async described(tx: Tx, o: {
-    supplierId: string; date: Date | string; note: string | null;
+    supplierId: string; date: Date | string; note: string | null; contractId?: string | null;
     lines: { productId: string; quantity: unknown; unitPrice: unknown; unitName?: string | null; vatRate?: unknown }[];
   }) {
-    const [supplier, products] = await Promise.all([
+    const [supplier, products, contract] = await Promise.all([
       tx.supplier.findUnique({ where: { id: o.supplierId }, select: { code: true, name: true } }),
       tx.product.findMany({ where: { id: { in: o.lines.map((l) => l.productId) } }, select: { id: true, code: true, baseUnit: true } }),
+      o.contractId ? tx.contract.findUnique({ where: { id: o.contractId }, select: { code: true } }) : null,
     ]);
     const p = new Map(products.map((x) => [x.id, x]));
     return {
       supplier: supplier ? `${supplier.code} · ${supplier.name}` : o.supplierId,
       date: typeof o.date === 'string' ? o.date : toDay(o.date),
       note: o.note,
+      contract: contract?.code ?? null,
       lines: o.lines.map((l) => `${p.get(l.productId)?.code ?? l.productId} × ${Number(l.quantity)} ${l.unitName ?? p.get(l.productId)?.baseUnit ?? ''} @ ${vnd(l.unitPrice)} · VAT ${Number(l.vatRate ?? 0)}%`),
     };
   }
@@ -163,10 +168,11 @@ export class PurchaseOrdersService {
   create(input: OrderInput, userId: string) {
     return this.prisma.$transaction(async (tx) => {
       await this.checkRefs(tx, input);
+      await checkContractLink(tx, input.contractId, 'MUA', input.supplierId);
       const o = await tx.purchaseOrder.create({
         data: {
           code: await this.sequences.nextCode('DN', tx),
-          supplierId: input.supplierId, date: fromDay(input.date)!, note: input.note ?? null, status: 'NHAP', createdById: userId,
+          supplierId: input.supplierId, date: fromDay(input.date)!, note: input.note ?? null, contractId: input.contractId ?? null, status: 'NHAP', createdById: userId,
           lines: { create: lineRows(input.lines) },
         },
       });
@@ -189,16 +195,17 @@ export class PurchaseOrdersService {
       }
       if (!canEdit(o.status)) throw new BadRequestException('Chỉ sửa được đơn ở trạng thái Nháp.');
       await this.checkRefs(tx, input);
+      await checkContractLink(tx, input.contractId, 'MUA', input.supplierId, o.contractId);
       const before = await this.described(tx, o);
       await tx.purchaseOrderLine.deleteMany({ where: { orderId: id } });
       await tx.purchaseOrder.update({
         where: { id },
-        data: { supplierId: input.supplierId, date: fromDay(input.date)!, note: input.note ?? null, lines: { create: lineRows(input.lines) } },
+        data: { supplierId: input.supplierId, date: fromDay(input.date)!, note: input.note ?? null, contractId: input.contractId ?? null, lines: { create: lineRows(input.lines) } },
       });
       const after = await this.described(tx, { ...input, note: input.note ?? null });
       await this.audit.log(tx, {
         action: 'purchase_order.update', entityType: 'PurchaseOrder', entityId: id, entityCode: o.code, summary: `Sửa đơn nhập hàng ${o.code}`,
-        changes: diff(before, after, { supplier: 'Nhà cung cấp', date: 'Ngày đặt', note: 'Diễn giải', lines: 'Dòng hàng' }),
+        changes: diff(before, after, { supplier: 'Nhà cung cấp', date: 'Ngày đặt', note: 'Diễn giải', contract: 'Hợp đồng', lines: 'Dòng hàng' }),
       });
       return this.findOne(id, tx);
     });

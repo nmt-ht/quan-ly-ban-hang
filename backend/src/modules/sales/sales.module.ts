@@ -71,6 +71,8 @@ export class SalesOrderDto {
   @IsOptional() @IsBoolean() overrideCreditLimit?: boolean;
   /** Lập đơn từ báo giá (chỉ khi tạo đơn). */
   @OptionalText(60) quotationId?: string;
+  /** Hợp đồng bán mà đơn thực hiện. */
+  @OptionalText(60) contractId?: string;
   @IsArray() @ArrayMinSize(1, { message: 'Thêm ít nhất một dòng hàng' }) @ValidateNested({ each: true }) @Type(() => SaleLineDto)
   lines!: SaleLineDto[];
   @IsOptional() @IsISO8601() updatedAt?: string;

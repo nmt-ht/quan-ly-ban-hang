@@ -10,6 +10,8 @@ export interface OrderDraft {
   supplierId: string;
   date: string;
   note?: string;
+  /** Hợp đồng mua mà đơn này thực hiện (bỏ trống = không gắn). */
+  contractId?: string;
   lines: PurchaseOrderLine[];
 }
 

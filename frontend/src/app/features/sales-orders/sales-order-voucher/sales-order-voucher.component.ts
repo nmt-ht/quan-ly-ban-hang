@@ -47,6 +47,7 @@ import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 import { PickableWarehousesPipe } from '../../../shared/pickable-warehouses.pipe';
+import { pickableContracts } from '../../contracts/contract.rules';
 import { SearchOption, SearchSelectComponent } from '../../../shared/search-select/search-select.component';
 import { StatusStepsComponent } from '../../../shared/status-steps/status-steps.component';
 import { QuickCustomerDialogComponent } from '../../../shared/quick-create/quick-customer-dialog.component';
@@ -173,6 +174,20 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   readonly orderDate = signal(isoDay(new Date()));
   readonly neededByDate = signal('');
   readonly salesRep = signal('');
+  // ---------- hợp đồng ----------
+  readonly contractId = signal('');
+  /** Hợp đồng còn nhận được đơn của đối tác này (cộng hợp đồng đơn vốn đã gắn). */
+  readonly contractOptions = computed<SearchOption[]>(() =>
+    pickableContracts(this.data.contracts(), 'BAN', this.customerId(), this.order()?.contractId).map((c) => ({
+      value: c.id, code: c.code, label: c.title, hint: c.contractNo ?? '', search: c.contractNo ?? '',
+    })),
+  );
+  readonly contractOf = computed(() => this.data.contracts().find((c) => c.id === this.contractId()));
+  /** Chỉ gửi hợp đồng còn khớp đối tác (đổi khách / nhà cung cấp thì hợp đồng cũ tự bỏ). */
+  private effectiveContract(): string | undefined {
+    return this.contractOptions().some((o) => o.value === this.contractId()) ? this.contractId() : undefined;
+  }
+
   readonly orderDiscount = signal<number | null>(null);
   /** Chiết khấu cả đơn gõ tay: khuyến mãi theo tổng đơn không ghi đè. */
   readonly orderDiscountManual = signal(false);
@@ -263,6 +278,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
         this.orderDate.set(o ? o.orderDate.slice(0, 10) : isoDay(new Date()));
         this.neededByDate.set(o?.neededByDate?.slice(0, 10) ?? '');
         this.salesRep.set(o?.salesRep ?? (quote?.salesRep || this.defaultRep()));
+        this.contractId.set(o?.contractId ?? '');
         this.orderDiscount.set(o?.discountAmount || quote?.discountAmount || null);
         const header = o ?? quote;
         this.orderPromotionId.set(header?.promotionId ?? null);
@@ -779,6 +795,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
       orderDate: this.orderDate(),
       neededByDate: this.neededByDate() || undefined,
       salesRep: this.salesRep(),
+      contractId: this.effectiveContract(),
       discountAmount: this.orderDiscount() ?? 0,
       promotionId: this.orderPromotionId() ?? undefined,
       payNowAccountId: this.payNow() && this.payAccountId() ? this.payAccountId() : undefined,
@@ -1074,7 +1091,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   private snapshot(): string {
     return JSON.stringify([
       this.customerId(), this.recipientName(), this.recipientPhone(), this.deliveryAddress(), this.description(), this.source(),
-      this.tagIds(), this.orderDate(), this.neededByDate(), this.salesRep(), this.orderDiscount(), this.payNow(), this.payAccountId(),
+      this.tagIds(), this.orderDate(), this.neededByDate(), this.salesRep(), this.contractId(), this.orderDiscount(), this.payNow(), this.payAccountId(),
       this.lines().map(({ key, ...line }) => line),
       this.saleType(), this.currency(), this.exchangeRate(),
     ]);

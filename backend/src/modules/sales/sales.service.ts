@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { CustomerType, Prisma, SaleType, SalesOrderStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { SequenceService } from '../../prisma/sequence.service.js';
+import { checkContractLink } from '../contracts/contract-link.js';
 import { InventoryService, VoucherLineInput } from '../inventory/inventory.service.js';
 import type { AuthUser } from '../../auth/auth.service.js';
 import { fromDay, toDay, vnDay } from '../../common/text.js';
@@ -75,6 +76,8 @@ export interface SalesOrderInput {
   overrideCreditLimit?: boolean;
   /** Lập đơn từ báo giá (Pha 1.4): the báo giá is marked Đã chốt and linked to the new order. */
   quotationId?: string;
+  /** Hợp đồng bán mà đơn này thực hiện; phải của đúng khách và còn đang thực hiện. */
+  contractId?: string;
   lines: SaleLineInput[];
   updatedAt?: string;
 }
@@ -125,14 +128,14 @@ const LSX_INCLUDE = {
 const ORDER_FIELDS = {
   customer: 'Khách hàng', recipientName: 'Người nhận', recipientPhone: 'Điện thoại nhận', deliveryAddress: 'Địa chỉ giao',
   description: 'Diễn giải', source: 'Nguồn đơn', saleType: 'Loại bán hàng', currency: 'Loại tiền', exchangeRate: 'Tỷ giá', orderDate: 'Ngày đặt', neededByDate: 'Ngày cần giao', salesRep: 'Người bán',
-  discountAmount: 'Chiết khấu cả đơn', payNow: 'Thu tiền ngay', tags: 'Thẻ', lines: 'Dòng hàng',
+  discountAmount: 'Chiết khấu cả đơn', payNow: 'Thu tiền ngay', contract: 'Hợp đồng', tags: 'Thẻ', lines: 'Dòng hàng',
 };
 
 /** The parts of an order the Sửa đơn diff compares, before names are looked up. */
 interface OrderShape {
   customerId: string; recipientName: string | null; recipientPhone: string | null; deliveryAddress: string | null;
   description: string | null; source: string | null; saleType: SaleType; currency: string | null; exchangeRate: unknown; orderDate: Date | null; neededByDate: Date | null;
-  discountAmount: unknown; payNowAccountId: string | null; salesRepId: string | null; tagIds: string[];
+  discountAmount: unknown; payNowAccountId: string | null; salesRepId: string | null; tagIds: string[]; contractId?: string | null;
   lines: { productId: string; quantity: unknown; unitName: string | null; unit: string; unitPrice: unknown; discountAmount: unknown; vatRate: unknown; length?: unknown; width?: unknown }[];
 }
 
@@ -140,7 +143,7 @@ type OrderRow = Prisma.SalesOrderGetPayload<{ include: typeof ORDER_INCLUDE }>;
 type LineRow = OrderRow['lines'][number];
 type LsxRow = Prisma.ProductionOrderGetPayload<{ include: typeof LSX_INCLUDE }>;
 
-const saleLine = (l: LineRow): SaleLine => ({
+export const saleLine = (l: LineRow): SaleLine => ({
   productId: l.productId, quantity: l.quantity.toNumber(), unitPrice: l.unitPrice.toNumber(), discountRate: l.discountRate?.toNumber() ?? null,
   discountAmount: l.discountAmount.toNumber(), vatRate: l.vatRate.toNumber(), receivedQuantity: l.receivedQuantity.toNumber(), ratioToBase: l.ratioToBase.toNumber(),
 });
@@ -206,16 +209,18 @@ export class SalesService {
 
   /** An order with names instead of ids, lines as "SP0000003 × 2 m² (120×80) @ 150.000 ₫ · CK 5.000 ₫ · VAT 8%". */
   private async described(tx: Tx, o: OrderShape) {
-    const [customer, rep, account, tags, products] = await Promise.all([
+    const [customer, rep, account, tags, products, contract] = await Promise.all([
       tx.customer.findUnique({ where: { id: o.customerId }, select: { code: true, name: true } }),
       o.salesRepId ? tx.user.findUnique({ where: { id: o.salesRepId }, select: { name: true } }) : null,
       o.payNowAccountId ? tx.cashAccount.findUnique({ where: { id: o.payNowAccountId }, select: { name: true } }) : null,
       o.tagIds.length ? tx.tag.findMany({ where: { id: { in: o.tagIds } }, select: { name: true } }) : [],
       tx.product.findMany({ where: { id: { in: o.lines.map((l) => l.productId) } }, select: { id: true, code: true } }),
+      o.contractId ? tx.contract.findUnique({ where: { id: o.contractId }, select: { code: true } }) : null,
     ]);
     const code = new Map(products.map((p) => [p.id, p.code]));
     return {
       ...o,
+      contract: contract?.code ?? null,
       customer: customer ? `${customer.code} · ${customer.name}` : o.customerId,
       saleType: SALE_TYPE_LABEL[o.saleType],
       salesRep: rep?.name ?? null,
@@ -376,6 +381,7 @@ export class SalesService {
     return this.prisma.$transaction(async (tx) => {
       const quote = input.quotationId ? await this.openQuotation(tx, input.quotationId, input.customerId) : null;
       const refs = await this.checkInput(tx, input, user, quote?.lines ?? [], quote?.discountAmount.toNumber() ?? 0);
+      await checkContractLink(tx, input.contractId, 'BAN', input.customerId);
       const credit = await this.checkCredit(tx, input, user);
       const lines = lineRows(input.lines);
       const status = deriveStatus({ status: 'CHO_SAN_XUAT', lines: lines.map(rowToSaleLine), receivedValue: 0 }, [], refs.isTp);
@@ -415,6 +421,7 @@ export class SalesService {
       const lsx = await tx.productionOrder.findMany({ where: { sourceOrderId: id } });
       if (!canEdit(this.state(o), lsx)) throw new BadRequestException('Đơn đã sản xuất hoặc đã giao, không sửa được.');
       const refs = await this.checkInput(tx, input, user, o.lines, o.discountAmount.toNumber());
+      await checkContractLink(tx, input.contractId, 'BAN', input.customerId, o.contractId);
       const credit = await this.checkCredit(tx, input, user, id);
       const lines = lineRows(input.lines);
       const before = await this.described(tx, { ...o, tagIds: o.tags.map((t) => t.tagId) });
@@ -1048,7 +1055,7 @@ function headerFields(input: SalesOrderInput) {
     saleType: input.saleType ?? 'TRONG_NUOC', currency: foreignCurrency(input.currency),
     exchangeRate: foreignCurrency(input.currency) ? input.exchangeRate ?? null : null,
     orderDate: fromDay(input.orderDate)!, neededByDate: fromDay(input.neededByDate), discountAmount: input.discountAmount || 0,
-    payNowAccountId: input.payNowAccountId ?? null, promotionId: input.promotionId ?? null,
+    payNowAccountId: input.payNowAccountId ?? null, promotionId: input.promotionId ?? null, contractId: input.contractId ?? null,
   };
 }
 

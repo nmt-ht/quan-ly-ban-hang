@@ -197,6 +197,8 @@ export interface PurchaseOrder {
   id: string;
   code: string;
   supplierId: string;
+  /** Hợp đồng mua mà đơn này thực hiện. */
+  contractId?: string | null;
   date: string;
   status: PurchaseOrderStatus;
   /** null: chức vụ không được xem giá nhập (server ẩn; xem seesPurchasePrices). */
@@ -330,6 +332,8 @@ export interface SalesOrder {
   id: string;
   code: string;
   customerId: string;
+  /** Hợp đồng bán mà đơn này thực hiện. */
+  contractId?: string | null;
   recipientName?: string;
   recipientPhone?: string;
   deliveryAddress?: string; // địa chỉ giao hàng (chép từ danh sách điểm giao của khách hoặc gõ tay)

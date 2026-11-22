@@ -126,6 +126,7 @@ kbd,
 .page-header .subtitle,
 .subtitle {
   margin: 0;
+  max-width: 85ch;
   color: var(--color-muted);
   font-size: var(--text-sm);
 }
@@ -1635,6 +1636,25 @@ textarea {
 
 // Uncarded section: heading over a hairline, stat tiles sit directly on paper
 // (avoids card-inside-card).
+.section-bare {
+  margin-bottom: var(--space-md);
+}
+
+// Whatever follows a heading, a figure strip or a button row inside a section keeps one step of air from it, and a section
+// that follows a filter bar does not touch it.
+.section-bare > :is(.toolbar, .list-totals):not(:last-child) {
+  margin-bottom: var(--space-xs);
+}
+
+.filters-bar + .section-bare,
+.filters-bar + .notice + .section-bare {
+  margin-top: var(--space-sm);
+}
+
+.section-bare > .rp-surface {
+  margin-bottom: var(--space-xs);
+}
+
 .section-bare > h3 {
   margin: 0 0 var(--space-xs);
   padding-bottom: var(--space-2xs);

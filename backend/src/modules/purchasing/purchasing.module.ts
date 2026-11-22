@@ -34,6 +34,8 @@ export class OrderDto {
   @Text(60) supplierId!: string;
   @Matches(DAY, DAY_MESSAGE) date!: string;
   @OptionalText(1000) note?: string;
+  /** Hợp đồng mua mà đơn thực hiện. */
+  @OptionalText(60) contractId?: string;
   @IsArray() @ArrayMinSize(1, { message: 'Thêm ít nhất một dòng hàng' }) @ValidateNested({ each: true }) @Type(() => OrderLineDto)
   lines!: OrderLineDto[];
   @IsOptional() @IsISO8601() updatedAt?: string;

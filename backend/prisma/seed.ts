@@ -83,6 +83,12 @@ const PERMISSION_MODULES: { key: string; permissions: { code: string; label: str
     { code: 'supplier.delete', label: 'Ngừng hợp tác nhà cung cấp' },
     { code: 'supplier.manage_product', label: 'Quản lý danh mục hàng của NCC' },
   ]},
+  { key: 'contract', permissions: [
+    { code: 'contract.view', label: 'Xem hợp đồng' },
+    { code: 'contract.create', label: 'Lập hợp đồng' },
+    { code: 'contract.update', label: 'Sửa hợp đồng' },
+    { code: 'contract.close', label: 'Thanh lý, huỷ hợp đồng' },
+  ]},
   { key: 'stock', permissions: [
     { code: 'stock.view', label: 'Xem tồn kho' },
     { code: 'stock.view_value', label: 'Xem giá trị tồn kho' },
@@ -193,7 +199,7 @@ const ALL_PERMISSION_CODES = PERMISSION_MODULES.flatMap((m) => m.permissions.map
 
 // Default grants of the 7 built-in roles. Keep identical to the frontend's
 // features/settings/roles-permissions/role.rules.ts (same ids, same codes):
-// CEO 111 · Quản lý 102 · Kế toán 52 · Sale 20 · Thủ kho 19 · NV giao hàng 6 · NV xưởng 5.
+// CEO 127 · Quản lý 118 · Kế toán 64 · Sale 22 · Thủ kho 19 · NV giao hàng 6 · NV xưởng 5.
 const WITHOUT_ADMIN = [
   'user.create', 'user.update', 'user.delete', 'user.reset_password',
   'position.create', 'position.update', 'position.delete', 'position.assign_permission',
@@ -206,7 +212,7 @@ const ACCOUNTANT = [
   'supplier.view', 'supplier.create', 'supplier.update', 'supplier.manage_product',
   'stock.view', 'stock.view_value',
   'purchase.view', 'purchase.create', 'purchase.update', 'purchase.approve', 'purchase.cancel', 'purchase.return', 'period.lock',
-  'order.view', 'order.view_all', 'order.return', 'quote.view', 'vehicle.view', 'vehicle.manage_cost', 'trip.view', 'production.view',
+  'order.view', 'order.view_all', 'order.return', 'quote.view', 'contract.view', 'contract.create', 'contract.update', 'contract.close', 'vehicle.view', 'vehicle.manage_cost', 'trip.view', 'production.view',
   'debt.view', 'debt.settle', 'debt.adjust', 'debt.remind',
   'voucher.view', 'voucher.create_receipt', 'voucher.create_payment', 'voucher.cancel', 'voucher.manage_category', 'voucher.manage_account',
   'report.dashboard', 'report.sales', 'report.stock', 'report.purchase', 'report.debt', 'report.cashflow', 'report.production', 'report.delivery',
@@ -216,7 +222,7 @@ const ACCOUNTANT = [
 const SALE = [
   'customer.view', 'customer.create', 'customer.update', 'customer.delete',
   'order.view', 'order.create', 'order.update', 'order.cancel', 'order.update_price',
-  'quote.view', 'quote.create', 'quote.update', 'quote.cancel',
+  'quote.view', 'quote.create', 'quote.update', 'quote.cancel', 'contract.view',
   'product.view', 'stock.view', 'tag.view', 'production.view', 'trip.view', 'report.dashboard', 'report.sales', 'einvoice.view',
 ];
 const STOREKEEPER = [

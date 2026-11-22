@@ -31,7 +31,7 @@ const VIEW_PERMISSION: Record<string, string> = {
   CashAccount: 'voucher.view', CashCategory: 'voucher.view', Customer: 'customer.view',
   Supplier: 'supplier.view', Product: 'product.view', Vehicle: 'vehicle.view', User: 'user.view',
   Role: 'position.view', Tag: 'tag.view', Warehouse: 'warehouse.view', ProductCategory: 'category.view',
-  CompanyInfo: 'company.view',
+  CompanyInfo: 'company.view', Contract: 'contract.view',
 };
 
 type Row = Awaited<ReturnType<PrismaService['auditLog']['findMany']>>[number];

@@ -1,3 +1,4 @@
+import { Contract } from '../models/contract.models';
 import { Injectable, inject, signal } from '@angular/core';
 import {
   AppUser, BomLine, CashVoucher, DeliveryTrip, ProductionOrder, PurchaseOrder, PriceList, Promotion, Quotation, SalesOrder, StockLevel, WarehouseVoucher, CashAccount, CashCategory, CompanyInfo, Customer, Product, ProductCategory, Role, Supplier, SupplierProduct, Tag, Vehicle,
@@ -101,6 +102,7 @@ export class CatalogLoader {
       this.data.salesOrders.set(orders);
       this.data.productionOrders.set(lsx);
       this.data.quotations.set(can('quote.view') ? await this.api.get<Quotation[]>('/quotations') : []);
+      this.data.contracts.set(can('contract.view') ? await this.api.get<Contract[]>('/contracts') : []);
       this.step(4);
       // Chuyến chưa xong + 90 ngày gần nhất; chuyến cũ hơn đọc theo id khi mở (Pha 1.1).
       this.data.deliveryTrips.set(await this.api.get<DeliveryTrip[]>(`/delivery-trips?recentDays=${RECENT_DAYS}`));

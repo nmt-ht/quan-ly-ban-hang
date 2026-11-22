@@ -1,3 +1,4 @@
+import { Contract } from '../models/contract.models';
 import { Injectable, signal } from '@angular/core';
 import {
   Product, ProductCategory, Warehouse, StockLevel, WarehouseVoucher, ProductionOrder,
@@ -32,6 +33,7 @@ export class DataStore {
   readonly salesOrders = signal<SalesOrder[]>([]);
 
   readonly quotations = signal<Quotation[]>([]);
+  readonly contracts = signal<Contract[]>([]);
 
   readonly priceLists = signal<PriceList[]>([]);
 
