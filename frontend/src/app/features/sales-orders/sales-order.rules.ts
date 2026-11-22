@@ -2,6 +2,7 @@ import {
   CustomerType, PriceListItem, Product, ProductionOrder, SaleType, SalesOrder, SalesOrderLine, SalesOrderStatus,
 } from '../../core/models/domain.models';
 import { round4 } from '../purchase-orders/purchase-order.rules';
+import { StatusStep, stepsAt } from '../../shared/status-steps/status-steps';
 
 // Business rules for Đơn hàng bán — pure functions, shared by the list, the voucher screen and
 // SalesOrderService. Money is VND, rounded to whole đồng.
@@ -210,6 +211,29 @@ export function linesNeedingLsx(o: SalesOrder, lsx: ProductionOrder[], isTp: (pr
   if (o.status === 'HUY' || isDelivered(o)) return [];
   const active = activeLsx(lsx);
   return o.lines.flatMap((l, i) => (isTp(l.productId) && !active.some((x) => x.productId === l.productId) ? [i] : []));
+}
+
+// ---------- thanh các bước ----------
+
+/**
+ * Đơn bán on the stepper: Lên đơn → (Sản xuất, only when it has thành phẩm) → Giao hàng → Hoàn thành.
+ * Giao một phần stays on "Giao hàng" until the order is closed (Kết thúc đơn); Trả toàn bộ ends it with the last step renamed.
+ */
+export function salesOrderSteps(o: Pick<SalesOrder, 'status' | 'closedDate'>, hasProduction: boolean): StatusStep[] {
+  const mid = hasProduction ? ['Sản xuất', 'Giao hàng'] : ['Giao hàng'];
+  const ship = hasProduction ? 2 : 1;
+  const labels = ['Lên đơn', ...mid, 'Hoàn thành'];
+  const last = labels.length - 1;
+  switch (o.status) {
+    case 'CHO_SAN_XUAT': return stepsAt(labels, hasProduction ? 1 : ship, { hint: hasProduction ? 'chờ sản xuất' : 'chờ giao' });
+    case 'DANG_SAN_XUAT': return stepsAt(labels, hasProduction ? 1 : ship);
+    case 'CHO_GIAO_HANG': return stepsAt(labels, ship, { hint: 'chờ giao' });
+    case 'DANG_GIAO': return stepsAt(labels, ship);
+    case 'GIAO_MOT_PHAN': return o.closedDate ? stepsAt(labels, last, { finished: true }) : stepsAt(labels, ship, { hint: 'một phần' });
+    case 'HOAN_THANH': return stepsAt(labels, last, { finished: true });
+    case 'TRA_TOAN_BO': return stepsAt([...labels.slice(0, last), 'Đã trả toàn bộ'], last, { finished: true });
+    default: return stepsAt(labels, -1);
+  }
 }
 
 // ---------- Loại chứng từ bán hàng: trong nước / xuất khẩu (as MISA; the server's saleTypeIssue) ----------

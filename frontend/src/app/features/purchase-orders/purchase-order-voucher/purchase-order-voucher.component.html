@@ -118,6 +118,8 @@
         }
       </aside>
 
+      @if (order()) { <app-status-steps class="head-note" ariaLabel="Các bước của đơn mua" [steps]="steps()" /> }
+
       <p class="form-note head-note">
         Đơn mua hàng <strong>không làm thay đổi tồn kho</strong>. Tồn tăng và công nợ phải trả phát sinh khi
         <strong>nhận hàng</strong> — lúc đó hệ thống mới lập phiếu nhập kho.

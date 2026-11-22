@@ -1,7 +1,7 @@
 import { Product, ProductionOrder, SalesOrder, SalesOrderLine } from '../../core/models/domain.models';
 import {
   canCancel, canClose, canDeliver, canEdit, deriveStatus, defaultWarehouse, lineDiscount, lineRemaining, linesNeedingLsx,
-  orderTotals, priceFor, receivedValueOf, fromFx, requoteFx, toFx, withLineDiscount,
+  orderTotals, priceFor, receivedValueOf, salesOrderSteps, fromFx, requoteFx, toFx, withLineDiscount,
 } from './sales-order.rules';
 
 const line = (productId: string, quantity: number, unitPrice: number, extra: Partial<SalesOrderLine> = {}): SalesOrderLine =>
@@ -159,5 +159,34 @@ describe('ngoại tệ: quy đổi đơn giá và tính lại chiết khấu khi
   it('tiền CK gõ tay kéo theo tỷ lệ CK, và không vượt thành tiền', () => {
     const l = fxLine({ unitPrice: 100_000, discountAmount: 2_000_000 });
     expect(withLineDiscount(l, { discountAmount: 2_000_000 })).toMatchObject({ discountAmount: 1_000_000, discountRate: 100 });
+  });
+});
+
+describe('đơn bán: thanh các bước', () => {
+  const steps = (status: SalesOrder['status'], production: boolean, closedDate?: string) =>
+    salesOrderSteps({ status, closedDate } as SalesOrder, production).map((x) => x.state + (x.hint ? ':' + x.hint : ''));
+
+  it('đơn có thành phẩm: Lên đơn → Sản xuất → Giao hàng → Hoàn thành', () => {
+    expect(salesOrderSteps({ status: 'CHO_SAN_XUAT' } as SalesOrder, true).map((x) => x.label)).toEqual(['Lên đơn', 'Sản xuất', 'Giao hàng', 'Hoàn thành']);
+    expect(steps('CHO_SAN_XUAT', true)).toEqual(['done', 'current:chờ sản xuất', 'todo', 'todo']);
+    expect(steps('DANG_SAN_XUAT', true)).toEqual(['done', 'current', 'todo', 'todo']);
+    expect(steps('CHO_GIAO_HANG', true)).toEqual(['done', 'done', 'current:chờ giao', 'todo']);
+    expect(steps('DANG_GIAO', true)).toEqual(['done', 'done', 'current', 'todo']);
+    expect(steps('GIAO_MOT_PHAN', true)).toEqual(['done', 'done', 'current:một phần', 'todo']);
+    expect(steps('HOAN_THANH', true)).toEqual(['done', 'done', 'done', 'done']);
+  });
+
+  it('đơn chỉ có hàng hoá / dịch vụ: không có bước Sản xuất', () => {
+    expect(salesOrderSteps({ status: 'CHO_GIAO_HANG' } as SalesOrder, false).map((x) => x.label)).toEqual(['Lên đơn', 'Giao hàng', 'Hoàn thành']);
+    expect(steps('CHO_GIAO_HANG', false)).toEqual(['done', 'current:chờ giao', 'todo']);
+    expect(steps('HOAN_THANH', false)).toEqual(['done', 'done', 'done']);
+  });
+
+  it('giao một phần rồi kết thúc đơn là đã xong; trả toàn bộ kết thúc với bước cuối đổi tên; huỷ thì không bước nào xong', () => {
+    expect(steps('GIAO_MOT_PHAN', false, '2026-11-20')).toEqual(['done', 'done', 'done']);
+    const returned = salesOrderSteps({ status: 'TRA_TOAN_BO' } as SalesOrder, false);
+    expect(returned.map((x) => x.label)).toEqual(['Lên đơn', 'Giao hàng', 'Đã trả toàn bộ']);
+    expect(returned.every((x) => x.state === 'done')).toBe(true);
+    expect(steps('HUY', true)).toEqual(['todo', 'todo', 'todo', 'todo']);
   });
 });

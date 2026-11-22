@@ -1,6 +1,6 @@
 import { DeliveryTrip, DeliveryTripStatus, SalesOrder, TripCosts } from '../../core/models/domain.models';
 import { lineRemaining, orderTotals } from '../sales-orders/sales-order.rules';
-import { StatusStep, stepsAt } from '../../shared/status-steps/status-steps.component';
+import { StatusStep, stepsAt } from '../../shared/status-steps/status-steps';
 
 // Chuyến giao hàng: Đang gom đơn → (Xuất kho một lượt) Đã xuất kho → (chốt giao từng đơn)
 // → (Xe về kho: nhập lại hàng khách không nhận) Xe đã về kho → Hoàn tất. Huỷ chỉ khi chưa xuất kho.
@@ -21,7 +21,7 @@ export const canEditCosts = (t: DeliveryTrip) => t.status !== 'HUY';
 const TRIP_STAGES: DeliveryTripStatus[] = ['GOM_DON', 'DA_XUAT_KHO', 'XE_VE_KHO', 'HOAN_TAT'];
 const TRIP_STAGE_LABELS = ['Gom đơn', 'Xuất kho & chốt giao', 'Xe về kho', 'Hoàn tất'];
 export const tripSteps = (status: DeliveryTripStatus): StatusStep[] =>
-  stepsAt(TRIP_STAGE_LABELS, TRIP_STAGES.indexOf(status), status === 'HOAN_TAT');
+  stepsAt(TRIP_STAGE_LABELS, TRIP_STAGES.indexOf(status), { finished: status === 'HOAN_TAT' });
 
 export const isConfirmed = (t: DeliveryTrip, orderId: string) => !!t.confirmations?.some((c) => c.orderId === orderId);
 export const costTotal = (c: TripCosts | undefined) => (c ? (c.fuel || 0) + (c.toll || 0) + (c.other || 0) : 0);

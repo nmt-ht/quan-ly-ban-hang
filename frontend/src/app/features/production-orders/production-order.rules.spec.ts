@@ -1,5 +1,5 @@
 import { ProductionOrder, SalesOrder } from '../../core/models/domain.models';
-import { canCancelLsx, canComplete, canStart, isLate } from './production-order.rules';
+import { canCancelLsx, canComplete, canStart, isLate, productionSteps } from './production-order.rules';
 
 const lsx = (status: ProductionOrder['status']) => ({ id: 'x', status }) as ProductionOrder;
 
@@ -18,5 +18,16 @@ describe('lệnh sản xuất', () => {
     expect([canStart(lsx('NHAP')), canComplete(lsx('NHAP')), canCancelLsx(lsx('NHAP'))]).toEqual([true, false, true]);
     expect([canStart(lsx('DANG_SAN_XUAT')), canComplete(lsx('DANG_SAN_XUAT')), canCancelLsx(lsx('DANG_SAN_XUAT'))]).toEqual([false, true, true]);
     expect([canStart(lsx('HOAN_TAT')), canComplete(lsx('HOAN_TAT')), canCancelLsx(lsx('HOAN_TAT'))]).toEqual([false, false, false]);
+  });
+});
+
+describe('lệnh sản xuất: thanh các bước', () => {
+  const view = (s: ProductionOrder['status']) => productionSteps(s).map((x) => x.state);
+  it('nháp → đang sản xuất → hoàn tất; huỷ thì không bước nào xong', () => {
+    expect(productionSteps('NHAP').map((x) => x.label)).toEqual(['Nháp', 'Đang sản xuất', 'Hoàn tất']);
+    expect(view('NHAP')).toEqual(['current', 'todo', 'todo']);
+    expect(view('DANG_SAN_XUAT')).toEqual(['done', 'current', 'todo']);
+    expect(view('HOAN_TAT')).toEqual(['done', 'done', 'done']);
+    expect(view('HUY')).toEqual(['todo', 'todo', 'todo']);
   });
 });

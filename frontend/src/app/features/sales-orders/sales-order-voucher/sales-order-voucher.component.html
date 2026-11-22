@@ -265,6 +265,8 @@
         }
       </aside>
 
+      @if (order()) { <app-status-steps class="head-note" ariaLabel="Các bước của đơn bán" [steps]="steps()" /> }
+
       <p class="form-note head-note">
         Lập đơn <strong>chưa ghi công nợ và chưa trừ kho</strong>. Công nợ phải thu chỉ ghi khi khách
         <strong>thực nhận hàng</strong> (Giao hàng) — đúng bằng giá trị khách nhận, chiết khấu chia theo tỷ lệ.

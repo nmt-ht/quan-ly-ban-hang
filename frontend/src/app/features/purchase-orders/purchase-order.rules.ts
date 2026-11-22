@@ -6,6 +6,7 @@
 // Money: line amounts exclude VAT; totalValue / receivedValue include VAT (= tổng thanh toán,
 // = công nợ phải trả once received).
 import { PurchaseOrder, PurchaseOrderLine, PurchaseOrderStatus } from '../../core/models/domain.models';
+import { StatusStep, stepsAt } from '../../shared/status-steps/status-steps';
 
 export function round4(n: number): number {
   return Math.round(n * 10000) / 10000;
@@ -53,3 +54,16 @@ export function statusAfterReceipt(lines: PurchaseOrderLine[]): PurchaseOrderSta
 }
 
 export const VAT_RATES = [0, 5, 8, 10];
+
+/** Đơn mua on the stepper: Nháp → Gửi NCC → Nhận hàng → Hoàn tất. Nhận đủ is "Nhận hàng" done and the order waiting to be completed. */
+export function purchaseOrderSteps(status: PurchaseOrderStatus): StatusStep[] {
+  const labels = ['Nháp', 'Gửi NCC', 'Nhận hàng', 'Hoàn tất'];
+  switch (status) {
+    case 'NHAP': return stepsAt(labels, 0);
+    case 'DA_GUI_NCC': return stepsAt(labels, 1, { hint: 'chờ nhận hàng' });
+    case 'NHAN_MOT_PHAN': return stepsAt(labels, 2, { hint: 'một phần' });
+    case 'DA_NHAN_DU': return stepsAt(labels, 3, { hint: 'chờ hoàn tất' });
+    case 'HOAN_TAT': return stepsAt(labels, 3, { finished: true });
+    default: return stepsAt(labels, -1);
+  }
+}

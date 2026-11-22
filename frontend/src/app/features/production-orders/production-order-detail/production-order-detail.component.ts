@@ -17,7 +17,8 @@ import { SalesOrderService } from '../../sales-orders/sales-order.service';
 import { WarehouseVoucherService } from '../../warehouse-vouchers/warehouse-voucher.service';
 import { errorText } from '../../../core/api/api.service';
 import { VOUCHER_KIND_LABEL, kindOf } from '../../warehouse-vouchers/warehouse-voucher.rules';
-import { canCancelLsx, canComplete, canStart, isLate } from '../production-order.rules';
+import { canCancelLsx, canComplete, canStart, isLate, productionSteps } from '../production-order.rules';
+import { StatusStepsComponent } from '../../../shared/status-steps/status-steps.component';
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
@@ -30,7 +31,7 @@ const STEP: Record<string, number> = { XUAT: 0, NHAP: 1, CHUYEN: 2, KIEM_KE: 3 }
 @Component({
   selector: 'app-production-order-detail',
   standalone: true,
-  imports: [DateInputDirective, FrozenColsDirective, NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, AuditHistoryComponent],
+  imports: [DateInputDirective, FrozenColsDirective, StatusStepsComponent, NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, AuditHistoryComponent],
   templateUrl: './production-order-detail.component.html',
   styleUrls: ['../../../shared/voucher/voucher.scss', './production-order-detail.component.scss'],
 })
@@ -52,6 +53,7 @@ export class ProductionOrderDetailComponent {
 
   private readonly id = toSignal(this.route.paramMap.pipe(map((p) => p.get('id') ?? '')), { initialValue: this.route.snapshot.paramMap.get('id') ?? '' });
 
+  readonly steps = computed(() => productionSteps(this.lsx()?.status ?? 'HUY'));
   readonly lsx = computed(() => this.data.productionOrders().find((x) => x.id === this.id()));
   readonly product = computed(() => this.data.products().find((p) => p.id === this.lsx()?.productId));
   readonly order = computed(() => this.data.salesOrders().find((o) => o.id === this.lsx()?.sourceOrderId));

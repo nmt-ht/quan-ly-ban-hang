@@ -1,7 +1,7 @@
 import { PurchaseOrder, PurchaseOrderLine } from '../../core/models/domain.models';
 import {
   canCancel, canComplete, canEdit, canReceive, canSend, lineReceivedTotal, lineRemaining, orderTotals, receivedPercent,
-  receivedValueOf, statusAfterReceipt,
+  receivedValueOf, statusAfterReceipt, purchaseOrderSteps,
 } from './purchase-order.rules';
 
 const line = (quantity: number, unitPrice: number, receivedQuantity = 0, vatRate = 0) =>
@@ -49,5 +49,20 @@ describe('đơn mua hàng: trạng thái', () => {
     expect(canCancel(order('DA_GUI_NCC', [line(5, 1)]))).toBe(true);
     expect(canCancel(order('DA_GUI_NCC', [line(5, 1, 1)]))).toBe(false);
     expect(canCancel(order('HOAN_TAT', [line(5, 1)]))).toBe(false);
+  });
+});
+
+describe('đơn mua: thanh các bước', () => {
+  const view = (s: Parameters<typeof purchaseOrderSteps>[0]) => purchaseOrderSteps(s).map((x) => x.state + (x.hint ? ':' + x.hint : ''));
+  it('đi từ nháp tới hoàn tất; nhận một phần ở bước Nhận hàng, nhận đủ thì chờ hoàn tất', () => {
+    expect(purchaseOrderSteps('NHAP').map((x) => x.label)).toEqual(['Nháp', 'Gửi NCC', 'Nhận hàng', 'Hoàn tất']);
+    expect(view('NHAP')).toEqual(['current', 'todo', 'todo', 'todo']);
+    expect(view('DA_GUI_NCC')).toEqual(['done', 'current:chờ nhận hàng', 'todo', 'todo']);
+    expect(view('NHAN_MOT_PHAN')).toEqual(['done', 'done', 'current:một phần', 'todo']);
+    expect(view('DA_NHAN_DU')).toEqual(['done', 'done', 'done', 'current:chờ hoàn tất']);
+    expect(view('HOAN_TAT')).toEqual(['done', 'done', 'done', 'done']);
+  });
+  it('đơn đã huỷ chưa từng chạy: không bước nào xong', () => {
+    expect(view('HUY')).toEqual(['todo', 'todo', 'todo', 'todo']);
   });
 });

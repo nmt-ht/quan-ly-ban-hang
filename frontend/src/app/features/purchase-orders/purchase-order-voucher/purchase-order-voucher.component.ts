@@ -24,6 +24,7 @@ import {
   VAT_RATES, canCancel, canComplete, canEdit, canReceive, canSend, lineAmount, lineRemaining, lineVat, orderTotals,
   receivedPercent,
 } from '../purchase-order.rules';
+import { purchaseOrderSteps } from '../purchase-order.rules';
 import { AuthService } from '../../../core/services/auth.service';
 import { seesPurchasePrices } from '../../../core/auth/purchase-prices';
 import { WarehouseVoucherService } from '../../warehouse-vouchers/warehouse-voucher.service';
@@ -37,6 +38,7 @@ import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 import { PickableWarehousesPipe } from '../../../shared/pickable-warehouses.pipe';
 import type { ReorderDraft } from '../../inventory/reorder.rules';
 import { SearchOption, SearchSelectComponent } from '../../../shared/search-select/search-select.component';
+import { StatusStepsComponent } from '../../../shared/status-steps/status-steps.component';
 import { QuickSupplierDialogComponent } from '../../../shared/quick-create/quick-supplier-dialog.component';
 import { DateInputDirective } from '../../../shared/date-input/date-input.directive';
 
@@ -70,7 +72,7 @@ const emptyLine = (): DraftLine => ({
 @Component({
   selector: 'app-purchase-order-voucher',
   standalone: true,
-  imports: [DateInputDirective, EmailComposeComponent, SearchSelectComponent, QuickSupplierDialogComponent, PickableWarehousesPipe, FrozenColsDirective, 
+  imports: [DateInputDirective, EmailComposeComponent, SearchSelectComponent, StatusStepsComponent, QuickSupplierDialogComponent, PickableWarehousesPipe, FrozenColsDirective, 
     NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
     ReceiveGoodsDialogComponent, PurchaseReturnDialogComponent, PaginationComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent,
   ],
@@ -94,6 +96,7 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
   readonly id = toSignal(this.route.paramMap.pipe(map((p) => p.get('id'))), { initialValue: this.route.snapshot.paramMap.get('id') });
   private readonly editRoute = this.route.snapshot.url.at(-1)?.path === 'sua';
 
+  readonly steps = computed(() => purchaseOrderSteps(this.order()?.status ?? 'HUY'));
   readonly order = computed(() => {
     const id = this.id();
     return id ? this.data.purchaseOrders().find((o) => o.id === id) : undefined;

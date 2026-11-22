@@ -29,7 +29,7 @@ import { formatDay, isoDay } from '../../../shared/period';
 import { VAT_RATES, round4 } from '../../purchase-orders/purchase-order.rules';
 import {
   CUSTOMER_PRICE_LABEL, CUSTOMER_TYPE_LABEL, canCancel, canClose, canDeliver, canEdit, defaultWarehouse, deliveredPercent,
-  lineRemaining, linesNeedingLsx, movesStock, needsProduction, orderTotals, priceFor,
+  lineRemaining, linesNeedingLsx, movesStock, needsProduction, orderTotals, priceFor, salesOrderSteps,
   CURRENCIES, SALE_TYPE_LABEL, belowMinPrice, foreignCurrency, fromFx, requoteFx, saleTypeIssue, toFx, withLineDiscount,
 } from '../sales-order.rules';
 import { InvoicePreviewComponent } from '../invoice-preview/invoice-preview.component';
@@ -48,6 +48,7 @@ import { AuditHistoryComponent } from '../../../shared/audit/audit-history.compo
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
 import { PickableWarehousesPipe } from '../../../shared/pickable-warehouses.pipe';
 import { SearchOption, SearchSelectComponent } from '../../../shared/search-select/search-select.component';
+import { StatusStepsComponent } from '../../../shared/status-steps/status-steps.component';
 import { QuickCustomerDialogComponent } from '../../../shared/quick-create/quick-customer-dialog.component';
 import { DateInputDirective } from '../../../shared/date-input/date-input.directive';
 
@@ -97,7 +98,7 @@ const emptyLine = (): DraftLine => ({
 @Component({
   selector: 'app-sales-order-voucher',
   standalone: true,
-  imports: [DateInputDirective, EmailComposeComponent, SearchSelectComponent, QuickCustomerDialogComponent, PickableWarehousesPipe, FrozenColsDirective, 
+  imports: [DateInputDirective, EmailComposeComponent, SearchSelectComponent, StatusStepsComponent, QuickCustomerDialogComponent, PickableWarehousesPipe, FrozenColsDirective, 
     NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
     PaginationComponent, FilterMultiSelectComponent, DeliverDialogComponent, ReturnDialogComponent, AllowanceDialogComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent,
     InvoicePreviewComponent,
@@ -819,6 +820,13 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
     return o ? linesNeedingLsx(o, this.lsx(), (pid) => needsProduction(this.product(pid))).length : 0;
   });
   readonly percent = computed(() => (this.order() ? deliveredPercent(this.order()!) : 0));
+  /** The stepper: the Sản xuất step is there when the order has thành phẩm lines or already has a lệnh sản xuất. */
+  readonly steps = computed(() => {
+    const o = this.order();
+    if (!o) return [];
+    const hasProduction = this.lsxActive() > 0 || o.lines.some((l) => needsProduction(this.product(l.productId)));
+    return salesOrderSteps(o, hasProduction);
+  });
   readonly lsxDone = computed(() => this.lsx().filter((x) => x.status === 'HOAN_TAT').length);
   readonly lsxActive = computed(() => this.lsx().filter((x) => x.status !== 'HUY').length);
 

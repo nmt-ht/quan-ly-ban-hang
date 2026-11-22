@@ -77,6 +77,8 @@
         </aside>
       }
 
+      <app-status-steps class="head-note" ariaLabel="Các bước của lệnh sản xuất" [steps]="steps()" />
+
       <p class="form-note head-note">
         @switch (x.status) {
           @case ('NHAP') { Lệnh nháp — chưa đụng tới kho. Bắt đầu sản xuất sẽ xuất vật tư theo định mức dưới đây từ kho ngầm định của từng vật tư. }

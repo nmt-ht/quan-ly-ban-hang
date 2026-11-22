@@ -1,20 +1,9 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
+import { StatusStep, StepState } from './status-steps';
 
-export type StepState = 'done' | 'current' | 'todo';
-
-export interface StatusStep {
-  label: string;
-  state: StepState;
-}
-
-/** The step list of a lifecycle in order, from the index of the step it is at (`-1` = stopped: nothing done, nothing current). */
-export function stepsAt(labels: string[], at: number, finished = false): StatusStep[] {
-  return labels.map((label, i) => ({
-    label,
-    state: at < 0 ? 'todo' : finished || i < at ? 'done' : i === at ? 'current' : 'todo',
-  }));
-}
+export type { StatusStep, StepState };
+export { stepsAt } from './status-steps';
 
 const STATE_TEXT: Record<StepState, string> = { done: 'đã xong', current: 'đang ở bước này', todo: 'chưa tới' };
 
@@ -35,7 +24,7 @@ const STATE_TEXT: Record<StepState, string> = { done: 'đã xong', current: 'đa
           <span class="ss-mark num" aria-hidden="true">
             @if (s.state === 'done') { <app-nav-icon name="check" /> } @else { {{ i + 1 }} }
           </span>
-          <span class="ss-label">{{ s.label }}<span class="visually-hidden"> — {{ text[s.state] }}</span></span>
+          <span class="ss-label">{{ s.label }}@if (s.hint) { <span class="ss-hint">· {{ s.hint }}</span> }<span class="visually-hidden"> — {{ text[s.state] }}</span></span>
         </li>
       }
     </ol>

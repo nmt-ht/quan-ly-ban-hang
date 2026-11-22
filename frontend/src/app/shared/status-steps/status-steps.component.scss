@@ -70,6 +70,12 @@
   text-overflow: ellipsis;
 }
 
+.ss-hint {
+  margin-left: var(--space-3xs);
+  font-weight: 400;
+  color: var(--color-muted);
+}
+
 .ss-step.is-done {
   color: var(--color-ink-2);
 }

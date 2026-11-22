@@ -268,7 +268,11 @@ Kho only).
   `CompanyInfo.tagColors`); everyone reads it, changing needs `company.update`.
 
 ## Lifecycle steps (thanh các bước) — `app-status-steps`
-- For a document that moves through a fixed sequence (today: Chuyến giao hàng — Gom đơn → Xuất kho & chốt giao → Xe về kho → Hoàn tất). One
+- For a document that moves through a fixed sequence. On the record page of: Chuyến giao hàng (Gom đơn → Xuất kho & chốt giao → Xe về kho → Hoàn tất),
+  Đơn bán (Lên đơn → Sản xuất, only when it has thành phẩm → Giao hàng → Hoàn thành), Đơn mua (Nháp → Gửi NCC → Nhận hàng → Hoàn tất), Lệnh sản xuất
+  (Nháp → Đang sản xuất → Hoàn tất). Báo giá has only two states and stays a badge. The sequence and the status → step mapping live in each
+  document's `*.rules.ts` (`salesOrderSteps`, `purchaseOrderSteps`, `productionSteps`, `tripSteps`), tested there; a partial state (giao một phần,
+  nhận một phần) is a short `hint` after the current label. It sits in the header card, above the explanatory note, for an existing record only. One
   component, never a hand-made list: `<app-status-steps [steps]="…" ariaLabel="…" />`, steps built with `stepsAt(labels, indexOfCurrent, finished)`.
 - A numbered round marker per step, joined by a line. **Done**: filled moss marker with a tick, the line after it moss. **Current**: moss ring on a
   moss tint with a soft outer ring, the label bold ink. **To do**: hollow grey marker with its number, muted label, grey line. A stopped document
