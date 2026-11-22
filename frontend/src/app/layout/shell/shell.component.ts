@@ -100,6 +100,11 @@ export class ShellComponent {
     });
   }
 
+  /** The group the page belongs to (its screen, or its sơ đồ): its heading reads as "you are here". */
+  isCurrent(group: NavGroup): boolean {
+    return (!!group.hub && group.hub === this.hubPath()) || group.links.some((l) => l.path === this.activePath());
+  }
+
   /** The icon rail has no group headings, so every link shows there. */
   isOpen(group: NavGroup): boolean {
     return !group.label || this.collapsed() || !this.closedGroups().includes(group.label);

@@ -21,8 +21,12 @@
       @for (group of navGroups(); track group.label; let i = $index) {
         @if (group.label && !collapsed()) {
           @if (group.hub) {
-            <!-- A main feature: the name opens its sơ đồ, the chevron folds the group. -->
-            <div class="nav-group-row">
+            <!-- A main feature: the name opens its sơ đồ, the chevron on the right folds the group. -->
+            <div class="nav-group-row" [class.is-current]="isCurrent(group)" [class.is-open]="isOpen(group)">
+              <a class="nav-group-link" [routerLink]="group.hub" [attr.aria-current]="hubPath() === group.hub ? 'page' : null" [title]="'Xem sơ đồ ' + group.label" (click)="closeMenu()">
+                @if (group.icon) { <app-nav-icon class="nav-group-icon" [name]="group.icon" /> }
+                <span class="nav-group-name">{{ group.label }}</span>
+              </a>
               <button
                 type="button"
                 class="nav-group-fold"
@@ -33,22 +37,24 @@
               >
                 <app-nav-icon class="nav-group-chevron" name="chevron-down" />
               </button>
-              <a class="nav-group-link" [routerLink]="group.hub" [class.active]="hubPath() === group.hub" [attr.aria-current]="hubPath() === group.hub ? 'page' : null" [title]="'Xem sơ đồ ' + group.label" (click)="closeMenu()">{{ group.label }}</a>
             </div>
           } @else {
             <button
               type="button"
               class="nav-group-toggle"
+              [class.is-current]="isCurrent(group)"
+              [class.is-open]="isOpen(group)"
               [attr.aria-expanded]="isOpen(group)"
               [attr.aria-controls]="'nav-group-' + i"
               (click)="toggleGroup(group)"
             >
-              <app-nav-icon class="nav-group-chevron" name="chevron-down" />
+              @if (group.icon) { <app-nav-icon class="nav-group-icon" [name]="group.icon" /> }
               <span class="nav-group-name">{{ group.label }}</span>
+              <app-nav-icon class="nav-group-chevron" name="chevron-down" />
             </button>
           }
         }
-        <div class="nav-items" [id]="'nav-group-' + i" [class.is-closed]="!isOpen(group)" [attr.inert]="isOpen(group) ? null : ''">
+        <div class="nav-items" [class.nav-top]="!group.label" [class.nav-has-head]="!!group.label && !collapsed()" [id]="'nav-group-' + i" [class.is-closed]="!isOpen(group)" [attr.inert]="isOpen(group) ? null : ''">
           <div class="nav-items-inner">
             @for (block of group.blocks; track block.key) {
               <!-- Level 2: a quiet heading, always open (only the main feature above it folds); its links hang from a guide line. -->
