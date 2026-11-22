@@ -400,5 +400,4 @@ Bật bằng **ngày bắt đầu ghi sổ** (Thiết lập › Thông tin doanh
 - Kế toán: chiết khấu thương mại tự hạch toán 5211, FIFO và tính lại giá xuất, ngoại tệ, in tờ khai thuế (01/GTGT, TNDN) và Bản thuyết minh B09-DNN, sổ chi tiết vật tư có giá trị.
 - Ảnh hàng hoá và logo công ty đang lưu dạng data URL trong cơ sở dữ liệu; chưa chuyển sang lưu trữ đối tượng (R2 / S3).
 - Link theo dõi đơn cho khách, ảnh xác nhận giao hàng (POD), ticket hỗ trợ.
-- Phân trang phía máy chủ cho chuyến giao hàng và lệnh sản xuất (khi số lượng lớn).
 - Dữ liệu demo được sinh bởi `node tools/gen-demo-data.mjs` (ra `backend/prisma/demo-data.json`) và nạp bằng `npm run prisma:seed:demo`; không dùng trên DB thật.

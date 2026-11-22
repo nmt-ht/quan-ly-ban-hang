@@ -44,7 +44,7 @@ Mọi commit dưới đây đã push lên `origin/master` (đỉnh `fedeb1e`).
 - Giao diện `5f13e6e` chưa xem trên trình duyệt (build và test đạt).
 - Nhiều doanh nghiệp chưa bật trên Render; chưa có trên trang nền tảng: dung lượng từng DB, số người dùng, lần dùng gần nhất. Màn khởi động (`index.html`) vẫn hiện tên công ty nhớ lần cuối, kể cả khi đổi mã doanh nghiệp.
 - ~~Ba lỗ nghiệp vụ (giá sàn, huỷ phiếu thu làm quỹ âm, xưởng xem đơn gốc)~~ — đã đóng ở `33163af` (27/10/2026), có test.
-- 1.1: chuyến giao, lệnh SX chưa phân trang phía máy chủ. 1.2 ảnh sang object storage chưa làm. Pha 2 còn: link theo dõi đơn, POD, hoá đơn điện tử, ticket, gửi tin tự động.
+- 1.1 đã xong cả chuyến giao, lệnh SX (`702fec5`, 20/11/2026). 1.2 ảnh sang object storage chưa làm. Pha 2 còn: link theo dõi đơn, POD, hoá đơn điện tử, ticket, gửi tin tự động.
 - In K80 trên máy in thật, quét VietQR bằng app ngân hàng thật: chưa thử.
 
 **Kiến nghị sắp tới (theo thứ tự)**
