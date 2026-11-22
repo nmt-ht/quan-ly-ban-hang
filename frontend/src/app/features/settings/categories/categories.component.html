@@ -90,30 +90,6 @@
   }
 </section>
 
-@if (deleting(); as c) {
-  <div class="confirm-strip cg-confirm" role="alertdialog" aria-labelledby="cg-del-title">
-    @if (deletingCount()) {
-      <p id="cg-del-title"><strong>Xoá nhóm "{{ c.name }}"?</strong> Nhóm đang có {{ deletingCount() }} mặt hàng — chọn nơi chuyển các mặt hàng này.</p>
-      <label class="cg-move">
-        <span>Chuyển {{ deletingCount() }} mặt hàng sang</span>
-        <select [ngModel]="moveTo()" (ngModelChange)="moveTo.set($event)" aria-label="Nhóm chuyển mặt hàng sang">
-          <option value="" disabled>Chọn nhóm…</option>
-          @for (o of moveOptions(); track o.id) { <option [value]="o.id">{{ o.name }}</option> }
-          <option value="none">— Không thuộc nhóm nào —</option>
-        </select>
-      </label>
-    } @else {
-      <p id="cg-del-title"><strong>Xoá nhóm "{{ c.name }}"?</strong> Nhóm chưa có mặt hàng nào.</p>
-    }
-    <div class="toolbar">
-      <button type="button" class="btn" (click)="deleting.set(null)">Không xoá</button>
-      <button type="button" class="btn btn-danger" [disabled]="deletingCount() > 0 && !moveTo()" (click)="doDelete()">
-        <app-nav-icon name="trash" />{{ deletingCount() ? 'Chuyển và xoá nhóm' : 'Xoá nhóm' }}
-      </button>
-    </div>
-  </div>
-}
-
 <dialog #dialog class="rg-dialog th-dialog" aria-labelledby="cg-title">
   <header class="rg-head">
     <div><h2 id="cg-title">{{ editing() ? 'Đổi tên nhóm' : 'Thêm nhóm VTHH' }}</h2></div>

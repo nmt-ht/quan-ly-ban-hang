@@ -1,4 +1,5 @@
 /* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
+import { ConfirmService } from '../../shared/confirm/confirm.service';
 import { Component, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { errorText } from '../../core/api/api.service';
@@ -80,20 +81,6 @@ import { DateInputDirective } from '../../shared/date-input/date-input.directive
       </section>
     }
 
-    @if (cancelRow(); as t) {
-      <section class="card section-block" aria-labelledby="ct-cancel">
-        <h2 id="ct-cancel" class="form-section-title">Huỷ chuyển tiền {{ t.code }}</h2>
-        <div class="field">
-          <label for="ct-reason">Lý do huỷ</label>
-          <input id="ct-reason" type="text" maxlength="300" [ngModel]="reason()" (ngModelChange)="reason.set($event)" />
-          <span class="hint">Hai phiếu thu, chi của chuyển tiền cùng huỷ; số dư hai quỹ trở lại như trước. Bị chặn nếu quỹ nhận đã tiêu mất tiền.</span>
-        </div>
-        <div class="toolbar">
-          <button type="button" class="btn btn-danger" [disabled]="busy()" (click)="cancel(t)">Xác nhận huỷ</button>
-          <button type="button" class="btn" (click)="cancelling.set(null)">Bỏ qua</button>
-        </div>
-      </section>
-    }
 
     <div class="filters-bar">
       <button type="button" class="filter-toggle" [attr.aria-pressed]="showCancelled()" (click)="showCancelled.set(!showCancelled())">Hiện chuyển tiền đã huỷ</button>
@@ -112,13 +99,14 @@ import { DateInputDirective } from '../../shared/date-input/date-input.directive
 
     <ng-template #rowActionsTpl let-t>
       @if (!t.isCancelled && canCancel()) {
-        <button type="button" class="btn row-act-btn btn-danger-ghost" (click)="cancelling.set(t.id); reason.set('')">Huỷ</button>
+        <button type="button" class="btn row-act-btn btn-danger-ghost" (click)="askCancel(t)">Huỷ</button>
       }
     </ng-template>
   `,
   styles: [`.amount-input { text-align: right; }`],
 })
 export class CashTransfersComponent {
+  private readonly dialogs = inject(ConfirmService);
   private readonly svc = inject(CashOpsService);
   private readonly auth = inject(AuthService);
   private readonly store = inject(DataStore);
@@ -145,9 +133,6 @@ export class CashTransfersComponent {
   readonly creating = signal(false);
   readonly attempted = signal(false);
   readonly showCancelled = signal(false);
-  readonly cancelling = signal<string | null>(null);
-  readonly cancelRow = computed(() => this.rows().find((t) => t.id === this.cancelling()) ?? null);
-  readonly reason = signal('');
   readonly accounts = computed(() => this.store.cashAccounts().filter((a) => a.isActive !== false));
   readonly canCreate = computed(() => this.auth.can('voucher.create_receipt') && this.auth.can('voucher.create_payment'));
   readonly canCancel = computed(() => this.auth.can('voucher.cancel'));
@@ -180,7 +165,6 @@ export class CashTransfersComponent {
     this.fromId.set(''); this.toId.set(''); this.date.set(isoDay(new Date())); this.amount.set(null); this.description.set('');
     this.failure.set('');
     this.attempted.set(false);
-    this.cancelling.set(null);
     this.creating.set(true);
   }
 
@@ -204,18 +188,16 @@ export class CashTransfersComponent {
     }
   }
 
-  async cancel(t: CashTransferView) {
-    this.busy.set(true);
-    this.failure.set('');
-    try {
-      await this.svc.cancelTransfer(t.id, this.reason().trim() || undefined);
-      this.cancelling.set(null);
-      this.notice.set(`Đã huỷ ${t.code}; số dư hai quỹ trở lại như trước.`);
-      await this.load();
-    } catch (e) {
-      this.failure.set(errorText(e));
-    } finally {
-      this.busy.set(false);
-    }
+  async askCancel(t: CashTransferView) {
+    const done = await this.dialogs.form({
+      title: `Huỷ chuyển tiền ${t.code}?`,
+      message: 'Hai phiếu thu, chi của chuyển tiền cùng huỷ; số dư hai quỹ trở lại như trước. Bị chặn nếu quỹ nhận đã tiêu mất tiền.',
+      confirmLabel: 'Huỷ chuyển tiền', cancelLabel: 'Không huỷ', tone: 'danger',
+      fields: [{ key: 'reason', label: 'Lý do huỷ', type: 'textarea', placeholder: 'Không bắt buộc', maxLength: 300 }],
+      run: (v) => this.svc.cancelTransfer(t.id, v['reason'] || undefined),
+    });
+    if (!done) return;
+    this.notice.set(`Đã huỷ ${t.code}; số dư hai quỹ trở lại như trước.`);
+    await this.load();
   }
 }

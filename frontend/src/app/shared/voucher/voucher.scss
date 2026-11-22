@@ -376,6 +376,26 @@
   }
 }
 
+// The page padding is --space-sm up to 1024px (the shell's drawer breakpoint), so the sticky bar's bleed is too.
+@media (max-width: 1024px) {
+  .voucher-actions {
+    margin: 0 calc(var(--space-sm) * -1) calc(var(--space-sm) * -1);
+    padding: var(--space-xs) var(--space-sm);
+  }
+}
+
+// A chứng từ with many actions (In, Gửi email, Xem trước hoá đơn, Lập phiếu thu…) would pin four rows of buttons over a
+// third of a phone screen: there the bar scrolls with the page. While editing it has two buttons and stays pinned.
+@media (max-width: 640px) {
+  .voucher-actions:has(.toolbar > :nth-child(4)) {
+    position: static;
+  }
+
+  .voucher-actions .actions-hint {
+    flex-basis: 100%;
+  }
+}
+
 @media (max-width: 480px) {
   .head-fields {
     grid-template-columns: minmax(0, 1fr);

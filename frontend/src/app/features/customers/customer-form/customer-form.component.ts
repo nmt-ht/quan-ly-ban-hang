@@ -1,3 +1,4 @@
+import { NextCodeComponent } from '../../../shared/next-code/next-code.component';
 import { Component, HostListener, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -21,7 +22,7 @@ interface AddressDraft extends CustomerAddress {
 @Component({
   selector: 'app-customer-form',
   standalone: true,
-  imports: [ReactiveFormsModule, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, FilterMultiSelectComponent],
+  imports: [NextCodeComponent, ReactiveFormsModule, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, FilterMultiSelectComponent],
   templateUrl: './customer-form.component.html',
   styleUrl: './customer-form.component.scss',
 })

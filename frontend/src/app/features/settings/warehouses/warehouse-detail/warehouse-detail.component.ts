@@ -1,3 +1,4 @@
+import { ConfirmService } from '../../../../shared/confirm/confirm.service';
 import { Component, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -34,6 +35,7 @@ const LIMIT = 50;
   styleUrl: './warehouse-detail.component.scss',
 })
 export class WarehouseDetailComponent {
+  private readonly dialogs = inject(ConfirmService);
   readonly data = inject(DataStore);
   readonly svc = inject(WarehouseService);
   readonly cost = inject(CostService);
@@ -54,7 +56,6 @@ export class WarehouseDetailComponent {
 
   readonly notice = signal((history.state as { notice?: string } | null)?.notice ?? '');
   readonly failure = signal('');
-  readonly confirmDelete = signal(false);
 
   private readonly id = toSignal(this.route.paramMap.pipe(map((p) => p.get('id') ?? '')), { initialValue: '' });
   readonly warehouse = computed(() => this.data.warehouses().find((w) => w.id === this.id()) ?? null);
@@ -148,15 +149,16 @@ export class WarehouseDetailComponent {
     this.notice.set(next ? `Kho "${w.name}" dùng lại — chọn được khi lập chứng từ mới.` : `Kho "${w.name}" ngừng dùng — không còn được chọn khi lập chứng từ mới; tồn và phiếu cũ vẫn giữ.`);
   }
 
-  async doDelete(): Promise<void> {
-    const w = this.warehouse()!;
-    try {
-      await this.svc.remove(w.id);
-    } catch (e) {
-      this.failure.set(errorText(e));
-      this.confirmDelete.set(false);
-      return;
-    }
-    void this.router.navigate(['/thiet-lap/kho']);
+  async askDelete(): Promise<void> {
+    const w = this.warehouse();
+    if (!w) return;
+    const defaults = this.usage().defaults;
+    const done = await this.dialogs.form({
+      title: `Xoá kho "${w.name}"?`,
+      message: `Kho chưa có phiếu, dòng đơn hay tồn nào.${defaults ? ` ${defaults} mặt hàng đang lấy kho này làm kho ngầm định sẽ để trống ô đó.` : ''}`,
+      confirmLabel: 'Xoá kho', cancelLabel: 'Không xoá', tone: 'danger', fields: [],
+      run: () => this.svc.remove(w.id),
+    });
+    if (done) void this.router.navigate(['/thiet-lap/kho']);
   }
 }

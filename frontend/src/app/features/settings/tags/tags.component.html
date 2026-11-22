@@ -54,7 +54,7 @@
                 <span class="row-actions">
                   <button type="button" class="btn btn-sm" (click)="toggle(t)">{{ t.isActive ? 'Ngừng dùng' : 'Dùng lại' }}</button>
                   <button type="button" class="icon-action" (click)="open(t)" [attr.aria-label]="'Sửa thẻ ' + t.name" title="Sửa"><app-nav-icon name="pencil" /></button>
-                  <button type="button" class="icon-action" [disabled]="u.orders + u.customers > 0" (click)="confirmDelete.set(t)"
+                  <button type="button" class="icon-action" [disabled]="u.orders + u.customers > 0" (click)="askDelete(t)"
                     [attr.aria-label]="'Xoá thẻ ' + t.name" [title]="u.orders + u.customers > 0 ? 'Đang dùng — chọn Ngừng dùng' : 'Xoá thẻ'">
                     <app-nav-icon name="trash" />
                   </button>
@@ -74,15 +74,6 @@
   }
 </section>
 
-@if (confirmDelete(); as t) {
-  <div class="confirm-strip" role="alertdialog" aria-labelledby="tg-del-title">
-    <p id="tg-del-title"><strong>Xoá thẻ "{{ t.name }}"?</strong> Thẻ chưa gắn vào đơn hay khách nào. Không hoàn tác được.</p>
-    <div class="toolbar">
-      <button type="button" class="btn" (click)="confirmDelete.set(null)">Không xoá</button>
-      <button type="button" class="btn btn-danger" (click)="doDelete()"><app-nav-icon name="trash" />Xoá thẻ</button>
-    </div>
-  </div>
-}
 
 <dialog #dialog class="rg-dialog th-dialog" aria-labelledby="tg-title">
   <header class="rg-head">

@@ -1,3 +1,4 @@
+import { NextCodeComponent } from '../../../shared/next-code/next-code.component';
 import { Component, HostListener, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
@@ -13,7 +14,7 @@ import { errorText } from '../../../core/api/api.service';
 @Component({
   selector: 'app-supplier-form',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, AllowedLinkDirective, NavIconComponent],
+  imports: [NextCodeComponent, ReactiveFormsModule, RouterLink, AllowedLinkDirective, NavIconComponent],
   templateUrl: './supplier-form.component.html',
 })
 export class SupplierFormComponent implements HasUnsavedChanges {

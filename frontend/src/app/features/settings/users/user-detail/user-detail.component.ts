@@ -1,3 +1,4 @@
+import { ConfirmService } from '../../../../shared/confirm/confirm.service';
 import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -37,6 +38,7 @@ interface Activity {
   styleUrl: '../../../suppliers/supplier-detail/supplier-detail.component.scss',
 })
 export class UserDetailComponent {
+  private readonly dialogs = inject(ConfirmService);
   readonly data = inject(DataStore);
   readonly svc = inject(UserService);
   private readonly userDialog = viewChild.required<UserDialogComponent>('userDialog');
@@ -48,8 +50,6 @@ export class UserDetailComponent {
 
   readonly notice = signal('');
   readonly error = signal('');
-  readonly confirmLock = signal(false);
-  readonly lockReason = signal('');
 
   readonly statusLabel = USER_STATUS_LABEL;
   readonly statusClass = (s: 'ACTIVE' | 'DISABLED') => tagClass('user-status', s);
@@ -102,15 +102,19 @@ export class UserDetailComponent {
     this.notice.set(`Đã đăng xuất mọi phiên của ${this.user()!.name}.`);
   }
 
-  async doLock(): Promise<void> {
-    try {
-      await this.svc.lock(this.user()!.id, this.lockReason());
-      this.notice.set(`Đã khoá ${this.user()!.name}.`);
+  async askLock(): Promise<void> {
+    const u = this.user();
+    if (!u) return;
+    const done = await this.dialogs.form({
+      title: `Khoá tài khoản ${u.name}?`, message: 'Người này bị đăng xuất ngay và không đăng nhập được nữa. Chứng từ đã lập vẫn giữ nguyên.',
+      confirmLabel: 'Khoá tài khoản', cancelLabel: 'Không khoá', tone: 'danger',
+      fields: [{ key: 'reason', label: 'Lý do khoá', placeholder: 'Ví dụ: Nghỉ việc', maxLength: 200 }],
+      run: (v) => this.svc.lock(u.id, v['reason']),
+    });
+    if (done) {
+      this.notice.set(`Đã khoá ${u.name}.`);
       this.error.set('');
-    } catch (e) {
-      this.error.set(errorText(e));
     }
-    this.confirmLock.set(false);
   }
 
   async unlock(): Promise<void> {

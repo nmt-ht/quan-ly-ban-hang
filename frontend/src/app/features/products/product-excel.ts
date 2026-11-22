@@ -121,6 +121,11 @@ export function productTemplateSheet(lk: ProductLookups): SheetSpec {
     name: 'Hàng hoá',
     columns: PRODUCT_COLUMNS,
     rows: [],
+    exampleRows: [
+      // Thứ tự cột như PRODUCT_COLUMNS; nhóm hàng và kho lấy tên có thật để ví dụ nhập được.
+      ['', 'EX-NEP-01', 'Ví dụ — Nẹp gỗ sồi 2cm (cây 2,4m)', PRODUCT_TYPE_LABEL.VAT_TU, 'Cây', lk.categories[0]?.name ?? '', lk.warehouses[0]?.name ?? '', 20, 8, 0, 'Việt Nam', 55000, 50000, 48000, '', '', 'Nẹp gỗ sồi tự nhiên', 'Có', 'Có'],
+      ['', '', 'Ví dụ — Khung tranh gỗ sồi 30×40 cm', PRODUCT_TYPE_LABEL.THANH_PHAM, 'm2', lk.categories[0]?.name ?? '', '', '', 8, 12, 'Việt Nam', 185000, 170000, 165000, '', 'Bảo hành 12 tháng', '', 'Có', 'Có'],
+    ],
     notes: {
       title: 'Nhập hàng hoá từ Excel — hướng dẫn',
       lines: [

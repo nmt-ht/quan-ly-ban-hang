@@ -18,12 +18,16 @@ export interface SheetSpec {
   name: string;
   columns: SheetColumn[];
   rows: unknown[][];
+  /** Dòng ví dụ ghi sau `rows`, nền vàng nhạt: chỉ để người dùng thấy cách điền, phải xoá trước khi nhập. */
+  exampleRows?: unknown[][];
   // Optional plain-text notes sheet (rules, allowed values).
   notes?: { title: string; lines: string[] };
 }
 
 const HEADER_FILL = 'FFE9ECE4'; // paper-3, so the file reads like the app
 const REQUIRED_FONT = 'FFB3261E'; // danger
+const EXAMPLE_FILL = 'FFFFF4C2'; // pale yellow: "this row is only an example"
+export const EXAMPLE_NOTE = 'Các dòng nền VÀNG là dòng ví dụ để bạn xem cách điền — XOÁ chúng (hoặc ghi đè bằng dữ liệu thật) trước khi nhập, kẻo hệ thống nhập luôn cả ví dụ.';
 
 function addSheet(wb: Workbook, spec: SheetSpec): void {
   const ws = wb.addWorksheet(spec.name, { views: [{ state: 'frozen', ySplit: 1 }] });
@@ -42,6 +46,11 @@ function addSheet(wb: Workbook, spec: SheetSpec): void {
     if (c.required) cell.font = { bold: true, color: { argb: REQUIRED_FONT } };
   });
   for (const r of spec.rows) ws.addRow(r);
+  for (const r of spec.exampleRows ?? []) {
+    const row = ws.addRow(r);
+    row.font = { italic: true, color: { argb: 'FF5B5B5B' } };
+    row.eachCell({ includeEmpty: true }, (cell) => { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: EXAMPLE_FILL } }; });
+  }
   ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: spec.columns.length } };
 
   if (spec.notes) {
@@ -49,6 +58,7 @@ function addSheet(wb: Workbook, spec: SheetSpec): void {
     ns.getColumn(1).width = 110;
     ns.addRow([spec.notes.title]).font = { bold: true, size: 13 };
     ns.addRow([]);
+    if (spec.exampleRows?.length) ns.addRow([EXAMPLE_NOTE]).font = { bold: true, color: { argb: REQUIRED_FONT } };
     for (const line of spec.notes.lines) ns.addRow([line]);
   }
 }

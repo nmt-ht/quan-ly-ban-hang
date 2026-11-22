@@ -21,16 +21,6 @@
   </div>
 }
 
-@if (pendingId()) {
-  <div class="confirm-strip" role="alertdialog" aria-labelledby="rp-switch-title">
-    <p id="rp-switch-title"><strong>Bỏ thay đổi chưa lưu?</strong> Phân quyền của {{ role()?.name }} đang có {{ diff().added }} quyền thêm, {{ diff().removed }} quyền bỏ chưa lưu.</p>
-    <div class="toolbar">
-      <button type="button" class="btn" (click)="resolveSwitch(false)">Ở lại</button>
-      <button type="button" class="btn btn-danger" (click)="resolveSwitch(true)">Bỏ thay đổi</button>
-    </div>
-  </div>
-}
-
 <div class="rp-layout">
   <!-- ============ vai trò ============ -->
   <nav class="rp-list" aria-label="Danh sách vai trò">

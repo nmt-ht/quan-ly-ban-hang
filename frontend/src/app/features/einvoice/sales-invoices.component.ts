@@ -1,4 +1,5 @@
 /* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
+import { ConfirmService } from '../../shared/confirm/confirm.service';
 import { Component, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { errorText } from '../../core/api/api.service';
@@ -138,20 +139,6 @@ function savedSeries(): string {
     }
 
     @if (tab() === 'da-ghi') {
-      @if (voidRow(); as v) {
-        <section class="card section-block" aria-labelledby="hd-void">
-          <h2 id="hd-void" class="form-section-title">Gỡ ghi nhận hoá đơn {{ v.templateCode }}{{ v.series }} số {{ v.number }}</h2>
-          <div class="field">
-            <label for="hd-reason">Lý do gỡ <span class="required-mark">*</span></label>
-            <input id="hd-reason" type="text" maxlength="300" [ngModel]="voiding()!.reason" (ngModelChange)="voiding.set({ id: v.id, reason: $event })" />
-            <span class="hint">Dùng khi nhập nhầm số hoặc hoá đơn đã bị huỷ trên cổng. Đợt giao đó có thể ghi nhận lại.</span>
-          </div>
-          <div class="toolbar">
-            <button type="button" class="btn btn-danger" [disabled]="busy() || voiding()!.reason.trim().length < 3" (click)="confirmVoid()">Gỡ ghi nhận</button>
-            <button type="button" class="btn" (click)="voiding.set(null)">Bỏ qua</button>
-          </div>
-        </section>
-      }
 
       <app-data-table [columns]="listColumns" [rows]="list() ?? []" [actions]="listActions()" emptyTitle="Chưa có hoá đơn nào" emptyHint="Hoá đơn đã ghi nhận trong khoảng ngày này sẽ hiện ở đây." />
     }
@@ -160,6 +147,7 @@ function savedSeries(): string {
       <p class="rp-notes">Xuất danh sách hoá đơn đã phát hành từ cổng ra Excel (dòng đầu là tiêu đề). Cần cột mã tham chiếu (hoặc diễn giải chứa mã), số hoá đơn và ngày hoá đơn; cột ký hiệu nếu có. Hoá đơn không có mã tham chiếu (không lập từ dữ liệu của phần mềm) được bỏ qua.</p>
       <div class="toolbar">
         <label class="btn"><app-nav-icon name="upload" />Chọn file Excel <input type="file" accept=".xlsx" class="visually-hidden" (change)="onFile($event)" /></label>
+        <button type="button" class="btn" (click)="downloadSample()" title="File Excel mẫu có dòng ví dụ và hướng dẫn"><app-nav-icon name="download" />Tải file mẫu</button>
         @if (fileName()) { <span class="subtitle">{{ fileName() }} · {{ fileRows().length }} dòng</span> }
       </div>
       @if (fileRows().length) {
@@ -227,12 +215,13 @@ function savedSeries(): string {
 
     <ng-template #listActionsTpl let-r>
       @if (canRecord() && r.provider === 'EXTERNAL' && r.status === 'ISSUED') {
-        <button type="button" class="btn row-act-btn btn-danger-ghost" (click)="voiding.set({ id: r.id, reason: '' })">Gỡ ghi nhận</button>
+        <button type="button" class="btn row-act-btn btn-danger-ghost" (click)="askVoid(r)">Gỡ ghi nhận</button>
       }
     </ng-template>
   `,
 })
 export class SalesInvoicesComponent {
+  private readonly dialogs = inject(ConfirmService);
   private readonly svc = inject(EInvoiceService);
   private readonly auth = inject(AuthService);
   readonly money = formatVnd;
@@ -254,8 +243,6 @@ export class SalesInvoicesComponent {
   readonly list = signal<RecordedInvoice[] | null>(null);
   readonly selected = signal<string[]>([]);
   readonly rec = signal<RecForm | null>(null);
-  readonly voiding = signal<{ id: string; reason: string } | null>(null);
-  readonly voidRow = computed(() => (this.list() ?? []).find((r) => r.id === this.voiding()?.id) ?? null);
   readonly outstandingTotal = computed(() => (this.outstanding()?.items ?? []).reduce((sum, i) => sum + i.amount, 0));
   private readonly listActionsRef = viewChild<TemplateRef<{ $implicit: RecordedInvoice }>>('listActionsTpl');
   readonly listActions = computed(() => this.listActionsRef());
@@ -373,15 +360,41 @@ export class SalesInvoicesComponent {
     });
   }
 
-  confirmVoid() {
-    const v = this.voiding();
-    if (!v) return Promise.resolve();
-    return this.run(async () => {
-      await this.svc.voidRecord(v.id, v.reason.trim());
-      this.voiding.set(null);
-      this.notice.set('Đã gỡ ghi nhận hoá đơn; đợt giao đó có thể ghi nhận lại.');
-      await this.loadList();
+  async askVoid(r: RecordedInvoice): Promise<void> {
+    const done = await this.dialogs.form({
+      title: `Gỡ ghi nhận hoá đơn ${r.templateCode}${r.series} số ${r.number}?`,
+      message: 'Dùng khi nhập nhầm số hoặc hoá đơn đã bị huỷ trên cổng. Đợt giao đó có thể ghi nhận lại.',
+      confirmLabel: 'Gỡ ghi nhận', cancelLabel: 'Không gỡ', tone: 'danger',
+      fields: [{ key: 'reason', label: 'Lý do gỡ', type: 'textarea', required: true, placeholder: 'Ví dụ: Nhập nhầm số hoá đơn', maxLength: 300 }],
+      run: (v) => {
+        if (v['reason'].length < 3) throw new Error('Lý do gỡ cần ít nhất 3 ký tự.');
+        return this.svc.voidRecord(r.id, v['reason']);
+      },
     });
+    if (!done) return;
+    this.notice.set('Đã gỡ ghi nhận hoá đơn; đợt giao đó có thể ghi nhận lại.');
+    await this.loadList();
+  }
+  /** File mẫu: các cột phần mềm cần để ghi nhận số hoá đơn (danh sách hoá đơn tải từ cổng thường đã có đủ). */
+  async downloadSample() {
+    await downloadWorkbook('Mẫu nhập số hoá đơn.xlsx', [{
+      name: 'Hoá đơn',
+      columns: [
+        { header: 'Mã tham chiếu', width: 22, required: true }, { header: 'Ký hiệu', width: 12 },
+        { header: 'Số hoá đơn', width: 14, required: true }, { header: 'Ngày hoá đơn', width: 14, required: true },
+      ],
+      rows: [],
+      exampleRows: [['DH0000110', 'C26TAA', '0000123', '12/11/2026'], ['DH0000112#2', 'C26TAA', '0000124', '15/11/2026']],
+      notes: {
+        title: 'Nhập số hoá đơn từ cổng — hướng dẫn',
+        lines: [
+          'Dùng khi bạn đã lập và ký hoá đơn trên cổng của nhà cung cấp và muốn ghi nhận số hoá đơn về phần mềm một lượt.',
+          'Mã tham chiếu: số đơn bán (DH0000110), hoặc số đơn#số đợt giao (DH0000112#2) nếu đơn giao nhiều đợt. Đây là cột "Mã tham chiếu" trong file xuất dữ liệu bán hàng; giữ nguyên khi lập hoá đơn trên cổng.',
+          'Danh sách hoá đơn xuất từ cổng thường có sẵn các cột này (có thể tên khác: Số hoá đơn, Ký hiệu, Ngày lập, Diễn giải chứa mã đơn…): chọn file đó và ghép cột ở bước sau, không cần chép lại vào file mẫu.',
+          'Hoá đơn không có mã tham chiếu bị bỏ qua. Dùng "Kiểm tra trước" để xem kết quả, rồi "Ghi nhận".',
+        ],
+      },
+    }]);
   }
 
   async onFile(ev: Event) {

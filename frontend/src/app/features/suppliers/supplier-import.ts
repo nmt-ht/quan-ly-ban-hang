@@ -27,6 +27,10 @@ export function supplierImportConfig(suppliers: () => Supplier[]): ExcelImportCo
       'Số ngày được nợ: số nguyên, 0 = trả ngay. "Còn hợp tác": Có / Không, để trống = Có.',
       'Sau khi chọn file, hệ thống kiểm tra từng dòng và hiện kết quả — CHƯA LƯU gì cho tới khi bấm Nhập. Dòng lỗi bị bỏ qua.',
     ],
+    sampleRows: [
+      ['', 'Ví dụ — Công ty TNHH Gỗ Phú Thịnh', '0281234567', 'kinhdoanh@example.vn', '0312345678', '45 Đường số 7, KCN Vĩnh Lộc, TP.HCM', 30, 'Giao hàng thứ 3 và thứ 6', 'Có'],
+      ['', 'Ví dụ — Cửa hàng Kính Minh Tâm', '0907654321', '', '', '88 Trần Hưng Đạo, Quận 5, TP.HCM', 0, 'Mua tiền mặt, trả ngay', 'Có'],
+    ],
     currentRows: () => [...suppliers()].sort((a, b) => a.code.localeCompare(b.code)).map((s) => [
       s.code, s.name, s.contactPhone ?? '', s.email ?? '', s.taxCode ?? '', s.address ?? '', s.creditDays ?? 0, s.note ?? '',
       s.isActive ? 'Có' : 'Không',

@@ -126,3 +126,11 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+// Two tiles per row on a phone: a figure like -1.378.250.040₫ must fit its tile.
+@media (max-width: 480px) {
+  .cv-cards dd.num {
+    font-size: var(--text-base);
+    overflow-wrap: anywhere;
+  }
+}

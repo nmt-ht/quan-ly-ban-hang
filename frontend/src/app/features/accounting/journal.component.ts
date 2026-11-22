@@ -1,13 +1,14 @@
 /* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 import { ConfirmService } from '../../shared/confirm/confirm.service';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AccountingService } from '../../core/services/accounting.service';
 import { AuthService } from '../../core/services/auth.service';
 import { errorText } from '../../core/api/api.service';
 import { JournalEntryView } from '../../core/models/domain.models';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
-import { formatVnd } from '../../shared/format.util';
+import { foldVi, formatVnd } from '../../shared/format.util';
+import { PaginationComponent } from '../../shared/pagination/pagination.component';
 import { formatDay, presetRange } from '../../shared/period';
 import { PeriodFilterComponent, PeriodValue } from '../../shared/period-filter/period-filter.component';
 import { BookPrintComponent } from '../../shared/print/tt133/book-print.component';
@@ -18,13 +19,13 @@ import { PrintService } from '../../shared/print/print.service';
 @Component({
   selector: 'app-accounting-journal',
   standalone: true,
-  imports: [RouterLink, NavIconComponent, PeriodFilterComponent, BookPrintComponent],
+  imports: [RouterLink, NavIconComponent, PeriodFilterComponent, BookPrintComponent, PaginationComponent],
   template: `
    <div class="screen-only">
     <div class="page-header">
       <div>
         <h1>Sổ nhật ký chung</h1>
-        <p class="subtitle">{{ entries().length }} bút toán trong kỳ, mới nhất trước. Bản in theo mẫu S03a-DNN, theo ngày tăng dần.</p>
+        <p class="subtitle">{{ search().trim() ? filtered().length + ' / ' + entries().length : entries().length }} bút toán trong kỳ, mới nhất trước. Bản in theo mẫu S03a-DNN, theo ngày tăng dần.</p>
       </div>
       <div class="toolbar">
         <button type="button" class="btn" [disabled]="printBusy()" (click)="printBook()"><app-nav-icon name="printer" />In sổ S03a-DNN</button>
@@ -37,6 +38,7 @@ import { PrintService } from '../../shared/print/print.service';
     @if (truncated()) { <div class="notice" role="status">Kỳ có hơn 500 bút toán, màn hình chỉ hiện 500 bút toán mới nhất. Bản in lấy đủ kỳ (tối đa 5.000 bút toán).</div> }
 
     <div class="filters-bar">
+      <input type="search" class="filter-search" placeholder="Tìm số CT, diễn giải, tài khoản, số tiền…" aria-label="Tìm bút toán" [value]="search()" (input)="search.set($any($event.target).value)" />
       <app-period-filter [value]="period()" (valueChange)="onPeriod($event)" />
     </div>
 
@@ -46,8 +48,8 @@ import { PrintService } from '../../shared/print/print.service';
           <th scope="col">Ngày</th><th scope="col">Số CT</th><th scope="col">Diễn giải</th>
           <th scope="col">Tài khoản</th><th scope="col" class="r">Nợ</th><th scope="col" class="r">Có</th><th scope="col"><span class="visually-hidden">Thao tác</span></th>
         </tr></thead>
-        @for (e of entries(); track e.id) {
-          <tbody class="book-group">
+        @for (e of pagedEntries(); track e.id; let n = $index) {
+          <tbody class="book-group" [class.is-alt]="n % 2 === 1">
             @for (l of e.lines; track $index; let i = $index) {
               <tr [class.book-entry]="i === 0">
                 @if (i === 0) {
@@ -67,10 +69,11 @@ import { PrintService } from '../../shared/print/print.service';
             }
           </tbody>
         } @empty {
-          <tbody><tr><td class="book-none" colspan="7">Chưa có bút toán nào.</td></tr></tbody>
+          <tbody><tr><td class="book-none" colspan="7">{{ search().trim() ? 'Không có bút toán nào khớp từ khoá.' : 'Chưa có bút toán nào.' }}</td></tr></tbody>
         }
       </table>
     </div>
+    <app-pagination [total]="filtered().length" unit="bút toán" [(page)]="page" [(pageSize)]="pageSize" />
    </div>
 
    @if (doc(); as b) {
@@ -86,6 +89,23 @@ export class AccountingJournalComponent {
   readonly canManual = this.auth.can('accounting.manual');
   readonly canReverse = this.auth.can('accounting.reverse');
   readonly entries = signal<JournalEntryView[]>([]);
+  readonly search = signal('');
+  readonly page = signal(1);
+  readonly pageSize = signal(20);
+  /** The bút toán in the period that match the search (số CT, diễn giải, mã / tên tài khoản, số tiền), accents ignored. */
+  readonly filtered = computed(() => {
+    const q = foldVi(this.search().trim());
+    if (!q) return this.entries();
+    const digits = q.replace(/[.\s]/g, '');
+    return this.entries().filter((e) =>
+      foldVi([e.code, e.description ?? '', ...e.lines.map((l) => `${l.accountCode} ${l.accountName}`)].join(' ')).includes(q)
+      || (/^\d+$/.test(digits) && e.lines.some((l) => String(Math.round(l.debit || l.credit)).includes(digits))),
+    );
+  });
+  readonly pagedEntries = computed(() => {
+    const start = (this.page() - 1) * this.pageSize();
+    return this.filtered().slice(start, start + this.pageSize());
+  });
   readonly truncated = signal(false);
   readonly failure = signal('');
   readonly period = signal<PeriodValue>({ preset: 'thisYear', range: presetRange('thisYear') });
@@ -94,7 +114,14 @@ export class AccountingJournalComponent {
   readonly money = formatVnd;
   readonly formatDay = formatDay;
 
-  constructor() { this.load(); }
+  constructor() {
+    this.load();
+    // Back to page 1 when the search or the period changes the list.
+    effect(() => {
+      this.filtered();
+      untracked(() => this.page.set(1));
+    });
+  }
 
   onPeriod(v: PeriodValue) {
     this.period.set(v);

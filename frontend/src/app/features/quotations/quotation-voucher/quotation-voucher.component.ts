@@ -1,3 +1,6 @@
+import { NextCodeComponent } from '../../../shared/next-code/next-code.component';
+import { NextCodeService } from '../../../shared/next-code/next-code.service';
+import { ConfirmService } from '../../../shared/confirm/confirm.service';
 import { Component, HostListener, computed, effect, inject, signal, untracked , viewChild } from '@angular/core';
 import { EmailComposeComponent } from '../../../shared/email-compose/email-compose.component';
 import { pdfName } from '../../../shared/print/print-pdf';
@@ -76,13 +79,15 @@ const DEFAULT_VALID_DAYS = 7;
 @Component({
   selector: 'app-quotation-voucher',
   standalone: true,
-  imports: [DateInputDirective, EmailComposeComponent, SearchSelectComponent, QuickCustomerDialogComponent, FrozenColsDirective, NgClass, FormsModule, RouterLink, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
+  imports: [NextCodeComponent, DateInputDirective, EmailComposeComponent, SearchSelectComponent, QuickCustomerDialogComponent, FrozenColsDirective, NgClass, FormsModule, RouterLink, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
     PaginationComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent,
   ],
   templateUrl: './quotation-voucher.component.html',
   styleUrls: ['../../../shared/voucher/voucher.scss', '../../sales-orders/sales-order-voucher/sales-order-voucher.component.scss'],
 })
 export class QuotationVoucherComponent implements HasUnsavedChanges {
+  private readonly nextCode = inject(NextCodeService);
+  private readonly dialogs = inject(ConfirmService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   readonly data = inject(DataStore);
@@ -146,8 +151,6 @@ export class QuotationVoucherComponent implements HasUnsavedChanges {
     });
   }
   readonly failure = signal('');
-  readonly confirmCancel = signal(false);
-  readonly cancelReason = signal('');
 
   readonly vatRates = VAT_RATES;
   readonly statusLabel = QUOTATION_STATUS_LABEL;
@@ -182,7 +185,6 @@ export class QuotationVoucherComponent implements HasUnsavedChanges {
         this.attempted.set(false);
         this.tab.set('hang');
         this.page.set(1);
-        this.confirmCancel.set(false);
         if (id) this.notice.set((history.state as { notice?: string } | null)?.notice ?? '');
         this.baseline = this.snapshot();
       });
@@ -497,7 +499,7 @@ export class QuotationVoucherComponent implements HasUnsavedChanges {
     const q = await this.attempt(() => (this.mode() === 'edit' && id ? this.quotes.update(id, draft) : this.quotes.create(draft)));
     if (!q) return;
     this.baseline = this.snapshot();
-    this.router.navigate(['/bao-gia', q.id], { state: { notice: this.mode() === 'edit' ? 'Đã lưu thay đổi.' : `Đã lập báo giá ${q.code}.` } });
+    this.router.navigate(['/bao-gia', q.id], { state: { notice: this.mode() === 'edit' ? 'Đã lưu thay đổi.' : `Đã lập báo giá ${q.code}. ${this.nextCode.noteIfChanged('BG', q.code)}`.trim() } });
   }
 
   cancelEditing(): void {
@@ -523,10 +525,15 @@ export class QuotationVoucherComponent implements HasUnsavedChanges {
     if (q) this.router.navigate(['/don-hang/them-moi'], { queryParams: { quoteId: q.id } });
   }
 
-  async doCancel(): Promise<void> {
-    const ok = await this.attempt(() => this.quotes.cancel(this.id()!, this.cancelReason().trim()).then(() => true));
-    this.confirmCancel.set(false);
-    if (ok) this.notice.set('Đã huỷ báo giá.');
+  async askCancel(): Promise<void> {
+    const id = this.id();
+    if (!id) return;
+    const done = await this.dialogs.form({
+      title: `Huỷ báo giá ${this.quote()?.code ?? ''}?`, message: 'Không lập đơn từ báo giá này được nữa. Không hoàn tác được.',
+      confirmLabel: 'Huỷ báo giá', cancelLabel: 'Không huỷ', tone: 'danger', fields: [{ key: 'reason', label: 'Lý do huỷ', type: 'textarea', placeholder: 'Không bắt buộc', maxLength: 300 }],
+      run: (v) => this.quotes.cancel(id, v['reason']),
+    });
+    if (done) this.notice.set('Đã huỷ báo giá.');
   }
 
   private async attempt<T>(save: () => Promise<T>): Promise<T | null> {

@@ -1,4 +1,5 @@
 /* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
+import { ConfirmService } from '../../shared/confirm/confirm.service';
 import { Component, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService, errorText } from '../../core/api/api.service';
@@ -151,20 +152,6 @@ const blankRow = (): Row => ({ accountCode: '642', description: '', amount: null
       </section>
     }
 
-    @if (cancelRow(); as b) {
-      <section class="card section-block" aria-labelledby="hm-cancel">
-        <h2 id="hm-cancel" class="form-section-title">Huỷ hoá đơn {{ b.code }}</h2>
-        <div class="field">
-          <label for="hm-reason">Lý do huỷ</label>
-          <input id="hm-reason" type="text" maxlength="300" [ngModel]="reason()" (ngModelChange)="reason.set($event)" />
-          <span class="hint">Bút toán được đảo và công nợ phải trả nhà cung cấp tính lại.</span>
-        </div>
-        <div class="toolbar">
-          <button type="button" class="btn btn-danger" [disabled]="busy()" (click)="cancel(b)">Xác nhận huỷ</button>
-          <button type="button" class="btn" (click)="cancelling.set(null)">Bỏ qua</button>
-        </div>
-      </section>
-    }
 
     <div class="filters-bar">
       <input type="search" class="filter-search" placeholder="Tìm số chứng từ, NCC, số hoá đơn…" aria-label="Tìm hoá đơn mua" [value]="search()" (input)="search.set($any($event.target).value)" />
@@ -186,13 +173,14 @@ const blankRow = (): Row => ({ accountCode: '642', description: '', amount: null
 
     <ng-template #rowActionsTpl let-b>
       @if (!b.isCancelled && canCancel()) {
-        <button type="button" class="btn row-act-btn btn-danger-ghost" (click)="cancelling.set(b.id); reason.set('')">Huỷ</button>
+        <button type="button" class="btn row-act-btn btn-danger-ghost" (click)="askCancel(b)">Huỷ</button>
       }
     </ng-template>
   `,
   styles: [`.money-cell { width: 8.5rem; text-align: right; } .account-cell { min-width: 12rem; width: 100%; }`],
 })
 export class PurchaseBillsComponent {
+  private readonly dialogs = inject(ConfirmService);
   private readonly api = inject(ApiService);
   private readonly auth = inject(AuthService);
   private readonly store = inject(DataStore);
@@ -225,9 +213,6 @@ export class PurchaseBillsComponent {
   readonly search = signal('');
   readonly noInvoiceOnly = signal(false);
   readonly showCancelled = signal(false);
-  readonly cancelling = signal<string | null>(null);
-  readonly cancelRow = computed(() => this.bills().find((b) => b.id === this.cancelling()) ?? null);
-  readonly reason = signal('');
   readonly canCreate = computed(() => this.auth.can('purchase.create'));
   readonly canCancel = computed(() => this.auth.can('purchase.cancel'));
   readonly supplierOptions = computed<SearchOption[]>(() =>
@@ -300,7 +285,6 @@ export class PurchaseBillsComponent {
     this.basis.set('GIA_TRI');
     this.failure.set('');
     this.attempted.set(false);
-    this.cancelling.set(null);
     this.creating.set(true);
   }
 
@@ -335,18 +319,15 @@ export class PurchaseBillsComponent {
     }
   }
 
-  async cancel(b: PurchaseBillView) {
-    this.busy.set(true);
-    this.failure.set('');
-    try {
-      await this.api.post<PurchaseBillView>(`/purchase-bills/${b.id}/cancel`, { reason: this.reason().trim() || undefined });
-      this.cancelling.set(null);
-      this.notice.set(`Đã huỷ hoá đơn ${b.code}; bút toán được đảo và công nợ phải trả tính lại${b.purchaseOrderCode ? `, giá bình quân hàng của đơn ${b.purchaseOrderCode} trả về như trước` : ''}.`);
-      await this.load();
-    } catch (e) {
-      this.failure.set(errorText(e));
-    } finally {
-      this.busy.set(false);
-    }
+  async askCancel(b: PurchaseBillView) {
+    const done = await this.dialogs.form({
+      title: `Huỷ hoá đơn ${b.code}?`, message: 'Bút toán được đảo và công nợ phải trả nhà cung cấp tính lại.',
+      confirmLabel: 'Huỷ hoá đơn', cancelLabel: 'Không huỷ', tone: 'danger',
+      fields: [{ key: 'reason', label: 'Lý do huỷ', type: 'textarea', placeholder: 'Không bắt buộc', maxLength: 300 }],
+      run: (v) => this.api.post<PurchaseBillView>(`/purchase-bills/${b.id}/cancel`, { reason: v['reason'] || undefined }),
+    });
+    if (!done) return;
+    this.notice.set(`Đã huỷ hoá đơn ${b.code}; bút toán được đảo và công nợ phải trả tính lại${b.purchaseOrderCode ? `, giá bình quân hàng của đơn ${b.purchaseOrderCode} trả về như trước` : ''}.`);
+    await this.load();
   }
 }

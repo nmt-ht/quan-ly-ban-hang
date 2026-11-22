@@ -23,7 +23,7 @@
         }
       }
       @if (canDelete && !inUse()) {
-        <button type="button" class="btn btn-danger-ghost" (click)="confirmDelete.set(true)"><app-nav-icon name="trash" />Xoá</button>
+        <button type="button" class="btn btn-danger-ghost" (click)="askDelete()"><app-nav-icon name="trash" />Xoá</button>
       }
       @if (canUpdate) { <button type="button" class="btn btn-primary" (click)="edit()"><app-nav-icon name="pencil" />Sửa</button> }
     </div>
@@ -179,18 +179,6 @@
     }
   </div>
 
-  @if (confirmDelete()) {
-    <div class="confirm-strip" role="alertdialog" aria-labelledby="wd-del-title">
-      <p id="wd-del-title">
-        <strong>Xoá kho "{{ w.name }}"?</strong> Kho chưa có phiếu, dòng đơn hay tồn nào.
-        @if (usage().defaults; as n) { {{ n }} mặt hàng đang lấy kho này làm kho ngầm định sẽ để trống ô đó. }
-      </p>
-      <div class="toolbar">
-        <button type="button" class="btn" (click)="confirmDelete.set(false)">Không xoá</button>
-        <button type="button" class="btn btn-danger" (click)="doDelete()"><app-nav-icon name="trash" />Xoá kho</button>
-      </div>
-    </div>
-  }
 
   <app-warehouse-form-dialog (saved)="onSaved()" />
 } @else {

@@ -18,7 +18,9 @@ import { canStart, isLate } from './production-order.rules';
 import { errorText } from '../../core/api/api.service';
 import { AllowedLinkDirective } from '../../shared/allowed-link.directive';
 
-type StatusTab = 'all' | ProductionOrderStatus;
+/** 'open' = Chờ xử lý (Nháp + Đang sản xuất): what the screen opens on; the finished and cancelled ones are a tab away. */
+type StatusTab = 'open' | 'all' | ProductionOrderStatus;
+const OPEN_STATUSES: ProductionOrderStatus[] = ['NHAP', 'DANG_SAN_XUAT'];
 const STATUSES = Object.keys(PRODUCTION_ORDER_STATUS_LABEL) as ProductionOrderStatus[];
 /** ?tt= in the address: the status in lower-case words (nhap, dang-san-xuat…). */
 const statusParam = (s: ProductionOrderStatus) => s.toLowerCase().replace(/_/g, '-');
@@ -56,7 +58,7 @@ export class ProductionOrdersComponent {
   private readonly searchQuery = signal('');
   private searchTimer: ReturnType<typeof setTimeout> | undefined;
   private readonly query = inject(ActivatedRoute).snapshot.queryParamMap;
-  readonly statusTab = signal<StatusTab>(STATUSES.find((s) => statusParam(s) === this.query.get('tt')) ?? 'all');
+  readonly statusTab = signal<StatusTab>(this.query.get('tt') === 'tat-ca' ? 'all' : STATUSES.find((s) => statusParam(s) === this.query.get('tt')) ?? 'open');
   readonly productIds = signal<string[]>((this.query.get('tp') ?? '').split(',').filter(Boolean));
   readonly period = signal<PeriodValue>(NO_PERIOD);
   readonly lateOnly = signal(false);
@@ -91,19 +93,22 @@ export class ProductionOrdersComponent {
 
   private readonly filters = computed<ProductionOrderPageQuery>(() => ({
     q: this.searchQuery().trim() || undefined,
-    status: this.statusTab() === 'all' ? [] : [this.statusTab()],
+    status: this.statusTab() === 'all' ? [] : this.statusTab() === 'open' ? OPEN_STATUSES : [this.statusTab() as ProductionOrderStatus],
     productIds: this.productIds(),
     from: this.period().range.from ?? undefined,
     to: this.period().range.to ?? undefined,
     late: this.lateOnly() || undefined,
-    sort: this.headerSort() ? SORT_KEY[this.headerSort()!.key as keyof typeof SORT_KEY] : undefined,
-    dir: this.headerSort()?.dir,
+    // Opened on Chờ xử lý, the most urgent first: the earliest ngày cần giao (late ones on top, no date last). A click on a header overrides it.
+    sort: this.headerSort() ? SORT_KEY[this.headerSort()!.key as keyof typeof SORT_KEY] : 'needed',
+    dir: this.headerSort() ? this.headerSort()!.dir : 'asc',
   }));
 
   readonly statusTabs = computed<DivideItem<StatusTab>[]>(() => {
     const counts = this.result().statusCounts;
     const all = STATUSES.reduce((sum, s) => sum + (counts[s] ?? 0), 0);
+    const open = OPEN_STATUSES.reduce((sum, s) => sum + (counts[s] ?? 0), 0);
     return [
+      { value: 'open' as StatusTab, label: 'Chờ xử lý', count: open },
       { value: 'all' as StatusTab, label: 'Tất cả', count: all },
       ...STATUSES.map((s) => ({ value: s as StatusTab, label: PRODUCTION_ORDER_STATUS_LABEL[s], count: counts[s] ?? 0 })),
     ];
@@ -184,7 +189,7 @@ export class ProductionOrdersComponent {
     syncSliceToUrl(() => {
       const s = this.statusTab();
       const p = this.productIds();
-      return { tt: s === 'all' ? null : statusParam(s), tp: p.length ? p.join(',') : null };
+      return { tt: s === 'open' ? null : s === 'all' ? 'tat-ca' : statusParam(s), tp: p.length ? p.join(',') : null };
     });
   }
 

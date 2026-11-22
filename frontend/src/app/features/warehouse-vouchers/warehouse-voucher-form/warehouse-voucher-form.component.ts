@@ -1,3 +1,6 @@
+import { NextCodeComponent } from '../../../shared/next-code/next-code.component';
+import { NextCodeService, WAREHOUSE_PREFIX } from '../../../shared/next-code/next-code.service';
+import { ConfirmService } from '../../../shared/confirm/confirm.service';
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -47,11 +50,13 @@ const emptyLine = (): Line => ({ key: crypto.randomUUID(), productId: '', unitNa
 @Component({
   selector: 'app-warehouse-voucher-form',
   standalone: true,
-  imports: [DateInputDirective, PickableWarehousesPipe, FrozenColsDirective, NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent],
+  imports: [NextCodeComponent, DateInputDirective, PickableWarehousesPipe, FrozenColsDirective, NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent],
   templateUrl: './warehouse-voucher-form.component.html',
   styleUrls: ['../../../shared/voucher/voucher.scss', './warehouse-voucher-form.component.scss'],
 })
 export class WarehouseVoucherFormComponent {
+  private readonly nextCode = inject(NextCodeService);
+  private readonly dialogs = inject(ConfirmService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   readonly data = inject(DataStore);
@@ -77,6 +82,8 @@ export class WarehouseVoucherFormComponent {
   });
   readonly type = computed<WarehouseVoucherType>(() => this.voucher()?.type ?? SLUG_KIND[this.params().kind ?? ''] ?? 'NHAP');
   readonly text = computed(() => KIND_TEXT[this.type()]);
+  /** The number prefix of this kind of phiếu (PNK, PXK, PCK, PKK), for the "Số chứng từ" shown before saving. */
+  readonly prefix = computed(() => WAREHOUSE_PREFIX[this.type()] ?? 'PNK');
   readonly kindLabel = computed(() => (this.voucher() ? VOUCHER_KIND_LABEL[kindOf(this.voucher()!)] : VOUCHER_KIND_LABEL[this.type()]));
   readonly kindClass = computed(() => tagClass('warehouse-voucher', this.voucher() ? kindOf(this.voucher()!) : this.type()));
   readonly source = computed(() => (this.voucher() ? sourceOf(this.voucher()!, this.data) : null));
@@ -100,8 +107,6 @@ export class WarehouseVoucherFormComponent {
   /** Đơn giá trên phiếu nhập needs its own permission (Thủ kho does not see purchase prices). */
   readonly showPrice = computed(() => this.type() === 'NHAP' && this.auth.can('stock.import_price'));
   readonly notice = signal('');
-  readonly confirmCancel = signal(false);
-  readonly cancelReason = signal('');
 
   constructor() {
     effect(() => {
@@ -117,7 +122,6 @@ export class WarehouseVoucherFormComponent {
         this.lines.set([emptyLine()]);
         this.attempted.set(false);
         this.error.set('');
-        this.confirmCancel.set(false);
         this.notice.set((history.state as { notice?: string } | null)?.notice ?? '');
       });
     });
@@ -257,7 +261,7 @@ export class WarehouseVoucherFormComponent {
           unitPrice: l.unitPrice ?? undefined, note: l.note,
         })),
       });
-      this.router.navigate(['/kho/phieu', v.id], { state: { notice: `Đã lưu ${v.code} — tồn kho đã cập nhật.` } });
+      this.router.navigate(['/kho/phieu', v.id], { state: { notice: `Đã lưu ${v.code} — tồn kho đã cập nhật. ${this.nextCode.noteIfChanged(this.prefix(), v.code)}`.trim() } });
     } catch (e) {
       this.error.set(errorText(e));
     } finally {
@@ -289,14 +293,15 @@ export class WarehouseVoucherFormComponent {
   readonly company = computed(() => this.data.companyInfo());
   readonly newSlug = computed(() => KIND_SLUG[this.type()]);
 
-  async doCancel(): Promise<void> {
-    try {
-      await this.svc.cancel(this.voucher()!.id, this.cancelReason());
-      this.notice.set(`Đã huỷ ${this.voucher()!.code} — tồn kho đã trả về như trước khi lập phiếu.`);
-    } catch (e) {
-      this.error.set(errorText(e));
-    }
-    this.confirmCancel.set(false);
+  async askCancel(): Promise<void> {
+    const v = this.voucher();
+    if (!v) return;
+    const done = await this.dialogs.form({
+      title: `Huỷ ${v.code}?`, message: 'Tồn kho trả về như trước khi lập phiếu; phiếu vẫn lưu để đối chiếu.',
+      confirmLabel: 'Huỷ phiếu', cancelLabel: 'Không huỷ', tone: 'danger', fields: [{ key: 'reason', label: 'Lý do huỷ', type: 'textarea', placeholder: 'Không bắt buộc', maxLength: 300 }],
+      run: (x) => this.svc.cancel(v.id, x['reason']),
+    });
+    if (done) this.notice.set(`Đã huỷ ${v.code} — tồn kho đã trả về như trước khi lập phiếu.`);
   }
 
   /** Signature block by document type. The maker's name is printed under the signature space. */

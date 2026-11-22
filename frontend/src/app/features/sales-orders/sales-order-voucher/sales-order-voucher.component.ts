@@ -1,3 +1,6 @@
+import { NextCodeComponent } from '../../../shared/next-code/next-code.component';
+import { NextCodeService } from '../../../shared/next-code/next-code.service';
+import { ConfirmService } from '../../../shared/confirm/confirm.service';
 import { Component, HostListener, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { EmailComposeComponent } from '../../../shared/email-compose/email-compose.component';
 import { pdfName } from '../../../shared/print/print-pdf';
@@ -99,7 +102,7 @@ const emptyLine = (): DraftLine => ({
 @Component({
   selector: 'app-sales-order-voucher',
   standalone: true,
-  imports: [DateInputDirective, EmailComposeComponent, SearchSelectComponent, StatusStepsComponent, QuickCustomerDialogComponent, PickableWarehousesPipe, FrozenColsDirective, 
+  imports: [NextCodeComponent, DateInputDirective, EmailComposeComponent, SearchSelectComponent, StatusStepsComponent, QuickCustomerDialogComponent, PickableWarehousesPipe, FrozenColsDirective, 
     NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
     PaginationComponent, FilterMultiSelectComponent, DeliverDialogComponent, ReturnDialogComponent, AllowanceDialogComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent,
     InvoicePreviewComponent,
@@ -108,6 +111,7 @@ const emptyLine = (): DraftLine => ({
   styleUrls: ['../../../shared/voucher/voucher.scss', './sales-order-voucher.component.scss'],
 })
 export class SalesOrderVoucherComponent implements HasUnsavedChanges {
+  private readonly nextCode = inject(NextCodeService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   readonly data = inject(DataStore);
@@ -236,14 +240,8 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   /** The server refused the save for hạn mức công nợ; someone with debt.adjust may save anyway. */
   readonly creditBlocked = computed(() => this.failure().startsWith('Vượt hạn mức công nợ'));
   readonly canOverrideCredit = computed(() => this.auth.can('debt.adjust'));
-  readonly confirmCancel = signal(false);
-  readonly cancelReason = signal('');
-  readonly confirmClose = signal(false);
   /** Phiếu trả đang chờ xác nhận huỷ. */
-  readonly confirmCancelReturn = signal<SalesReturn | null>(null);
-  readonly cancelReturnReason = signal('');
-  readonly confirmCancelAllowance = signal<SalesAllowance | null>(null);
-  readonly cancelAllowanceReason = signal('');
+  private readonly dialogs = inject(ConfirmService);
 
   readonly vatRates = VAT_RATES;
   readonly statusLabel = SALES_ORDER_STATUS_LABEL;
@@ -295,10 +293,6 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
         this.attempted.set(false);
         this.tab.set('hang');
         this.page.set(1);
-        this.confirmCancel.set(false);
-        this.confirmClose.set(false);
-        this.confirmCancelReturn.set(null);
-        this.confirmCancelAllowance.set(null);
         if (id) this.notice.set((history.state as { notice?: string } | null)?.notice ?? '');
         else this.notice.set(quote ? `Đơn điền sẵn từ báo giá ${quote.code} — chọn kho xuất, ngày cần giao rồi lưu. Lưu xong báo giá chuyển sang Đã lập đơn.` : '');
         this.baseline = this.snapshot();
@@ -813,7 +807,7 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
     if (!o) return;
     if (draft.quotationId) await this.quotations.reload(draft.quotationId).catch(() => undefined);
     this.baseline = this.snapshot(); // saved: leaving the page must not ask again
-    this.router.navigate(['/don-hang', o.id], { state: { notice: this.mode() === 'edit' ? 'Đã lưu thay đổi.' : `Đã tạo đơn ${o.code}.` } });
+    this.router.navigate(['/don-hang', o.id], { state: { notice: this.mode() === 'edit' ? 'Đã lưu thay đổi.' : `Đã tạo đơn ${o.code}. ${this.nextCode.noteIfChanged('DH', o.code)}`.trim() } });
   }
 
   cancelEditing(): void {
@@ -886,18 +880,30 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
     this.notice.set(`${code} hoàn tất — đã nhập thành phẩm vào kho (${v.map((x) => x.code).join(', ')}).`);
   }
 
-  async doCancel(): Promise<void> {
-    const ok = await this.attempt(() => this.orders.cancel(this.id()!, this.cancelReason().trim()).then(() => true));
-    this.confirmCancel.set(false);
-    if (!ok) return;
-    this.notice.set('Đã huỷ đơn. Lệnh sản xuất chưa hoàn tất của đơn cũng đã huỷ.');
+  /** Huỷ đơn: a dialog asks for the reason (optional) and does the work, showing a refusal inside itself. */
+  async askCancel(): Promise<void> {
+    const id = this.id();
+    if (!id) return;
+    const done = await this.dialogs.form({
+      title: `Huỷ đơn ${this.order()?.code ?? ''}?`,
+      message: 'Lệnh sản xuất chưa hoàn tất của đơn cũng bị huỷ. Không hoàn tác được.',
+      confirmLabel: 'Huỷ đơn', cancelLabel: 'Không huỷ', tone: 'danger',
+      fields: [{ key: 'reason', label: 'Lý do huỷ', type: 'textarea', placeholder: 'Không bắt buộc', maxLength: 300 }],
+      run: (v) => this.orders.cancel(id, v['reason']),
+    });
+    if (done) this.notice.set('Đã huỷ đơn. Lệnh sản xuất chưa hoàn tất của đơn cũng đã huỷ.');
   }
 
-  async doClose(): Promise<void> {
-    const ok = await this.attempt(() => this.orders.close(this.id()!).then(() => true));
-    this.confirmClose.set(false);
-    if (!ok) return;
-    this.notice.set('Đã kết thúc đơn — phần còn lại không giao nữa. Công nợ chỉ tính trên số khách đã nhận.');
+  async askClose(): Promise<void> {
+    const id = this.id();
+    if (!id) return;
+    const ok = await this.dialogs.form({
+      title: `Kết thúc đơn ${this.order()?.code ?? ''}?`,
+      message: 'Khách không lấy phần còn lại: đơn không giao thêm được, công nợ giữ đúng số khách đã nhận.',
+      confirmLabel: 'Kết thúc đơn', cancelLabel: 'Để sau', tone: 'primary', fields: [],
+      run: () => this.orders.close(id),
+    });
+    if (ok) this.notice.set('Đã kết thúc đơn — phần còn lại không giao nữa. Công nợ chỉ tính trên số khách đã nhận.');
   }
 
 /** Runs a save; on failure shows why and answers null. */
@@ -950,18 +956,17 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
       .join(' · ');
   }
 
-  askCancelReturn(r: SalesReturn): void {
-    this.cancelReturnReason.set('');
-    this.confirmCancelReturn.set(r);
-  }
-
-  async doCancelReturn(): Promise<void> {
-    const r = this.confirmCancelReturn();
-    if (!r) return;
-    const ok = await this.attempt(() => this.orders.cancelReturn(this.id()!, r.id, this.cancelReturnReason().trim()).then(() => true));
-    this.confirmCancelReturn.set(null);
-    if (!ok) return;
-    this.notice.set(`Đã huỷ phiếu trả ${r.code}${r.voucherCode ? ` — phiếu ${r.voucherCode} đã huỷ, hàng ra khỏi kho` : ''}; công nợ phải thu tăng lại ${this.money(r.amount)}.`);
+  async askCancelReturn(r: SalesReturn): Promise<void> {
+    const id = this.id();
+    if (!id) return;
+    const done = await this.dialogs.form({
+      title: `Huỷ phiếu trả ${r.code}?`,
+      message: `Phiếu nhập kho ${r.voucherCode || ''} bị huỷ (hàng ra khỏi kho), công nợ phải thu tăng lại ${this.money(r.amount)}.`,
+      confirmLabel: 'Huỷ phiếu trả', cancelLabel: 'Không huỷ', tone: 'danger',
+      fields: [{ key: 'reason', label: 'Lý do huỷ', type: 'textarea', placeholder: 'Không bắt buộc', maxLength: 300 }],
+      run: (v) => this.orders.cancelReturn(id, r.id, v['reason']),
+    });
+    if (done) this.notice.set(`Đã huỷ phiếu trả ${r.code}${r.voucherCode ? ` — phiếu ${r.voucherCode} đã huỷ, hàng ra khỏi kho` : ''}; công nợ phải thu tăng lại ${this.money(r.amount)}.`);
   }
 
   // ---------- giảm giá hàng bán ----------
@@ -983,18 +988,17 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
     return a.lines.map((x) => this.product(lines.get(x.orderLineId)?.productId ?? '')?.code ?? '?').join(' · ');
   }
 
-  askCancelAllowance(a: SalesAllowance): void {
-    this.cancelAllowanceReason.set('');
-    this.confirmCancelAllowance.set(a);
-  }
-
-  async doCancelAllowance(): Promise<void> {
-    const a = this.confirmCancelAllowance();
-    if (!a) return;
-    const ok = await this.attempt(() => this.orders.cancelAllowance(this.id()!, a.id, this.cancelAllowanceReason().trim()).then(() => true));
-    this.confirmCancelAllowance.set(null);
-    if (!ok) return;
-    this.notice.set('Đã huỷ phiếu giảm giá ' + a.code + '; công nợ phải thu và doanh thu tăng lại ' + this.money(a.amount) + '.');
+  async askCancelAllowance(a: SalesAllowance): Promise<void> {
+    const id = this.id();
+    if (!id) return;
+    const done = await this.dialogs.form({
+      title: `Huỷ phiếu giảm giá ${a.code}?`,
+      message: `Công nợ phải thu và doanh thu tăng lại ${this.money(a.amount)}.`,
+      confirmLabel: 'Huỷ phiếu giảm giá', cancelLabel: 'Không huỷ', tone: 'danger',
+      fields: [{ key: 'reason', label: 'Lý do huỷ', type: 'textarea', placeholder: 'Không bắt buộc', maxLength: 300 }],
+      run: (v) => this.orders.cancelAllowance(id, a.id, v['reason']),
+    });
+    if (done) this.notice.set('Đã huỷ phiếu giảm giá ' + a.code + '; công nợ phải thu và doanh thu tăng lại ' + this.money(a.amount) + '.');
   }
 
   // Phiếu xuất kho của đơn: new ones carry salesOrderId; demo ones mention the order / its trip.

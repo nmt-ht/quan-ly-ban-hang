@@ -49,13 +49,6 @@
 
     @if (totals().open > 0) {
       <section class="aging-strip" aria-label="Cơ cấu nợ theo tuổi nợ">
-        <div class="aging-bar" aria-hidden="true">
-          @for (a of totals().aging; track a.key) {
-            @if (a.amount > 0) {
-              <span [class]="'aging-seg aging-' + a.key" [style.flex-grow]="a.amount"></span>
-            }
-          }
-        </div>
         <dl class="aging-legend">
           @for (a of totals().aging; track a.key) {
             <div>

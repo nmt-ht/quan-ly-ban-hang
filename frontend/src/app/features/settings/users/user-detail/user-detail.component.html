@@ -18,7 +18,7 @@
       @if (u.status === 'ACTIVE') {
         <button type="button" class="btn" (click)="resetPassword()"><app-nav-icon name="key" />Đặt lại mật khẩu</button>
         @if (!svc.isMe(u) && !svc.isLastAdmin(u)) {
-          <button type="button" class="btn btn-danger-ghost" (click)="confirmLock.set(true)"><app-nav-icon name="lock" />Khoá tài khoản</button>
+          <button type="button" class="btn btn-danger-ghost" (click)="askLock()"><app-nav-icon name="lock" />Khoá tài khoản</button>
         }
       } @else {
         <button type="button" class="btn" (click)="unlock()"><app-nav-icon name="unlock" />Mở khoá</button>
@@ -110,16 +110,6 @@
     }
   </section>
 
-  @if (confirmLock()) {
-    <div class="confirm-strip" role="alertdialog" aria-labelledby="udl-title">
-      <p id="udl-title"><strong>Khoá tài khoản {{ u.name }}?</strong> Người này bị đăng xuất ngay và không đăng nhập được nữa. Chứng từ đã lập vẫn giữ nguyên.</p>
-      <input type="text" placeholder="Lý do khoá (VD: Nghỉ việc)" aria-label="Lý do khoá" [ngModel]="lockReason()" (ngModelChange)="lockReason.set($event)" />
-      <div class="toolbar">
-        <button type="button" class="btn" (click)="confirmLock.set(false)">Không khoá</button>
-        <button type="button" class="btn btn-danger" (click)="doLock()"><app-nav-icon name="lock" />Khoá tài khoản</button>
-      </div>
-    </div>
-  }
 
   <section class="card section-block history-card">
     <h2 class="history-title">Nhật ký</h2>

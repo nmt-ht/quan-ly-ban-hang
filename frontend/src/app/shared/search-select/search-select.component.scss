@@ -6,6 +6,15 @@
   font-size: var(--text-sm);
 }
 
+// In a narrow field the chosen name (or "— Chọn khách hàng —") stays on one line and ends in …, not three cramped lines.
+.pp-trigger .pp-name,
+.pp-trigger .pp-placeholder {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .pp-option.is-empty-choice .pp-name {
   color: var(--color-muted);
 }

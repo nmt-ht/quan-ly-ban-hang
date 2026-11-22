@@ -31,6 +31,18 @@ export class SequenceService implements OnApplicationBootstrap {
     return prefix + String(await this.next(prefix, db)).padStart(width, '0');
   }
 
+  /** Every prefix the app numbers documents with. */
+  static readonly PREFIXES: readonly string[] = SOURCES.map(([prefix]) => prefix);
+
+  /**
+   * The code the next save of `prefix` will get — read, never handed out: the form shows it as "dự kiến". It is right unless someone
+   * else saves first (then their save takes it), which is why only `nextCode`, inside the saving transaction, ever gives a number.
+   */
+  async peekCode(prefix: string, db: Db = this.prisma, width = 7): Promise<string> {
+    const rows = await db.$queryRaw<{ value: number }[]>`SELECT "value" FROM "DocumentSequence" WHERE "key" = ${prefix}`;
+    return prefix + String((rows[0] ? Number(rows[0].value) : 0) + 1).padStart(width, '0');
+  }
+
   // INSERT … ON CONFLICT is one atomic statement: two saves at the same moment get different numbers.
   async next(key: string, db: Db = this.prisma): Promise<number> {
     const rows = await db.$queryRaw<{ value: number }[]>`

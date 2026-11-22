@@ -1,3 +1,4 @@
+import { ConfirmService } from '../../../shared/confirm/confirm.service';
 import { Component, computed, effect, inject, signal, untracked , viewChild } from '@angular/core';
 import { AuthService } from '../../../core/services/auth.service';
 import { EmailComposeComponent } from '../../../shared/email-compose/email-compose.component';
@@ -31,6 +32,7 @@ import { SalesOrderService } from '../../sales-orders/sales-order.service';
   styleUrls: ['../../../shared/voucher/voucher.scss', './cash-voucher-view.component.scss'],
 })
 export class CashVoucherViewComponent {
+  private readonly dialogs = inject(ConfirmService);
   readonly data = inject(DataStore);
   private readonly salesOrders = inject(SalesOrderService);
   // Đơn cũ hơn 90 ngày không nạp sẵn (Pha 1.1): đọc các đơn màn hình này cần.
@@ -75,19 +77,15 @@ export class CashVoucherViewComponent {
       pdf: { filename: pdfName('Phieu thu', v.code) },
     });
   }
-  readonly confirmCancel = signal(false);
   readonly cancelling = signal(false);
   /** A huỷ the server refused (or that could not reach it). */
   readonly failure = signal('');
-  readonly cancelReason = signal('');
 
   constructor() {
     effect(() => {
       this.id();
       untracked(() => {
         this.notice.set((history.state as { notice?: string } | null)?.notice ?? '');
-        this.confirmCancel.set(false);
-        this.cancelReason.set('');
       });
     });
   }
@@ -135,20 +133,15 @@ export class CashVoucherViewComponent {
     return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
-  async doCancel(): Promise<void> {
-    const v = this.voucher()!;
-    if (this.cancelling()) return;
-    this.cancelling.set(true);
-    this.failure.set('');
-    try {
-      await this.svc.cancel(v.id, this.cancelReason());
-    } catch (e) {
-      this.failure.set(errorText(e));
-      return;
-    } finally {
-      this.cancelling.set(false);
-    }
-    this.confirmCancel.set(false);
-    this.notice.set(`Đã huỷ ${v.code} — không còn tính vào số dư quỹ${v.partnerType === 'KHAC' ? '' : ' và công nợ đã mở lại'}.`);
+  async askCancel(): Promise<void> {
+    const v = this.voucher();
+    if (!v) return;
+    const done = await this.dialogs.form({
+      title: `Huỷ ${v.code}?`, message: 'Phiếu vẫn lưu để đối chiếu nhưng không tính vào số dư quỹ và công nợ nữa.',
+      confirmLabel: 'Huỷ phiếu', cancelLabel: 'Không huỷ', tone: 'danger', fields: [{ key: 'reason', label: 'Lý do huỷ', type: 'textarea', placeholder: 'Không bắt buộc', maxLength: 300 }],
+      run: (x) => this.svc.cancel(v.id, x['reason']),
+    });
+    if (done) this.notice.set(`Đã huỷ ${v.code} — không còn tính vào số dư quỹ${v.partnerType === 'KHAC' ? '' : ' và công nợ đã mở lại'}.`);
   }
+
 }

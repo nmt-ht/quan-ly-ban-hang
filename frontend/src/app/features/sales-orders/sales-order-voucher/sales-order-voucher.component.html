@@ -204,7 +204,7 @@
         }
         <div class="field">
           <span class="field-label">Số chứng từ</span>
-          <p class="field-value num">{{ order()?.code || 'Cấp khi lưu' }}</p>
+          <p class="field-value num"><app-next-code prefix="DH" [code]="order()?.code" /></p>
         </div>
 
         <div class="field span-2">
@@ -869,10 +869,10 @@
             <button type="button" class="btn" (click)="openInvoicePreview()"><app-nav-icon name="eye" />Xem trước hoá đơn</button>
           }
           @if (canCancel()) {
-            <button type="button" class="btn btn-danger-ghost" (click)="confirmCancel.set(true)">Huỷ đơn</button>
+            <button type="button" class="btn btn-danger-ghost" (click)="askCancel()">Huỷ đơn</button>
           }
           @if (canClose()) {
-            <button type="button" class="btn" (click)="confirmClose.set(true)">Kết thúc đơn</button>
+            <button type="button" class="btn" (click)="askClose()">Kết thúc đơn</button>
           }
           @if (canEdit()) {
             <a class="btn" [routerLink]="['/don-hang', o.id, 'sua']"><app-nav-icon name="pencil" />Sửa</a>
@@ -894,49 +894,6 @@
       </div>
     </footer>
   </div>
-
-  @if (confirmCancel()) {
-    <div class="confirm-strip" role="alertdialog" aria-labelledby="cancel-title">
-      <p id="cancel-title"><strong>Huỷ đơn {{ order()?.code }}?</strong> Lệnh sản xuất chưa hoàn tất của đơn cũng bị huỷ. Không hoàn tác được.</p>
-      <input type="text" placeholder="Lý do huỷ (không bắt buộc)" aria-label="Lý do huỷ" [ngModel]="cancelReason()" (ngModelChange)="cancelReason.set($event)" />
-      <div class="toolbar">
-        <button type="button" class="btn" (click)="confirmCancel.set(false)">Không huỷ</button>
-        <button type="button" class="btn btn-danger" (click)="doCancel()">Huỷ đơn</button>
-      </div>
-    </div>
-  }
-
-  @if (confirmClose()) {
-    <div class="confirm-strip" role="alertdialog" aria-labelledby="close-title">
-      <p id="close-title"><strong>Kết thúc đơn {{ order()?.code }}?</strong> Khách không lấy phần còn lại — đơn không giao thêm được, công nợ giữ đúng số khách đã nhận.</p>
-      <div class="toolbar">
-        <button type="button" class="btn" (click)="confirmClose.set(false)">Để sau</button>
-        <button type="button" class="btn btn-primary" (click)="doClose()">Kết thúc đơn</button>
-      </div>
-    </div>
-  }
-
-  @if (confirmCancelReturn(); as r) {
-    <div class="confirm-strip" role="alertdialog" aria-labelledby="cancel-return-title">
-      <p id="cancel-return-title"><strong>Huỷ phiếu trả {{ r.code }}?</strong> Phiếu nhập kho {{ r.voucherCode || '' }} bị huỷ (hàng ra khỏi kho), công nợ phải thu tăng lại {{ money(r.amount) }}.</p>
-      <input type="text" placeholder="Lý do huỷ (không bắt buộc)" aria-label="Lý do huỷ phiếu trả" [ngModel]="cancelReturnReason()" (ngModelChange)="cancelReturnReason.set($event)" />
-      <div class="toolbar">
-        <button type="button" class="btn" (click)="confirmCancelReturn.set(null)">Không huỷ</button>
-        <button type="button" class="btn btn-danger" (click)="doCancelReturn()">Huỷ phiếu trả</button>
-      </div>
-    </div>
-  }
-
-  @if (confirmCancelAllowance(); as a) {
-    <div class="confirm-strip" role="alertdialog" aria-labelledby="cancel-allowance-title">
-      <p id="cancel-allowance-title"><strong>Huỷ phiếu giảm giá {{ a.code }}?</strong> Công nợ phải thu và doanh thu tăng lại {{ money(a.amount) }}.</p>
-      <input type="text" placeholder="Lý do huỷ (không bắt buộc)" aria-label="Lý do huỷ phiếu giảm giá" [ngModel]="cancelAllowanceReason()" (ngModelChange)="cancelAllowanceReason.set($event)" />
-      <div class="toolbar">
-        <button type="button" class="btn" (click)="confirmCancelAllowance.set(null)">Không huỷ</button>
-        <button type="button" class="btn btn-danger" (click)="doCancelAllowance()">Huỷ phiếu giảm giá</button>
-      </div>
-    </div>
-  }
 
   @if (order(); as o) {
     <app-deliver-dialog #deliverDialog [order]="o" (delivered)="onDelivered($event)" />

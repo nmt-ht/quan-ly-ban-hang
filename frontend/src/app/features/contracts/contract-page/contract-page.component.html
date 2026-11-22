@@ -169,18 +169,6 @@
       }
     }
 
-    @if (closing(); as k) {
-      <div class="confirm-strip" role="alertdialog" aria-labelledby="close-title">
-        <p id="close-title"><strong>{{ k === 'cancel' ? 'Huỷ' : 'Thanh lý' }} hợp đồng {{ contract()?.code }}?</strong> Hợp đồng không sửa và không nhận thêm đơn được nữa. Không hoàn tác được.</p>
-        <input appDate [ngModel]="closeDate()" (ngModelChange)="closeDate.set($event)" [max]="today" aria-label="Ngày" />
-        <input type="text" placeholder="Ghi chú (không bắt buộc)" aria-label="Ghi chú" maxlength="500" [ngModel]="closeNote()" (ngModelChange)="closeNote.set($event)" />
-        <div class="toolbar">
-          <button type="button" class="btn" (click)="closing.set(null)">Không</button>
-          <button type="button" class="btn btn-danger" [disabled]="saving()" (click)="confirmClose()">{{ k === 'cancel' ? 'Huỷ hợp đồng' : 'Thanh lý' }}</button>
-        </div>
-      </div>
-    }
-
     <footer class="voucher-actions">
       <div class="actions-left">
         <p class="actions-hint" [class.text-danger]="attempted() && issues().length" role="status">
@@ -199,8 +187,8 @@
           </button>
         } @else if (contract(); as c) {
           @if (canClose()) {
-            <button type="button" class="btn btn-danger-ghost" (click)="startClosing('cancel')">Huỷ hợp đồng</button>
-            <button type="button" class="btn" (click)="startClosing('liquidate')">Thanh lý</button>
+            <button type="button" class="btn btn-danger-ghost" (click)="closeContract('cancel')">Huỷ hợp đồng</button>
+            <button type="button" class="btn" (click)="closeContract('liquidate')">Thanh lý</button>
           }
           @if (canMakeOrder()) {
             <a class="btn" [routerLink]="kind() === 'BAN' ? '/don-hang/them-moi' : '/mua-hang/them'" [queryParams]="{ contractId: c.id }"><app-nav-icon name="plus" />Lập {{ kind() === 'BAN' ? 'chứng từ bán hàng' : 'đơn mua hàng' }}</a>

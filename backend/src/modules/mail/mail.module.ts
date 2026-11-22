@@ -118,8 +118,10 @@ export class MailService {
 
   async saveSettings(dto: MailSettingsDto, user: AuthUser) {
     const before = await this.row();
-    if (dto.mode === 'SMTP' && !(dto.host && dto.port && dto.fromEmail && dto.username))
-      throw new BadRequestException('Email riêng cần máy chủ SMTP, cổng, địa chỉ gửi và tài khoản.');
+    if (dto.mode === 'SMTP') {
+      const missing = [['máy chủ SMTP', dto.host], ['cổng', dto.port], ['địa chỉ gửi', dto.fromEmail], ['tài khoản', dto.username]].filter(([, v]) => !v).map(([k]) => k);
+      if (missing.length) throw new BadRequestException(`Email riêng còn thiếu: ${missing.join(', ')}.`);
+    }
     if (dto.mode === 'SYSTEM' && !systemSender()) throw new BadRequestException('Máy chủ chưa cấu hình dịch vụ gửi hộ.');
     if (dto.mode === 'SMTP' && !privateSmtpAllowed() && !isSmtpPort(dto.port!)) throw new BadRequestException(`Cổng SMTP phải là một trong: ${SMTP_PORTS.join(', ')}.`);
     const passwordSealed = dto.password === undefined ? before.passwordSealed : dto.password === '' ? null : seal(dto.password);

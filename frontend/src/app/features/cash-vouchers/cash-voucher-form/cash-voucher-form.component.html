@@ -22,7 +22,7 @@
       </div>
       <div class="field">
         <span class="field-label">Số phiếu</span>
-        <p class="field-value num">Tự sinh khi lưu</p>
+        <p class="field-value num"><app-next-code [prefix]="kind() === 'THU' ? 'PT' : 'PC'" /></p>
       </div>
 
       @if (needsPartner()) {

@@ -106,23 +106,13 @@
           <a class="btn" [routerLink]="p.ledger" [queryParams]="{ partnerId: p.id }">Sổ công nợ</a>
         }
         @if (!v.isCancelled) {
-          <button type="button" class="btn btn-danger-ghost" (click)="confirmCancel.set(true)">Huỷ phiếu</button>
+          <button type="button" class="btn btn-danger-ghost" (click)="askCancel()">Huỷ phiếu</button>
         }
         <a class="btn btn-primary" [routerLink]="isThu() ? '/thu-chi/lap/thu' : '/thu-chi/lap/chi'"><app-nav-icon name="plus" />Lập {{ title().toLowerCase() }} mới</a>
       </div>
     </footer>
   </div>
 
-  @if (confirmCancel()) {
-    <div class="confirm-strip" role="alertdialog" aria-labelledby="cvv-cancel-title">
-      <p id="cvv-cancel-title"><strong>Huỷ {{ v.code }}?</strong> Phiếu vẫn lưu để đối chiếu nhưng không tính vào số dư quỹ và công nợ nữa.</p>
-      <input type="text" placeholder="Lý do huỷ" aria-label="Lý do huỷ" [ngModel]="cancelReason()" (ngModelChange)="cancelReason.set($event)" />
-      <div class="toolbar">
-        <button type="button" class="btn" (click)="confirmCancel.set(false)">Không huỷ</button>
-        <button type="button" class="btn btn-danger" [disabled]="cancelling()" (click)="doCancel()">{{ cancelling() ? 'Đang huỷ…' : 'Huỷ phiếu' }}</button>
-      </div>
-    </div>
-  }
 
   <!-- Mẫu in phiếu thu / phiếu chi -->
   <app-print-document

@@ -61,7 +61,7 @@
         @if (mode() === 'SMTP') {
           <div class="field">
             <label for="em-from">Địa chỉ gửi <span class="required-mark">*</span></label>
-            <input id="em-from" type="email" autocomplete="off" placeholder="kinhdoanh@congty.vn" [ngModel]="fromEmail()" (ngModelChange)="setFromEmail($event)" />
+            <input id="em-from" type="email" autocomplete="off" placeholder="kinhdoanh@congty.vn" [ngModel]="fromEmail()" (ngModelChange)="setFromEmail($event)" [attr.aria-invalid]="isMissing('em-from') ? 'true' : null" />
           </div>
         }
         <div class="field">
@@ -86,11 +86,11 @@
         <div class="form-grid">
           <div class="field">
             <label for="em-host">Máy chủ <span class="required-mark">*</span></label>
-            <input id="em-host" type="text" autocomplete="off" placeholder="smtp.gmail.com" [ngModel]="host()" (ngModelChange)="host.set($event); preset.set(null); touch()" />
+            <input id="em-host" type="text" autocomplete="off" placeholder="smtp.gmail.com" [ngModel]="host()" (ngModelChange)="host.set($event); preset.set(null); touch()" [attr.aria-invalid]="isMissing('em-host') ? 'true' : null" />
           </div>
           <div class="field">
             <label for="em-port">Cổng <span class="required-mark">*</span></label>
-            <input id="em-port" type="number" min="1" max="65535" [ngModel]="port()" (ngModelChange)="setPort($event)" />
+            <input id="em-port" type="number" min="1" max="65535" [ngModel]="port()" (ngModelChange)="setPort($event)" [attr.aria-invalid]="isMissing('em-port') ? 'true' : null" />
           </div>
           <div class="field">
             <label for="em-sec">Bảo mật</label>
@@ -101,13 +101,13 @@
           </div>
           <div class="field">
             <label for="em-user">Tài khoản <span class="required-mark">*</span></label>
-            <input id="em-user" type="text" autocomplete="off" [ngModel]="username()" (ngModelChange)="username.set($event); touch()" />
+            <input id="em-user" type="text" autocomplete="off" [ngModel]="username()" (ngModelChange)="username.set($event); touch()" [attr.aria-invalid]="isMissing('em-user') ? 'true' : null" />
           </div>
           <div class="field">
             <label for="em-pass">Mật khẩu ứng dụng @if (!st.hasPassword) { <span class="required-mark">*</span> }</label>
             <input id="em-pass" type="password" autocomplete="new-password"
                    [placeholder]="st.hasPassword ? (st.passwordReadable ? '•••••••• (đã lưu — để trống nếu không đổi)' : 'Mật khẩu cũ không đọc được — nhập lại') : ''"
-                   [ngModel]="password()" (ngModelChange)="password.set($event); passwordTouched.set(true); touch()" />
+                   [ngModel]="password()" (ngModelChange)="password.set($event); passwordTouched.set(true); touch()" [attr.aria-invalid]="isMissing('em-pass') ? 'true' : null" />
             <span class="hint">Được mã hoá trên máy chủ và không bao giờ hiện lại. Gmail / Outlook cần "mật khẩu ứng dụng", không phải mật khẩu đăng nhập.</span>
           </div>
         </div>

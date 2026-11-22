@@ -128,7 +128,7 @@
         </div>
         <div class="field">
           <span class="field-label">Số chứng từ</span>
-          <p class="field-value num">{{ quote()?.code || 'Cấp khi lưu' }}</p>
+          <p class="field-value num"><app-next-code prefix="BG" [code]="quote()?.code" /></p>
         </div>
 
         @if (quote()?.orderCode; as code) {
@@ -400,7 +400,7 @@
           <app-print-menu kind="quotation" />
           @if (canEmail()) { <button type="button" class="btn" (click)="email()"><app-nav-icon name="mail" />Gửi email</button> }
           @if (canCancel()) {
-            <button type="button" class="btn btn-danger-ghost" (click)="confirmCancel.set(true)">Huỷ báo giá</button>
+            <button type="button" class="btn btn-danger-ghost" (click)="askCancel()">Huỷ báo giá</button>
           }
           @if (canEdit()) {
             <a class="btn" [routerLink]="['/bao-gia', q.id, 'sua']"><app-nav-icon name="pencil" />Sửa</a>
@@ -416,16 +416,6 @@
     </footer>
   </div>
 
-  @if (confirmCancel()) {
-    <div class="confirm-strip" role="alertdialog" aria-labelledby="cancel-title">
-      <p id="cancel-title"><strong>Huỷ báo giá {{ quote()?.code }}?</strong> Không lập đơn từ báo giá này được nữa. Không hoàn tác được.</p>
-      <input type="text" placeholder="Lý do huỷ (không bắt buộc)" aria-label="Lý do huỷ" [ngModel]="cancelReason()" (ngModelChange)="cancelReason.set($event)" />
-      <div class="toolbar">
-        <button type="button" class="btn" (click)="confirmCancel.set(false)">Không huỷ</button>
-        <button type="button" class="btn btn-danger" (click)="doCancel()">Huỷ báo giá</button>
-      </div>
-    </div>
-  }
 
   @if (quote(); as q) {
     <app-print-document

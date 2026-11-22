@@ -43,6 +43,11 @@ export function customerImportConfig(data: { customers: () => Customer[]; tags: 
       '"Đang theo dõi": Có / Không. Để trống = Có.',
       'Sau khi chọn file, hệ thống kiểm tra từng dòng và hiện kết quả — CHƯA LƯU gì cho tới khi bấm Nhập. Dòng lỗi bị bỏ qua.',
     ],
+    sampleRows: [
+      // Mã KH trống = thêm mới. Cột theo thứ tự ở trên.
+      ['', 'Ví dụ — Nguyễn Văn An', '', 'Lẻ', '', 0, 0, '0901234567', 'an.nguyen@example.vn', '', '', '', '12 Lê Lợi, Quận 1, TP.HCM', 'Nguyễn Văn An', '', 'Khách mua tại cửa hàng', 'Có'],
+      ['', 'Ví dụ — Trần Thị Bích', 'Ví dụ — Công ty TNHH Khung Tranh Á Châu', 'Sỉ', '', 30, 50000000, '0912345678', 'ketoan@example.vn', '', '', '0312345678', '45 Nguyễn Huệ, Quận 1, TP.HCM', 'Trần Thị Bích', '', 'Được nợ 30 ngày, hạn mức 50 triệu', 'Có'],
+    ],
     currentRows: () => {
       const tagName = new Map(data.tags().map((t) => [t.id, t.name]));
       const listName = new Map(data.priceLists().map((l) => [l.id, l.name]));

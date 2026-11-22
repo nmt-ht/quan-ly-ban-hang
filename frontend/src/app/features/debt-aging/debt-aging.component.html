@@ -51,15 +51,6 @@
     </div>
   </div>
 
-  @if (cards().total > 0) {
-    <div class="aging-strip ag-strip">
-      <div class="aging-bar" aria-hidden="true">
-        @for (b of cards().buckets; track b.key) {
-          @if (b.amount > 0) { <span [class]="'aging-seg aging-' + b.key" [style.flex-grow]="b.amount"></span> }
-        }
-      </div>
-    </div>
-  }
 
   @if (bucket()) {
     <div class="filter-chips">

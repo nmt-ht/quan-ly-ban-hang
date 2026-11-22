@@ -1,3 +1,4 @@
+import { ConfirmService } from '../../../shared/confirm/confirm.service';
 import { Component, HostListener, computed, effect, inject, signal, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -22,7 +23,6 @@ import { ContractService } from '../contract.service';
 import { CONTRACT_KIND_LABEL, CONTRACT_KIND_PATH, CONTRACT_PARTY_LABEL, EXPIRY_LABEL, expiryOf, isOpen, kindOfPath } from '../contract.rules';
 
 type Mode = 'create' | 'edit' | 'view';
-type Closing = null | 'liquidate' | 'cancel';
 
 // Hợp đồng (bán / mua): lập, sửa khi còn đang thực hiện, xem các đơn đã gắn, thanh lý hoặc huỷ (một chiều).
 @Component({
@@ -33,6 +33,7 @@ type Closing = null | 'liquidate' | 'cancel';
   styleUrls: ['../../../shared/voucher/voucher.scss'],
 })
 export class ContractPageComponent implements HasUnsavedChanges {
+  private readonly dialogs = inject(ConfirmService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly contracts = inject(ContractService);
@@ -78,9 +79,6 @@ export class ContractPageComponent implements HasUnsavedChanges {
   private baseline = '';
 
   // ---------- thanh lý / huỷ ----------
-  readonly closing = signal<Closing>(null);
-  readonly closeDate = signal(this.today);
-  readonly closeNote = signal('');
 
   readonly statusLabel = CONTRACT_STATUS_LABEL;
   readonly statusClass = contractStatusClass;
@@ -208,27 +206,22 @@ export class ContractPageComponent implements HasUnsavedChanges {
     else void this.router.navigate(this.listPath());
   }
 
-  startClosing(kind: Exclude<Closing, null>): void {
-    this.closeDate.set(this.today);
-    this.closeNote.set('');
-    this.closing.set(kind);
-  }
-
-  async confirmClose(): Promise<void> {
+  /** Thanh lý (hai bên xong việc) or huỷ bỏ: a dialog asks for the day and a note, then does it. One-way. */
+  async closeContract(kind: 'liquidate' | 'cancel'): Promise<void> {
     const c = this.contract();
-    const kind = this.closing();
-    if (!c || !kind || this.saving()) return;
-    this.saving.set(true);
-    this.failure.set('');
-    try {
-      const next = kind === 'liquidate' ? await this.contracts.liquidate(c.id, this.closeDate(), this.closeNote()) : await this.contracts.cancel(c.id, this.closeDate(), this.closeNote());
-      this.full.set(next);
-      this.closing.set(null);
-    } catch (e) {
-      this.failure.set(errorText(e));
-    } finally {
-      this.saving.set(false);
-    }
+    if (!c) return;
+    const cancel = kind === 'cancel';
+    const done = await this.dialogs.form({
+      title: `${cancel ? 'Huỷ' : 'Thanh lý'} hợp đồng ${c.code}?`,
+      message: 'Hợp đồng không sửa và không nhận thêm đơn được nữa. Không hoàn tác được.',
+      confirmLabel: cancel ? 'Huỷ hợp đồng' : 'Thanh lý', cancelLabel: 'Không', tone: 'danger',
+      fields: [
+        { key: 'date', label: cancel ? 'Ngày huỷ' : 'Ngày thanh lý', type: 'date', required: true, value: this.today, min: c.signedDate, max: this.today },
+        { key: 'note', label: 'Ghi chú', type: 'textarea', placeholder: 'Không bắt buộc', maxLength: 500 },
+      ],
+      run: async (v) => { this.full.set(cancel ? await this.contracts.cancel(c.id, v['date'], v['note']) : await this.contracts.liquidate(c.id, v['date'], v['note'])); },
+    });
+    void done;
   }
 
   hasUnsavedChanges(): boolean {

@@ -260,6 +260,7 @@ export interface DataTableColumn<T> {
       font: inherit;
       cursor: pointer;
     }
+    @media (pointer: coarse) { .th-sort { min-height: 2.75rem; padding-inline: var(--space-3xs); } }
     .sort-ind {
       width: 0;
       height: 0;

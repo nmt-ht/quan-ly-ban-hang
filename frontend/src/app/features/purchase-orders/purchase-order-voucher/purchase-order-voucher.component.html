@@ -74,7 +74,7 @@
         </div>
         <div class="field">
           <span class="field-label">Số chứng từ</span>
-          <p class="field-value num">{{ order()?.code || 'Tự sinh khi lưu' }}</p>
+          <p class="field-value num"><app-next-code prefix="DN" [code]="order()?.code" /></p>
         </div>
 
         <div class="field">
@@ -444,7 +444,7 @@
           <app-print-menu kind="purchase-order" [papers]="['A4', 'A5']" />
           @if (canEmail()) { <button type="button" class="btn" (click)="email()"><app-nav-icon name="mail" />Gửi email</button> }
           @if (canCancel()) {
-            <button type="button" class="btn btn-danger-ghost" (click)="confirmCancel.set(true)">Huỷ đơn</button>
+            <button type="button" class="btn btn-danger-ghost" (click)="askCancel()">Huỷ đơn</button>
           }
           @if (canEdit()) {
             <a class="btn" [routerLink]="['/mua-hang', id(), 'sua']"><app-nav-icon name="pencil" />Sửa</a>
@@ -466,27 +466,7 @@
     </footer>
   </div>
 
-  @if (confirmCancel()) {
-    <div class="confirm-strip" role="alertdialog" aria-labelledby="cancel-title">
-      <p id="cancel-title"><strong>Huỷ đơn {{ order()?.code }}?</strong> Đơn huỷ không gửi NCC và không nhận hàng được nữa.</p>
-      <input type="text" placeholder="Lý do huỷ (không bắt buộc)" aria-label="Lý do huỷ" [ngModel]="cancelReason()" (ngModelChange)="cancelReason.set($event)" />
-      <div class="toolbar">
-        <button type="button" class="btn" (click)="confirmCancel.set(false)">Không huỷ</button>
-        <button type="button" class="btn btn-danger" (click)="doCancel()">Huỷ đơn</button>
-      </div>
-    </div>
-  }
 
-  @if (confirmCancelReturn(); as r) {
-    <div class="confirm-strip" role="alertdialog" aria-labelledby="cancel-return-title">
-      <p id="cancel-return-title"><strong>Huỷ phiếu trả {{ r.code }}?</strong> Phiếu xuất kho {{ r.voucherCode || '' }} bị huỷ (hàng nhập lại kho), công nợ phải trả tăng lại.</p>
-      <input type="text" placeholder="Lý do huỷ (không bắt buộc)" aria-label="Lý do huỷ phiếu trả" [ngModel]="cancelReturnReason()" (ngModelChange)="cancelReturnReason.set($event)" />
-      <div class="toolbar">
-        <button type="button" class="btn" (click)="confirmCancelReturn.set(null)">Không huỷ</button>
-        <button type="button" class="btn btn-danger" (click)="doCancelReturn()">Huỷ phiếu trả</button>
-      </div>
-    </div>
-  }
 
   @if (order(); as o) {
     <app-receive-goods-dialog #receiveDialog [order]="o" (received)="onReceived($event)" />

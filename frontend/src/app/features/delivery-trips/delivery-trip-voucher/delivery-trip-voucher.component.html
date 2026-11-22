@@ -331,7 +331,7 @@
           <app-print-menu kind="trip-delivery" label="Phiếu giao hàng" (prepare)="printMode.set('giao')" (done)="printMode.set(null)" />
         }
         @if (can()?.cancel) {
-          <button type="button" class="btn btn-danger-ghost" (click)="confirmCancel.set(true)">Huỷ chuyến</button>
+          <button type="button" class="btn btn-danger-ghost" (click)="askCancel()">Huỷ chuyến</button>
         }
         @if (can()?.arrange) {
           <button type="button" class="btn" [class.btn-primary]="!t.orderIds.length" (click)="openAdd()"><app-nav-icon name="plus" />Xếp đơn</button>
@@ -351,16 +351,6 @@
     </footer>
   </div>
 
-  @if (confirmCancel()) {
-    <div class="confirm-strip" role="alertdialog" aria-labelledby="tv-cancel-title">
-      <p id="tv-cancel-title"><strong>Huỷ chuyến {{ t.code }}?</strong> Các đơn trên chuyến được gỡ ra, vẫn ở Chờ giao hàng.</p>
-      <input type="text" placeholder="Lý do huỷ (không bắt buộc)" aria-label="Lý do huỷ" [ngModel]="cancelReason()" (ngModelChange)="cancelReason.set($event)" />
-      <div class="toolbar">
-        <button type="button" class="btn" (click)="confirmCancel.set(false)">Không huỷ</button>
-        <button type="button" class="btn btn-danger" (click)="doCancel()">Huỷ chuyến</button>
-      </div>
-    </div>
-  }
 
   <!-- Xếp đơn -->
   <dialog #addDialog class="rg-dialog" aria-labelledby="tv-add-title">

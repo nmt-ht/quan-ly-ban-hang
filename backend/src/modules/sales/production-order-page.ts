@@ -65,7 +65,7 @@ export function productionPageOf(all: ApiLsx[], q: ProductionOrderPageQuery, lk:
   const rows = base.filter((x) => ofProduct(x) && ofStatus(x));
   const key: Record<(typeof PRODUCTION_SORTS)[number], (x: ApiLsx) => string | number> = {
     code: (x) => x.code, createdDate: (x) => x.createdDate, product: (x) => productText(x), quantity: (x) => Number(x.quantity),
-    sourceOrder: (x) => x.sourceOrder.code, customer: (x) => x.sourceOrder.customerName, needed: (x) => x.sourceOrder.neededByDate ?? '',
+    sourceOrder: (x) => x.sourceOrder.code, customer: (x) => x.sourceOrder.customerName, needed: (x) => x.sourceOrder.neededByDate ?? '9999-12-31', // no ngày cần giao = least urgent
     startDate: (x) => x.startDate ?? '', completeDate: (x) => x.completeDate ?? '', status: (x) => STATUS_LABEL[x.status],
   };
   const sorted = sortRows(rows, key[q.sort ?? 'code'], q.dir ?? (q.sort ? 'asc' : 'desc'));

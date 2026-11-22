@@ -1,3 +1,4 @@
+import { ConfirmService } from '../../../shared/confirm/confirm.service';
 import { Component, ElementRef, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -28,6 +29,7 @@ const LEVEL_LABEL: Record<AccessLevel, string> = { none: 'Không có quyền', v
   ],
 })
 export class RolesPermissionsComponent {
+  private readonly dialogs = inject(ConfirmService);
   readonly data = inject(DataStore);
   private readonly svc = inject(RoleService);
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
@@ -44,7 +46,6 @@ export class RolesPermissionsComponent {
   readonly notice = signal('');
   /** A save the server refused (or that could not reach it). */
   readonly failure = signal('');
-  readonly pendingId = signal<string | null>(null);
   readonly tab = signal(AREAS[0].key);
   readonly open = signal<ReadonlySet<string>>(new Set());
 
@@ -154,27 +155,24 @@ export class RolesPermissionsComponent {
   }
 
   // ---------- switching role with unsaved changes ----------
-  select(r: Role): void {
+  async select(r: Role): Promise<void> {
     if (r.id === this.selectedId()) return;
     if (this.dirty()) {
-      this.pendingId.set(r.id);
-      return;
+      const { added, removed } = this.diff();
+      const discard = await this.dialogs.ask({
+        title: 'Bỏ thay đổi chưa lưu?',
+        message: `Phân quyền của ${this.role()?.name ?? 'vai trò này'} đang có ${added} quyền thêm, ${removed} quyền bỏ chưa lưu.`,
+        confirmLabel: 'Bỏ thay đổi', cancelLabel: 'Ở lại', tone: 'danger',
+      });
+      if (!discard) return;
     }
     this.go(r.id);
   }
-
   private go(id: string): void {
     this.selectedId.set(id);
     this.query.set('');
     this.notice.set('');
-    this.pendingId.set(null);
     this.open.set(new Set());
-  }
-
-  resolveSwitch(discard: boolean): void {
-    const id = this.pendingId();
-    if (discard && id) this.go(id);
-    else this.pendingId.set(null);
   }
 
   // ---------- save / revert ----------

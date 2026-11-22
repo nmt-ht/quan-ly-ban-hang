@@ -1,3 +1,4 @@
+import { ConfirmService } from '../../../shared/confirm/confirm.service';
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -22,7 +23,7 @@ import { StatusStepsComponent } from '../../../shared/status-steps/status-steps.
 import { AllowedLinkDirective } from '../../../shared/allowed-link.directive';
 import { AuditHistoryComponent } from '../../../shared/audit/audit-history.component';
 import { FrozenColsDirective } from '../../../shared/frozen-cols.directive';
-import { DateInputDirective } from '../../../shared/date-input/date-input.directive';
+
 
 // Xuất vật tư happens before nhập thành phẩm on the same day.
 const STEP: Record<string, number> = { XUAT: 0, NHAP: 1, CHUYEN: 2, KIEM_KE: 3 };
@@ -31,11 +32,12 @@ const STEP: Record<string, number> = { XUAT: 0, NHAP: 1, CHUYEN: 2, KIEM_KE: 3 }
 @Component({
   selector: 'app-production-order-detail',
   standalone: true,
-  imports: [DateInputDirective, FrozenColsDirective, StatusStepsComponent, NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, AuditHistoryComponent],
+  imports: [FrozenColsDirective, StatusStepsComponent, NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, AuditHistoryComponent],
   templateUrl: './production-order-detail.component.html',
   styleUrls: ['../../../shared/voucher/voucher.scss', './production-order-detail.component.scss'],
 })
 export class ProductionOrderDetailComponent {
+  private readonly dialogs = inject(ConfirmService);
   private readonly route = inject(ActivatedRoute);
   readonly data = inject(DataStore);
   private readonly orders = inject(SalesOrderService);
@@ -76,20 +78,14 @@ export class ProductionOrderDetailComponent {
   readonly notice = signal('');
   /** A save the server refused (or that could not reach it). */
   readonly failure = signal('');
-  readonly mode = signal<'' | 'start' | 'complete' | 'cancel'>('');
   /** Ngày bắt đầu / nghiệm thu — ngày của phiếu xuất vật tư / nhập thành phẩm; hôm nay unless changed. */
   readonly today = isoDay(new Date());
-  readonly stepDate = signal(this.today);
-  readonly produced = signal<number | null>(null);
-  readonly cancelReason = signal('');
 
   constructor() {
     effect(() => {
       this.id();
       untracked(() => {
-        this.mode.set('');
         this.notice.set('');
-        this.cancelReason.set('');
       });
     });
   }
@@ -142,42 +138,60 @@ export class ProductionOrderDetailComponent {
     return (email && this.data.users().find((u) => u.email === email)?.name) || email || '—';
   }
 
-  openStart(): void {
-    this.stepDate.set(this.today);
-    this.mode.set('start');
+  /** Bắt đầu sản xuất: the dialog asks for the day (the phiếu xuất vật tư is dated with it) and does the work. */
+  async openStart(): Promise<void> {
+    const x = this.lsx();
+    if (!x) return;
+    let issued: { code: string }[] = [];
+    const done = await this.dialogs.form({
+      title: `Bắt đầu ${x.code}?`, message: 'Xuất vật tư theo định mức; phiếu xuất ghi ngày dưới đây.',
+      confirmLabel: 'Bắt đầu và xuất vật tư', cancelLabel: 'Để sau', tone: 'primary',
+      fields: [{ key: 'date', label: 'Ngày bắt đầu', type: 'date', required: true, value: this.today, max: this.today }],
+      run: async (v) => { issued = await this.orders.startProduction(x.id, v['date']); },
+    });
+    if (done) this.notice.set(`${x.code} đang sản xuất${issued.length ? ` — đã xuất vật tư (${issued.map((p) => p.code).join(', ')})` : ' — chưa có định mức nên không xuất vật tư'}.`);
   }
 
-  async start(): Promise<void> {
-    const x = this.lsx()!;
-    const v = await this.attempt(() => this.orders.startProduction(x.id, this.stepDate()));
-    if (!v) return;
-    this.mode.set('');
-    this.notice.set(`${x.code} đang sản xuất${v.length ? ` — đã xuất vật tư (${v.map((p) => p.code).join(', ')})` : ' — chưa có định mức nên không xuất vật tư'}.`);
+  /** Hoàn tất: the số thực làm được and the nghiệm thu day, then the phiếu nhập thành phẩm. */
+  async openComplete(): Promise<void> {
+    const x = this.lsx();
+    if (!x) return;
+    const unit = this.product()?.baseUnit ?? '';
+    let received: { code: string }[] = [];
+    let qty = 0;
+    const done = await this.dialogs.form({
+      title: `Hoàn tất ${x.code}?`, message: 'Nhập số thành phẩm đạt để nhập Kho thành phẩm.',
+      confirmLabel: 'Hoàn tất và nhập kho', cancelLabel: 'Để sau', tone: 'primary',
+      fields: [
+        { key: 'qty', label: `Số thực làm được (${unit})`, type: 'number', required: true, value: String(x.quantity),
+          hint: `Số lệnh là ${x.quantity.toLocaleString('vi-VN')}. Ít hơn thì phần hỏng tính vào giá thành; đơn bán có thể cần lập lệnh bổ sung.` },
+        { key: 'date', label: 'Ngày nghiệm thu', type: 'date', required: true, value: this.today, min: x.startDate ?? undefined, max: this.today },
+      ],
+      run: async (v) => {
+        qty = Number(v['qty'].replace(',', '.'));
+        if (!Number.isFinite(qty) || qty < 0) throw new Error('Số thực làm được phải là số, không âm.');
+        received = await this.orders.completeProduction(x.id, qty, v['date']);
+      },
+    });
+    if (done) {
+      this.notice.set(received.length
+        ? `${x.code} hoàn tất — đã nhập ${qty.toLocaleString('vi-VN')} ${unit} vào kho thành phẩm (${received.map((p) => p.code).join(', ')}).`
+        : `${x.code} hoàn tất — không có thành phẩm đạt nên không nhập kho.`);
+    }
   }
 
-  openComplete(): void {
-    this.produced.set(this.lsx()!.quantity);
-    this.stepDate.set(this.today);
-    this.mode.set('complete');
-  }
-
-  async complete(): Promise<void> {
-    const x = this.lsx()!;
-    const qty = this.produced() ?? 0;
-    const v = await this.attempt(() => this.orders.completeProduction(x.id, qty, this.stepDate()));
-    if (!v) return;
-    this.mode.set('');
-    this.notice.set(v.length
-      ? `${x.code} hoàn tất — đã nhập ${qty.toLocaleString('vi-VN')} ${this.product()?.baseUnit ?? ''} vào kho thành phẩm (${v.map((p) => p.code).join(', ')}).`
-      : `${x.code} hoàn tất — không có thành phẩm đạt nên không nhập kho.`);
-  }
-
-  async cancel(): Promise<void> {
-    const x = this.lsx()!;
+  async askCancel(): Promise<void> {
+    const x = this.lsx();
+    if (!x) return;
     const wasRunning = x.status === 'DANG_SAN_XUAT';
-    if ((await this.attempt(() => this.orders.cancelProduction(x.id, this.cancelReason()).then(() => true))) === null) return;
-    this.mode.set('');
-    this.notice.set(`Đã huỷ ${x.code}.${wasRunning ? ' Vật tư đã xuất không tự nhập lại — lập phiếu nhập kho nếu còn dùng được.' : ''}`);
+    const done = await this.dialogs.form({
+      title: `Huỷ ${x.code}?`,
+      message: wasRunning ? 'Vật tư đã xuất không tự nhập lại — lập phiếu nhập kho nếu còn dùng được.' : 'Lệnh nháp chưa đụng tới kho.',
+      confirmLabel: 'Huỷ lệnh', cancelLabel: 'Không huỷ', tone: 'danger',
+      fields: [{ key: 'reason', label: 'Lý do huỷ', type: 'textarea', placeholder: 'Không bắt buộc', maxLength: 300 }],
+      run: (v) => this.orders.cancelProduction(x.id, v['reason']),
+    });
+    if (done) this.notice.set(`Đã huỷ ${x.code}.${wasRunning ? ' Vật tư đã xuất không tự nhập lại — lập phiếu nhập kho nếu còn dùng được.' : ''}`);
   }
 
   /** Runs a save; on failure shows why and answers null. */

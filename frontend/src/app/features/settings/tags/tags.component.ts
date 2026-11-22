@@ -1,3 +1,4 @@
+import { ConfirmService } from '../../../shared/confirm/confirm.service';
 import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -22,6 +23,7 @@ import { errorText } from '../../../core/api/api.service';
   ],
 })
 export class TagsComponent {
+  private readonly dialogs = inject(ConfirmService);
   readonly data = inject(DataStore);
   readonly svc = inject(TagService);
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
@@ -32,7 +34,6 @@ export class TagsComponent {
   readonly showInactive = signal(true);
   readonly notice = signal('');
   readonly error = signal('');
-  readonly confirmDelete = signal<Tag | null>(null);
 
   // dialog draft
   readonly editing = signal<Tag | null>(null);
@@ -105,15 +106,15 @@ export class TagsComponent {
     this.notice.set(t.isActive ? `"${t.name}" ngừng dùng — vẫn hiện trên đơn / khách cũ, không chọn được nữa.` : `"${t.name}" dùng lại.`);
   }
 
-  async doDelete(): Promise<void> {
-    const t = this.confirmDelete()!;
-    try {
-      await this.svc.remove(t.id);
+  async askDelete(t: Tag): Promise<void> {
+    const done = await this.dialogs.form({
+      title: `Xoá thẻ "${t.name}"?`, message: 'Thẻ chưa gắn vào đơn hay khách nào. Không hoàn tác được.',
+      confirmLabel: 'Xoá thẻ', cancelLabel: 'Không xoá', tone: 'danger', fields: [],
+      run: () => this.svc.remove(t.id),
+    });
+    if (done) {
       this.notice.set(`Đã xoá thẻ "${t.name}".`);
       this.error.set('');
-    } catch (e) {
-      this.error.set(errorText(e));
     }
-    this.confirmDelete.set(null);
   }
 }

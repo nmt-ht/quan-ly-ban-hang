@@ -1,3 +1,4 @@
+import { ConfirmService } from '../../../shared/confirm/confirm.service';
 import { Component, ElementRef, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -71,6 +72,7 @@ interface ConfirmRow {
   ],
 })
 export class DeliveryTripVoucherComponent {
+  private readonly dialogs = inject(ConfirmService);
   private readonly route = inject(ActivatedRoute);
   readonly data = inject(DataStore);
   private readonly salesOrders = inject(SalesOrderService);
@@ -105,8 +107,6 @@ export class DeliveryTripVoucherComponent {
   /** A step the server refused (or that could not reach it). */
   readonly failure = signal('');
   readonly printMode = signal<PrintMode>(null);
-  readonly confirmCancel = signal(false);
-  readonly cancelReason = signal('');
 
   // costs draft
   readonly fuel = signal<number | null>(null);
@@ -121,7 +121,6 @@ export class DeliveryTripVoucherComponent {
         const t = this.trip();
         this.notice.set((history.state as { notice?: string } | null)?.notice ?? '');
         this.tab.set('don');
-        this.confirmCancel.set(false);
         this.loadCosts();
         void t;
       });
@@ -311,11 +310,15 @@ export class DeliveryTripVoucherComponent {
     this.notice.set('Chuyến đã hoàn tất.');
   }
 
-  async doCancel(): Promise<void> {
-    const ok = await this.attempt(() => this.done(this.svc.cancel(this.trip()!.id, this.cancelReason())));
-    this.confirmCancel.set(false);
-    if (!ok) return;
-    this.notice.set('Đã huỷ chuyến — các đơn đã gỡ khỏi chuyến, vẫn ở Chờ giao hàng.');
+  async askCancel(): Promise<void> {
+    const t = this.trip();
+    if (!t) return;
+    const done = await this.dialogs.form({
+      title: `Huỷ chuyến ${t.code}?`, message: 'Các đơn trên chuyến được gỡ ra, vẫn ở Chờ giao hàng.',
+      confirmLabel: 'Huỷ chuyến', cancelLabel: 'Không huỷ', tone: 'danger', fields: [{ key: 'reason', label: 'Lý do huỷ', type: 'textarea', placeholder: 'Không bắt buộc', maxLength: 300 }],
+      run: (v) => this.done(this.svc.cancel(t.id, v['reason'])),
+    });
+    if (done) this.notice.set('Đã huỷ chuyến — các đơn đã gỡ khỏi chuyến, vẫn ở Chờ giao hàng.');
   }
 
   async removeOrder(r: OrderRow): Promise<void> {

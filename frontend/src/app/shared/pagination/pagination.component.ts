@@ -73,7 +73,7 @@ function pageWindow(current: number, last: number): (number | null)[] {
     }
     .pager-range { margin: 0; color: var(--color-muted); }
     .pager-range .num { color: var(--color-ink); }
-    .pager-pages { display: flex; align-items: center; gap: var(--space-3xs); }
+    .pager-pages { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: var(--space-3xs); max-width: 100%; }
     .pager-btn {
       display: inline-flex;
       align-items: center;

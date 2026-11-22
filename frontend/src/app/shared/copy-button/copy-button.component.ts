@@ -22,6 +22,8 @@ import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
   `,
   styles: [`
     :host { display: inline-flex; vertical-align: middle; }
+    /* A finger gets a 44px target around the 24px icon, without making the row taller. */
+    @media (pointer: coarse) { .copy-btn { position: relative; } .copy-btn::after { content: ''; position: absolute; inset: -10px; } }
     .copy-btn {
       display: inline-flex;
       align-items: center;

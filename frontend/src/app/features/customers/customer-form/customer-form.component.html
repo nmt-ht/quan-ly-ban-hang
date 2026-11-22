@@ -22,8 +22,8 @@
       <h3 class="form-section-title">Thông tin chung</h3>
       <div class="form-grid-3">
         <div class="field">
-          <label for="cf-code">Mã khách hàng</label>
-          <input id="cf-code" type="text" class="locked-input" [value]="editing?.code ?? 'Tự sinh khi lưu'" readonly tabindex="-1" />
+          <span class="field-label">Mã khách hàng</span>
+          <p class="field-value num"><app-next-code prefix="KH" [code]="editing?.code" /></p>
           <span class="hint">Dạng KH + 7 chữ số, không đổi được.</span>
         </div>
         <div class="field">

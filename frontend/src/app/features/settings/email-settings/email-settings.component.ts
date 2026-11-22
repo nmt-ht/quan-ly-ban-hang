@@ -48,6 +48,22 @@ export class EmailSettingsComponent {
   readonly testTo = signal('');
 
   readonly dirty = signal(false);
+  /** True once Lưu was pressed with something missing: the empty fields are then marked. */
+  readonly attempted = signal(false);
+  /** What a private mailbox still needs, as [field id, label]: the form says which, instead of a generic refusal. */
+  readonly missing = computed<[string, string][]>(() => {
+    if (this.mode() !== 'SMTP') return [];
+    const out: [string, string][] = [];
+    if (!this.host().trim()) out.push(['em-host', 'Máy chủ']);
+    if (!this.port()) out.push(['em-port', 'Cổng']);
+    if (!this.fromEmail().trim()) out.push(['em-from', 'Địa chỉ gửi']);
+    if (!this.username().trim()) out.push(['em-user', 'Tài khoản']);
+    if (!this.s()?.hasPassword && !this.password()) out.push(['em-pass', 'Mật khẩu ứng dụng']);
+    return out;
+  });
+  isMissing(id: string): boolean {
+    return this.attempted() && this.missing().some(([k]) => k === id);
+  }
   readonly verified = computed(() => {
     const v = this.s()?.verifiedAt;
     return v ? new Date(v).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
@@ -138,9 +154,19 @@ export class EmailSettingsComponent {
 
   async save(): Promise<void> {
     if (this.saving()) return;
-    this.saving.set(true);
     this.failure.set('');
     this.notice.set('');
+    const missing = this.missing();
+    if (missing.length) {
+      this.attempted.set(true);
+      this.failure.set(`Còn thiếu: ${missing.map(([, label]) => label).join(', ')}. Chọn nhanh Gmail / Outlook… ở trên để điền sẵn máy chủ và cổng.`);
+      document.getElementById(missing[0][0])?.focus();
+      return;
+    }
+    // 465 only speaks SSL from the first byte, 587 / 25 only STARTTLS: a mismatch (a saved "SSL" beside port 587) never connects.
+    if (this.port() === 465 && !this.secure()) this.secure.set(true);
+    if ((this.port() === 587 || this.port() === 25) && this.secure()) this.secure.set(false);
+    this.saving.set(true);
     try {
       const s = await this.mail.saveSettings({
         mode: this.mode(), fromName: this.fromName().trim() || undefined, fromEmail: this.fromEmail().trim() || undefined,
@@ -149,6 +175,7 @@ export class EmailSettingsComponent {
         password: this.passwordTouched() ? this.password() : undefined,
       });
       this.apply(s);
+      this.attempted.set(false);
       this.notice.set(s.mode === 'OFF' ? 'Đã tắt gửi email.' : 'Đã lưu. Bấm "Gửi thử" để chắc chắn email đi được.');
     } catch (e) {
       this.failure.set(errorText(e));

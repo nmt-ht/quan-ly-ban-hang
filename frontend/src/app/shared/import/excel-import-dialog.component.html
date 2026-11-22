@@ -7,7 +7,7 @@
   <div class="dialog-body">
     <ol class="steps">
       <li>
-        <span>Tải file mẫu và điền dữ liệu — xem sheet "Hướng dẫn" trong file.
+        <span>Tải file mẫu và điền dữ liệu — xem sheet "Hướng dẫn" trong file.@if (config().sampleRows) { Dòng nền vàng là ví dụ, xoá đi trước khi nhập. }
           @if (config().currentRows) { Muốn sửa hàng loạt: tải danh sách hiện có, sửa rồi nhập lại. }</span>
         <div class="xi-downloads">
           <button type="button" class="btn" (click)="downloadTemplate(false)"><app-nav-icon name="download" />Tải file mẫu</button>

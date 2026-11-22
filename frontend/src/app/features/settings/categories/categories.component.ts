@@ -1,3 +1,4 @@
+import { ConfirmService } from '../../../shared/confirm/confirm.service';
 import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -22,6 +23,7 @@ import { CategoryService, MoveTarget } from './category.service';
   ],
 })
 export class CategoriesComponent {
+  private readonly dialogs = inject(ConfirmService);
   readonly data = inject(DataStore);
   readonly svc = inject(CategoryService);
   private readonly auth = inject(AuthService);
@@ -89,33 +91,26 @@ export class CategoriesComponent {
   }
 
   // ---- delete (a nhóm with products moves them first — this is how two nhóm are merged)
-  readonly deleting = signal<ProductCategory | null>(null);
-  readonly moveTo = signal<MoveTarget | ''>('');
-  readonly deletingCount = computed(() => (this.deleting() ? this.svc.usageOf(this.deleting()!.id).total : 0));
-  readonly moveOptions = computed(() => this.rows().map((r) => r.c).filter((c) => c.id !== this.deleting()?.id));
 
-  askDelete(c: ProductCategory): void {
-    this.deleting.set(c);
-    this.moveTo.set('');
-  }
-
-  async doDelete(): Promise<void> {
-    const c = this.deleting()!;
-    const n = this.deletingCount();
-    const to = this.moveTo();
-    if (n && !to) return;
-    try {
-      await this.svc.remove(c.id, n ? (to as MoveTarget) : null);
-    } catch (e) {
-      this.error.set(errorText(e));
-      this.deleting.set(null);
-      return;
-    }
+  async askDelete(c: ProductCategory): Promise<void> {
+    const n = this.svc.usageOf(c.id).total;
+    const others = this.rows().map((r) => r.c).filter((x) => x.id !== c.id);
+    const done = await this.dialogs.form({
+      title: `Xoá nhóm "${c.name}"?`,
+      message: n ? `Nhóm đang có ${n} mặt hàng: chọn nơi chuyển các mặt hàng này.` : 'Nhóm chưa có mặt hàng nào.',
+      confirmLabel: n ? 'Chuyển và xoá nhóm' : 'Xoá nhóm', cancelLabel: 'Không xoá', tone: 'danger',
+      fields: n ? [{
+        key: 'to', label: `Chuyển ${n} mặt hàng sang`, type: 'select', required: true, value: '',
+        options: [{ value: '', label: 'Chọn nhóm…' }, ...others.map((o) => ({ value: o.id, label: o.name })), { value: 'none', label: '— Không thuộc nhóm nào —' }],
+      }] : [],
+      run: (v) => this.svc.remove(c.id, n ? (v['to'] as MoveTarget) : null),
+    });
+    if (!done) return;
+    const to = done['to'];
     const target = to && to !== 'none' ? this.data.categories().find((x) => x.id === to)?.name : null;
     this.error.set('');
     this.notice.set(n
       ? `Đã xoá nhóm "${c.name}" — ${n} mặt hàng ${target ? `chuyển sang "${target}"` : 'không còn thuộc nhóm nào'}.`
       : `Đã xoá nhóm "${c.name}".`);
-    this.deleting.set(null);
   }
 }

@@ -27,6 +27,8 @@ export interface ExcelImportConfig {
   notes: string[];
   /** The current list in the same columns, for "Tải file kèm danh sách hiện có" (sửa hàng loạt). */
   currentRows?: () => unknown[][];
+  /** One or two made-up rows ("Ví dụ — …") so a first-time user sees how to fill each column; written in yellow, to be deleted. */
+  sampleRows?: unknown[][];
 }
 
 type Cell = string | number | boolean | null;
@@ -79,6 +81,7 @@ export class ExcelImportDialogComponent {
       name: c.sheetName,
       columns: c.columns,
       rows: withData && c.currentRows ? c.currentRows() : [],
+      exampleRows: !withData ? c.sampleRows : undefined,
       notes: { title: `${c.title} — hướng dẫn`, lines: c.notes },
     }]);
   }

@@ -1,3 +1,6 @@
+import { NextCodeComponent } from '../../../shared/next-code/next-code.component';
+import { NextCodeService } from '../../../shared/next-code/next-code.service';
+import { ConfirmService } from '../../../shared/confirm/confirm.service';
 import { Component, HostListener, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { EmailComposeComponent } from '../../../shared/email-compose/email-compose.component';
 import { pdfName } from '../../../shared/print/print-pdf';
@@ -73,7 +76,7 @@ const emptyLine = (): DraftLine => ({
 @Component({
   selector: 'app-purchase-order-voucher',
   standalone: true,
-  imports: [DateInputDirective, EmailComposeComponent, SearchSelectComponent, StatusStepsComponent, QuickSupplierDialogComponent, PickableWarehousesPipe, FrozenColsDirective, 
+  imports: [NextCodeComponent, DateInputDirective, EmailComposeComponent, SearchSelectComponent, StatusStepsComponent, QuickSupplierDialogComponent, PickableWarehousesPipe, FrozenColsDirective, 
     NgClass, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, CopyButtonComponent, MoneyInputDirective, ProductPickerComponent,
     ReceiveGoodsDialogComponent, PurchaseReturnDialogComponent, PaginationComponent, PrintDocumentComponent, PrintMenuComponent, AuditHistoryComponent,
   ],
@@ -81,6 +84,8 @@ const emptyLine = (): DraftLine => ({
   styleUrl: '../../../shared/voucher/voucher.scss',
 })
 export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
+  private readonly nextCode = inject(NextCodeService);
+  private readonly dialogs = inject(ConfirmService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   readonly data = inject(DataStore);
@@ -162,8 +167,6 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
   /** A save or status change the server refused (or that could not reach it). */
   readonly failure = signal('');
   readonly busy = signal(false);
-  readonly confirmCancel = signal(false);
-  readonly cancelReason = signal('');
 
   readonly vatRates = VAT_RATES;
   readonly statusLabel = PURCHASE_ORDER_STATUS_LABEL;
@@ -194,7 +197,6 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
         this.attempted.set(false);
         this.tab.set('hang');
         this.page.set(1);
-        this.confirmCancel.set(false);
         if (id) this.notice.set((history.state as { notice?: string } | null)?.notice ?? '');
         else if (reorder.length) this.notice.set(`Đã điền ${reorder.length} vật tư dưới tồn tối thiểu theo gợi ý — xem lại số lượng, giá rồi Lập đơn mua hàng.`);
         // A suggested order counts as unsaved work: leaving asks first.
@@ -428,7 +430,7 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
     const o = await this.attempt(() => (this.mode() === 'edit' && id ? this.orders.update(id, draft) : this.orders.create(draft)));
     if (!o) return;
     this.baseline = this.snapshot();
-    this.router.navigate(['/mua-hang', o.id], { state: { notice: this.mode() === 'edit' ? 'Đã lưu thay đổi.' : `Đã tạo đơn ${o.code}.` } });
+    this.router.navigate(['/mua-hang', o.id], { state: { notice: this.mode() === 'edit' ? 'Đã lưu thay đổi.' : `Đã tạo đơn ${o.code}. ${this.nextCode.noteIfChanged('DN', o.code)}`.trim() } });
   }
 
   /** Runs a save; on failure shows why and answers null. */
@@ -470,10 +472,26 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
     this.notice.set('Đơn đã hoàn tất.');
   }
 
-  async doCancel(): Promise<void> {
-    const ok = await this.attempt(() => this.orders.cancel(this.id()!, this.cancelReason().trim()).then(() => true));
-    this.confirmCancel.set(false);
-    if (ok) this.notice.set('Đã huỷ đơn.');
+  async askCancel(): Promise<void> {
+    const id = this.id();
+    if (!id) return;
+    const done = await this.dialogs.form({
+      title: `Huỷ đơn ${this.order()?.code ?? ''}?`, message: 'Đơn huỷ không gửi NCC và không nhận hàng được nữa.',
+      confirmLabel: 'Huỷ đơn', cancelLabel: 'Không huỷ', tone: 'danger', fields: [{ key: 'reason', label: 'Lý do huỷ', type: 'textarea', placeholder: 'Không bắt buộc', maxLength: 300 }],
+      run: (v) => this.orders.cancel(id, v['reason']),
+    });
+    if (done) this.notice.set('Đã huỷ đơn.');
+  }
+
+  async askCancelReturn(r: PurchaseReturn): Promise<void> {
+    const id = this.id();
+    if (!id) return;
+    const done = await this.dialogs.form({
+      title: `Huỷ phiếu trả ${r.code}?`, message: `Phiếu xuất kho ${r.voucherCode || ''} bị huỷ (hàng nhập lại kho), công nợ phải trả tăng lại.`,
+      confirmLabel: 'Huỷ phiếu trả', cancelLabel: 'Không huỷ', tone: 'danger', fields: [{ key: 'reason', label: 'Lý do huỷ', type: 'textarea', placeholder: 'Không bắt buộc', maxLength: 300 }],
+      run: (v) => this.orders.cancelReturn(id, r.id, v['reason']),
+    });
+    if (done) this.notice.set(`Đã huỷ phiếu trả ${r.code} — hàng nhập lại kho, công nợ phải trả tính lại.`);
   }
 
   openReceive(): void {
@@ -528,8 +546,6 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
     const o = this.order();
     return !!o && this.auth.can('purchase.return') && o.status !== 'HUY' && o.lines.some((l) => (l.receivedQuantity ?? 0) > 0);
   });
-  readonly confirmCancelReturn = signal<PurchaseReturn | null>(null);
-  readonly cancelReturnReason = signal('');
 
   openReturn(): void {
     this.returnDialog()?.open();
@@ -547,19 +563,6 @@ export class PurchaseOrderVoucherComponent implements HasUnsavedChanges {
       const p = l ? this.data.products().find((q) => q.id === l.productId) : undefined;
       return `${p?.code ?? '?'} × ${x.quantity.toLocaleString('vi-VN')}`;
     }).join(', ');
-  }
-
-  askCancelReturn(r: PurchaseReturn): void {
-    this.cancelReturnReason.set('');
-    this.confirmCancelReturn.set(r);
-  }
-
-  async doCancelReturn(): Promise<void> {
-    const r = this.confirmCancelReturn();
-    if (!r) return;
-    const ok = await this.attempt(() => this.orders.cancelReturn(this.id()!, r.id, this.cancelReturnReason().trim()).then(() => true));
-    this.confirmCancelReturn.set(null);
-    if (ok) this.notice.set(`Đã huỷ phiếu trả ${r.code} — hàng nhập lại kho, công nợ phải trả tính lại.`);
   }
 
   // Phiếu nhập kho created from this order (new receipts carry purchaseOrderId; demo ones the code).

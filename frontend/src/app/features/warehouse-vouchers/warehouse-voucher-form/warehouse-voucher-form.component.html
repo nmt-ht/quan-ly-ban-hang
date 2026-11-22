@@ -69,7 +69,7 @@
               </select>
             </div>
           } @else {
-            <div class="field"><span class="field-label">Số chứng từ</span><p class="field-value num">Cấp khi lưu</p></div>
+            <div class="field"><span class="field-label">Số chứng từ</span><p class="field-value num"><app-next-code [prefix]="prefix()" /></p></div>
           }
           <div class="field"><span class="field-label">Người lập</span><p class="field-value">{{ auth.user()?.name ?? 'Bạn' }}</p></div>
           <div class="field span-full">
@@ -224,7 +224,7 @@
         } @else {
           <app-print-menu kind="warehouse-voucher" label="In phiếu" />
           @if (canCancel()) {
-            <button type="button" class="btn btn-danger-ghost" (click)="confirmCancel.set(true)">Huỷ phiếu</button>
+            <button type="button" class="btn btn-danger-ghost" (click)="askCancel()">Huỷ phiếu</button>
           }
           <a class="btn btn-primary" [routerLink]="['/kho/phieu/lap', newSlug()]"><app-nav-icon name="plus" />Lập {{ text().title.toLowerCase() }} mới</a>
         }
@@ -232,16 +232,6 @@
     </footer>
   </div>
 
-  @if (confirmCancel()) {
-    <div class="confirm-strip" role="alertdialog" aria-labelledby="wv-cancel-title">
-      <p id="wv-cancel-title"><strong>Huỷ {{ voucher()?.code }}?</strong> Tồn kho trả về như trước khi lập phiếu; phiếu vẫn lưu để đối chiếu.</p>
-      <input type="text" placeholder="Lý do huỷ" aria-label="Lý do huỷ" [ngModel]="cancelReason()" (ngModelChange)="cancelReason.set($event)" />
-      <div class="toolbar">
-        <button type="button" class="btn" (click)="confirmCancel.set(false)">Không huỷ</button>
-        <button type="button" class="btn btn-danger" (click)="doCancel()">Huỷ phiếu</button>
-      </div>
-    </div>
-  }
 
   @if (voucher(); as v) {
     <app-print-document [title]="text().print" [no]="v.code" [date]="v.date" [status]="v.isCancelled ? 'ĐÃ HUỶ' : undefined" [signers]="printSigners()">

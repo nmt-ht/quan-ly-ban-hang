@@ -1,3 +1,4 @@
+import { ConfirmService } from '../../../shared/confirm/confirm.service';
 import { Component, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -32,6 +33,7 @@ const IDLE_DAYS = 30;
   templateUrl: './users.component.html',
 })
 export class UsersComponent {
+  private readonly dialogs = inject(ConfirmService);
   readonly data = inject(DataStore);
   readonly svc = inject(UserService);
   private readonly userDialog = viewChild.required<UserDialogComponent>('userDialog');
@@ -50,8 +52,6 @@ export class UsersComponent {
   readonly notice = signal('');
   readonly error = signal('');
   readonly exporting = signal(false);
-  readonly lockTarget = signal<AppUser | null>(null);
-  readonly lockReason = signal('');
 
   private readonly roleById = computed(() => new Map(this.data.roles().map((r) => [r.id, r])));
   private readonly idleSince = new Date(Date.now() - IDLE_DAYS * 86_400_000).toISOString();
@@ -149,20 +149,14 @@ export class UsersComponent {
     return u.status === 'ACTIVE' && !this.svc.isMe(u) && !this.svc.isLastAdmin(u);
   }
 
-  askLock(u: AppUser): void {
-    this.lockTarget.set(u);
-    this.lockReason.set('');
-  }
-
-  async doLock(): Promise<void> {
-    const u = this.lockTarget()!;
-    try {
-      await this.svc.lock(u.id, this.lockReason());
-      this.notice.set(`Đã khoá ${u.name} — mọi phiên đã đăng xuất; chứng từ do người này lập vẫn giữ nguyên.`);
-    } catch (e) {
-      this.error.set(errorText(e));
-    }
-    this.lockTarget.set(null);
+  async askLock(u: AppUser): Promise<void> {
+    const done = await this.dialogs.form({
+      title: `Khoá tài khoản ${u.name}?`, message: 'Người này bị đăng xuất ngay và không đăng nhập được nữa. Chứng từ đã lập vẫn giữ nguyên.',
+      confirmLabel: 'Khoá tài khoản', cancelLabel: 'Không khoá', tone: 'danger',
+      fields: [{ key: 'reason', label: 'Lý do khoá', placeholder: 'Ví dụ: Nghỉ việc', maxLength: 200 }],
+      run: (v) => this.svc.lock(u.id, v['reason']),
+    });
+    if (done) this.notice.set(`Đã khoá ${u.name} — mọi phiên đã đăng xuất; chứng từ do người này lập vẫn giữ nguyên.`);
   }
 
   async unlock(u: AppUser): Promise<void> {

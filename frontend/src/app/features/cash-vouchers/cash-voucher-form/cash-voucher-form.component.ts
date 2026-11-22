@@ -1,3 +1,4 @@
+import { NextCodeComponent } from '../../../shared/next-code/next-code.component';
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -36,7 +37,7 @@ interface Partner {
 @Component({
   selector: 'app-cash-voucher-form',
   standalone: true,
-  imports: [DateInputDirective, SearchSelectComponent, QuickCustomerDialogComponent, QuickSupplierDialogComponent, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, MoneyInputDirective],
+  imports: [NextCodeComponent, DateInputDirective, SearchSelectComponent, QuickCustomerDialogComponent, QuickSupplierDialogComponent, FormsModule, RouterLink, AllowedLinkDirective, NavIconComponent, MoneyInputDirective],
   templateUrl: './cash-voucher-form.component.html',
   styleUrl: './cash-voucher-form.component.scss',
 })

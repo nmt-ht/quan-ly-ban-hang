@@ -1,13 +1,14 @@
 /* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { errorText } from '../../core/api/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { DataStore } from '../../core/services/data-store.service';
 import { ReconciliationView, StatementLineView, StatementRowInput } from '../../core/models/cash-ops.models';
-import { parseDay, readSheet } from '../../shared/excel.util';
+import { downloadWorkbook, parseDay, readSheet } from '../../shared/excel.util';
 import { MoneyInputDirective } from '../../shared/money-input.directive';
+import { PaginationComponent } from '../../shared/pagination/pagination.component';
 import { PeriodFilterComponent, PeriodValue } from '../../shared/period-filter/period-filter.component';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { formatVnd } from '../../shared/format.util';
@@ -37,7 +38,7 @@ function parseMoney(v: unknown): number {
 @Component({
   selector: 'app-bank-reconciliation',
   standalone: true,
-  imports: [DateInputDirective, FormsModule, NavIconComponent, PeriodFilterComponent, MoneyInputDirective],
+  imports: [DateInputDirective, FormsModule, NavIconComponent, PeriodFilterComponent, MoneyInputDirective, PaginationComponent],
   template: `
     <div class="page-header">
       <div>
@@ -47,6 +48,7 @@ function parseMoney(v: unknown): number {
       @if (data()) {
         <div class="toolbar">
           <label class="btn"><app-nav-icon name="upload" />Nhập sao kê từ Excel <input type="file" accept=".xlsx" class="visually-hidden" (change)="onFile($event)"></label>
+          <button type="button" class="btn" (click)="downloadSample()" title="File Excel mẫu có dòng ví dụ và hướng dẫn"><app-nav-icon name="download" />Tải file mẫu</button>
           <button type="button" class="btn" [attr.aria-pressed]="adding()" (click)="adding.set(!adding())"><app-nav-icon name="plus" />Thêm dòng tay</button>
           <button type="button" class="btn btn-primary" [disabled]="busy() || !data()!.summary.unmatchedLines" (click)="auto()"><app-nav-icon name="check" />Tự khớp</button>
         </div>
@@ -141,7 +143,7 @@ function parseMoney(v: unknown): number {
               <th scope="col" class="r">Tiền vào</th><th scope="col" class="r">Tiền ra</th><th scope="col">Khớp với phiếu</th><th scope="col"><span class="visually-hidden">Xoá</span></th>
             </tr></thead>
             <tbody>
-              @for (l of d.lines; track l.id) {
+              @for (l of pagedLines(); track l.id) {
                 <tr>
                   <td class="num">{{ formatDay(l.date) }}</td><td>{{ l.description }}</td><td class="code">{{ l.reference }}</td>
                   <td class="r num" [class.is-zero]="!l.amountIn">{{ l.amountIn ? money(l.amountIn) : '—' }}</td>
@@ -175,6 +177,7 @@ function parseMoney(v: unknown): number {
             </tbody>
           </table>
         </div>
+        <app-pagination [total]="d.lines.length" unit="dòng sao kê" [(page)]="linePage" [(pageSize)]="linePageSize" />
         <p class="rp-notes">File Excel: dòng đầu là tiêu đề, cần cột ngày, diễn giải, số tham chiếu (nếu có), tiền vào (thu / ghi có) và tiền ra (chi / ghi nợ). Dòng cùng số tham chiếu đã nhập thì bỏ qua.</p>
       </section>
 
@@ -184,7 +187,7 @@ function parseMoney(v: unknown): number {
           <table class="book-table">
             <thead><tr><th scope="col">Số phiếu</th><th scope="col">Ngày</th><th scope="col">Loại</th><th scope="col">Diễn giải</th><th scope="col" class="r">Thu</th><th scope="col" class="r">Chi</th></tr></thead>
             <tbody>
-              @for (v of unmatchedVouchers(); track v.id) {
+              @for (v of pagedVouchers(); track v.id) {
                 <tr>
                   <td class="code">{{ v.code }}</td><td class="num">{{ formatDay(v.date) }}</td><td>{{ v.category }}</td><td>{{ v.description }}</td>
                   <td class="r num" [class.is-zero]="v.kind !== 'THU'">{{ v.kind === 'THU' ? money(v.amount) : '—' }}</td>
@@ -196,6 +199,7 @@ function parseMoney(v: unknown): number {
             </tbody>
           </table>
         </div>
+        <app-pagination [total]="unmatchedVouchers().length" unit="phiếu" [(page)]="voucherPage" [(pageSize)]="voucherPageSize" />
       </section>
     } @else if (!failure()) {
       <div class="empty-state"><h3>Chọn tài khoản ngân hàng</h3><p>Chọn tài khoản và kỳ để so sao kê với sổ sách.</p></div>
@@ -228,6 +232,34 @@ export class BankReconciliationComponent {
   readonly pick = signal<Record<string, string>>({});
 
   readonly unmatchedVouchers = computed(() => (this.data()?.vouchers ?? []).filter((v) => !v.matched));
+
+  // Both lists can run to hundreds of rows over a year: a page at a time, back to page 1 when the data or the period changes.
+  readonly linePage = signal(1);
+  readonly linePageSize = signal(20);
+  readonly voucherPage = signal(1);
+  readonly voucherPageSize = signal(20);
+  readonly pagedLines = computed(() => {
+    const start = (this.linePage() - 1) * this.linePageSize();
+    return (this.data()?.lines ?? []).slice(start, start + this.linePageSize());
+  });
+  readonly pagedVouchers = computed(() => {
+    const start = (this.voucherPage() - 1) * this.voucherPageSize();
+    return this.unmatchedVouchers().slice(start, start + this.voucherPageSize());
+  });
+  // Matching a line or deleting one re-reads the data but keeps the page you were working on; a page past the end falls back.
+  private readonly resetPages = effect(() => {
+    this.accountId();
+    this.period();
+    untracked(() => { this.linePage.set(1); this.voucherPage.set(1); });
+  });
+  private readonly clampPages = effect(() => {
+    const lines = Math.max(1, Math.ceil((this.data()?.lines.length ?? 0) / this.linePageSize()));
+    const vouchers = Math.max(1, Math.ceil(this.unmatchedVouchers().length / this.voucherPageSize()));
+    untracked(() => {
+      if (this.linePage() > lines) this.linePage.set(lines);
+      if (this.voucherPage() > vouchers) this.voucherPage.set(vouchers);
+    });
+  });
   /** Số dư sao kê dự kiến = sổ sách + dòng sao kê chưa ghi sổ − phiếu chưa lên sao kê. */
   readonly expected = computed(() => {
     const d = this.data();
@@ -295,6 +327,34 @@ export class BankReconciliationComponent {
     } finally {
       this.busy.set(false);
     }
+  }
+
+  /** File mẫu: đúng các cột phần mềm đọc, vài dòng ví dụ (nền vàng) và sheet hướng dẫn. Sao kê tải từ ngân hàng thường đã đủ các cột này. */
+  async downloadSample() {
+    await downloadWorkbook('Mẫu nhập sao kê ngân hàng.xlsx', [{
+      name: 'Sao kê',
+      columns: [
+        { header: 'Ngày', width: 14, required: true }, { header: 'Diễn giải', width: 44 }, { header: 'Số tham chiếu', width: 20 },
+        { header: 'Thu (Ghi có)', width: 18, numFmt: '#,##0' }, { header: 'Chi (Ghi nợ)', width: 18, numFmt: '#,##0' },
+      ],
+      rows: [],
+      exampleRows: [
+        ['05/11/2026', 'CTY KHUNG TRANH A CHAU CK THANH TOAN DH0000110', 'FT26309001234', 5_000_000, ''],
+        ['06/11/2026', 'THANH TOAN TIEN HANG NCC GO PHU THINH', 'FT26310005678', '', 12_500_000],
+        ['09/11/2026', 'PHI QUAN LY TAI KHOAN THANG 11', 'FEE26313000001', '', 55_000],
+      ],
+      notes: {
+        title: 'Nhập sao kê ngân hàng — hướng dẫn',
+        lines: [
+          'Dòng đầu là tiêu đề cột. Mỗi dòng sau là một giao dịch trên sao kê.',
+          'Cần cột Ngày và ít nhất một trong hai cột tiền: Thu (Ghi có) = tiền vào, Chi (Ghi nợ) = tiền ra. Mỗi dòng chỉ ghi một trong hai.',
+          'Số tham chiếu (mã giao dịch của ngân hàng) nên có: dòng cùng số tham chiếu đã nhập trước đó sẽ được bỏ qua, nên nhập lại cùng một sao kê không nhân đôi.',
+          'Cột có thể đặt tên khác: Ngày giao dịch, Nội dung giao dịch, Mã giao dịch, Tiền vào, Tiền ra, Ghi nợ, Ghi có… Phần mềm tự nhận.',
+          'Ngày ghi dạng 05/11/2026 hoặc ô ngày của Excel. Số tiền ghi số thường (5000000) hoặc kiểu Việt Nam (5.000.000).',
+          'Sau khi nhập, dùng "Tự khớp" để ghép dòng sao kê với phiếu thu / chi cùng số tiền và ngày gần nhau.',
+        ],
+      },
+    }]);
   }
 
   async onFile(ev: Event) {
