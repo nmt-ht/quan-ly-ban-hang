@@ -171,8 +171,8 @@ async function main() {
   for (const [code, name, parentCode, kind, normalSide, isDetail] of CHART) {
     await prisma.account.upsert({
       where: { code },
-      update: { name, parentCode: parentCode ?? null, kind, normalSide, isDetail },
-      create: { code, name, parentCode: parentCode ?? null, kind, normalSide, isDetail },
+      update: { name, parentCode: parentCode ?? null, kind, normalSide, isDetail, isSystem: true },
+      create: { code, name, parentCode: parentCode ?? null, kind, normalSide, isDetail, isSystem: true },
     });
   }
 

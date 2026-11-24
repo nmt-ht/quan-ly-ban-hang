@@ -7,6 +7,7 @@ import { errorText } from '../../core/api/api.service';
 import { ProductionCostRow } from '../../core/models/domain.models';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { DataTableColumn, DataTableComponent } from '../../shared/data-table/data-table.component';
+import { PaginationComponent } from '../../shared/pagination/pagination.component';
 import { formatVnd } from '../../shared/format.util';
 import { MoneyInputDirective } from '../../shared/money-input.directive';
 import { isoDay } from '../../shared/period';
@@ -25,7 +26,7 @@ function blankForm(): ProductionCostInput {
 @Component({
   selector: 'app-accounting-production-costs',
   standalone: true,
-  imports: [DateInputDirective, FormsModule, NavIconComponent, DataTableComponent, MoneyInputDirective],
+  imports: [DateInputDirective, FormsModule, NavIconComponent, DataTableComponent, MoneyInputDirective, PaginationComponent],
   template: `
     <div class="page-header">
       <div>
@@ -99,7 +100,8 @@ function blankForm(): ProductionCostInput {
       </dl>
     }
 
-    <app-data-table [columns]="columns" [rows]="rows()" emptyTitle="Chưa có lệnh sản xuất" emptyHint="Lệnh sản xuất lập ở phân hệ Kho." />
+    <app-data-table [columns]="columns" [rows]="pagedRows()" emptyTitle="Chưa có lệnh sản xuất" emptyHint="Lệnh sản xuất lập ở phân hệ Kho." />
+    <app-pagination [total]="rows().length" unit="lệnh" [(page)]="page" [(pageSize)]="pageSize" />
     }
   `,
   styles: [`.money-field { text-align: right; }`],
@@ -113,6 +115,12 @@ export class AccountingProductionCostsComponent {
   readonly showForm = signal(false);
   readonly saving = signal(false);
   readonly money = formatVnd;
+  readonly page = signal(1);
+  readonly pageSize = signal(20);
+  readonly pagedRows = computed(() => {
+    const start = (this.page() - 1) * this.pageSize();
+    return this.rows().slice(start, start + this.pageSize());
+  });
   form: ProductionCostInput = blankForm();
 
   readonly columns: DataTableColumn<ProductionCostRow>[] = [
@@ -133,7 +141,7 @@ export class AccountingProductionCostsComponent {
   totalCost(): number { return this.rows().reduce((s, r) => s + r.total, 0); }
 
   async load() {
-    try { this.rows.set((await this.svc.productionCosts()).sort(newestFirst)); } catch (e) { this.toast.error(errorText(e)); }
+    try { this.rows.set((await this.svc.productionCosts()).sort(newestFirst)); this.page.set(1); } catch (e) { this.toast.error(errorText(e)); }
   }
 
   async save() {

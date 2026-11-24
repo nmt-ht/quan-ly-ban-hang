@@ -94,7 +94,7 @@ function blankForm(): PrepaidItemInput {
       <dl class="list-totals">
         <div><dt>Khoản</dt><dd class="num">{{ items().length }}</dd></div>
         <div><dt>Tổng giá trị</dt><dd class="num">{{ money(totalCost()) }}</dd></div>
-        <div><dt>Còn phải phân bổ</dt><dd class="num">{{ money(totalRemaining()) }}</dd></div>
+        <div><dt>Còn phải phân bổ</dt><dd class="num" [class.text-warning]="totalRemaining() > 0">{{ money(totalRemaining()) }}</dd></div>
       </dl>
     }
 

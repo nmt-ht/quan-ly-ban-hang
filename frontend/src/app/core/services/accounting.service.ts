@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { ApiService } from '../api/api.service';
 import {
-  Account, BalanceSheetView, EmployeeView, FixedAssetView, IncomeStatementView, JournalEntryView, LedgerView, OpeningBalancesView,
+  Account, AccountKind, BalanceSheetView, EmployeeView, FixedAssetView, IncomeStatementView, JournalEntryView, LedgerView, OpeningBalancesView,
   PayrollCenterKey, PayrollParamsView, PayrollRunSummary, PayrollSheetView, PrepaidItemView, ProductionCostRow, TrialBalanceView,
 } from '../models/domain.models';
 import {
@@ -23,6 +23,8 @@ export interface PrepaidItemInput { name: string; cost: number; startDate: strin
 
 export interface FixedAssetInput { name: string; cost: number; usageStartDate: string; usefulLifeMonths: number; expenseAccount?: string; note?: string }
 
+export interface AccountInput { code?: string; name: string; kind: AccountKind; normalSide: 'NO' | 'CO'; parentCode?: string; isDetail: boolean }
+
 export interface ManualEntryInput {
   date: string;
   description?: string;
@@ -36,6 +38,22 @@ export class AccountingService {
 
   accounts() {
     return this.api.get<Account[]>('/accounting/accounts');
+  }
+
+  createAccount(dto: AccountInput) {
+    return this.api.post<Account>('/accounting/accounts', dto);
+  }
+
+  updateAccount(code: string, dto: AccountInput) {
+    return this.api.patch<Account>('/accounting/accounts/' + code, dto);
+  }
+
+  setAccountActive(code: string, isActive: boolean) {
+    return this.api.patch<Account>('/accounting/accounts/' + code + '/active', { isActive });
+  }
+
+  deleteAccount(code: string) {
+    return this.api.delete('/accounting/accounts/' + code);
   }
 
   journal(from?: string, to?: string) {

@@ -1,10 +1,15 @@
 /* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AccountingService } from '../../core/services/accounting.service';
 import { AuthService } from '../../core/services/auth.service';
 import { errorText } from '../../core/api/api.service';
 import { OpeningRow } from '../../core/models/domain.models';
+
+const KIND: Record<string, string> = {
+  TAI_SAN: 'Tài sản', NO_PHAI_TRA: 'Nợ phải trả', VON_CSH: 'Vốn CSH', DOANH_THU: 'Doanh thu', CHI_PHI: 'Chi phí', KQKD: 'Xác định KQKD',
+};
+const KIND_ORDER = ['TAI_SAN', 'NO_PHAI_TRA', 'VON_CSH', 'DOANH_THU', 'CHI_PHI', 'KQKD'] as const;
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { formatVnd } from '../../shared/format.util';
 import { MoneyInputDirective } from '../../shared/money-input.directive';
@@ -44,12 +49,19 @@ import { ToastService } from '../../core/services/toast.service';
           <th scope="col">TK</th><th scope="col">Tên tài khoản</th><th scope="col" class="r">Dư Nợ</th><th scope="col" class="r">Dư Có</th>
         </tr></thead>
         <tbody>
-          @for (r of rows(); track r.code) {
-            <tr>
-              <td class="code">{{ r.code }}</td><td>{{ r.name }}</td>
-              <td class="r"><input type="text" appMoney class="num money-cell" placeholder="0" [attr.aria-label]="'Dư Nợ ' + r.code" [(ngModel)]="r.debit" [disabled]="!canEdit" /></td>
-              <td class="r"><input type="text" appMoney class="num money-cell" placeholder="0" [attr.aria-label]="'Dư Có ' + r.code" [(ngModel)]="r.credit" [disabled]="!canEdit" /></td>
+          @for (g of groups(); track g.kind) {
+            <tr class="op-group">
+              <td colspan="2">{{ g.label }}</td>
+              <td class="r num">{{ money(groupDebit(g.rows)) }}</td>
+              <td class="r num">{{ money(groupCredit(g.rows)) }}</td>
             </tr>
+            @for (r of g.rows; track r.code) {
+              <tr>
+                <td class="code">{{ r.code }}</td><td>{{ r.name }}</td>
+                <td class="r"><input type="text" appMoney class="num money-cell" placeholder="0" [attr.aria-label]="'Dư Nợ ' + r.code" [(ngModel)]="r.debit" [disabled]="!canEdit" /></td>
+                <td class="r"><input type="text" appMoney class="num money-cell" placeholder="0" [attr.aria-label]="'Dư Có ' + r.code" [(ngModel)]="r.credit" [disabled]="!canEdit" /></td>
+              </tr>
+            }
           } @empty {
             <tr><td class="book-none" colspan="4">Chưa có tài khoản.</td></tr>
           }
@@ -60,7 +72,11 @@ import { ToastService } from '../../core/services/toast.service';
       </table>
     </div>
   `,
-  styles: [`.money-cell { width: 11rem; text-align: right; }`],
+  styles: [`
+    .money-cell { width: 11rem; text-align: right; }
+    /* Dải tiêu đề loại tài khoản + tổng Nợ/Có của loại. */
+    tr.op-group td { padding-top: var(--space-xs); background: var(--color-paper-2); color: var(--color-ink); font-weight: 600; border-top: var(--rule-hair) solid var(--color-rule-strong); }
+  `],
 })
 export class AccountingOpeningComponent {
   protected readonly toast = inject(ToastService);
@@ -71,10 +87,18 @@ export class AccountingOpeningComponent {
   readonly money = formatVnd;
   readonly period = signal(new Date().getFullYear());
 
+  /** Tài khoản gom theo loại (giữ thứ tự số hiệu từ server); loại không có TK thì bỏ. */
+  readonly groups = computed(() => {
+    const rows = this.rows();
+    return KIND_ORDER.map((k) => ({ kind: k, label: KIND[k], rows: rows.filter((r) => r.kind === k) })).filter((g) => g.rows.length);
+  });
+
   // Rows are edited in place (ngModel on r.debit / r.credit), so the totals are plain methods read on every change detection.
   totalDebit(): number { return this.rows().reduce((s, r) => s + (Number(r.debit) || 0), 0); }
   totalCredit(): number { return this.rows().reduce((s, r) => s + (Number(r.credit) || 0), 0); }
   difference(): number { return this.totalDebit() - this.totalCredit(); }
+  groupDebit(rows: OpeningRow[]): number { return rows.reduce((s, r) => s + (Number(r.debit) || 0), 0); }
+  groupCredit(rows: OpeningRow[]): number { return rows.reduce((s, r) => s + (Number(r.credit) || 0), 0); }
 
   constructor() { this.load(); }
 

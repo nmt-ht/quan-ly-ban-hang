@@ -25,6 +25,7 @@ import { CashFlowController, CashFlowService } from './cash-flow.js';
 import { PeriodClosingController, PeriodClosingService } from './period-closing.js';
 import { CorporateTaxController, CorporateTaxService } from './corporate-tax.js';
 import { StatementsController, StatementsService } from './statements.js';
+import { AccountsController, AccountsService } from './accounts.js';
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const num = (d: Prisma.Decimal | null | undefined) => (d ? d.toNumber() : 0);
@@ -250,7 +251,7 @@ export class AccountingService {
     const by = new Map(existing.map((o) => [o.accountCode, o]));
     return {
       period,
-      rows: accounts.map((a) => ({ code: a.code, name: a.name, normalSide: a.normalSide, debit: num(by.get(a.code)?.debit), credit: num(by.get(a.code)?.credit) })),
+      rows: accounts.map((a) => ({ code: a.code, name: a.name, kind: a.kind, normalSide: a.normalSide, debit: num(by.get(a.code)?.debit), credit: num(by.get(a.code)?.credit) })),
     };
   }
 
@@ -386,8 +387,8 @@ export class AccountingController {
 }
 
 @Module({
-  controllers: [AccountingController, PeriodClosingController, CorporateTaxController, StatementsController, FixedAssetsController, PrepaidItemsController, ProductionCostsController, EmployeesController, PayrollController, BooksController, VatController, CashFlowController],
-  providers: [AccountingService, PeriodClosingService, CorporateTaxService, StatementsService, LedgerService, FixedAssetsService, PrepaidItemsService, ProductionAccountingService, ProductionCostsService, PayrollService, BooksService, VatService, CashFlowService],
+  controllers: [AccountingController, AccountsController, PeriodClosingController, CorporateTaxController, StatementsController, FixedAssetsController, PrepaidItemsController, ProductionCostsController, EmployeesController, PayrollController, BooksController, VatController, CashFlowController],
+  providers: [AccountingService, AccountsService, PeriodClosingService, CorporateTaxService, StatementsService, LedgerService, FixedAssetsService, PrepaidItemsService, ProductionAccountingService, ProductionCostsService, PayrollService, BooksService, VatService, CashFlowService],
   exports: [LedgerService, ProductionAccountingService],
 })
 export class AccountingModule {}

@@ -55,7 +55,7 @@ import { ToastService } from '../../core/services/toast.service';
             <dl class="list-totals">
               <div><dt>Doanh thu</dt><dd class="num">{{ money(p.revenue) }}</dd></div>
               <div><dt>Chi phí</dt><dd class="num">{{ money(p.expense) }}</dd></div>
-              <div><dt>{{ p.profit >= 0 ? 'Lãi' : 'Lỗ' }}</dt><dd class="num" [class.amt-neg]="p.profit < 0">{{ money(Math.abs(p.profit)) }}</dd></div>
+              <div><dt>{{ p.profit >= 0 ? 'Lãi' : 'Lỗ' }}</dt><dd class="num" [class.text-danger]="p.profit < 0">{{ money(Math.abs(p.profit)) }}</dd></div>
             </dl>
             @if (p.accounts.length) {
               <div class="rp-surface book-wrap">

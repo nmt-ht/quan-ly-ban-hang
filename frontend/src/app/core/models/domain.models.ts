@@ -655,6 +655,7 @@ export interface Account {
   normalSide: 'NO' | 'CO';
   isDetail: boolean;
   isActive: boolean;
+  isSystem: boolean;
   sortOrder: number;
 }
 export interface JournalLineView {
@@ -679,7 +680,7 @@ export interface TrialBalanceRow {
   code: string; name: string; openingNo: number; openingCo: number; debit: number; credit: number; closingNo: number; closingCo: number;
 }
 export interface TrialBalanceView { period: string; rows: TrialBalanceRow[]; totals: { od: number; oc: number; pd: number; pc: number; cd: number; cc: number }; }
-export interface OpeningRow { code: string; name: string; normalSide: 'NO' | 'CO'; debit: number; credit: number; }
+export interface OpeningRow { code: string; name: string; kind: AccountKind; normalSide: 'NO' | 'CO'; debit: number; credit: number; }
 export interface OpeningBalancesView { period: string; rows: OpeningRow[]; }
 export interface StatementItem { label: string; amount: number; strong?: boolean; }
 export interface IncomeStatementView { period: string; items: StatementItem[]; profitAfterTax: number; }

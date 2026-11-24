@@ -40,7 +40,7 @@ const PERIODS: { value: CitPeriod; label: string }[] = [
         <div class="notice is-error" role="alert"><span>Sổ kế toán chưa bật. Đặt ngày bắt đầu ghi sổ ở <a routerLink="/ke-toan">Kế toán</a> trước.</span></div>
       }
       <dl class="list-totals">
-        <div><dt>Thuế TNDN còn phải nộp (TK 3334)</dt><dd class="num">{{ money(o.payable) }}</dd></div>
+        <div><dt>Thuế TNDN còn phải nộp (TK 3334)</dt><dd class="num" [class.text-warning]="o.payable > 0">{{ money(o.payable) }}</dd></div>
         <div><dt>Đã ghi chi phí thuế năm {{ o.year }}</dt><dd class="num">{{ money(o.booked) }}</dd></div>
         <div><dt>Lỗ chuyển sang còn dùng được</dt><dd class="num">{{ money(o.lossAvailable) }}</dd></div>
       </dl>

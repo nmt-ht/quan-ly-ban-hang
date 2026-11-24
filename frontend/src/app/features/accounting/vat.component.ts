@@ -8,7 +8,10 @@ import { VatInputsView, VatOutputsView, VatSummaryView } from '../../core/models
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { formatVnd } from '../../shared/format.util';
-import { formatDay } from '../../shared/period';
+import { formatDay, isoDay } from '../../shared/period';
+import { PrintService } from '../../shared/print/print.service';
+import { VatReturnPrintComponent } from '../../shared/print/tax/vat-return-print.component';
+import { VatReturnLine, vatReturnLines } from '../../shared/print/tax/vat-return.rules';
 import { ToastService } from '../../core/services/toast.service';
 
 type Tab = 'tong-hop' | 'ban-ra' | 'mua-vao';
@@ -25,20 +28,25 @@ const KIND_LABEL: Record<string, string> = { ORIGINAL: 'Gốc', ADJUST: 'Điều
 @Component({
   selector: 'app-accounting-vat',
   standalone: true,
-  imports: [NavIconComponent],
+  imports: [NavIconComponent, VatReturnPrintComponent],
   template: `
+   <div class="screen-only">
     <div class="page-header">
       <div>
         <h1>Thuế GTGT</h1>
         <p class="subtitle">Số liệu hỗ trợ lập tờ khai theo kỳ. Mẫu 01/GTGT và các chỉ tiêu có thể thay đổi theo văn bản mới — đối chiếu mẫu hiện hành khi kê khai.</p>
       </div>
-      @if (tab() !== 'tong-hop') {
-        <div class="toolbar">
+      <div class="toolbar">
+        @if (tab() === 'tong-hop') {
+          <button type="button" class="btn" [disabled]="!summary() || printBusy()" (click)="printReturn()">
+            <app-nav-icon name="printer" />In tờ khai 01/GTGT
+          </button>
+        } @else {
           <button type="button" class="btn" [disabled]="tab() === 'ban-ra' ? !outputs()?.rows?.length : !inputs()?.rows?.length" (click)="tab() === 'ban-ra' ? exportOutputs() : exportInputs()">
             <app-nav-icon name="download" />Xuất Excel
           </button>
-        </div>
-      }
+        }
+      </div>
     </div>
 
     <div class="filters-bar rp-toolbar">
@@ -226,6 +234,11 @@ const KIND_LABEL: Record<string, string> = { ORIGINAL: 'Gốc', ADJUST: 'Điều
         </section>
       }
     }
+   </div>
+
+   @if (returnLines(); as lines) {
+     <app-vat-return-print [lines]="lines" [sub]="periodLabel()" [date]="today" />
+   }
   `,
   styles: [`.year-input { width: 5.5rem; }`],
 })
@@ -264,7 +277,27 @@ export class AccountingVatComponent {
   readonly busy = signal(false);
   readonly canOffset = computed(() => this.auth.can('accounting.manual'));
 
+  private readonly printer = inject(PrintService);
+  readonly today = isoDay(new Date());
+  /** Các chỉ tiêu tờ khai đang dựng để in (chỉ có trong lúc in). */
+  readonly returnLines = signal<VatReturnLine[] | null>(null);
+  readonly printBusy = signal(false);
+  readonly periodLabel = computed(() =>
+    `Kỳ tính thuế: ${this.kind() === 'thang' ? 'Tháng' : 'Quý'} ${this.n()} năm ${this.year()}`,
+  );
+
   constructor() { this.load(); }
+
+  async printReturn() {
+    const s = this.summary();
+    if (!s) return;
+    this.printBusy.set(true);
+    try {
+      await this.printer.print('tax-01-gtgt', 'A4', () => this.returnLines.set(vatReturnLines(s)), () => this.returnLines.set(null));
+    } finally {
+      this.printBusy.set(false);
+    }
+  }
 
   setKind(k: 'thang' | 'quy') {
     this.kind.set(k);

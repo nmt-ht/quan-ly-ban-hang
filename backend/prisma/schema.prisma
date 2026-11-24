@@ -1205,6 +1205,7 @@ model Account {
   normalSide NormalSide
   isDetail   Boolean     @default(true) // chỉ TK chi tiết mới được ghi bút toán
   isActive   Boolean     @default(true)
+  isSystem   Boolean     @default(false) // TK chuẩn (seed TT133): không cho sửa cấu trúc / xoá
   sortOrder  Int         @default(0)
 
   lines JournalLine[]
