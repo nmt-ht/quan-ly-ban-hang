@@ -1,6 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { JournalSource, PartnerType, Prisma } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service.js';
 import { SequenceService } from '../../prisma/sequence.service.js';
 import { assertOpenPeriod } from '../../common/period-lock.js';
 import { fromDay, toDay } from '../../common/text.js';
@@ -35,7 +34,7 @@ const r0 = (n: number) => Math.round(n);
  */
 @Injectable()
 export class LedgerService {
-  constructor(private readonly prisma: PrismaService, private readonly sequences: SequenceService) {}
+  constructor(private readonly sequences: SequenceService) {}
 
   /** Sổ cái đã bật (CompanyInfo.ledgerStartDate) và ngày chứng từ nằm trong phạm vi ghi sổ? */
   async isLedgerActive(tx: Prisma.TransactionClient, day: string): Promise<boolean> {

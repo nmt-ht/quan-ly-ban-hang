@@ -4,7 +4,6 @@
 import type { InvoiceData, InvoiceRow } from '../sales/invoice.rules.js';
 
 export const EINVOICE_PROVIDERS = ['NONE', 'FAKE', 'MISA'] as const;
-export type EInvoiceProviderName = (typeof EINVOICE_PROVIDERS)[number];
 export const EINVOICE_KINDS = ['ORIGINAL', 'ADJUST', 'REPLACE'] as const;
 export type EInvoiceKind = (typeof EINVOICE_KINDS)[number];
 export const EINVOICE_STATUSES = ['PENDING', 'ISSUED', 'FAILED', 'REPLACED', 'VOID'] as const;

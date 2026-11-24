@@ -4,7 +4,7 @@ import { Component, computed, inject, signal, effect } from '@angular/core';
 import { AccountingService } from '../../core/services/accounting.service';
 import { AuthService } from '../../core/services/auth.service';
 import { errorText } from '../../core/api/api.service';
-import { TaxBucket, VatInputsView, VatOutputsView, VatSummaryView } from '../../core/models/books-vat.models';
+import { VatInputsView, VatOutputsView, VatSummaryView } from '../../core/models/books-vat.models';
 import { NavIconComponent } from '../../layout/nav-icon/nav-icon.component';
 import { downloadWorkbook, exportFileName } from '../../shared/excel.util';
 import { formatVnd } from '../../shared/format.util';

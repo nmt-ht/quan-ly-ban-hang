@@ -121,7 +121,6 @@ export class ProductionCostsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ledger: LedgerService,
-    private readonly accounting: ProductionAccountingService,
     private readonly audit: AuditService,
   ) {}
 

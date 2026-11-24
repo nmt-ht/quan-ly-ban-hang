@@ -20,9 +20,6 @@ export const CUSTOMER_SORTS: { value: CustomerSort; label: string }[] = [
 
 export const creditLabel = (days: number) => (days > 0 ? `${days} ngày` : 'Trả ngay');
 
-/** Tên hiện trên chứng từ: có tên công ty thì dùng tên công ty. */
-export const displayName = (c: Pick<Customer, 'name' | 'companyName'>) => c.companyName || c.name;
-
 export const taxCodeOf = (c: Customer) => c.companyTaxCode || c.personalTaxCode || '';
 
 export const PHONE_PATTERN = /^[0-9+().\s-]{8,15}$/;

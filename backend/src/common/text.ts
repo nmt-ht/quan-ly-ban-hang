@@ -12,12 +12,6 @@ export function foldVi(s: string): string {
     .trim();
 }
 
-/** Trimmed text, or null when empty — what an optional column should store. */
-export function blank(s: string | null | undefined): string | null {
-  const t = s?.trim();
-  return t ? t : null;
-}
-
 /** "YYYY-MM-DD" for a @db.Date column (stored at UTC midnight); null stays null. */
 export function toDay(d: Date | null | undefined): string | null {
   return d ? d.toISOString().slice(0, 10) : null;

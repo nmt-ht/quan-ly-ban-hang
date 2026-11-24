@@ -38,5 +38,3 @@ export function expiryState(date: string | undefined, today: string): ExpiryStat
   return { level: 'ok', days, label: `Còn ${days} ngày` };
 }
 
-export const vehicleLabel = (v: Pick<Vehicle, 'plateNumber' | 'name' | 'type'>) =>
-  `${v.plateNumber} · ${v.name || VEHICLE_TYPE_LABEL[v.type]}`;

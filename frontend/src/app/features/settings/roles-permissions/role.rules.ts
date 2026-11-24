@@ -20,12 +20,6 @@ export function togglePermission(granted: ReadonlySet<string>, module: Permissio
   return next;
 }
 
-export function setModule(granted: ReadonlySet<string>, module: PermissionModule, on: boolean): Set<string> {
-  const next = new Set(granted);
-  for (const p of module.permissions) (on ? next.add(p.code) : next.delete(p.code));
-  return next;
-}
-
 export const sameSet = (a: ReadonlySet<string>, b: ReadonlySet<string>) => a.size === b.size && [...a].every((x) => b.has(x));
 
 /** Another role already uses this name (diacritic- and case-insensitive)? */

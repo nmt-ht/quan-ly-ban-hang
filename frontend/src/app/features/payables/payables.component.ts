@@ -50,7 +50,6 @@ export class PayablesComponent {
   readonly pageSize = signal(20);
   readonly exporting = signal(false);
   readonly sorts = SORTS;
-  readonly agingCols = AGING_COLUMNS;
   readonly money = formatVnd;
 
   readonly columns: DataTableColumn<DebtRow>[] = [

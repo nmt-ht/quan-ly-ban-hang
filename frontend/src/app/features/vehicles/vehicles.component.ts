@@ -1,6 +1,6 @@
 import { Component, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { DataStore } from '../../core/services/data-store.service';
 import { Vehicle } from '../../core/models/domain.models';
 import { DataTableColumn, DataTableComponent } from '../../shared/data-table/data-table.component';
@@ -27,7 +27,6 @@ import { ToastService } from '../../core/services/toast.service';
 export class VehiclesComponent {
   protected readonly toast = inject(ToastService);
   readonly data = inject(DataStore);
-  private readonly router = inject(Router);
   private readonly dialog = viewChild.required<VehicleDialogComponent>('dialog');
 
   readonly search = signal('');

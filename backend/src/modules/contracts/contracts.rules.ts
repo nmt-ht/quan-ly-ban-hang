@@ -6,10 +6,6 @@
 export type ContractKind = 'BAN' | 'MUA';
 export type ContractStatus = 'DANG_THUC_HIEN' | 'DA_THANH_LY' | 'HUY';
 
-export const CONTRACT_STATUS_LABEL: Record<ContractStatus, string> = {
-  DANG_THUC_HIEN: 'Đang thực hiện', DA_THANH_LY: 'Đã thanh lý', HUY: 'Đã huỷ',
-};
-
 /** Hợp đồng còn hiệu lực để sửa và gắn đơn. */
 export const isOpen = (status: ContractStatus) => status === 'DANG_THUC_HIEN';
 

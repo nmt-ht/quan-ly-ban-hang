@@ -14,8 +14,6 @@ export const kindOf = (v: WarehouseVoucher): VoucherKindKey =>
 export const KIND_SLUG: Record<WarehouseVoucherType, string> = { NHAP: 'in', XUAT: 'out', CHUYEN: 'transfer', KIEM_KE: 'adjust' };
 export const SLUG_KIND: Record<string, WarehouseVoucherType> = { in: 'NHAP', out: 'XUAT', transfer: 'CHUYEN', adjust: 'KIEM_KE' };
 
-export const CODE_PREFIX: Record<WarehouseVoucherType, string> = { NHAP: 'PNK', XUAT: 'PXK', CHUYEN: 'PCK', KIEM_KE: 'PKK' };
-
 /** Words per voucher type (title, warehouse label, quantity column, reason placeholder, rule note). */
 export const KIND_TEXT: Record<WarehouseVoucherType, {
   title: string; warehouse: string; qty: string; reason: string; note?: string; print: string;

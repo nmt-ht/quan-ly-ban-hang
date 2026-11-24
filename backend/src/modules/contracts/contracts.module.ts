@@ -187,7 +187,7 @@ export class ContractsService {
       if (!samePartner && (await this.linkedOrders(tx, c.id, c.kind)) > 0) {
         throw new BadRequestException(`${c.code} đã có đơn gắn vào — không đổi đối tác được. Gỡ các đơn khỏi hợp đồng trước.`);
       }
-      const before = await this.described(tx, c);
+      const before = await this.described(c);
       const next = await tx.contract.update({
         where: { id },
         data: { ...fields(dto), customerId: dto.kind === 'BAN' ? dto.customerId! : null, supplierId: dto.kind === 'MUA' ? dto.supplierId! : null, ownerId: refs.ownerId },
@@ -195,7 +195,7 @@ export class ContractsService {
       });
       await this.audit.log(tx, {
         action: 'contract.update', entityType: 'Contract', entityId: id, entityCode: c.code, summary: `Sửa hợp đồng ${c.code}`,
-        changes: diff(before, await this.described(tx, next), FIELDS),
+        changes: diff(before, await this.described(next), FIELDS),
       });
       return this.detail(tx, next, user);
     });
@@ -252,7 +252,7 @@ export class ContractsService {
   }
 
   /** A contract with names instead of ids, for the Sửa diff. */
-  private async described(tx: Tx, c: Row) {
+  private async described(c: Row) {
     const owner = c.owner?.email ?? null;
     return {
       contractNo: c.contractNo, title: c.title, party: `${c.customer?.code ?? c.supplier?.code} · ${c.customer?.name ?? c.supplier?.name}`,

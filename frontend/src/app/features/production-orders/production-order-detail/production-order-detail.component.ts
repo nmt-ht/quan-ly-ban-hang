@@ -1,5 +1,5 @@
 import { ConfirmService } from '../../../shared/confirm/confirm.service';
-import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { Component, computed, effect, inject, untracked } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -16,7 +16,6 @@ import { PRODUCTION_ORDER_STATUS_LABEL, productionOrderStatusClass } from '../..
 import { round4 } from '../../purchase-orders/purchase-order.rules';
 import { SalesOrderService } from '../../sales-orders/sales-order.service';
 import { WarehouseVoucherService } from '../../warehouse-vouchers/warehouse-voucher.service';
-import { errorText } from '../../../core/api/api.service';
 import { VOUCHER_KIND_LABEL, kindOf } from '../../warehouse-vouchers/warehouse-voucher.rules';
 import { canCancelLsx, canComplete, canStart, isLate, productionSteps } from '../production-order.rules';
 import { StatusStepsComponent } from '../../../shared/status-steps/status-steps.component';
@@ -190,15 +189,5 @@ export class ProductionOrderDetailComponent {
       run: (v) => this.orders.cancelProduction(x.id, v['reason']),
     });
     if (done) this.toast.success(`Đã huỷ ${x.code}.${wasRunning ? ' Vật tư đã xuất không tự nhập lại — lập phiếu nhập kho nếu còn dùng được.' : ''}`);
-  }
-
-  /** Runs a save; on failure shows why and answers null. */
-  private async attempt<T>(save: () => Promise<T>): Promise<T | null> {
-    try {
-      return await save();
-    } catch (e) {
-      this.toast.error(errorText(e));
-      return null;
-    }
   }
 }

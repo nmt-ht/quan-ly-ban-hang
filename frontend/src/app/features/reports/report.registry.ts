@@ -32,8 +32,6 @@ const byslug = (defs: ReportDef[], slug: string) => {
   return d;
 };
 
-const soon = (slug: string, label: string, group: ReportGroupKey, summary: string): ReportDef => ({ slug, label, group, summary, kind: 'soon' });
-
 export const REPORTS: ReportDef[] = [
   // ---- Bán hàng
   { slug: 'ban-hang', label: 'Doanh thu', group: 'sell', summary: 'Doanh thu theo thời gian, khách hàng, mặt hàng, nhóm VTHH hoặc nhân viên; so với kỳ trước.', kind: 'custom' },
@@ -90,7 +88,6 @@ export function groupOf(key: ReportGroupKey): ReportGroup {
   return REPORT_GROUPS.find((g) => g.key === key)!;
 }
 
-export const DEFAULT_REPORT = 'ban-hang';
 
 /** The icon in front of each report on the hub (a report not listed wears its group's icon). */
 const REPORT_ICONS: Record<string, NavIconName> = {

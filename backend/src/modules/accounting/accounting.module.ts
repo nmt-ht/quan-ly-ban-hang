@@ -72,7 +72,7 @@ export class AccountingService {
     return { ledgerStartDate: toDay(c?.ledgerStartDate ?? null) };
   }
 
-  async setSettings(dto: LedgerSettingsDto, user: AuthUser) {
+  async setSettings(dto: LedgerSettingsDto) {
     const d = dto.ledgerStartDate && DAY.test(dto.ledgerStartDate) ? fromDay(dto.ledgerStartDate) : null;
     await this.prisma.$transaction(async (tx) => {
       await tx.companyInfo.update({ where: { id: 1 }, data: { ledgerStartDate: d } });
@@ -325,8 +325,8 @@ export class AccountingController {
 
   @RequirePermissions('accounting.manage_account')
   @Post('settings')
-  setSettings(@Body() dto: LedgerSettingsDto, @CurrentUser() user: AuthUser) {
-    return this.svc.setSettings(dto, user);
+  setSettings(@Body() dto: LedgerSettingsDto) {
+    return this.svc.setSettings(dto);
   }
 
   @RequirePermissions('accounting.view')

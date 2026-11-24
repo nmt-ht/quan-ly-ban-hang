@@ -107,14 +107,6 @@ export class ProductImportDialogComponent {
     }
   }
 
-  chooseAnother(): void {
-    const el = this.fileInput()?.nativeElement;
-    if (el) {
-      el.value = '';
-      el.click();
-    }
-  }
-
   async confirm(): Promise<void> {
     const pp = this.productPlan();
     const bp = this.bomPlan();

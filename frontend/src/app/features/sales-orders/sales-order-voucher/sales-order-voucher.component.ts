@@ -240,9 +240,6 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
   }
   /** A save the server refused (or that could not reach it). */
   readonly failure = signal('');
-  /** The server refused the save for hạn mức công nợ; someone with debt.adjust may save anyway. */
-  readonly creditBlocked = computed(() => this.failure().startsWith('Vượt hạn mức công nợ'));
-  readonly canOverrideCredit = computed(() => this.auth.can('debt.adjust'));
   /** Phiếu trả đang chờ xác nhận huỷ. */
   private readonly dialogs = inject(ConfirmService);
 
@@ -1089,10 +1086,6 @@ export class SalesOrderVoucherComponent implements HasUnsavedChanges {
     const i = all.findIndex((x) => x.id === o.id);
     return { prev: all[i - 1], next: all[i + 1], index: i + 1, total: all.length };
   });
-
-  lsxStock(productId: string): number {
-    return this.stock().get(productId) ?? 0;
-  }
 
   // ---------- unsaved changes + Ctrl+S ----------
   private baseline = '';
