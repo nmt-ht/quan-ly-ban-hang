@@ -88,7 +88,6 @@ export function groupOf(key: ReportGroupKey): ReportGroup {
   return REPORT_GROUPS.find((g) => g.key === key)!;
 }
 
-
 /** The icon in front of each report on the hub (a report not listed wears its group's icon). */
 const REPORT_ICONS: Record<string, NavIconName> = {
   'ban-hang': 'trending-up', 'chiet-khau': 'percent', 'khach-ngung-mua': 'customers',

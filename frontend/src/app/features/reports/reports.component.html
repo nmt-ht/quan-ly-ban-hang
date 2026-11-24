@@ -16,9 +16,9 @@
   @if (siblings().length > 1) {
     <nav class="rc-tabs" [attr.aria-label]="'Báo cáo ' + activeGroup()!.label">
       @for (item of siblings(); track item.slug) {
-        <a class="rc-tab" [class.is-active]="item.slug === r.slug" [class.is-soon]="item.kind === 'soon'"
+        <a class="rc-tab" [class.is-active]="item.slug === r.slug"
           [attr.aria-current]="item.slug === r.slug ? 'page' : null" routerLink="/bao-cao" [queryParams]="{ name: item.slug }">
-          {{ item.label }}@if (item.kind === 'soon') { <span class="rc-tab-soon">sắp có</span> }
+          {{ item.label }}
         </a>
       }
     </nav>
@@ -42,13 +42,6 @@
           @for (n of r.notes ?? []; track n) { <p class="rc-note">{{ n }}</p> }
           </div>
         }
-        @default {
-          <div class="card empty-state">
-            <h3>Báo cáo này sắp có</h3>
-            <p>Hiện đã có {{ ready }} / {{ total }} báo cáo.</p>
-            <a class="btn" routerLink="/bao-cao">Xem các báo cáo đã có</a>
-          </div>
-        }
       }
   </div>
 } @else {
@@ -59,7 +52,7 @@
     <div>
       <h1>Báo cáo</h1>
       <p class="subtitle">
-        {{ ready }} báo cáo trong {{ groupCount }} nhóm@if (total > ready) { · {{ total - ready }} sắp có }
+        {{ total }} báo cáo trong {{ groupCount }} nhóm
       </p>
     </div>
     <div class="rc-search" role="search">
@@ -125,12 +118,11 @@
         <ul class="rc-list">
           @for (it of s.items; track it.def.slug) {
             <li>
-              <a class="rc-row" [class.is-soon]="it.def.kind === 'soon'" routerLink="/bao-cao" [queryParams]="{ name: it.def.slug }" [title]="it.def.summary">
+              <a class="rc-row" routerLink="/bao-cao" [queryParams]="{ name: it.def.slug }" [title]="it.def.summary">
                 <app-nav-icon class="rc-row-icon" [name]="it.icon" />
                 <span class="rc-row-text">
                   <span class="rc-row-title">
                     @for (p of it.label; track $index) {<span [class.rc-hit]="p.hit">{{ p.text }}</span>}
-                    @if (it.def.kind === 'soon') { <span class="rc-tag">Sắp có</span> }
                   </span>
                   <span class="rc-row-sum">
                     @for (p of it.summary; track $index) {<span [class.rc-hit]="p.hit">{{ p.text }}</span>}

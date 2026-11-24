@@ -46,7 +46,6 @@ export class ReportsComponent {
   private readonly mine = REPORTS.filter((r: ReportDef) => this.auth.can(groupOf(r.group).permission));
 
   readonly total = this.mine.length;
-  readonly ready = this.mine.filter((r) => r.kind !== 'soon').length;
   readonly groupCount = new Set(this.mine.map((r) => r.group)).size;
 
   private readonly name = toSignal(inject(ActivatedRoute).queryParamMap.pipe(map((q) => q.get('name'))), { initialValue: null });
@@ -64,7 +63,7 @@ export class ReportsComponent {
   });
   readonly activeGroup = computed(() => (this.active() ? groupOf(this.active()!.group) : null));
 
-  /** Hub content: groups with the reports that match the search box (ready first, not-built last); empty groups go. */
+  /** Hub content: groups with the reports that match the search box; empty groups go. */
   readonly sections = computed(() => {
     const words = this.words();
     return REPORT_GROUPS.map((g: ReportGroup) => {
@@ -73,7 +72,7 @@ export class ReportsComponent {
       const hits = this.mine
         .filter((r) => r.group === g.key && matchesAll(words, r.label, r.summary))
         .sort((a, b) => byName(a) - byName(b));
-      const items: HubItem[] = [...hits.filter((r) => r.kind !== 'soon'), ...hits.filter((r) => r.kind === 'soon')].map((def) => ({
+      const items: HubItem[] = hits.map((def) => ({
         def,
         icon: reportIcon(def),
         label: highlight(def.label, words),
@@ -86,23 +85,22 @@ export class ReportsComponent {
 
   /** "Hay dùng": the owner's everyday reports as cards, those this role may open. */
   readonly featured = this.mine
-    .filter((r) => FEATURED_REPORTS.includes(r.slug) && r.kind !== 'soon')
+    .filter((r) => FEATURED_REPORTS.includes(r.slug))
     .sort((a, b) => FEATURED_REPORTS.indexOf(a.slug) - FEATURED_REPORTS.indexOf(b.slug))
     .map((r) => ({ def: r, icon: reportIcon(r), group: groupOf(r.group) }));
 
   /** Reports opened last in this browser (newest first, at most four), so the usual ones are one click away. */
   private readonly recentSlugs = signal<string[]>(loadRecent());
   readonly recent = computed(() =>
-    this.recentSlugs().map((s) => reportBySlug(s)).filter((r): r is ReportDef => !!r && r.kind !== 'soon' && this.mine.includes(r)).slice(0, 4),
+    this.recentSlugs().map((s) => reportBySlug(s)).filter((r): r is ReportDef => !!r && this.mine.includes(r)).slice(0, 4),
   );
   readonly groupLabel = (r: ReportDef) => groupOf(r.group).label;
 
-  /** Tabs under an open report: the reports of its group, ready ones first. */
+  /** Tabs under an open report: the reports of its group. */
   readonly siblings = computed(() => {
     const r = this.active();
     if (!r) return [];
-    const items = this.mine.filter((x) => x.group === r.group);
-    return [...items.filter((x) => x.kind !== 'soon'), ...items.filter((x) => x.kind === 'soon')];
+    return this.mine.filter((x) => x.group === r.group);
   });
 
   /** Enter in the search box opens the first hit; Esc clears the box. */
@@ -124,7 +122,7 @@ export class ReportsComponent {
   constructor() {
     effect(() => {
       const r = this.active();
-      if (!r || r.kind === 'soon') return;
+      if (!r) return;
       const next = [r.slug, ...untracked(this.recentSlugs).filter((s) => s !== r.slug)].slice(0, 8);
       this.recentSlugs.set(next);
       try {

@@ -55,8 +55,8 @@ export interface ReportDef {
   label: string;
   group: ReportGroupKey;
   summary: string;
-  /** period = has Từ ngày / Đến ngày; snapshot = tính tại thời điểm xem; custom = own component; link = lives on another page; soon = not built yet. */
-  kind: 'period' | 'snapshot' | 'custom' | 'link' | 'soon';
+  /** period = has Từ ngày / Đến ngày; snapshot = tính tại thời điểm xem; custom = own component; link = lives on another page. */
+  kind: 'period' | 'snapshot' | 'custom' | 'link';
   groups?: { value: string; label: string }[]; // "Cách nhóm"
   /** The report is about one record the reader picks first (Thẻ kho: one mặt hàng); sent as ?item=. */
   pick?: 'product';
